@@ -190,7 +190,7 @@
             parts.push('<div class="admin-updates-apply-followup">');
             parts.push('<p class="admin-updates-apply-followup-title">Action needed on the server</p>');
             parts.push(
-              '<p class="admin-updates-apply-followup-text">Fix the warning steps over SSH (or your host panel), then refresh this page. Typical fixes: set <code class="admin-inline-code">STRUXA_PHP_CLI_PATH</code> to CLI PHP (e.g. <code class="admin-inline-code">/usr/bin/php</code>) when using PHP-FPM, set <code class="admin-inline-code">STRUXA_COMPOSER_PATH</code> to Composer’s full path, then run <code class="admin-inline-code">php bin/migrate.php</code> and <code class="admin-inline-code">php bin/plugin-deps.php --no-dev</code> if needed.</p>'
+              '<p class="admin-updates-apply-followup-text">Fix the warning steps over SSH (or your host panel), then refresh this page. Typical fixes: set <code class="admin-inline-code">STRUXA_PHP_CLI_PATH</code> to CLI PHP (e.g. <code class="admin-inline-code">/usr/local/bin/php</code>) under PHP-FPM; set <code class="admin-inline-code">STRUXA_COMPOSER_PATH</code> to Composer’s full path (e.g. <code class="admin-inline-code">/home/you/bin/composer</code> — recent Struxa infers <code class="admin-inline-code">HOME</code> from that). If Composer still complains about <code class="admin-inline-code">HOME</code>, set <code class="admin-inline-code">STRUXA_WEB_HOME</code> or <code class="admin-inline-code">STRUXA_COMPOSER_HOME</code> in <code class="admin-inline-code">.env</code>. Then run <code class="admin-inline-code">php bin/migrate.php</code> and <code class="admin-inline-code">php bin/plugin-deps.php --no-dev</code> if needed.</p>'
             );
             parts.push('</div>');
           }

@@ -55,6 +55,15 @@ function plugin_deps_ensure_composer_environment(string $projectRoot): void
         return;
     }
 
+    $composerPath = trim((string) ($_ENV['STRUXA_COMPOSER_PATH'] ?? getenv('STRUXA_COMPOSER_PATH') ?: ''));
+    $derivedHome = plugin_deps_derive_home_from_composer_path($composerPath);
+    if ($derivedHome !== null) {
+        putenv('HOME=' . $derivedHome);
+        $_ENV['HOME'] = $derivedHome;
+
+        return;
+    }
+
     if (function_exists('posix_geteuid') && function_exists('posix_getpwuid')) {
         $pw = @posix_getpwuid(posix_geteuid());
         if (is_array($pw) && isset($pw['dir']) && is_string($pw['dir']) && $pw['dir'] !== '') {
@@ -72,7 +81,36 @@ function plugin_deps_ensure_composer_environment(string $projectRoot): void
     if (is_dir($fallback) && is_writable($fallback)) {
         putenv('COMPOSER_HOME=' . $fallback);
         $_ENV['COMPOSER_HOME'] = $fallback;
+
+        return;
     }
+
+    $tmp = sys_get_temp_dir();
+    if ($tmp !== '' && is_dir($tmp) && is_writable($tmp)) {
+        putenv('HOME=' . $tmp);
+        $_ENV['HOME'] = $tmp;
+    }
+}
+
+/**
+ * @return non-empty-string|null
+ */
+function plugin_deps_derive_home_from_composer_path(string $composerBinPath): ?string
+{
+    $composerBinPath = trim($composerBinPath);
+    if ($composerBinPath === '' || basename($composerBinPath) !== 'composer') {
+        return null;
+    }
+    $binDir = dirname($composerBinPath);
+    if (basename($binDir) !== 'bin') {
+        return null;
+    }
+    $home = dirname($binDir);
+    if ($home === '' || $home === '.' || $home === DIRECTORY_SEPARATOR) {
+        return null;
+    }
+
+    return $home;
 }
 
 /**

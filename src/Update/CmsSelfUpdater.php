@@ -575,6 +575,14 @@ final class CmsSelfUpdater
         $hasHome = $home !== '';
         $hasComposerHome = $composerHome !== '';
 
+        if (!$hasHome && !$hasComposerHome) {
+            $derived = $this->deriveHomeFromComposerPath($this->envTrim('STRUXA_COMPOSER_PATH'));
+            if ($derived !== null) {
+                $env['HOME'] = $derived;
+                $hasHome = true;
+            }
+        }
+
         if (!$hasHome && !$hasComposerHome && function_exists('posix_geteuid') && function_exists('posix_getpwuid')) {
             $pw = @posix_getpwuid(posix_geteuid());
             if (is_array($pw)) {
@@ -593,10 +601,41 @@ final class CmsSelfUpdater
             }
             if (is_dir($fallback) && is_writable($fallback)) {
                 $env['COMPOSER_HOME'] = $fallback;
+                $hasComposerHome = true;
+            }
+        }
+
+        if (!$hasHome && !$hasComposerHome) {
+            $tmp = sys_get_temp_dir();
+            if ($tmp !== '' && is_dir($tmp) && is_writable($tmp)) {
+                $env['HOME'] = $tmp;
             }
         }
 
         return $env;
+    }
+
+    /**
+     * /home/user/bin/composer → /home/user (typical cPanel / manual Composer install).
+     *
+     * @return non-empty-string|null
+     */
+    private function deriveHomeFromComposerPath(string $composerBinPath): ?string
+    {
+        $composerBinPath = trim($composerBinPath);
+        if ($composerBinPath === '' || basename($composerBinPath) !== 'composer') {
+            return null;
+        }
+        $binDir = dirname($composerBinPath);
+        if (basename($binDir) !== 'bin') {
+            return null;
+        }
+        $home = dirname($binDir);
+        if ($home === '' || $home === '.' || $home === DIRECTORY_SEPARATOR) {
+            return null;
+        }
+
+        return $home;
     }
 
     /**
