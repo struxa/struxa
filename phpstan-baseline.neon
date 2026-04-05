@@ -371,15 +371,3 @@ parameters:
 			identifier: function.alreadyNarrowedType
 			count: 1
 			path: src/Theme/ThemeSettingsResolver.php
-
-		-
-			message: '#^Cannot unset offset ''error'' on array\{ok\: true, update_available\: bool, current_version\: ''1\.0\.1'', fetched_at\: int\<1, max\>, feed_url\: string, latest_version\: non\-empty\-string, title\: string, summary\: string, \.\.\.\}\.$#'
-			identifier: unset.offset
-			count: 1
-			path: src/Update/CmsUpdateChecker.php
-
-		-
-			message: '#^Expression on left side of \?\? is not nullable\.$#'
-			identifier: nullCoalesce.expr
-			count: 1
-			path: src/Update/CmsUpdateChecker.php

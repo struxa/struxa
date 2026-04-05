@@ -20,7 +20,7 @@
         <dd><code class="admin-inline-code">{{ st.current_version|default(cms_version)|e }}</code></dd>
       </div>
       <div class="admin-updates-dl-row">
-        <dt>Latest (feed)</dt>
+        <dt>Latest (remote)</dt>
         <dd id="admin-updates-latest">
           {% if st.ok|default(false) and st.latest_version|default('') != '' %}
             <code class="admin-inline-code">{{ st.latest_version|e }}</code>
@@ -57,12 +57,23 @@
           <a class="admin-link" href="{{ st.release_url|e('html_attr') }}" rel="noopener noreferrer" target="_blank">Release notes →</a>
         </p>
       {% endif %}
+      {% if st.download_url|default('') != '' %}
+        <p class="admin-updates-links" id="admin-updates-download-wrap">
+          <a class="admin-link" href="{{ st.download_url|e('html_attr') }}" rel="noopener noreferrer" target="_blank">Download source (ZIP) →</a>
+        </p>
+      {% endif %}
       {% if st.error|default('') != '' %}
         <p class="admin-form-error admin-updates-error" id="admin-updates-error">{{ st.error|e }}</p>
       {% endif %}
     </div>
 
-    <p class="admin-hint admin-updates-feed-hint">Feed: <code class="admin-inline-code">{{ st.feed_url|default('')|e }}</code> · override with <code class="admin-inline-code">STRUXA_UPDATES_JSON_URL</code> in <code class="admin-inline-code">.env</code>.</p>
+    <p class="admin-hint admin-updates-feed-hint">
+      {% if st.source|default('feed') == 'github' %}
+        GitHub updates: <code class="admin-inline-code">{{ st.feed_url|default('')|e }}</code> · set in <code class="admin-inline-code">.env</code>: <code class="admin-inline-code">STRUXA_UPDATES_GITHUB_REPO=owner/repo</code> (optional <code class="admin-inline-code">STRUXA_UPDATES_GITHUB_REF=main</code> when the repo has no Releases yet).
+      {% else %}
+        Feed: <code class="admin-inline-code">{{ st.feed_url|default('')|e }}</code> · override with <code class="admin-inline-code">STRUXA_UPDATES_JSON_URL</code>, or use GitHub with <code class="admin-inline-code">STRUXA_UPDATES_GITHUB_REPO</code>.
+      {% endif %}
+    </p>
 
     <div class="admin-updates-actions">
       <a class="admin-btn-ghost" href="{{ url_for('admin.updates.index', {}, { fresh: 1 }) }}">Check now</a>
@@ -118,6 +129,13 @@
               '<p class="admin-updates-links"><a class="admin-link" href="' +
                 esc(data.release_url) +
                 '" rel="noopener noreferrer" target="_blank">Release notes →</a></p>'
+            );
+          }
+          if (data.download_url) {
+            parts.push(
+              '<p class="admin-updates-links"><a class="admin-link" href="' +
+                esc(data.download_url) +
+                '" rel="noopener noreferrer" target="_blank">Download source (ZIP) →</a></p>'
             );
           }
           if (data.error) {

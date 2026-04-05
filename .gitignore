@@ -38,3 +38,6 @@ storage/cache/*
 public/marketing-preview.html
 public/uploads/*
 !public/uploads/.gitkeep
+
+# Local cache from scripts/struxa-updates-json.php (vendor site generator)
+scripts/.struxa-updates-cache.json
