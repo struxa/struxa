@@ -9,3 +9,8 @@
   {% set href = theme_asset(sheet) %}
   <link rel="stylesheet" href="{{ href|e('html_attr') }}" />
 {% endfor %}
+{% for sheet in theme_stylesheets_async|default([]) %}
+  {% set href = theme_asset(sheet) %}
+  <link rel="preload" as="style" href="{{ href|e('html_attr') }}" onload="this.onload=null;this.rel='stylesheet'" />
+  <noscript><link rel="stylesheet" href="{{ href|e('html_attr') }}" /></noscript>
+{% endfor %}
