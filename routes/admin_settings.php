@@ -6,6 +6,7 @@ use App\Access\PermissionSlug;
 use App\Event\Events;
 use App\Event\StorefrontCachesInvalidateEvent;
 use App\Flash;
+use App\Locale\SiteLocale;
 use App\Http\Middleware\RequireCmsStaff;
 use App\Http\Middleware\RequirePermission;
 use App\Media\MediaRepository;
@@ -72,6 +73,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             return $twig->render($response, 'admin/settings/form.twig', $withCmsUser($request, array_merge($adminContext(), [
                 'admin_nav' => 'settings',
                 'settings_values' => $service->forForm(),
+                'site_language_options' => SiteLocale::formOptions(),
                 'media_picker_images' => $mediaRepo->listImagesForPicker(200),
                 'published_pages_for_home' => $pageRepo->publishedIdTitlePairs(),
                 'google_oauth_secret_stored' => $googleSecretStoredFlag(),
@@ -101,6 +103,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 return $twig->render($response, 'admin/settings/form.twig', $withCmsUser($request, array_merge($adminContext(), [
                     'admin_nav' => 'settings',
                     'settings_values' => $result['values'],
+                    'site_language_options' => SiteLocale::formOptions(),
                     'media_picker_images' => $mediaRepo->listImagesForPicker(200),
                     'published_pages_for_home' => $pageRepo->publishedIdTitlePairs(),
                     'google_oauth_secret_stored' => $googleSecretStoredFlag(),
@@ -142,6 +145,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 return $twig->render($response, 'admin/settings/form.twig', $withCmsUser($request, array_merge($adminContext(), [
                     'admin_nav' => 'settings',
                     'settings_values' => $result['values'],
+                    'site_language_options' => SiteLocale::formOptions(),
                     'media_picker_images' => $mediaRepo->listImagesForPicker(200),
                     'published_pages_for_home' => $pageRepo->publishedIdTitlePairs(),
                     'google_oauth_secret_stored' => $googleSecretStoredFlag(),

@@ -1,6 +1,6 @@
 {# Canonical public document layout (PublicLayoutContract::PUBLIC_ROOT). Core + plugins should extend this or base.twig (alias). Themes use layouts/base.twig for storefront chrome. #}
 <!DOCTYPE html>
-<html lang="en">
+<html lang="{{ settings.site_html_lang|default('en')|e('html_attr') }}">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -29,7 +29,7 @@
     {% if not struxa_seo|default(false) %}
       <meta property="og:type" content="website" />
       <meta property="og:site_name" content="{{ settings.site_name|e }}" />
-      <meta property="og:locale" content="en_US" />
+      <meta property="og:locale" content="{{ settings.site_og_locale|default('en_US')|e('html_attr') }}" />
       <meta property="og:title" content="{% block og_title %}{{ settings.default_meta_title|default(settings.site_name)|e }}{% endblock %}" />
       <meta
         property="og:description"

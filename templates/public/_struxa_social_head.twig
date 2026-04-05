@@ -3,7 +3,7 @@
 {% endif %}
 <meta property="og:type" content="website" />
 <meta property="og:site_name" content="{{ settings.site_name|e }}" />
-<meta property="og:locale" content="en_US" />
+<meta property="og:locale" content="{{ settings.site_og_locale|default('en_US')|e('html_attr') }}" />
 <meta property="og:title" content="{{ struxa_og_title|default('')|e('html_attr') }}" />
 <meta property="og:description" content="{{ struxa_og_description|default('')|e('html_attr') }}" />
 {% if struxa_og_image|default('')|trim != '' %}

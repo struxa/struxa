@@ -6,6 +6,7 @@ namespace App\Http\Middleware;
 
 use App\Cache\CacheConfig;
 use App\Cache\CacheManager;
+use App\Locale\SiteLocale;
 use App\CmsVersion;
 use App\Media\SiteBrandingResolver;
 use App\Menu\MenuPublicLoader;
@@ -47,12 +48,14 @@ final class TwigCmsGlobals implements MiddlewareInterface
             $settings = $internal->get('twig_globals:settings');
             if (!is_array($settings)) {
                 $settingsSvc = new SiteSettingsService(new SettingsRepository($this->pdo));
-                $settings = SiteBrandingResolver::apply($this->pdo, $settingsSvc->forTwig());
+                $settings = self::applySiteLocaleToSettings(SiteBrandingResolver::apply($this->pdo, $settingsSvc->forTwig()));
                 $internal->set('twig_globals:settings', $settings, $ttl);
+            } else {
+                $settings = self::applySiteLocaleToSettings($settings);
             }
         } else {
             $settingsSvc = new SiteSettingsService(new SettingsRepository($this->pdo));
-            $settings = SiteBrandingResolver::apply($this->pdo, $settingsSvc->forTwig());
+            $settings = self::applySiteLocaleToSettings(SiteBrandingResolver::apply($this->pdo, $settingsSvc->forTwig()));
         }
         $env->addGlobal('settings', $settings);
 
@@ -126,8 +129,11 @@ final class TwigCmsGlobals implements MiddlewareInterface
         $env->addGlobal('cms_version', CmsVersion::CURRENT);
 
         $adminPath = $this->normalizeRequestPath($request->getUri()->getPath());
-        if ($this->isAdminRequestPath($adminPath) && $internal !== null) {
-            $env->addGlobal('cms_update_status', (new CmsUpdateChecker($internal))->check());
+        $internalForUpdates = $internal ?? (new CacheManager(
+            dirname(__DIR__, 3) . DIRECTORY_SEPARATOR . 'storage' . DIRECTORY_SEPARATOR . 'cache'
+        ))->internal();
+        if ($this->isAdminRequestPath($adminPath)) {
+            $env->addGlobal('cms_update_status', (new CmsUpdateChecker($internalForUpdates))->checkForAdminUi());
         } else {
             $env->addGlobal('cms_update_status', [
                 'ok' => true,
@@ -179,6 +185,21 @@ final class TwigCmsGlobals implements MiddlewareInterface
         }
 
         return $out;
+    }
+
+    /**
+     * @param array<string, string> $settings
+     * @return array<string, string>
+     */
+    private static function applySiteLocaleToSettings(array $settings): array
+    {
+        $code = SiteLocale::normalizeSetting($settings['site_language'] ?? 'en');
+        $settings['site_language'] = $code;
+        $html = SiteLocale::htmlLang($code);
+        $settings['site_html_lang'] = $html;
+        $settings['site_og_locale'] = SiteLocale::ogLocale($html);
+
+        return $settings;
     }
 
     private function normalizeRequestPath(string $path): string

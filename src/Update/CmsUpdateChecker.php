@@ -34,6 +34,9 @@ final class CmsUpdateChecker
 
     private const CACHE_TTL = 3600;
 
+    /** Re-fetch remote feed when cache is older than this (admin UI); keeps new releases visible without opening Updates. */
+    private const ADMIN_UI_MAX_CACHE_AGE_SEC = 900;
+
     private const MAX_BYTES = 32_768;
 
     private const MAX_BYTES_GITHUB_API = 262_144;
@@ -57,6 +60,35 @@ final class CmsUpdateChecker
         }
 
         return $this->checkJsonFeed($forceRefresh);
+    }
+
+    /**
+     * For admin layout: use fresh feed when cache is stale so the bell/banner reflect new releases promptly.
+     *
+     * @return UpdateStatus
+     */
+    public function checkForAdminUi(): array
+    {
+        $key = $this->primaryCacheKey();
+        $cached = $this->internalCache->get($key);
+        if (is_array($cached) && isset($cached['fetched_at'])) {
+            $age = time() - (int) $cached['fetched_at'];
+            if ($age >= 0 && $age <= self::ADMIN_UI_MAX_CACHE_AGE_SEC) {
+                return $this->reconcileCachedStatus($key, $cached);
+            }
+        }
+
+        return $this->check(true);
+    }
+
+    private function primaryCacheKey(): string
+    {
+        $githubRepo = self::normalizeGithubRepo(self::envString('STRUXA_UPDATES_GITHUB_REPO'));
+        if ($githubRepo !== '') {
+            return self::CACHE_KEY_GITHUB_PREFIX . hash('sha256', $githubRepo);
+        }
+
+        return self::CACHE_KEY_FEED;
     }
 
     /**

@@ -50,12 +50,22 @@
         <div class="admin-settings-row2">
           <section id="settings-general" class="admin-card admin-settings-card admin-settings-section admin-settings-card--fill" tabindex="-1">
             <h2 class="admin-settings-card-title">General</h2>
-            <p class="admin-settings-card-desc">Site name, tagline, footer, and contact.</p>
+            <p class="admin-settings-card-desc">Site name, language (public HTML and social meta), tagline, footer, and contact.</p>
             <div class="admin-form-grid">
               <div class="admin-field admin-field--full {{ errors.site_name is defined ? 'admin-field--error' : '' }}">
                 <label class="admin-label" for="site_name">Site name <span class="admin-req">*</span></label>
                 <input class="admin-input" type="text" id="site_name" name="site_name" value="{{ settings_values.site_name|default('')|e('html_attr') }}" maxlength="120" required />
                 {% if errors.site_name is defined %}<p class="admin-field-error">{{ errors.site_name|e }}</p>{% endif %}
+              </div>
+              <div class="admin-field admin-field--full {{ errors.site_language is defined ? 'admin-field--error' : '' }}">
+                <label class="admin-label" for="site_language">Site language</label>
+                <select class="admin-select" id="site_language" name="site_language">
+                  {% for opt in site_language_options|default([]) %}
+                    <option value="{{ opt.value|e('html_attr') }}" {{ (settings_values.site_language|default('en') ~ '') == opt.value ? 'selected' : '' }}>{{ opt.label|e }}</option>
+                  {% endfor %}
+                </select>
+                <p class="admin-hint">Used for <code class="admin-inline-code">&lt;html lang&gt;</code> and <code class="admin-inline-code">og:locale</code> on the public site. Admin UI stays in English.</p>
+                {% if errors.site_language is defined %}<p class="admin-field-error">{{ errors.site_language|e }}</p>{% endif %}
               </div>
               <div class="admin-field admin-field--full {{ errors.site_tagline is defined ? 'admin-field--error' : '' }}">
                 <label class="admin-label" for="site_tagline">Site tagline</label>

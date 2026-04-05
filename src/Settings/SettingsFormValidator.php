@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Settings;
 
+use App\Locale\SiteLocale;
 use App\Media\MediaRepository;
 
 final class SettingsFormValidator
@@ -28,6 +29,8 @@ final class SettingsFormValidator
         } elseif (mb_strlen($siteName) > 120) {
             $errors['site_name'] = 'Site name must be 120 characters or fewer.';
         }
+
+        $siteLanguage = SiteLocale::normalizeSetting($this->str($body, 'site_language'));
 
         $siteTagline = $this->str($body, 'site_tagline');
         if (mb_strlen($siteTagline) > self::MAX_SHORT) {
@@ -132,6 +135,7 @@ final class SettingsFormValidator
 
         $values = [
             'site_name' => $siteName,
+            'site_language' => $siteLanguage,
             'site_tagline' => $siteTagline,
             'logo_path' => $logoPath,
             'favicon_path' => $faviconPath,

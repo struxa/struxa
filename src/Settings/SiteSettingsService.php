@@ -14,6 +14,8 @@ final class SiteSettingsService
     /** @var array<string, string> */
     public const DEFAULTS = [
         'site_name' => 'Your Studio',
+        /** BCP 47 code for public HTML lang / OG locale (Admin → Site settings). */
+        'site_language' => 'en',
         'site_tagline' => '',
         'logo_path' => '',
         'favicon_path' => '/favicon.svg',
@@ -49,6 +51,7 @@ final class SiteSettingsService
     /** @var list<string> */
     public const MANAGED_KEYS = [
         'site_name',
+        'site_language',
         'site_tagline',
         'logo_path',
         'favicon_path',

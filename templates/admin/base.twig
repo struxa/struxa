@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="{{ settings.site_html_lang|default('en')|e('html_attr') }}">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -80,6 +80,55 @@
             </div>
           </details>
         </div>
+        {% if _cms_up.update_available|default(false) and not (_cms_up.skipped|default(false)) %}
+          <div
+            class="admin-update-banner"
+            id="struxa-admin-update-banner"
+            role="region"
+            aria-label="CMS update available"
+            data-latest-version="{{ (_cms_up.latest_version|default(''))|e('html_attr') }}"
+          >
+            <div class="admin-update-banner-inner">
+              <span class="admin-update-banner-icon" aria-hidden="true">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                  <path d="M12 8v4M12 16h.01" />
+                </svg>
+              </span>
+              <p class="admin-update-banner-text">
+                {% if _cms_up.latest_version|default('') != '' %}
+                  <strong>Struxa {{ _cms_up.latest_version|e }}</strong> is available.
+                {% else %}
+                  A <strong>new Struxa version</strong> is available.
+                {% endif %}
+                Open Updates to review release notes or apply an update.
+              </p>
+              <a class="admin-btn-primary admin-update-banner-cta" href="{{ url_for('admin.updates.index') }}">Open updates</a>
+              <button type="button" class="admin-update-banner-dismiss" id="struxa-admin-update-dismiss" aria-label="Dismiss this notice">×</button>
+            </div>
+          </div>
+          <script>
+            (function () {
+              var bar = document.getElementById("struxa-admin-update-banner");
+              var btn = document.getElementById("struxa-admin-update-dismiss");
+              if (!bar) return;
+              var v = bar.getAttribute("data-latest-version") || "";
+              try {
+                if (localStorage.getItem("struxa_dismissed_update") === v) {
+                  bar.classList.add("is-hidden");
+                }
+              } catch (e) {}
+              if (btn) {
+                btn.addEventListener("click", function () {
+                  try {
+                    localStorage.setItem("struxa_dismissed_update", v);
+                  } catch (e) {}
+                  bar.classList.add("is-hidden");
+                });
+              }
+            })();
+          </script>
+        {% endif %}
       {% endblock %}
 
       <div class="admin-shell admin-shell--nav-open" id="admin-shell">
