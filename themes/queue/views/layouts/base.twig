@@ -3,12 +3,9 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    {# Site-root marketing home: defer editorial shell CSS (not used) to cut unused CSS on PageSpeed; other pages load both blocking. #}
-    {% set _queue_defer_editorial = cms_page_public_home|default(false) or strux_queue_static_home|default(false) %}
     {% include 'partials/_deferred_theme_css.twig' with {
       font_url: 'https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,400..900;1,14..32,400..900&display=swap',
-      theme_stylesheets: _queue_defer_editorial ? ['css/app.css'] : ['css/app.css', 'css/app-editorial.css'],
-      theme_stylesheets_async: _queue_defer_editorial ? ['css/app-editorial.css'] : [],
+      theme_stylesheets: ['css/app.css'],
     } only %}
     {# LCP: hero copy paints before async app.css; full theme CSS overrides. #}
     <style>

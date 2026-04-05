@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.0.7",
-    "title": "Struxa 1.0.7",
-    "summary": "Queue theme: split app-editorial.css; load async on site-root home to reduce unused CSS (PageSpeed).",
+    "latest_version": "1.0.8",
+    "title": "Struxa 1.0.8",
+    "summary": "Queue theme: restore single app.css (fix CMS/static home styles); add app.min.css for STRUXA_ASSETS_PREFER_MIN=1.",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "minor"
