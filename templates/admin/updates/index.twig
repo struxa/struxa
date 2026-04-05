@@ -94,6 +94,9 @@
         >Update automatically</button>
       {% endif %}
     </div>
+    {% if cms_auto_update_allowed|default(false) %}
+      <p class="admin-hint admin-updates-apply-disabled-hint" id="admin-updates-apply-disabled-hint" hidden></p>
+    {% endif %}
     {% if not cms_auto_update_allowed|default(false) %}
       <p class="admin-hint admin-updates-auto-hint">To enable in-place updates, set <code class="admin-inline-code">STRUXA_ALLOW_AUTO_UPDATE=1</code> in <code class="admin-inline-code">.env</code> (staff only; backs up nothing—have your own backups).</p>
     {% else %}
@@ -124,6 +127,7 @@
       var downloadBtn = document.getElementById('admin-updates-download-btn');
       var applyBtn = document.getElementById('admin-updates-apply-btn');
       var applyResult = document.getElementById('admin-updates-apply-result');
+      var applyDisabledHint = document.getElementById('admin-updates-apply-disabled-hint');
 
       function esc(s) {
         if (!s) return '';
@@ -180,6 +184,27 @@
           var canApply = autoAllowed && data.ok && data.update_available && data.download_url;
           applyBtn.disabled = !canApply;
         }
+        if (applyDisabledHint && autoAllowed) {
+          if (applyBtn && !applyBtn.disabled) {
+            applyDisabledHint.hidden = true;
+            applyDisabledHint.textContent = '';
+          } else {
+            applyDisabledHint.hidden = false;
+            if (!data.ok) {
+              applyDisabledHint.textContent =
+                'Update automatically needs a working feed (see errors above). When the feed reports a newer version and a ZIP URL, this button enables.';
+            } else if (!data.download_url) {
+              applyDisabledHint.innerHTML =
+                '<strong>Update automatically</strong> needs <code class="admin-inline-code">download_url</code> in the feed. Ensure your updates JSON/PHP includes it, or use <strong>Download update (ZIP)</strong> manually.';
+            } else if (!data.update_available) {
+              applyDisabledHint.textContent =
+                'No newer version reported by the feed — Update automatically only runs when remote version is greater than installed.';
+            } else {
+              applyDisabledHint.textContent = '';
+              applyDisabledHint.hidden = true;
+            }
+          }
+        }
         if (hintEl && document.hidden) {
           hintEl.textContent = 'Paused while tab in background; will resume when visible.';
         } else if (hintEl) {
@@ -197,6 +222,7 @@
           .catch(function () {});
       }
 
+      tick();
       if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
         setInterval(tick, pollMs);
       }
