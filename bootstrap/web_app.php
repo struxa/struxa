@@ -162,7 +162,7 @@ $app->add(new CsrfProtectionMiddleware());
 $app->addBodyParsingMiddleware();
 $app->addRoutingMiddleware();
 $app->add(TwigMiddleware::create($app, $twig));
-$app->add(new TwigCmsGlobals($twig, $pdo, $themeManager, $cacheManager));
+$app->add(new TwigCmsGlobals($twig, $pdo, $themeManager, $cacheManager, $app->getRouteCollector()->getRouteParser()));
 $phpAuthCookieName = isset($auth->config->cookie_name) ? (string) $auth->config->cookie_name : 'phpauth_session_cookie';
 $app->add(new PublicResponseCacheMiddleware($auth, $cacheManager->publicResponses(), $themeManager, $phpAuthCookieName));
 $app->add(new NotFoundLogMiddleware($pdo));

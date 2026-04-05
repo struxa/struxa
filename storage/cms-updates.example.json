@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.0.13",
-    "title": "Struxa 1.0.13",
-    "summary": "Auto-update: pass DB_* into migrate subprocess; bin/migrate uses getenv when \$_ENV is empty.",
+    "latest_version": "1.0.14",
+    "title": "Struxa 1.0.14",
+    "summary": "Admin: skip plugin sidebar links for missing routes; ship football-hub-plugin skeleton.",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "minor"

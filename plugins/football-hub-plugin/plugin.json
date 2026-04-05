@@ -1,0 +1,22 @@
+{
+  "name": "Football hub",
+  "slug": "football-hub-plugin",
+  "version": "0.1.0",
+  "author": "Struxa",
+  "description": "Skeleton: fixtures/tips/LMS migration target. Public /football/health + admin /admin/football-hub.",
+  "requires_cms_version": "1.0.0",
+  "requires_php": "8.2",
+  "homepage": "",
+  "repository_url": "",
+  "license": "MIT",
+  "category": "sports",
+  "tags": ["football", "skeleton"],
+  "tested_up_to": "1.0.14",
+  "main_class": "FootballHubPlugin\\FootballHubPluginServiceProvider",
+  "enabled_by_default": false,
+  "autoload": {
+    "psr4": {
+      "FootballHubPlugin\\": "src/"
+    }
+  }
+}

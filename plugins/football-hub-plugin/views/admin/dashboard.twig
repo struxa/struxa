@@ -1,0 +1,17 @@
+{% extends 'admin/base.twig' %}
+
+{% block admin_title %}Football hub{% endblock %}
+
+{% block admin_hero_title %}
+  <h1 class="admin-hero-title">Football hub</h1>
+{% endblock %}
+
+{% block admin_hero_sub %}
+  <p class="admin-hero-sub">Skeleton plugin — extend with fixtures, tips, and LMS tools.</p>
+{% endblock %}
+
+{% block admin_content %}
+  <div class="admin-card">
+    <p>Public probe: <a class="admin-link" href="{{ site_url }}/football/health" target="_blank" rel="noopener">{{ site_url }}/football/health</a></p>
+  </div>
+{% endblock %}

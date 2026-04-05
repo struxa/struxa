@@ -15,11 +15,14 @@ use App\Plugin\PluginAdminNavRegistry;
 use App\Theme\ThemeManager;
 use App\Theme\ThemeSettingsResolver;
 use App\Update\CmsUpdateChecker;
+use InvalidArgumentException;
 use PDO;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\MiddlewareInterface;
 use Psr\Http\Server\RequestHandlerInterface;
+use RuntimeException;
+use Slim\Interfaces\RouteParserInterface;
 use Slim\Views\Twig;
 
 final class TwigCmsGlobals implements MiddlewareInterface
@@ -29,6 +32,7 @@ final class TwigCmsGlobals implements MiddlewareInterface
         private readonly PDO $pdo,
         private readonly ThemeManager $themeManager,
         private readonly ?CacheManager $cacheManager = null,
+        private readonly ?RouteParserInterface $routeParser = null,
     ) {
     }
 
@@ -113,7 +117,11 @@ final class TwigCmsGlobals implements MiddlewareInterface
         $env->addGlobal('active_theme', $activeSlug);
         $env->addGlobal('active_theme_manifest', $manifestArr);
         $env->addGlobal('theme_settings', $themeSettings);
-        $env->addGlobal('plugin_admin_nav_items', PluginAdminNavRegistry::instance()->all());
+        $pluginNav = PluginAdminNavRegistry::instance()->all();
+        if ($this->routeParser !== null) {
+            $pluginNav = $this->filterPluginAdminNavForResolvableRoutes($pluginNav);
+        }
+        $env->addGlobal('plugin_admin_nav_items', $pluginNav);
         $env->addGlobal('cms_public_page_cache_on', CacheConfig::publicCacheEnabled());
         $env->addGlobal('cms_version', CmsVersion::CURRENT);
 
@@ -132,6 +140,45 @@ final class TwigCmsGlobals implements MiddlewareInterface
         }
 
         return $handler->handle($request);
+    }
+
+    /**
+     * Drop plugin sidebar links whose named route is missing or cannot be built (avoids 500s from url_for).
+     *
+     * @param array<int, mixed> $items
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function filterPluginAdminNavForResolvableRoutes(array $items): array
+    {
+        $out = [];
+        foreach ($items as $item) {
+            if (!is_array($item)) {
+                continue;
+            }
+            $name = $item['route_name'] ?? '';
+            if (!is_string($name) || $name === '') {
+                continue;
+            }
+            $params = $item['route_params'] ?? [];
+            if (!is_array($params)) {
+                $params = [];
+            }
+            $stringParams = [];
+            foreach ($params as $k => $v) {
+                if (is_string($k) && is_string($v)) {
+                    $stringParams[$k] = $v;
+                }
+            }
+            try {
+                $this->routeParser->urlFor($name, $stringParams);
+            } catch (RuntimeException | InvalidArgumentException) {
+                continue;
+            }
+            $out[] = $item;
+        }
+
+        return $out;
     }
 
     private function normalizeRequestPath(string $path): string
