@@ -1,4 +1,4 @@
-{# Fonts + theme CSS: single-link preload→stylesheet (onload) avoids duplicate fetches and keeps screen rendering off the critical path vs separate preload + blocking/print links. #}
+{# Fonts: non-blocking preload→stylesheet. Theme CSS uses normal stylesheet links to avoid a layout FOUC. #}
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 {% if font_url|default('')|trim != '' %}
@@ -7,6 +7,5 @@
 {% endif %}
 {% for sheet in theme_stylesheets|default([]) %}
   {% set href = theme_asset(sheet) %}
-  <link rel="preload" as="style" href="{{ href|e('html_attr') }}" onload="this.onload=null;this.rel='stylesheet'" />
-  <noscript><link rel="stylesheet" href="{{ href|e('html_attr') }}" /></noscript>
+  <link rel="stylesheet" href="{{ href|e('html_attr') }}" />
 {% endfor %}
