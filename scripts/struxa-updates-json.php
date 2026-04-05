@@ -1,4 +1,3 @@
-#!/usr/bin/env php
 <?php
 
 declare(strict_types=1);
@@ -17,6 +16,9 @@ declare(strict_types=1);
  *   - Web refresh cache: ?refresh=1  (optional secret: STRUXA_UPDATES_GEN_SECRET in Apache/Nginx env)
  *   - CLI: php struxa-updates-json.php
  *   - CLI write file: php struxa-updates-json.php --write=/path/to/updates.json
+ *   - Health (no GitHub call): ?ping=1 → plain text (verify PHP runs in this directory)
+ *
+ * Web: file must start with <?php only (no shebang) so nothing is sent before JSON headers.
  *
  * Optional environment variables (recommended on the server instead of editing constants):
  *   STRUXA_UPDATES_GITHUB_REPO   default struxa/struxa
@@ -267,6 +269,13 @@ function struxa_repo_config(): array
 
 $isCli = PHP_SAPI === 'cli';
 
+if (!$isCli && isset($_GET['ping'])) {
+    header('Content-Type: text/plain; charset=utf-8');
+    header('Cache-Control: no-store');
+    echo 'struxa-updates-json ok ' . PHP_VERSION;
+    exit;
+}
+
 $writePath = null;
 if ($isCli) {
     foreach (array_slice($argv ?? [], 1) as $arg) {
@@ -358,7 +367,20 @@ $jsonFlags = JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERR
 if ($isCli) {
     $jsonFlags |= JSON_PRETTY_PRINT;
 }
-$json = json_encode($payload, $jsonFlags);
+try {
+    $json = json_encode($payload, $jsonFlags);
+} catch (JsonException) {
+    if ($isCli) {
+        fwrite(STDERR, "JSON encode failed.\n");
+        exit(1);
+    }
+    if (!headers_sent()) {
+        header('Content-Type: application/json; charset=utf-8', true, 500);
+        header('Cache-Control: no-store');
+    }
+    echo '{"schema_version":1,"error":"json_encode_failed"}';
+    exit;
+}
 
 if ($isCli) {
     if ($writePath !== null) {
