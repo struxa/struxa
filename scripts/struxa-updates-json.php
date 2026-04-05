@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 /**
- * Standalone Struxa updates.json generator for your company site (e.g. struxapoint.com/struxa-dist/).
+ * Standalone Struxa updates.json generator for your company site (e.g. struxapoint.com/dist/struxa-updates-json.php).
  *
  * Deploy this only on the vendor website — not required for people who install or clone the CMS from Git.
  * Self-hosted sites use STRUXA_UPDATES_JSON_URL (your feed) or STRUXA_UPDATES_GITHUB_REPO instead.
@@ -12,7 +12,7 @@ declare(strict_types=1);
  * No Composer — upload this single file + optional .env-style config via web server SetEnv.
  *
  * Usage:
- *   - Web: https://example.com/struxa-dist/struxa-updates-json.php  → application/json
+ *   - Web: https://example.com/dist/struxa-updates-json.php  → application/json (path is up to you)
  *   - Web refresh cache: ?refresh=1  (optional secret: STRUXA_UPDATES_GEN_SECRET in Apache/Nginx env)
  *   - CLI: php struxa-updates-json.php
  *   - CLI write file: php struxa-updates-json.php --write=/path/to/updates.json

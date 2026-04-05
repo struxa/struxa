@@ -71,7 +71,7 @@
       {% if st.source|default('feed') == 'github' %}
         GitHub updates: <code class="admin-inline-code">{{ st.feed_url|default('')|e }}</code> · set in <code class="admin-inline-code">.env</code>: <code class="admin-inline-code">STRUXA_UPDATES_GITHUB_REPO=owner/repo</code> (optional <code class="admin-inline-code">STRUXA_UPDATES_GITHUB_REF=main</code> when the repo has no Releases yet).
       {% else %}
-        Feed: <code class="admin-inline-code">{{ st.feed_url|default('')|e }}</code> · override with <code class="admin-inline-code">STRUXA_UPDATES_JSON_URL</code>, or use GitHub with <code class="admin-inline-code">STRUXA_UPDATES_GITHUB_REPO</code>.
+        Feed: <code class="admin-inline-code">{{ st.feed_url|default('')|e }}</code> (static <code class="admin-inline-code">.json</code> or PHP that returns JSON) · override with <code class="admin-inline-code">STRUXA_UPDATES_JSON_URL</code>, or use GitHub with <code class="admin-inline-code">STRUXA_UPDATES_GITHUB_REPO</code>.
       {% endif %}
     </p>
 

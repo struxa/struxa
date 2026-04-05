@@ -38,8 +38,8 @@ final class CmsUpdateChecker
 
     private const MAX_BYTES_GITHUB_API = 262_144;
 
-    /** Default public feed; override with STRUXA_UPDATES_JSON_URL. */
-    private const DEFAULT_FEED_URL = 'https://struxapoint.com/struxa-dist/updates.json';
+    /** Default public feed (PHP generator or static .json); override with STRUXA_UPDATES_JSON_URL. */
+    private const DEFAULT_FEED_URL = 'https://struxapoint.com/dist/struxa-updates-json.php';
 
     public function __construct(
         private readonly FileCache $internalCache,
