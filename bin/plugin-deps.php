@@ -12,9 +12,78 @@ declare(strict_types=1);
  * Options:
  *   --dry-run   Print directories only, do not run composer
  *   --no-dev    Pass --no-dev to composer install
+ *
+ * Composer binary: STRUXA_COMPOSER_PATH in .env (same as admin self-update), or COMPOSER_BIN,
+ * then PATH (`composer`), common paths, and $HOME/bin/composer.
  */
 
 $root = dirname(__DIR__);
+
+require $root . '/vendor/autoload.php';
+
+if (is_readable($root . '/.env')) {
+    Dotenv\Dotenv::createImmutable($root)->safeLoad();
+}
+
+/**
+ * @return non-empty-string|null
+ */
+function plugin_deps_resolve_composer_binary(): ?string
+{
+    $candidates = [];
+    foreach (['STRUXA_COMPOSER_PATH', 'COMPOSER_BIN'] as $key) {
+        $v = trim((string) ($_ENV[$key] ?? getenv($key) ?: ''));
+        if ($v !== '') {
+            $candidates[] = $v;
+        }
+    }
+
+    $home = trim((string) ($_ENV['HOME'] ?? getenv('HOME') ?: ''));
+    $candidates = array_merge($candidates, [
+        'composer',
+        '/usr/local/bin/composer',
+        '/usr/bin/composer',
+        '/opt/cpanel/composer/bin/composer',
+    ]);
+    if ($home !== '') {
+        $candidates[] = $home . '/bin/composer';
+        $candidates[] = $home . '/.config/composer/vendor/bin/composer';
+    }
+
+    $seen = [];
+    foreach ($candidates as $c) {
+        if (isset($seen[$c])) {
+            continue;
+        }
+        $seen[$c] = true;
+        $resolved = plugin_deps_resolve_one_composer_candidate($c);
+        if ($resolved !== null) {
+            return $resolved;
+        }
+    }
+
+    return null;
+}
+
+/**
+ * @return non-empty-string|null
+ */
+function plugin_deps_resolve_one_composer_candidate(string $pathOrName): ?string
+{
+    if (str_contains($pathOrName, DIRECTORY_SEPARATOR) || str_contains($pathOrName, '/')) {
+        return is_file($pathOrName) && is_executable($pathOrName) ? $pathOrName : null;
+    }
+    $out = [];
+    $code = 0;
+    @exec('command -v ' . escapeshellarg($pathOrName) . ' 2>/dev/null', $out, $code);
+    if ($code !== 0 || !isset($out[0])) {
+        return null;
+    }
+    $p = trim($out[0]);
+
+    return $p !== '' && is_executable($p) ? $p : null;
+}
+
 $pluginsDir = $root . '/plugins';
 
 $dry = in_array('--dry-run', $argv, true);
@@ -25,9 +94,10 @@ if (!is_dir($pluginsDir)) {
     exit(0);
 }
 
-$composerBin = 'composer';
-if (isset($_ENV['COMPOSER_BIN'])) {
-    $composerBin = $_ENV['COMPOSER_BIN'];
+$composerBin = plugin_deps_resolve_composer_binary();
+if ($composerBin === null) {
+    fwrite(STDERR, "composer not found. Set STRUXA_COMPOSER_PATH in .env to the full path (e.g. /home/you/bin/composer), or add Composer to PATH.\n");
+    exit(1);
 }
 
 $exit = 0;
