@@ -3,6 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    {% include 'partials/_deferred_theme_css.twig' with {
+      font_url: 'https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,400..900;1,14..32,400..900&display=swap',
+      theme_stylesheets: ['css/app.css'],
+    } only %}
     {# LCP: hero copy paints before async app.css; full theme CSS overrides. #}
     <style>
       :root {
@@ -72,10 +76,6 @@
     <meta name="theme-color" content="#0d0a1a" />
     <meta name="color-scheme" content="dark" />
     <link rel="icon" href="{{ settings.favicon_href|default('/favicon.svg')|e('html_attr') }}" />
-    {% include 'partials/_deferred_theme_css.twig' with {
-      font_url: 'https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,400..900;1,14..32,400..900&display=swap',
-      theme_stylesheets: ['css/app.css'],
-    } only %}
     <style>:root { --theme-accent: {{ theme_settings.accent|default('#ff2d78')|e('html_attr') }}; }</style>
     {% if not struxa_seo|default(false) %}
       <meta property="og:type" content="website" />

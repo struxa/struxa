@@ -1,14 +1,12 @@
-{# Fonts: optional preload→stylesheet keeps webfont CSS off the critical path; theme CSS uses normal links to avoid a flash of unstyled layout. #}
+{# Fonts + theme CSS: single-link preload→stylesheet (onload) avoids duplicate fetches and keeps screen rendering off the critical path vs separate preload + blocking/print links. #}
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 {% if font_url|default('')|trim != '' %}
   <link rel="preload" as="style" href="{{ font_url|e('html_attr') }}" onload="this.onload=null;this.rel='stylesheet'" />
   <noscript><link rel="stylesheet" href="{{ font_url|e('html_attr') }}" /></noscript>
 {% endif %}
-{# Non-blocking theme CSS: short FOUC possible; pair with critical inline on key layouts for LCP. #}
 {% for sheet in theme_stylesheets|default([]) %}
   {% set href = theme_asset(sheet) %}
-  <link rel="preload" as="style" href="{{ href|e('html_attr') }}" />
-  <link rel="stylesheet" href="{{ href|e('html_attr') }}" media="print" onload="this.media='all'" />
+  <link rel="preload" as="style" href="{{ href|e('html_attr') }}" onload="this.onload=null;this.rel='stylesheet'" />
   <noscript><link rel="stylesheet" href="{{ href|e('html_attr') }}" /></noscript>
 {% endfor %}
