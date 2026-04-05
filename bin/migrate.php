@@ -3,6 +3,7 @@
 
 declare(strict_types=1);
 
+use App\Cli\CmsCliEnv;
 use App\Database\Migrator;
 
 $root = dirname(__DIR__);
@@ -13,11 +14,11 @@ if (is_readable($root . '/.env')) {
     Dotenv\Dotenv::createImmutable($root)->safeLoad();
 }
 
-$dbHost = $_ENV['DB_HOST'] ?? '127.0.0.1';
-$dbPort = $_ENV['DB_PORT'] ?? '3306';
-$dbName = $_ENV['DB_NAME'] ?? 'studio';
-$dbUser = $_ENV['DB_USER'] ?? 'studio';
-$dbPass = $_ENV['DB_PASS'] ?? 'studio';
+$dbHost = CmsCliEnv::get('DB_HOST', '127.0.0.1');
+$dbPort = CmsCliEnv::get('DB_PORT', '3306');
+$dbName = CmsCliEnv::get('DB_NAME', 'studio');
+$dbUser = CmsCliEnv::get('DB_USER', 'studio');
+$dbPass = CmsCliEnv::get('DB_PASS', 'studio');
 
 $dsn = sprintf('mysql:host=%s;port=%s;dbname=%s;charset=utf8mb4', $dbHost, $dbPort, $dbName);
 

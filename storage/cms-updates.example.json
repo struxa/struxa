@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.0.12",
-    "title": "Struxa 1.0.12",
-    "summary": "Auto-update: infer HOME from STRUXA_COMPOSER_PATH (.../bin/composer); temp-dir fallback for Composer.",
+    "latest_version": "1.0.13",
+    "title": "Struxa 1.0.13",
+    "summary": "Auto-update: pass DB_* into migrate subprocess; bin/migrate uses getenv when \$_ENV is empty.",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "minor"

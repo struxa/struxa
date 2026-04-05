@@ -560,6 +560,13 @@ final class CmsSelfUpdater
             }
         }
 
+        foreach (['DB_HOST', 'DB_PORT', 'DB_NAME', 'DB_USER', 'DB_PASS'] as $dbKey) {
+            $g = getenv($dbKey);
+            if ($g !== false) {
+                $env[$dbKey] = (string) $g;
+            }
+        }
+
         $home = trim((string) ($env['HOME'] ?? ''));
         $composerHome = trim((string) ($env['COMPOSER_HOME'] ?? ''));
 
