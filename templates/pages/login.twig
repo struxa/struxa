@@ -17,6 +17,13 @@
         <p class="auth-flash auth-flash--success" role="status">{{ flash_success }}</p>
       {% endif %}
 
+      {% if google_sso_enabled %}
+        <div class="auth-oauth">
+          <a class="btn btn-secondary btn-lg auth-submit" href="{{ url_for('auth.google.start', {}, login_next ? { next: login_next } : {}) }}">Continue with Google</a>
+        </div>
+        <p class="auth-divider" role="presentation">or use your email and password</p>
+      {% endif %}
+
       <form class="auth-form" method="post" action="{{ url_for('login') }}" novalidate>
         {% if login_next %}
           <input type="hidden" name="next" value="{{ login_next }}" />

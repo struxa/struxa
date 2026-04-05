@@ -101,6 +101,35 @@ final class SettingsFormValidator
         $regUsername = $this->str($body, 'registration_collect_username');
         $regUsernameOn = $regUsername === '1' ? '1' : '0';
 
+        $googleEnabled = $this->str($body, 'google_sso_enabled');
+        $googleEnabledOn = $googleEnabled === '1' ? '1' : '0';
+
+        $googleClientId = $this->str($body, 'google_oauth_client_id');
+        if (mb_strlen($googleClientId) > 512) {
+            $errors['google_oauth_client_id'] = 'Google Client ID is too long.';
+        }
+
+        $googleSecretIn = $this->str($body, 'google_oauth_client_secret');
+        if (mb_strlen($googleSecretIn) > 2048) {
+            $errors['google_oauth_client_secret'] = 'Google Client secret is too long.';
+        }
+
+        $googleRedirect = $this->str($body, 'google_oauth_redirect_uri');
+        if ($googleRedirect !== '' && !filter_var($googleRedirect, FILTER_VALIDATE_URL)) {
+            $errors['google_oauth_redirect_uri'] = 'Redirect URI must be empty or a valid URL (https://…).';
+        }
+        if (mb_strlen($googleRedirect) > 2000) {
+            $errors['google_oauth_redirect_uri'] = 'Redirect URI is too long.';
+        }
+
+        $googleDomains = $this->str($body, 'google_sso_allowed_domains');
+        if (mb_strlen($googleDomains) > 2000) {
+            $errors['google_sso_allowed_domains'] = 'Allowed domains list is too long.';
+        }
+
+        $googleAuto = $this->str($body, 'google_sso_auto_provision');
+        $googleAutoOn = $googleAuto === '1' ? '1' : '0';
+
         $values = [
             'site_name' => $siteName,
             'site_tagline' => $siteTagline,
@@ -121,6 +150,12 @@ final class SettingsFormValidator
             'seo_default_twitter_image_media_id' => $seoTwDefault,
             'public_homepage_page_id' => $publicHomePageId === '' ? '' : (string) (int) $publicHomePageId,
             'registration_collect_username' => $regUsernameOn,
+            'google_sso_enabled' => $googleEnabledOn,
+            'google_oauth_client_id' => $googleClientId,
+            'google_oauth_client_secret' => $googleSecretIn,
+            'google_oauth_redirect_uri' => $googleRedirect,
+            'google_sso_allowed_domains' => $googleDomains,
+            'google_sso_auto_provision' => $googleAutoOn,
         ];
 
         return ['errors' => $errors, 'values' => $values];

@@ -2496,6 +2496,23 @@ main > section[id] {
   justify-content: center;
 }
 
+.auth-oauth {
+  margin: 0 0 0.75rem;
+}
+
+.auth-oauth .btn {
+  box-sizing: border-box;
+  text-decoration: none;
+  display: inline-flex;
+}
+
+.auth-divider {
+  text-align: center;
+  margin: 0 0 1rem;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
 /* Scroll reveals */
 .reveal {
   opacity: 0;

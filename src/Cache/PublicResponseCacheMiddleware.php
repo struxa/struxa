@@ -140,6 +140,10 @@ final class PublicResponseCacheMiddleware implements MiddlewareInterface
             return 'auth_route';
         }
 
+        if (str_starts_with($path, '/auth/')) {
+            return 'auth_route';
+        }
+
         $q = $request->getQueryParams();
         if (array_key_exists('preview', $q)) {
             return 'preview_query';

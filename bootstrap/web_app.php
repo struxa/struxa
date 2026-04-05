@@ -3,6 +3,8 @@
 declare(strict_types=1);
 
 use App\Auth\AppAuth;
+use App\Auth\GoogleOAuthClient;
+use App\Auth\GoogleSsoConfig;
 use App\Auth\PhpAuthUsernameRepository;
 use App\Auth\UsernameValidation;
 use App\Asset\CoreAssetResolver;
@@ -124,6 +126,7 @@ Events::set($eventDispatcher);
 
 $authConfig = new Config($pdo, PhpAuthSettings::fromEnv(), PhpAuthSettings::configType());
 $auth = new AppAuth($pdo, $authConfig);
+$googleSso = GoogleSsoConfig::fromSettings();
 
 $themeManager = new ThemeManager($root);
 $cacheStorage = $root . DIRECTORY_SEPARATOR . 'storage' . DIRECTORY_SEPARATOR . 'cache';
@@ -187,7 +190,7 @@ $app->get(
     new MediaDerivativeHandler($mediaDerivativeService, $mediaUrlHelper, $mediaRepository)
 );
 
-$viewData = static function (array $extra = []) use ($auth, $pdo): array {
+$viewData = static function (array $extra = []) use ($auth, $pdo, $googleSso): array {
     $userEmail = '';
     $userUsername = '';
     if ($auth->isLogged()) {
@@ -209,6 +212,7 @@ $viewData = static function (array $extra = []) use ($auth, $pdo): array {
         'flash_error' => Flash::pull('error'),
         'flash_success' => Flash::pull('success'),
         'site_url' => rtrim($_ENV['PHPAUTH_SITE_URL'] ?? 'http://localhost:8080', '/'),
+        'google_sso_enabled' => $googleSso !== null,
     ], $extra);
 };
 
@@ -249,6 +253,155 @@ $app->get('/login', function (Request $request, Response $response) use ($twig, 
 
     return $twig->render($response, 'pages/login.twig', $viewData(['login_next' => $next]));
 })->setName('login');
+
+$app->get('/auth/google/start', function (Request $request, Response $response) use ($googleSso, $auth): Response {
+    if ($googleSso === null) {
+        throw new HttpNotFoundException($request);
+    }
+    if ($auth->isLogged()) {
+        $routeParser = RouteContext::fromRequest($request)->getRouteParser();
+
+        return $response
+            ->withHeader('Location', $routeParser->urlFor('home'))
+            ->withStatus(302);
+    }
+
+    Flash::start();
+    $state = bin2hex(random_bytes(16));
+    $query = $request->getQueryParams();
+    $next = isset($query['next']) && is_string($query['next']) ? $query['next'] : null;
+    $remember = !empty($query['remember']) ? 1 : 0;
+
+    $_SESSION['_struxa_google_oauth'] = [
+        'state' => $state,
+        'next' => $next,
+        'remember' => $remember,
+        'exp' => time() + 600,
+    ];
+
+    $client = new GoogleOAuthClient($googleSso);
+
+    return $response
+        ->withHeader('Location', $client->authorizationUrl($state))
+        ->withStatus(302);
+})->setName('auth.google.start');
+
+$app->get('/auth/google/callback', function (Request $request, Response $response) use ($googleSso, $auth, $pdo): Response {
+    if ($googleSso === null) {
+        throw new HttpNotFoundException($request);
+    }
+
+    $routeParser = RouteContext::fromRequest($request)->getRouteParser();
+    $loginUrl = $routeParser->urlFor('login');
+
+    $redirectLogin = static function (?string $next, string $message) use ($response, $loginUrl): Response {
+        Flash::set('error', $message);
+        $url = $loginUrl;
+        if ($next !== null && $next !== '') {
+            $url .= '?' . http_build_query(['next' => $next]);
+        }
+
+        return $response->withHeader('Location', $url)->withStatus(302);
+    };
+
+    if ($auth->isLogged()) {
+        return $response
+            ->withHeader('Location', $routeParser->urlFor('home'))
+            ->withStatus(302);
+    }
+
+    $q = $request->getQueryParams();
+    if (isset($q['error']) && is_string($q['error']) && $q['error'] !== '') {
+        return $redirectLogin(null, 'Google sign-in was cancelled or denied.');
+    }
+
+    Flash::start();
+    $bag = $_SESSION['_struxa_google_oauth'] ?? null;
+    unset($_SESSION['_struxa_google_oauth']);
+
+    $code = isset($q['code']) && is_string($q['code']) ? $q['code'] : '';
+    $state = isset($q['state']) && is_string($q['state']) ? $q['state'] : '';
+
+    if (!is_array($bag) || $code === '' || $state === '') {
+        return $redirectLogin(null, 'Sign-in session expired. Try again from the log in page.');
+    }
+
+    $exp = (int) ($bag['exp'] ?? 0);
+    if ($exp < time()) {
+        return $redirectLogin(null, 'Sign-in session expired. Try again from the log in page.');
+    }
+
+    $expected = (string) ($bag['state'] ?? '');
+    if ($expected === '' || !hash_equals($expected, $state)) {
+        return $redirectLogin(null, 'Invalid sign-in state. Try again from the log in page.');
+    }
+
+    $next = isset($bag['next']) && is_string($bag['next']) ? $bag['next'] : null;
+    $remember = (int) ($bag['remember'] ?? 0) === 1 ? 1 : 0;
+
+    $client = new GoogleOAuthClient($googleSso);
+
+    try {
+        $token = $client->exchangeAuthorizationCode($code);
+        $info = $client->fetchUserInfo($token['access_token']);
+    } catch (\RuntimeException $e) {
+        return $redirectLogin($next, $e->getMessage());
+    }
+
+    if (!$info['email_verified']) {
+        return $redirectLogin($next, 'Your Google account email is not verified. Verify it with Google, then try again.');
+    }
+
+    $email = $info['email'];
+    if (!$googleSso->emailDomainAllowed($email)) {
+        return $redirectLogin($next, 'This Google account is not allowed to sign in here.');
+    }
+
+    $uid = $auth->getUID($email);
+    if ($uid < 1) {
+        if (!$googleSso->autoProvision) {
+            return $redirectLogin(
+                $next,
+                'No account exists for that email. Use email and password, or ask an administrator to invite you.'
+            );
+        }
+
+        $random = bin2hex(random_bytes(32));
+        $reg = $auth->register($email, $random, $random, [], '', false);
+        if (($reg['error'] ?? true) === true) {
+            return $redirectLogin($next, (string) ($reg['message'] ?? 'Could not create an account.'));
+        }
+        $uid = (int) ($reg['uid'] ?? 0);
+        if ($uid < 1) {
+            return $redirectLogin($next, 'Could not create an account.');
+        }
+    }
+
+    $totpRow = CmsUserRepository::findTotpStateByPhpAuthId($pdo, $uid);
+    $needsTotp = $totpRow !== null
+        && (int) ($totpRow['totp_enabled'] ?? 0) === 1
+        && trim((string) ($totpRow['totp_secret'] ?? '')) !== '';
+
+    if ($needsTotp) {
+        TwoFactorLoginSession::put($uid, $remember);
+        $tfUrl = $routeParser->urlFor('login.two_factor');
+        if ($next !== null && $next !== '') {
+            $tfUrl .= '?' . http_build_query(['next' => $next]);
+        }
+
+        return $response->withHeader('Location', $tfUrl)->withStatus(302);
+    }
+
+    $complete = $auth->completeSessionAfterTwoFactor($uid, $remember);
+    if (($complete['error'] ?? true) === true) {
+        return $redirectLogin($next, (string) ($complete['message'] ?? 'Login failed'));
+    }
+
+    Events::dispatch(new UserLoggedInEvent($email));
+    $target = SafeRedirectPath::afterLogin($next, $routeParser->urlFor('home'));
+
+    return $response->withHeader('Location', $target)->withStatus(302);
+})->setName('auth.google.callback');
 
 $app->get('/login/two-factor', function (Request $request, Response $response) use ($twig, $viewData, $auth): Response {
     if ($auth->isLogged()) {

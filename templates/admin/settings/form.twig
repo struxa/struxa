@@ -91,6 +91,59 @@
           </section>
         </div>
 
+        <section id="settings-google-sso" class="admin-card admin-settings-card admin-settings-section" tabindex="-1">
+          <h2 class="admin-settings-card-title">Google sign-in</h2>
+          <p class="admin-settings-card-desc">
+            OAuth 2.0 for <code class="admin-inline-code">/login</code> (“Continue with Google”). In Google Cloud Console, create a Web client and set the redirect URI to
+            <code class="admin-inline-code">{{ site_url|default('')|e }}/auth/google/callback</code> unless you override it below.
+            <code class="admin-inline-code">PHPAUTH_SITE_URL</code> in <code class="admin-inline-code">.env</code> must match your public site URL.
+          </p>
+          <div class="admin-form-grid">
+            <div class="admin-field admin-field--full">
+              <input type="hidden" name="google_sso_enabled" value="0" />
+              <label class="admin-label admin-settings-check-label">
+                <input type="checkbox" name="google_sso_enabled" value="1" {{ (settings_values.google_sso_enabled|default('0') ~ '') == '1' ? 'checked' : '' }} />
+                Enable Google sign-in on the public log in page
+              </label>
+            </div>
+            <div class="admin-field admin-field--full {{ errors.google_oauth_client_id is defined ? 'admin-field--error' : '' }}">
+              <label class="admin-label" for="google_oauth_client_id">OAuth Client ID</label>
+              <input class="admin-input" type="text" id="google_oauth_client_id" name="google_oauth_client_id" value="{{ settings_values.google_oauth_client_id|default('')|e('html_attr') }}" maxlength="512" autocomplete="off" />
+              {% if errors.google_oauth_client_id is defined %}<p class="admin-field-error">{{ errors.google_oauth_client_id|e }}</p>{% endif %}
+            </div>
+            <div class="admin-field admin-field--full {{ errors.google_oauth_client_secret is defined ? 'admin-field--error' : '' }}">
+              <label class="admin-label" for="google_oauth_client_secret">OAuth Client secret</label>
+              <input class="admin-input" id="google_oauth_client_secret" name="google_oauth_client_secret" type="password" value="" autocomplete="new-password" maxlength="2048" placeholder="{{ google_oauth_secret_stored|default(false) ? 'Leave blank to keep existing secret' : 'Paste client secret from Google' }}" />
+              {% if google_oauth_secret_stored|default(false) %}
+                <label class="admin-label admin-settings-check-label" style="margin-top:0.5rem">
+                  <input type="checkbox" name="google_oauth_client_secret_clear" value="1" />
+                  Remove stored client secret
+                </label>
+              {% endif %}
+              {% if errors.google_oauth_client_secret is defined %}<p class="admin-field-error">{{ errors.google_oauth_client_secret|e }}</p>{% endif %}
+            </div>
+            <div class="admin-field admin-field--full {{ errors.google_oauth_redirect_uri is defined ? 'admin-field--error' : '' }}">
+              <label class="admin-label" for="google_oauth_redirect_uri">Redirect URI override</label>
+              <input class="admin-input" type="url" id="google_oauth_redirect_uri" name="google_oauth_redirect_uri" value="{{ settings_values.google_oauth_redirect_uri|default('')|e('html_attr') }}" maxlength="2000" placeholder="Leave blank for default (see above)" />
+              {% if errors.google_oauth_redirect_uri is defined %}<p class="admin-field-error">{{ errors.google_oauth_redirect_uri|e }}</p>{% endif %}
+            </div>
+            <div class="admin-field admin-field--full {{ errors.google_sso_allowed_domains is defined ? 'admin-field--error' : '' }}">
+              <label class="admin-label" for="google_sso_allowed_domains">Allowed email domains</label>
+              <input class="admin-input" type="text" id="google_sso_allowed_domains" name="google_sso_allowed_domains" value="{{ settings_values.google_sso_allowed_domains|default('')|e('html_attr') }}" maxlength="2000" placeholder="e.g. company.com, other.org — leave blank for any domain" />
+              <p class="admin-hint">Comma-separated. Only verified Google accounts with an email on these hosts can sign in.</p>
+              {% if errors.google_sso_allowed_domains is defined %}<p class="admin-field-error">{{ errors.google_sso_allowed_domains|e }}</p>{% endif %}
+            </div>
+            <div class="admin-field admin-field--full">
+              <input type="hidden" name="google_sso_auto_provision" value="0" />
+              <label class="admin-label admin-settings-check-label">
+                <input type="checkbox" name="google_sso_auto_provision" value="1" {{ (settings_values.google_sso_auto_provision|default('0') ~ '') == '1' ? 'checked' : '' }} />
+                Auto-create a login account on first Google sign-in when the email is new
+              </label>
+              <p class="admin-hint">If off, the user must already exist in PHPAuth (same email). Does not grant CMS staff access by itself.</p>
+            </div>
+          </div>
+        </section>
+
         <div class="admin-settings-row2">
           <section id="settings-homepage" class="admin-card admin-settings-card admin-settings-section admin-settings-card--fill" tabindex="-1">
             <h2 class="admin-settings-card-title">Public site homepage</h2>

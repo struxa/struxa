@@ -34,6 +34,16 @@ final class SiteSettingsService
         'public_homepage_page_id' => '',
         /** When "1", public /register shows a username field (stored on phpauth_users.username). */
         'registration_collect_username' => '0',
+        /** Google SSO (also requires client id + secret in Admin → Site settings). */
+        'google_sso_enabled' => '0',
+        'google_oauth_client_id' => '',
+        'google_oauth_client_secret' => '',
+        /** Empty = {PHPAUTH_SITE_URL}/auth/google/callback */
+        'google_oauth_redirect_uri' => '',
+        /** Comma-separated email domains (e.g. company.com). Empty = any verified Google email. */
+        'google_sso_allowed_domains' => '',
+        /** When "1", first Google sign-in creates a PHPAuth account if the email is new. */
+        'google_sso_auto_provision' => '0',
     ];
 
     /** @var list<string> */
@@ -57,6 +67,12 @@ final class SiteSettingsService
         'seo_default_twitter_image_media_id',
         'public_homepage_page_id',
         'registration_collect_username',
+        'google_sso_enabled',
+        'google_oauth_client_id',
+        'google_oauth_client_secret',
+        'google_oauth_redirect_uri',
+        'google_sso_allowed_domains',
+        'google_sso_auto_provision',
     ];
 
     public function __construct(
@@ -86,6 +102,11 @@ final class SiteSettingsService
         $base = $this->forTwig();
         $out = [];
         foreach (self::MANAGED_KEYS as $key) {
+            if ($key === 'google_oauth_client_secret') {
+                $out[$key] = '';
+
+                continue;
+            }
             $out[$key] = $base[$key] ?? '';
         }
 
