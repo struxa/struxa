@@ -190,7 +190,7 @@
             parts.push('<div class="admin-updates-apply-followup">');
             parts.push('<p class="admin-updates-apply-followup-title">Action needed on the server</p>');
             parts.push(
-              '<p class="admin-updates-apply-followup-text">Fix the warning steps over SSH (or your host panel), then refresh this page. Typical fixes: install Composer and set <code class="admin-inline-code">STRUXA_COMPOSER_PATH</code>, run <code class="admin-inline-code">php bin/migrate.php</code>, or <code class="admin-inline-code">php bin/plugin-deps.php --no-dev</code>.</p>'
+              '<p class="admin-updates-apply-followup-text">Fix the warning steps over SSH (or your host panel), then refresh this page. Typical fixes: set <code class="admin-inline-code">STRUXA_PHP_CLI_PATH</code> to CLI PHP (e.g. <code class="admin-inline-code">/usr/bin/php</code>) when using PHP-FPM, set <code class="admin-inline-code">STRUXA_COMPOSER_PATH</code> to Composer’s full path, then run <code class="admin-inline-code">php bin/migrate.php</code> and <code class="admin-inline-code">php bin/plugin-deps.php --no-dev</code> if needed.</p>'
             );
             parts.push('</div>');
           }

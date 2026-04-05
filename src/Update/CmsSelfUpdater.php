@@ -374,13 +374,63 @@ final class CmsSelfUpdater
         if (!is_file($script)) {
             return ['ok' => false, 'output' => 'Missing ' . $relativeScript];
         }
-        $php = PHP_BINARY;
-        if (!@is_executable($php)) {
-            $php = 'php';
+        $php = $this->resolvePhpCliBinary();
+        if ($php === null) {
+            return [
+                'ok' => false,
+                'output' => 'No usable PHP CLI binary. Under PHP-FPM, PHP_BINARY often points at php-fpm, which cannot run CLI scripts. Set STRUXA_PHP_CLI_PATH in .env to your shell `php` (e.g. /usr/bin/php or /usr/local/bin/ea-php82).',
+            ];
         }
         $cmd = array_merge([$php, $script], $args);
 
         return $this->runProcess($projectRoot, $cmd);
+    }
+
+    /**
+     * CLI binary for proc_open (migrate, plugin-deps). Never use php-fpm.
+     *
+     * @return non-empty-string|null
+     */
+    private function resolvePhpCliBinary(): ?string
+    {
+        $custom = $this->envTrim('STRUXA_PHP_CLI_PATH');
+        if ($custom !== '' && is_file($custom) && is_executable($custom)) {
+            return $custom;
+        }
+
+        $binary = defined('PHP_BINARY') ? (string) PHP_BINARY : '';
+        if ($binary !== '' && @is_executable($binary) && !$this->binaryLooksLikePhpFpm($binary)) {
+            return $binary;
+        }
+
+        foreach (['php', '/usr/bin/php', '/usr/local/bin/php', '/opt/homebrew/bin/php'] as $c) {
+            $resolved = $this->resolveComposerBinary($c);
+            if ($resolved !== null && !$this->binaryLooksLikePhpFpm($resolved)) {
+                return $resolved;
+            }
+        }
+
+        return null;
+    }
+
+    private function binaryLooksLikePhpFpm(string $path): bool
+    {
+        $base = strtolower(basename($path));
+
+        return str_contains($base, 'php-fpm') || str_contains(strtolower($path), 'php-fpm');
+    }
+
+    private function envTrim(string $key): string
+    {
+        if (isset($_ENV[$key])) {
+            $v = trim((string) $_ENV[$key]);
+            if ($v !== '') {
+                return $v;
+            }
+        }
+        $g = getenv($key);
+
+        return is_string($g) ? trim($g) : '';
     }
 
     /**
@@ -414,13 +464,10 @@ final class CmsSelfUpdater
      */
     private function runComposerInstall(string $projectRoot): array
     {
-        if (isset($_ENV['STRUXA_COMPOSER_PATH'])) {
-            $custom = trim((string) $_ENV['STRUXA_COMPOSER_PATH']);
-        } else {
-            $g = getenv('STRUXA_COMPOSER_PATH');
-            $custom = $g === false ? '' : trim($g);
-        }
-        $candidates = $custom !== '' ? [$custom] : ['composer', '/usr/local/bin/composer', '/usr/bin/composer'];
+        $custom = $this->envTrim('STRUXA_COMPOSER_PATH');
+        $candidates = $custom !== ''
+            ? [$custom]
+            : ['composer', '/usr/local/bin/composer', '/usr/bin/composer', '/opt/cpanel/composer/bin/composer'];
         $composerBin = null;
         foreach ($candidates as $c) {
             $resolved = $this->resolveComposerBinary($c);
@@ -430,7 +477,10 @@ final class CmsSelfUpdater
             }
         }
         if ($composerBin === null) {
-            return ['ok' => false, 'output' => 'composer not found in PATH (set STRUXA_COMPOSER_PATH).'];
+            return [
+                'ok' => false,
+                'output' => 'composer not found in PATH for the web user. Set STRUXA_COMPOSER_PATH in .env to the full path (e.g. /usr/local/bin/composer or ~/.config/composer/vendor/bin/composer).',
+            ];
         }
 
         return $this->runProcess($projectRoot, [
