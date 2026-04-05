@@ -27,7 +27,10 @@ use App\Http\Middleware\ThrottlingMiddleware;
 use App\Http\Middleware\TwigCmsGlobals;
 use App\Twig\CoreAssetTwigExtension;
 use App\Http\SafeRedirectPath;
+use App\Http\MediaDerivativeHandler;
 use App\Http\ThemePublicAssetsHandler;
+use App\Media\MediaDerivativeService;
+use App\Media\MediaRepository;
 use App\Media\MediaUrlHelper;
 use App\Seo\MetaTagBuilder;
 use App\Seo\SeoService;
@@ -176,6 +179,13 @@ $errorMiddleware = $app->addErrorMiddleware($displayErrorDetails, true, true);
 $errorMiddleware->setErrorHandler(HttpNotFoundException::class, new PublicNotFoundHandler($twig));
 
 $app->get(ThemeHttpConfig::assetRoutePattern(), new ThemePublicAssetsHandler($themeManager));
+
+$mediaRepository = new MediaRepository($pdo);
+$mediaDerivativeService = new MediaDerivativeService($root, $mediaRepository, $mediaUrlHelper);
+$app->get(
+    '/media-rs/{width:[0-9]+}/{id:[0-9]+}',
+    new MediaDerivativeHandler($mediaDerivativeService, $mediaUrlHelper, $mediaRepository)
+);
 
 $viewData = static function (array $extra = []) use ($auth, $pdo): array {
     $userEmail = '';

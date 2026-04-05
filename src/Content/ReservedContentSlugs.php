@@ -23,6 +23,7 @@ final class ReservedContentSlugs
         'css',
         'js',
         'media',
+        'media-rs',
         'favicon.ico',
         'robots.txt',
         'sitemap.xml',

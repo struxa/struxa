@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.0.3",
-    "title": "Struxa 1.0.3",
-    "summary": "Admin updates page, media gallery view, and toast polish.",
+    "latest_version": "1.0.4",
+    "title": "Struxa 1.0.4",
+    "summary": "Storefront LCP/CSS loading, on-demand image derivatives (/media-rs), archive card srcset.",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "minor"

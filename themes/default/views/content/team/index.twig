@@ -20,7 +20,21 @@
       {% for item in index_entries %}
         {% set row = item.row %}
         <article class="theme-team-card">
-          {% if item.featured_url %}
+          {% if item.featured_media_id|default(null) %}
+            {% set _mid = item.featured_media_id %}
+            <a class="theme-team-avatar" href="{{ site_url }}/{{ content_type.slug|e }}/{{ row.slug|e }}">
+              <img
+                src="{{ media_resize_url(_mid, 480) }}"
+                srcset="{{ media_resize_url(_mid, 320) }} 320w, {{ media_resize_url(_mid, 480) }} 480w, {{ media_resize_url(_mid, 640) }} 640w"
+                sizes="(max-width: 640px) 40vw, 160px"
+                alt=""
+                loading="lazy"
+                decoding="async"
+                width="320"
+                height="320"
+              />
+            </a>
+          {% elseif item.featured_url %}
             <a class="theme-team-avatar" href="{{ site_url }}/{{ content_type.slug|e }}/{{ row.slug|e }}">
               <img src="{{ item.featured_url|e('html_attr') }}" alt="" loading="lazy" decoding="async" />
             </a>

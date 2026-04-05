@@ -19,7 +19,13 @@ final class CmsSelfUpdater
 
     /**
      * @param array<string, mixed> $status CmsUpdateChecker::check() result
-     * @return array{ok: bool, message: string, warnings: list<string>}
+     * @return array{
+     *   ok: bool,
+     *   message: string,
+     *   warnings: list<string>,
+     *   applied_version?: string,
+     *   steps?: list<array{id: string, label: string, status: 'ok'|'warn'|'error', detail?: string}>
+     * }
      */
     public function apply(string $projectRoot, array $status): array
     {
@@ -97,26 +103,75 @@ final class CmsSelfUpdater
                 return ['ok' => false, 'message' => $err, 'warnings' => []];
             }
 
+            $steps = [
+                [
+                    'id' => 'merge',
+                    'label' => 'Core files merged from package',
+                    'status' => 'ok',
+                ],
+            ];
+
             $composer = $this->runComposerInstall($projectRoot);
-            if (!$composer['ok']) {
-                $warnings[] = 'Composer did not finish successfully: ' . trim($composer['output']);
+            $composerOut = trim($composer['output']);
+            if ($composer['ok']) {
+                $steps[] = [
+                    'id' => 'composer',
+                    'label' => 'Composer (production dependencies)',
+                    'status' => 'ok',
+                ];
+            } else {
+                $warnings[] = 'Composer did not finish successfully: ' . $composerOut;
                 $warnings[] = 'Run `composer install --no-dev --optimize-autoloader` (or `composer update --no-dev`) on the server, then refresh.';
+                $steps[] = [
+                    'id' => 'composer',
+                    'label' => 'Composer (production dependencies)',
+                    'status' => 'warn',
+                    'detail' => $composerOut !== '' ? $composerOut : 'Composer exited with an error.',
+                ];
             }
 
             $migrate = $this->runPhpCli($projectRoot, 'bin/migrate.php', []);
-            if (!$migrate['ok']) {
-                $warnings[] = 'Migrations: ' . trim($migrate['output']);
+            $migrateOut = trim($migrate['output']);
+            if ($migrate['ok']) {
+                $steps[] = [
+                    'id' => 'migrations',
+                    'label' => 'Database migrations',
+                    'status' => 'ok',
+                ];
+            } else {
+                $warnings[] = 'Migrations: ' . $migrateOut;
+                $steps[] = [
+                    'id' => 'migrations',
+                    'label' => 'Database migrations',
+                    'status' => 'warn',
+                    'detail' => $migrateOut !== '' ? $migrateOut : 'Migration command failed.',
+                ];
             }
 
             $pluginDeps = $this->runPhpCli($projectRoot, 'bin/plugin-deps.php', ['--no-dev']);
-            if (!$pluginDeps['ok']) {
-                $warnings[] = 'Plugin dependencies: ' . trim($pluginDeps['output']);
+            $pluginOut = trim($pluginDeps['output']);
+            if ($pluginDeps['ok']) {
+                $steps[] = [
+                    'id' => 'plugin_deps',
+                    'label' => 'Plugin Composer dependencies',
+                    'status' => 'ok',
+                ];
+            } else {
+                $warnings[] = 'Plugin dependencies: ' . $pluginOut;
+                $steps[] = [
+                    'id' => 'plugin_deps',
+                    'label' => 'Plugin Composer dependencies',
+                    'status' => 'warn',
+                    'detail' => $pluginOut !== '' ? $pluginOut : 'Plugin dependency install failed.',
+                ];
             }
 
             return [
                 'ok' => true,
                 'message' => 'Update applied to version ' . $latest . '. Reload this panel; if the site misbehaves, restart PHP-FPM or clear OPcache.',
                 'warnings' => $warnings,
+                'applied_version' => $latest,
+                'steps' => $steps,
             ];
         } finally {
             SafeDirectoryRemoval::removeIfInside($work, dirname($work));

@@ -20,7 +20,21 @@
   <div class="blog-feature-latest-wrap" data-reveal>
     <a class="blog-feature-latest" href="{{ site_url }}/{{ content_type.slug|e }}/{{ _frow.slug|e }}">
       <div class="blog-feature-latest__media" aria-hidden="true">
-        {% if _feat.featured_url %}
+        {% if _feat.featured_media_id|default(null) %}
+          {% set _fm = _feat.featured_media_id %}
+          <img
+            class="blog-feature-latest__img"
+            src="{{ media_resize_url(_fm, 640) }}"
+            srcset="{{ media_resize_url(_fm, 480) }} 480w, {{ media_resize_url(_fm, 640) }} 640w, {{ media_resize_url(_fm, 960) }} 960w, {{ media_resize_url(_fm, 1200) }} 1200w"
+            sizes="(max-width: 768px) 100vw, min(72rem, 92vw)"
+            alt=""
+            loading="eager"
+            decoding="async"
+            fetchpriority="high"
+            width="1200"
+            height="630"
+          />
+        {% elseif _feat.featured_url %}
           <img class="blog-feature-latest__img" src="{{ _feat.featured_url|e('html_attr') }}" alt="" loading="eager" decoding="async" width="1200" height="630" />
         {% else %}
           <div class="blog-feature-latest__placeholder">
@@ -109,7 +123,21 @@
           {% if _is_new %}
             <span class="product-card-badge">New</span>
           {% endif %}
-          {% if item.featured_url %}
+          {% if item.featured_media_id|default(null) %}
+            {% set _mid = item.featured_media_id %}
+            <a class="blog-card-thumb{% if _is_product_catalog %} blog-card-thumb--product{% endif %}" href="{{ site_url }}/{{ content_type.slug|e }}/{{ row.slug|e }}" tabindex="-1" aria-hidden="true">
+              <img
+                src="{{ media_resize_url(_mid, 480) }}"
+                srcset="{{ media_resize_url(_mid, 320) }} 320w, {{ media_resize_url(_mid, 480) }} 480w, {{ media_resize_url(_mid, 640) }} 640w"
+                sizes="(max-width: 640px) 88vw, 280px"
+                alt=""
+                loading="lazy"
+                decoding="async"
+                width="640"
+                height="360"
+              />
+            </a>
+          {% elseif item.featured_url %}
             <a class="blog-card-thumb{% if _is_product_catalog %} blog-card-thumb--product{% endif %}" href="{{ site_url }}/{{ content_type.slug|e }}/{{ row.slug|e }}" tabindex="-1" aria-hidden="true">
               <img src="{{ item.featured_url|e('html_attr') }}" alt="" loading="lazy" decoding="async" />
             </a>

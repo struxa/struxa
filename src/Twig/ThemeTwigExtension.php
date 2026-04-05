@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Twig;
 
+use App\Media\MediaDerivativeWidths;
 use App\Theme\PublicLayoutContract;
 use App\Theme\ThemeFilesystem;
 use App\Theme\ThemeHttpConfig;
@@ -27,6 +28,17 @@ final class ThemeTwigExtension extends AbstractExtension
         return [
             new TwigFunction('public_layout', static fn (): string => PublicLayoutContract::PUBLIC_ROOT),
             new TwigFunction('theme_layout', static fn (): string => PublicLayoutContract::THEME_SHELL),
+            new TwigFunction(
+                'media_resize_url',
+                static function ($mediaId, int $width = 480): string {
+                    $id = is_numeric($mediaId) ? (int) $mediaId : 0;
+                    if ($id < 1 || !MediaDerivativeWidths::isAllowed($width)) {
+                        return '';
+                    }
+
+                    return '/media-rs/' . $width . '/' . $id;
+                }
+            ),
             new TwigFunction(
                 'theme_asset',
                 function (string $path): string {

@@ -5,6 +5,10 @@
   <link rel="preload" as="style" href="{{ font_url|e('html_attr') }}" onload="this.onload=null;this.rel='stylesheet'" />
   <noscript><link rel="stylesheet" href="{{ font_url|e('html_attr') }}" /></noscript>
 {% endif %}
+{# Non-blocking theme CSS: short FOUC possible; pair with critical inline on key layouts for LCP. #}
 {% for sheet in theme_stylesheets|default([]) %}
-  <link rel="stylesheet" href="{{ theme_asset(sheet) }}" />
+  {% set href = theme_asset(sheet) %}
+  <link rel="preload" as="style" href="{{ href|e('html_attr') }}" />
+  <link rel="stylesheet" href="{{ href|e('html_attr') }}" media="print" onload="this.media='all'" />
+  <noscript><link rel="stylesheet" href="{{ href|e('html_attr') }}" /></noscript>
 {% endfor %}

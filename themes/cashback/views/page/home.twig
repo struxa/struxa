@@ -74,9 +74,21 @@
                   {% set _meta_left = row.published_at|date('M j') %}
                 {% endif %}
                 <a class="cb-offer cb-offer-link" href="{{ site_url }}/{{ home_blog_pack.type.slug|e }}/{{ row.slug|default('')|e }}">
-                  <div class="cb-thumb{% if item.featured_url|default('')|trim != '' %} cb-thumb--photo{% else %} cb-thumb--t{{ _tone }}{% endif %}">
+                  <div class="cb-thumb{% if item.featured_media_id|default(null) or item.featured_url|default('')|trim != '' %} cb-thumb--photo{% else %} cb-thumb--t{{ _tone }}{% endif %}">
                     <div class="cb-os-tags"><span aria-hidden="true">📰</span></div>
-                    {% if item.featured_url|default('')|trim != '' %}
+                    {% if item.featured_media_id|default(null) %}
+                      <img
+                        class="cb-thumb-img"
+                        src="{{ media_resize_url(item.featured_media_id, 480) }}"
+                        srcset="{{ media_resize_url(item.featured_media_id, 320) }} 320w, {{ media_resize_url(item.featured_media_id, 480) }} 480w, {{ media_resize_url(item.featured_media_id, 640) }} 640w"
+                        sizes="(max-width: 480px) 42vw, 200px"
+                        alt=""
+                        loading="lazy"
+                        decoding="async"
+                        width="400"
+                        height="256"
+                      />
+                    {% elseif item.featured_url|default('')|trim != '' %}
                       <img class="cb-thumb-img" src="{{ item.featured_url|e('html_attr') }}" alt="" loading="lazy" decoding="async" width="400" height="256" />
                     {% endif %}
                     <div class="cb-thumb-badge" aria-hidden="true"></div>

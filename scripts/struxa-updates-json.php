@@ -9,6 +9,8 @@ declare(strict_types=1);
  * Self-hosted sites use STRUXA_UPDATES_JSON_URL (your feed) or STRUXA_UPDATES_GITHUB_REPO instead.
  *
  * Reads version + download URL from GitHub (latest Release, or composer.json on a branch if there is no release).
+ * When using the branch fallback, resolves the branch tip via the GitHub API, then fetches composer.json at that
+ * commit SHA on raw.githubusercontent.com — avoids stale CDN responses for .../main/composer.json.
  * No Composer — upload this single file + optional .env-style config via web server SetEnv.
  *
  * Usage:
@@ -130,6 +132,33 @@ function struxa_valid_semver(string $v): bool
     return preg_match('/^\d+\.\d+\.\d+([.-][0-9A-Za-z.-]+)?$/', $v) === 1;
 }
 
+/**
+ * Resolve branch (or tag) tip to a full commit SHA via GitHub API. Empty string on failure.
+ */
+function struxa_github_ref_head_sha(string $repo, string $ref, array $baseHeaders): string
+{
+    $url = 'https://api.github.com/repos/' . $repo . '/commits/' . rawurlencode($ref);
+    [$raw, $code] = struxa_http_get($url, $baseHeaders);
+    if ($raw === '' || $code !== 200) {
+        return '';
+    }
+    try {
+        /** @var mixed $data */
+        $data = json_decode($raw, true, 512, JSON_THROW_ON_ERROR);
+    } catch (JsonException) {
+        return '';
+    }
+    if (!is_array($data) || !isset($data['sha']) || !is_string($data['sha'])) {
+        return '';
+    }
+    $sha = strtolower(trim($data['sha']));
+    if (preg_match('/^[a-f0-9]{40}$/', $sha) !== 1) {
+        return '';
+    }
+
+    return $sha;
+}
+
 function struxa_truncate(string $text, int $max): string
 {
     $collapsed = preg_replace('/\s+/u', ' ', $text);
@@ -209,7 +238,9 @@ function struxa_build_updates_payload(string $repo, string $branch, string $rele
         }
     }
 
-    $composerUrl = 'https://raw.githubusercontent.com/' . $repo . '/' . rawurlencode($branch) . '/composer.json';
+    $headSha = struxa_github_ref_head_sha($repo, $branch, $baseHeaders);
+    $composerRef = $headSha !== '' ? $headSha : rawurlencode($branch);
+    $composerUrl = 'https://raw.githubusercontent.com/' . $repo . '/' . $composerRef . '/composer.json';
     $composerHeaders = [
         'User-Agent: Struxa-Updates-Generator/1 (+https://struxapoint.com)',
         'Accept: application/json',
@@ -230,7 +261,9 @@ function struxa_build_updates_payload(string $repo, string $branch, string $rele
     if ($ver === '' || !struxa_valid_semver($ver)) {
         return ['error' => 'composer.json has no valid semver version field.'];
     }
-    $zip = 'https://github.com/' . $repo . '/archive/refs/heads/' . rawurlencode($branch) . '.zip';
+    $zip = $headSha !== ''
+        ? ('https://github.com/' . $repo . '/archive/' . $headSha . '.zip')
+        : ('https://github.com/' . $repo . '/archive/refs/heads/' . rawurlencode($branch) . '.zip');
     $cms = [
         'latest_version' => $ver,
         'title' => 'Struxa ' . $ver,

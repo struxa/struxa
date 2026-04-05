@@ -102,7 +102,21 @@
     {% else %}
       <p class="admin-hint admin-updates-auto-hint">Automatic update merges the ZIP from the feed (same hosts as theme downloads), keeps <code class="admin-inline-code">.env</code>, <code class="admin-inline-code">storage/</code>, <code class="admin-inline-code">public/uploads/</code>, and plugin <code class="admin-inline-code">vendor/</code>, then runs Composer, migrations, and plugin dependencies.</p>
     {% endif %}
-    <p class="admin-form-error admin-updates-apply-result" id="admin-updates-apply-result" hidden></p>
+    <div
+      id="admin-updates-apply-progress"
+      class="admin-updates-apply-progress"
+      hidden
+      aria-live="polite"
+    >
+      <p class="admin-updates-apply-progress-title">Updating CMS…</p>
+      <div class="admin-updates-apply-progress-track" role="progressbar" aria-valuetext="Working">
+        <div class="admin-updates-apply-progress-fill" aria-hidden="true"></div>
+      </div>
+      <p class="admin-updates-apply-progress-hint">
+        Downloading the package, merging files, then Composer, migrations, and plugin installs. This may take several minutes — keep this tab open.
+      </p>
+    </div>
+    <div id="admin-updates-apply-panel" class="admin-updates-apply-panel" hidden role="region" aria-label="Update result"></div>
 
     <div class="admin-updates-actions">
       <a class="admin-btn-ghost" href="{{ url_for('admin.updates.index', {}, { fresh: 1 }) }}">Check now</a>
@@ -126,7 +140,8 @@
       var csrf = root.getAttribute('data-csrf') || '';
       var downloadBtn = document.getElementById('admin-updates-download-btn');
       var applyBtn = document.getElementById('admin-updates-apply-btn');
-      var applyResult = document.getElementById('admin-updates-apply-result');
+      var applyProgress = document.getElementById('admin-updates-apply-progress');
+      var applyPanel = document.getElementById('admin-updates-apply-panel');
       var applyDisabledHint = document.getElementById('admin-updates-apply-disabled-hint');
 
       function esc(s) {
@@ -134,6 +149,67 @@
         var d = document.createElement('div');
         d.textContent = s;
         return d.innerHTML;
+      }
+
+      function renderApplyPanel(data) {
+        var ok = !!(data && data.ok);
+        var parts = [];
+        if (ok) {
+          var ver = data.applied_version ? String(data.applied_version) : '';
+          parts.push('<div class="admin-updates-apply-banner admin-updates-apply-banner--success">');
+          parts.push(
+            '<p class="admin-updates-apply-banner-title">Update complete' +
+              (ver ? ' — Struxa ' + esc(ver) : '') +
+              '</p>'
+          );
+          parts.push(
+            '<p class="admin-updates-apply-banner-text">New files are in place. Reload this page so the admin shows the current version. If the site acts strangely, restart PHP-FPM or clear OPcache.</p>'
+          );
+          parts.push('</div>');
+          if (data.steps && data.steps.length) {
+            parts.push('<ol class="admin-updates-apply-steps">');
+            data.steps.forEach(function (s) {
+              var st = s.status === 'warn' || s.status === 'error' ? s.status : 'ok';
+              parts.push('<li class="admin-updates-apply-step admin-updates-apply-step--' + st + '">');
+              parts.push('<span class="admin-updates-apply-step-marker" aria-hidden="true"></span>');
+              parts.push('<div class="admin-updates-apply-step-main">');
+              parts.push('<span class="admin-updates-apply-step-label">' + esc(s.label || '') + '</span>');
+              if (s.detail) {
+                parts.push('<pre class="admin-updates-apply-step-detail">' + esc(s.detail) + '</pre>');
+              }
+              parts.push('</div></li>');
+            });
+            parts.push('</ol>');
+          }
+          var hasWarn =
+            data.steps &&
+            data.steps.some(function (x) {
+              return x.status === 'warn' || x.status === 'error';
+            });
+          if (hasWarn) {
+            parts.push('<div class="admin-updates-apply-followup">');
+            parts.push('<p class="admin-updates-apply-followup-title">Action needed on the server</p>');
+            parts.push(
+              '<p class="admin-updates-apply-followup-text">Fix the warning steps over SSH (or your host panel), then refresh this page. Typical fixes: install Composer and set <code class="admin-inline-code">STRUXA_COMPOSER_PATH</code>, run <code class="admin-inline-code">php bin/migrate.php</code>, or <code class="admin-inline-code">php bin/plugin-deps.php --no-dev</code>.</p>'
+            );
+            parts.push('</div>');
+          }
+        } else {
+          parts.push('<div class="admin-updates-apply-banner admin-updates-apply-banner--error">');
+          parts.push('<p class="admin-updates-apply-banner-title">Update did not complete</p>');
+          parts.push(
+            '<p class="admin-updates-apply-banner-text">' + esc((data && data.message) || 'Something went wrong.') + '</p>'
+          );
+          parts.push('</div>');
+          if (data && data.warnings && data.warnings.length) {
+            parts.push('<ul class="admin-updates-apply-warnings">');
+            data.warnings.forEach(function (w) {
+              parts.push('<li>' + esc(w) + '</li>');
+            });
+            parts.push('</ul>');
+          }
+        }
+        return parts.join('');
       }
 
       function apply(data) {
@@ -241,9 +317,13 @@
             return;
           }
           applyBtn.disabled = true;
-          if (applyResult) {
-            applyResult.hidden = true;
-            applyResult.textContent = '';
+          if (applyPanel) {
+            applyPanel.hidden = true;
+            applyPanel.innerHTML = '';
+          }
+          if (applyProgress) {
+            applyProgress.hidden = false;
+            applyProgress.setAttribute('aria-busy', 'true');
           }
           var body = '_csrf_token=' + encodeURIComponent(csrf);
           fetch(applyUrl, {
@@ -263,24 +343,29 @@
             })
             .then(function (res) {
               var data = res.data || {};
-              var msg = data.message || (res.ok ? 'Done.' : 'Update failed.');
-              var lines = [msg];
-              if (data.warnings && data.warnings.length) {
-                lines = lines.concat(data.warnings);
+              if (applyProgress) {
+                applyProgress.hidden = true;
+                applyProgress.setAttribute('aria-busy', 'false');
               }
-              if (applyResult) {
-                applyResult.textContent = lines.join('\n\n');
-                applyResult.hidden = false;
-                applyResult.style.color = data.ok ? 'inherit' : '';
+              if (applyPanel) {
+                applyPanel.innerHTML = renderApplyPanel(data);
+                applyPanel.hidden = false;
               }
               if (!data.ok) {
                 applyBtn.disabled = false;
               }
             })
             .catch(function () {
-              if (applyResult) {
-                applyResult.textContent = 'Request failed (network or timeout). Check the site and PHP error logs.';
-                applyResult.hidden = false;
+              if (applyProgress) {
+                applyProgress.hidden = true;
+                applyProgress.setAttribute('aria-busy', 'false');
+              }
+              if (applyPanel) {
+                applyPanel.innerHTML = renderApplyPanel({
+                  ok: false,
+                  message: 'Request failed (network or timeout). Check the site and PHP error logs.',
+                });
+                applyPanel.hidden = false;
               }
               applyBtn.disabled = false;
             });

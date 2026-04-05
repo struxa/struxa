@@ -3,6 +3,55 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    {# LCP: hero copy paints before async app.css; full theme CSS overrides. #}
+    <style>
+      :root {
+        --theme-text: #fff;
+        --theme-muted: rgba(255, 255, 255, 0.45);
+        --theme-font: system-ui, -apple-system, "Segoe UI", sans-serif;
+        --theme-display: system-ui, -apple-system, "Segoe UI", sans-serif;
+      }
+      body.theme-queue {
+        margin: 0;
+        background: #0d0a1a;
+        color: var(--theme-text);
+        font-family: var(--theme-font);
+      }
+      .theme-home-fq__kicker {
+        margin: 0 0 1.25rem;
+        max-width: 40rem;
+        font-size: clamp(1rem, 2.2vw, 1.2rem);
+        font-weight: 500;
+        line-height: 1.45;
+        color: var(--theme-muted);
+      }
+      .theme-home-fq__title {
+        margin: 0 0 1.5rem;
+        font-family: var(--theme-display);
+        font-weight: 900;
+        letter-spacing: -0.04em;
+        line-height: 0.95;
+      }
+      .theme-home-fq__title-line {
+        display: block;
+        font-size: clamp(2.35rem, 7.5vw, 4.25rem);
+        color: #ffffff;
+      }
+      .theme-home-fq__lead {
+        margin: 0 0 1.35rem;
+        max-width: 38rem;
+        font-size: 1.125rem;
+        line-height: 1.65;
+        color: var(--theme-muted);
+      }
+      .theme-home-fq__brand {
+        color: var(--theme-text);
+        font-weight: 700;
+      }
+      .theme-home-fq__highlight {
+        color: #ff5c9a;
+      }
+    </style>
     <title>
       {%- if struxa_seo|default(false) -%}
         {{- struxa_html_title|default('')|e -}}

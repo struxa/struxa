@@ -251,6 +251,9 @@ final class PublicResponseCacheMiddleware implements MiddlewareInterface
         if (str_starts_with($path, '/theme-assets/')) {
             return true;
         }
+        if (str_starts_with($path, '/media-rs/')) {
+            return true;
+        }
         if (preg_match('#^/(css|js)(/|$)#', $path) === 1) {
             return true;
         }

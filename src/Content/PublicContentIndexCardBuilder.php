@@ -9,7 +9,7 @@ use App\Media\MediaUrlHelper;
 /**
  * Builds card payloads for public content-type index UIs (archive + CMS sections).
  *
- * @phpstan-type IndexCard array{row: array<string, mixed>, excerpt_plain: string, featured_url: string, score_raw: string, price_plain: string, buy_url: string, buy_label: string}
+ * @phpstan-type IndexCard array{row: array<string, mixed>, excerpt_plain: string, featured_url: string, featured_media_id: ?int, score_raw: string, price_plain: string, buy_url: string, buy_label: string}
  */
 final class PublicContentIndexCardBuilder
 {
@@ -109,7 +109,14 @@ final class PublicContentIndexCardBuilder
                 ? (mb_strlen($exStripped) > 180 ? mb_substr($exStripped, 0, 177) . '…' : $exStripped)
                 : '';
             $fid = $row['featured_image_id'] ?? null;
-            $featuredUrl = $fid !== null && $fid !== '' ? $this->mediaUrls->pathForId((int) $fid) : '';
+            $featuredMediaId = null;
+            if ($fid !== null && $fid !== '') {
+                $fidInt = (int) $fid;
+                if ($fidInt > 0) {
+                    $featuredMediaId = $fidInt;
+                }
+            }
+            $featuredUrl = $featuredMediaId !== null ? $this->mediaUrls->pathForId($featuredMediaId) : '';
             if ($featuredUrl === '' && isset($thumbUrls[$eid])) {
                 $ext = trim($thumbUrls[$eid]);
                 if ($ext !== '') {
@@ -137,6 +144,7 @@ final class PublicContentIndexCardBuilder
                 'row' => $row,
                 'excerpt_plain' => $excerptShort,
                 'featured_url' => $featuredUrl,
+                'featured_media_id' => ($featuredUrl !== '' && $featuredMediaId !== null) ? $featuredMediaId : null,
                 'score_raw' => $scores[$eid] ?? '',
                 'price_plain' => $prices[$eid] ?? '',
                 'buy_url' => $buyUrl,
