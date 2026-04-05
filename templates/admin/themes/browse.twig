@@ -30,7 +30,7 @@
       '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><path d="M3.27 6.96L12 12.01l8.73-5.05M12 22.08V12"/></svg>'
     ) }}
   {% else %}
-    <p class="admin-hint" style="margin:0 0 1.25rem">Catalog loads from <code class="admin-inline-code">STRUXA_THEME_CATALOG_URL</code> if set, otherwise <code class="admin-inline-code">https://struxapoint.com/theme-repo/repo.json</code> (then <code class="admin-inline-code">storage/theme-catalog.json</code> as fallback). ZIP hosts: GitHub + struxapoint.com by default; extend with <code class="admin-inline-code">STRUXA_THEME_DOWNLOAD_HOSTS</code>.</p>
+    <p class="admin-hint" style="margin:0 0 1.25rem">Catalog loads from <code class="admin-inline-code">STRUXA_THEME_CATALOG_URL</code> if set, otherwise <code class="admin-inline-code">https://struxapoint.com/struxa-dist/repo.json</code> (then <code class="admin-inline-code">storage/theme-catalog.json</code> as fallback). ZIP hosts: GitHub + struxapoint.com by default; extend with <code class="admin-inline-code">STRUXA_THEME_DOWNLOAD_HOSTS</code>.</p>
     <div class="admin-theme-grid admin-theme-grid--browse">
       {% for t in catalog_themes %}
         <article class="admin-card admin-theme-card admin-theme-card--browse">

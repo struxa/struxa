@@ -12,7 +12,7 @@ final class ThemeCatalogLoader
     private const MAX_CATALOG_BYTES = 512_000;
 
     /** Default public theme registry when STRUXA_THEME_CATALOG_URL is unset (must return JSON with a "themes" array). */
-    private const DEFAULT_CATALOG_URL = 'https://struxapoint.com/theme-repo/repo.json';
+    private const DEFAULT_CATALOG_URL = 'https://struxapoint.com/struxa-dist/repo.json';
 
     public function __construct(
         private readonly string $projectRoot,

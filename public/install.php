@@ -255,7 +255,7 @@ function install_build_env_file(array $vars): string
     }
     $lines[] = '';
     $lines[] = '# Theme catalog (optional overrides)';
-    $lines[] = '# STRUXA_THEME_CATALOG_URL=https://struxapoint.com/theme-repo/repo.json';
+        $lines[] = '# STRUXA_THEME_CATALOG_URL=https://struxapoint.com/struxa-dist/repo.json';
 
     return implode("\n", $lines) . "\n";
 }

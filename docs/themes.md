@@ -28,7 +28,7 @@ The active theme slug is stored in **`cms_settings`** (`active_theme`). The admi
 
 **Themes → Browse catalog** loads a JSON registry and can install themes from HTTPS ZIP URLs into **`themes/{slug}/`**.
 
-- **Default:** if **`STRUXA_THEME_CATALOG_URL`** is not set, the CMS fetches **`https://struxapoint.com/theme-repo/repo.json`** (must return JSON with a **`themes`** array). If that request fails, it falls back to **`storage/theme-catalog.json`** when that file exists.
+- **Default:** if **`STRUXA_THEME_CATALOG_URL`** is not set, the CMS fetches **`https://struxapoint.com/struxa-dist/repo.json`** (must return JSON with a **`themes`** array). If that request fails, it falls back to **`storage/theme-catalog.json`** when that file exists.
 - **Override:** set **`STRUXA_THEME_CATALOG_URL`** to an `https://` URL that returns the same JSON shape.
 
 Each entry needs **`slug`** and **`download_url`** (https only). Optional: **`name`**, **`version`**, **`description`**, **`author`**. The ZIP may use a single top-level folder (e.g. GitHub’s `repo-main/`); the installer finds a valid `theme.json` with **`views/`** and **`assets/`** and installs as **`themes/{slug}/`**. The **`slug` inside `theme.json`** must match the catalog **`slug`**.
