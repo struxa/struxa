@@ -3,8 +3,8 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    {# System font stack only (matches critical CSS below + app.css); avoids Google Fonts on the critical path / unused preconnect. #}
     {% include 'partials/_deferred_theme_css.twig' with {
-      font_url: 'https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,400..900;1,14..32,400..900&display=swap',
       theme_stylesheets: ['css/app.css'],
     } only %}
     {# LCP: hero copy paints before async app.css; full theme CSS overrides. #}

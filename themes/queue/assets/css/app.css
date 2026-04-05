@@ -17,8 +17,8 @@
   --theme-cyan-glow: rgba(0, 229, 255, 0.25);
   --theme-indigo-wash: #1e1b4b;
   --theme-radius: 14px;
-  --theme-font: "Inter", system-ui, sans-serif;
-  --theme-display: "Inter", system-ui, sans-serif;
+  --theme-font: system-ui, -apple-system, "Segoe UI", sans-serif;
+  --theme-display: system-ui, -apple-system, "Segoe UI", sans-serif;
   --theme-max: 720px;
   --theme-home-max: 68rem;
 }

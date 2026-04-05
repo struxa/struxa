@@ -1,12 +1,14 @@
-{# Fonts: non-blocking preload→stylesheet. Theme CSS uses normal stylesheet links to avoid a layout FOUC. #}
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+{# Google Fonts: preconnect only when a font stylesheet loads (avoids unused preconnect when font_url is empty). #}
 {% if font_url|default('')|trim != '' %}
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="preload" as="style" href="{{ font_url|e('html_attr') }}" onload="this.onload=null;this.rel='stylesheet'" />
   <noscript><link rel="stylesheet" href="{{ font_url|e('html_attr') }}" /></noscript>
 {% endif %}
+{# Preload + stylesheet: same URL so the browser can start fetching before the parser reaches the blocking link (LCP / critical path). #}
 {% for sheet in theme_stylesheets|default([]) %}
   {% set href = theme_asset(sheet) %}
+  <link rel="preload" as="style" href="{{ href|e('html_attr') }}" />
   <link rel="stylesheet" href="{{ href|e('html_attr') }}" />
 {% endfor %}
 {% for sheet in theme_stylesheets_async|default([]) %}
