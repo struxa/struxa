@@ -32,6 +32,7 @@ Thumbs.db
 logs/
 
 storage/installed.lock
+storage/composer-home/
 storage/cache/*
 !storage/cache/.gitkeep
 # Optional: composer render-marketing-preview

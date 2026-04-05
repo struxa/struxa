@@ -15,6 +15,9 @@ declare(strict_types=1);
  *
  * Composer binary: STRUXA_COMPOSER_PATH in .env (same as admin self-update), or COMPOSER_BIN,
  * then PATH (`composer`), common paths, and $HOME/bin/composer.
+ *
+ * If HOME/COMPOSER_HOME are unset: STRUXA_WEB_HOME, STRUXA_COMPOSER_HOME, posix pw_dir, or
+ * storage/composer-home (writable cache dir for the web user).
  */
 
 $root = dirname(__DIR__);
@@ -23,6 +26,53 @@ require $root . '/vendor/autoload.php';
 
 if (is_readable($root . '/.env')) {
     Dotenv\Dotenv::createImmutable($root)->safeLoad();
+}
+
+/**
+ * Composer refuses to run when both HOME and COMPOSER_HOME are unset (common under PHP-FPM).
+ */
+function plugin_deps_ensure_composer_environment(string $projectRoot): void
+{
+    $home = trim((string) ($_ENV['HOME'] ?? getenv('HOME') ?: ''));
+    $composerHome = trim((string) ($_ENV['COMPOSER_HOME'] ?? getenv('COMPOSER_HOME') ?: ''));
+    if ($home !== '' || $composerHome !== '') {
+        return;
+    }
+
+    $webHome = trim((string) ($_ENV['STRUXA_WEB_HOME'] ?? getenv('STRUXA_WEB_HOME') ?: ''));
+    if ($webHome !== '') {
+        putenv('HOME=' . $webHome);
+        $_ENV['HOME'] = $webHome;
+
+        return;
+    }
+
+    $explicitCh = trim((string) ($_ENV['STRUXA_COMPOSER_HOME'] ?? getenv('STRUXA_COMPOSER_HOME') ?: ''));
+    if ($explicitCh !== '') {
+        putenv('COMPOSER_HOME=' . $explicitCh);
+        $_ENV['COMPOSER_HOME'] = $explicitCh;
+
+        return;
+    }
+
+    if (function_exists('posix_geteuid') && function_exists('posix_getpwuid')) {
+        $pw = @posix_getpwuid(posix_geteuid());
+        if (is_array($pw) && isset($pw['dir']) && is_string($pw['dir']) && $pw['dir'] !== '') {
+            putenv('HOME=' . $pw['dir']);
+            $_ENV['HOME'] = $pw['dir'];
+
+            return;
+        }
+    }
+
+    $fallback = $projectRoot . DIRECTORY_SEPARATOR . 'storage' . DIRECTORY_SEPARATOR . 'composer-home';
+    if (!is_dir($fallback)) {
+        @mkdir($fallback, 0770, true);
+    }
+    if (is_dir($fallback) && is_writable($fallback)) {
+        putenv('COMPOSER_HOME=' . $fallback);
+        $_ENV['COMPOSER_HOME'] = $fallback;
+    }
 }
 
 /**
@@ -93,6 +143,8 @@ if (!is_dir($pluginsDir)) {
     fwrite(STDERR, "No plugins directory at {$pluginsDir}\n");
     exit(0);
 }
+
+plugin_deps_ensure_composer_environment($root);
 
 $composerBin = plugin_deps_resolve_composer_binary();
 if ($composerBin === null) {

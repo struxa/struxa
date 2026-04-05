@@ -444,7 +444,7 @@ final class CmsSelfUpdater
             1 => ['pipe', 'w'],
             2 => ['pipe', 'w'],
         ];
-        $proc = @proc_open($cmd, $descriptors, $pipes, $cwd, null);
+        $proc = @proc_open($cmd, $descriptors, $pipes, $cwd, $this->subprocessEnvironment($cwd));
         if (!is_resource($proc)) {
             return ['ok' => false, 'output' => 'Could not start subprocess.'];
         }
@@ -464,12 +464,8 @@ final class CmsSelfUpdater
      */
     private function runComposerInstall(string $projectRoot): array
     {
-        $custom = $this->envTrim('STRUXA_COMPOSER_PATH');
-        $candidates = $custom !== ''
-            ? [$custom]
-            : ['composer', '/usr/local/bin/composer', '/usr/bin/composer', '/opt/cpanel/composer/bin/composer'];
         $composerBin = null;
-        foreach ($candidates as $c) {
+        foreach ($this->composerBinaryCandidates() as $c) {
             $resolved = $this->resolveComposerBinary($c);
             if ($resolved !== null) {
                 $composerBin = $resolved;
@@ -479,7 +475,7 @@ final class CmsSelfUpdater
         if ($composerBin === null) {
             return [
                 'ok' => false,
-                'output' => 'composer not found in PATH for the web user. Set STRUXA_COMPOSER_PATH in .env to the full path (e.g. /usr/local/bin/composer or ~/.config/composer/vendor/bin/composer).',
+                'output' => 'composer not found for the web user. Set STRUXA_COMPOSER_PATH in .env to the full path (e.g. /home/you/bin/composer).',
             ];
         }
 
@@ -491,6 +487,116 @@ final class CmsSelfUpdater
             '--no-ansi',
             '--optimize-autoloader',
         ]);
+    }
+
+    /**
+     * Same resolution order as bin/plugin-deps.php (STRUXA_COMPOSER_PATH, COMPOSER_BIN, PATH, common paths, ~/bin/composer).
+     *
+     * @return list<string>
+     */
+    private function composerBinaryCandidates(): array
+    {
+        $candidates = [];
+        foreach (['STRUXA_COMPOSER_PATH', 'COMPOSER_BIN'] as $key) {
+            $v = $this->envTrim($key);
+            if ($v !== '') {
+                $candidates[] = $v;
+            }
+        }
+        $candidates = array_merge($candidates, [
+            'composer',
+            '/usr/local/bin/composer',
+            '/usr/bin/composer',
+            '/opt/cpanel/composer/bin/composer',
+        ]);
+        $home = $this->inferUnixHomeForComposer();
+        if ($home !== '') {
+            $candidates[] = $home . '/bin/composer';
+            $candidates[] = $home . '/.config/composer/vendor/bin/composer';
+        }
+
+        return $candidates;
+    }
+
+    private function inferUnixHomeForComposer(): string
+    {
+        $h = $this->envTrim('STRUXA_WEB_HOME');
+        if ($h !== '') {
+            return $h;
+        }
+        $g = getenv('HOME');
+        if (is_string($g) && trim($g) !== '') {
+            return trim($g);
+        }
+        if (function_exists('posix_geteuid') && function_exists('posix_getpwuid')) {
+            $pw = @posix_getpwuid(posix_geteuid());
+            if (is_array($pw)) {
+                $dir = trim($pw['dir']);
+                if ($dir !== '') {
+                    return $dir;
+                }
+            }
+        }
+
+        return '';
+    }
+
+    /**
+     * PHP-FPM often omits HOME; Composer requires HOME or COMPOSER_HOME (Factory.php).
+     *
+     * @return array<string, string>
+     */
+    private function subprocessEnvironment(string $projectRoot): array
+    {
+        $env = [];
+        foreach ($_ENV as $k => $v) {
+            if (is_string($k) && is_string($v)) {
+                $env[$k] = $v;
+            }
+        }
+        foreach ($_SERVER as $k => $v) {
+            if (is_string($k) && is_string($v)) {
+                $env[$k] = $v;
+            }
+        }
+
+        $home = trim((string) ($env['HOME'] ?? ''));
+        $composerHome = trim((string) ($env['COMPOSER_HOME'] ?? ''));
+
+        if ($this->envTrim('STRUXA_WEB_HOME') !== '') {
+            $env['HOME'] = $this->envTrim('STRUXA_WEB_HOME');
+            $home = $env['HOME'];
+        }
+        if ($this->envTrim('STRUXA_COMPOSER_HOME') !== '') {
+            $env['COMPOSER_HOME'] = $this->envTrim('STRUXA_COMPOSER_HOME');
+            $composerHome = $env['COMPOSER_HOME'];
+        }
+
+        $hasHome = $home !== '';
+        $hasComposerHome = $composerHome !== '';
+
+        if (!$hasHome && !$hasComposerHome && function_exists('posix_geteuid') && function_exists('posix_getpwuid')) {
+            $pw = @posix_getpwuid(posix_geteuid());
+            if (is_array($pw)) {
+                $dir = trim($pw['dir']);
+                if ($dir !== '') {
+                    $env['HOME'] = $dir;
+                    $hasHome = true;
+                }
+            }
+        }
+
+        if (!$hasHome && !$hasComposerHome) {
+            $fallback = $projectRoot . DIRECTORY_SEPARATOR . 'storage' . DIRECTORY_SEPARATOR . 'composer-home';
+            if (!is_dir($fallback)) {
+                @mkdir($fallback, 0770, true);
+            }
+            if (is_dir($fallback) && is_writable($fallback)) {
+                $env['COMPOSER_HOME'] = $fallback;
+            }
+        }
+
+        return $env;
     }
 
     /**
