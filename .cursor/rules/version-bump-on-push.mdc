@@ -1,0 +1,24 @@
+---
+description: Increment Struxa semver and sync version files whenever pushing code to git
+alwaysApply: true
+---
+
+# Version bump on every push
+
+Whenever you **commit and push** changes to this repository (e.g. `git push` to `main` / `origin`), **increment the project version** in the same push (unless the user explicitly says not to or gives a specific version).
+
+## What to bump (patch by default)
+
+1. **`src/CmsVersion.php`** — `CURRENT` (e.g. `1.0.5` → `1.0.6`)
+2. **`composer.json`** — `"version"` field (must match `CmsVersion::CURRENT`)
+3. **`README.md`** — the line `**Version:** …` under the title
+4. **`storage/cms-updates.example.json`** — `latest_version`, `title`, and a one-line `summary` for the release note
+
+Default: **patch** increment (`x.y.Z+1`). Use **minor** or **major** only if the user asks or the change clearly warrants it.
+
+## Workflow
+
+- Include the version bump in the **same commit** as the functional change, or immediately follow with a single commit that only bumps version—prefer one logical commit per push when possible.
+- Do not push without updating these files when any product code, templates, or assets shipped to users changed.
+
+The user may refer to this as “page number”; they mean **version number**.

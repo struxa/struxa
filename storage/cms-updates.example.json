@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.0.5",
-    "title": "Struxa 1.0.5",
-    "summary": "Theme CSS loading: single preload→stylesheet links and earlier head placement for shorter critical chains.",
+    "latest_version": "1.0.6",
+    "title": "Struxa 1.0.6",
+    "summary": "Theme CSS render-blocking again to remove FOUC; self-update STRUXA_PHP_CLI_PATH; Cursor rule to bump version on every push.",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "minor"
