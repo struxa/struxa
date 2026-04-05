@@ -37,6 +37,9 @@ jobs:
       - name: Install dependencies
         run: composer install --no-interaction --prefer-dist
 
+      - name: Install plugin dependencies
+        run: composer plugin-deps:prod
+
       - name: Run tests
         run: composer test
 
