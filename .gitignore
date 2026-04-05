@@ -1,4 +1,6 @@
 /vendor/
+# Plugin deps: run `composer plugin-deps` or `php bin/plugin-deps.php` (do not commit vendor)
+plugins/**/vendor/
 dist/*.zip
 
 # Secrets & local env (never commit real credentials)

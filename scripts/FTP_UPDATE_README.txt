@@ -6,10 +6,11 @@ This ZIP is meant to MERGE into an existing install. It does NOT include:
   • .env              (keep your server copy — DB, keys, site URL)
   • storage/          (cache, locks, theme state — keep on server)
   • public/uploads/   (your media library files — not in this ZIP)
+  • plugins/*/vendor/ (run `php bin/plugin-deps.php --no-dev` on the server)
 
 It DOES include application code, themes, templates, migrations, composer.lock,
-and vendor/ (production dependencies) so shared hosting works without running
-Composer on the server.
+and root vendor/ (production dependencies) so shared hosting works without running
+Composer on the server for the main app.
 
 ------------------------------------------------------------
 Steps (FTP)
@@ -35,10 +36,14 @@ Steps (FTP)
    persistence tables); without 025 the app now degrades gracefully, but you
    should still run migrate so rate limits and usage stats work.
 
-4. Clear CMS cache if the admin has a cache tool, or remove files under
+4. Plugins with their own composer.json (e.g. Stripe store): from the project
+   root run `php bin/plugin-deps.php --no-dev` (or `composer plugin-deps:prod`)
+   so each `plugins/<name>/vendor/` folder exists on the server.
+
+5. Clear CMS cache if the admin has a cache tool, or remove files under
    storage/cache/ on the server (not the whole storage folder).
 
-5. If anything looks wrong after upload, restore from backup — especially .env.
+6. If anything looks wrong after upload, restore from backup — especially .env.
 
 ------------------------------------------------------------
 Optional: Composer on the server
