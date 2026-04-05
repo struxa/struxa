@@ -1,0 +1,10 @@
+/vendor/
+dist/*.zip
+.env
+storage/installed.lock
+storage/cache/*
+!storage/cache/.gitkeep
+# Optional: composer render-marketing-preview
+public/marketing-preview.html
+public/uploads/*
+!public/uploads/.gitkeep

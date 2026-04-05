@@ -1,0 +1,48 @@
+{% extends 'layouts/base.twig' %}
+
+{% block title %}Reviews — {{ settings.site_name|default('Site')|e }}{% endblock %}
+{% block meta_description %}{{ content_index_description|default(settings.default_meta_description|default(''))|e }}{% endblock %}
+
+{% block body %}
+<main class="theme-review-index">
+  <header class="theme-review-index-header">
+    <p class="eyebrow">Reviews</p>
+    <h1>{{ content_type.name|e }}</h1>
+    {% if content_index_description %}
+      <p class="theme-review-index-lead">{{ content_index_description|e }}</p>
+    {% endif %}
+  </header>
+
+  {% if index_entries is empty %}
+    <p class="theme-muted">No reviews published yet.</p>
+  {% else %}
+    <div class="theme-review-grid">
+      {% for item in index_entries %}
+        {% set row = item.row %}
+        <article class="theme-review-card">
+          {% if item.score_raw|trim != '' %}
+            <div class="theme-review-score" aria-label="Rating {{ item.score_raw|e }} out of 5">{{ item.score_raw|e }}<span>/5</span></div>
+          {% endif %}
+          <h2><a href="{{ site_url }}/{{ content_type.slug|e }}/{{ row.slug|e }}">{{ row.title|e }}</a></h2>
+          {% if item.excerpt_plain %}
+            <p>{{ item.excerpt_plain|e }}</p>
+          {% endif %}
+          <a class="theme-review-readmore" href="{{ site_url }}/{{ content_type.slug|e }}/{{ row.slug|e }}">Full review →</a>
+        </article>
+      {% endfor %}
+    </div>
+
+    {% if index_total_pages > 1 %}
+      <nav class="theme-pager" aria-label="Pagination">
+        {% if index_page > 1 %}
+          <a href="{{ url_for('public.content_type_index', { typeSlug: content_type.slug }) }}?page={{ index_page - 1 }}">Newer</a>
+        {% endif %}
+        <span class="theme-muted">Page {{ index_page }} of {{ index_total_pages }}</span>
+        {% if index_page < index_total_pages %}
+          <a href="{{ url_for('public.content_type_index', { typeSlug: content_type.slug }) }}?page={{ index_page + 1 }}">Older</a>
+        {% endif %}
+      </nav>
+    {% endif %}
+  {% endif %}
+</main>
+{% endblock %}

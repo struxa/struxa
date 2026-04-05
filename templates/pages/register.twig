@@ -1,0 +1,42 @@
+{% extends 'base.twig' %}
+
+{% block title %}Register — {{ settings.site_name|default('Your Studio')|e }}{% endblock %}
+
+{% block body %}
+<main>
+  <section class="section section-auth" aria-labelledby="auth-register-heading">
+    <div class="auth-card glass-panel">
+      <p class="eyebrow reveal" data-reveal><span class="eyebrow-pulse"></span> Account</p>
+      <h1 class="auth-title" id="auth-register-heading">Register</h1>
+      <p class="auth-lede">Create an account. Already have one? <a href="{{ url_for('login') }}">Log in</a>.</p>
+
+      {% if flash_error %}
+        <p class="auth-flash auth-flash--error" role="alert">{{ flash_error }}</p>
+      {% endif %}
+
+      <form class="auth-form" method="post" action="{{ url_for('register') }}" novalidate>
+        {% if registration_collect_username|default(false) %}
+        <label class="auth-label">
+          <span>Username</span>
+          <input class="auth-input" type="text" name="username" autocomplete="username" maxlength="32" required pattern="[a-zA-Z0-9][a-zA-Z0-9_-]*" title="Letters, numbers, underscores, or hyphens; start with a letter or number." />
+        </label>
+        {% endif %}
+        <label class="auth-label">
+          <span>Email</span>
+          <input class="auth-input" type="email" name="email" autocomplete="email" required />
+        </label>
+        <label class="auth-label">
+          <span>Password</span>
+          <input class="auth-input" type="password" name="password" autocomplete="new-password" required />
+        </label>
+        <label class="auth-label">
+          <span>Confirm password</span>
+          <input class="auth-input" type="password" name="password_confirm" autocomplete="new-password" required />
+        </label>
+        <button class="btn btn-primary btn-lg auth-submit" type="submit">Create account</button>
+      </form>
+    </div>
+  </section>
+</main>
+{% include 'partials/_footer.twig' %}
+{% endblock %}

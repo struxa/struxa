@@ -1,0 +1,85 @@
+{% extends 'admin/base.twig' %}
+
+{% block admin_title %}Edit media{% endblock %}
+
+{% block admin_hero_title %}
+  <h1 class="admin-hero-title">Edit media</h1>
+{% endblock %}
+
+{% block admin_hero_sub %}
+  <p class="admin-hero-sub">
+    <a class="admin-link" href="{{ url_for('admin.media.index') }}">← Media library</a>
+    · Path <code class="admin-inline-code">{{ media.path|e }}</code>
+  </p>
+  <p class="admin-hero-sub admin-hero-sub--tight">{% verbatim %}Public URL in templates: <code class="admin-inline-code">{{ media_url(ID) }}</code> or <code class="admin-inline-code">{{ ID|media_url }}</code>{% endverbatim %} — replace <strong>ID</strong> with <strong>{{ media.id }}</strong>.</p>
+{% endblock %}
+
+{% block admin_content %}
+  {% set o = old|default(null) %}
+  {% set alt = o ? o.alt_text : media.altText %}
+  {% set tit = o ? o.title : media.title %}
+  {% set cap = o ? o.caption : media.caption %}
+  {% set previewUrl = media_url(media.id) %}
+
+  <div class="admin-card admin-card--media-preview">
+    {% if media.mimeType|slice(0, 6) == 'image/' and previewUrl != '' %}
+      <a href="{{ previewUrl|e('html_attr') }}" class="admin-media-preview-link" target="_blank" rel="noopener noreferrer">
+        <img src="{{ previewUrl|e('html_attr') }}" alt="" class="admin-media-preview" loading="lazy" decoding="async" />
+        <span class="admin-media-preview-hint">Open full size</span>
+      </a>
+    {% elseif media.mimeType|slice(0, 6) == 'image/' %}
+      <p class="admin-hint">Preview unavailable (invalid stored path).</p>
+    {% endif %}
+
+    <dl class="admin-media-meta">
+      <div class="admin-media-meta-row">
+        <dt>Stored as</dt>
+        <dd>{{ media.filename|e }}</dd>
+      </div>
+      <div class="admin-media-meta-row">
+        <dt>MIME</dt>
+        <dd><span class="admin-badge admin-badge--muted">{{ media.mimeType|e }}</span></dd>
+      </div>
+      {% if media.width and media.height %}
+        <div class="admin-media-meta-row">
+          <dt>Dimensions</dt>
+          <dd>{{ media.width }} × {{ media.height }} px</dd>
+        </div>
+      {% endif %}
+    </dl>
+  </div>
+
+  <div class="admin-card admin-card--media-form">
+    <h2 class="admin-card-title" style="margin-top:0">Details</h2>
+    <form class="admin-form" method="post" action="{{ url_for('admin.media.update', { id: media.id }) }}">
+      <div class="admin-form-grid">
+        <div class="admin-field admin-field--full {{ errors.title is defined ? 'admin-field--error' : '' }}">
+          <label class="admin-label" for="title">Title</label>
+          <input class="admin-input" type="text" id="title" name="title" value="{{ tit|default('')|e('html_attr') }}" maxlength="255" />
+          {% if errors.title is defined %}<p class="admin-field-error">{{ errors.title|e }}</p>{% endif %}
+        </div>
+        <div class="admin-field admin-field--full {{ errors.alt_text is defined ? 'admin-field--error' : '' }}">
+          <label class="admin-label" for="alt_text">Alt text</label>
+          <input class="admin-input" type="text" id="alt_text" name="alt_text" value="{{ alt|default('')|e('html_attr') }}" maxlength="255" />
+          {% if errors.alt_text is defined %}<p class="admin-field-error">{{ errors.alt_text|e }}</p>{% endif %}
+        </div>
+        <div class="admin-field admin-field--full {{ errors.caption is defined ? 'admin-field--error' : '' }}">
+          <label class="admin-label" for="caption">Caption</label>
+          <textarea class="admin-textarea" id="caption" name="caption" rows="4" maxlength="5000">{{ cap|default('')|e }}</textarea>
+          {% if errors.caption is defined %}<p class="admin-field-error">{{ errors.caption|e }}</p>{% endif %}
+        </div>
+      </div>
+      <div class="admin-form-actions">
+        <button type="submit" class="admin-btn-primary">Save changes</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="admin-card admin-card--danger-zone">
+    <h2 class="admin-card-title" style="margin-top:0;color:#fca5a5">Danger zone</h2>
+    <p class="admin-hint">Removes the database row and the file under <code class="admin-inline-code">/uploads/</code> (empty folders are cleaned up).</p>
+    <form class="admin-inline-form" method="post" action="{{ url_for('admin.media.delete', { id: media.id }) }}" onsubmit="return confirm('Delete this file permanently?');">
+      <button type="submit" class="admin-btn-danger">Delete file</button>
+    </form>
+  </div>
+{% endblock %}

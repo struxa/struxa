@@ -1,0 +1,18 @@
+{% extends 'admin/base.twig' %}
+
+{% block admin_title %}Hello plugin{% endblock %}
+
+{% block admin_hero_title %}
+  <h1 class="admin-hero-title">Hello plugin</h1>
+{% endblock %}
+
+{% block admin_hero_sub %}
+  <p class="admin-hero-sub">This page is served from <code class="admin-inline-code">plugins/hello-plugin/views/</code> via a Twig namespace.</p>
+{% endblock %}
+
+{% block admin_content %}
+  <div class="admin-card">
+    <p>Stage 8 sample: routes, Twig views, optional migrations, and <code class="admin-inline-code">ContentEntrySavedEvent</code> subscription in the service provider.</p>
+    <p class="admin-hint" style="margin-top:1rem">Public demo: <a class="admin-link" href="{{ site_url }}/demo/hello-plugin" target="_blank" rel="noopener">/demo/hello-plugin</a></p>
+  </div>
+{% endblock %}

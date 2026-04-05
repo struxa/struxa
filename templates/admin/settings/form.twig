@@ -1,0 +1,249 @@
+{% extends 'admin/base.twig' %}
+
+{% block admin_title %}Site settings{% endblock %}
+
+{% block admin_hero_title %}
+  <h1 class="admin-hero-title">Site settings</h1>
+{% endblock %}
+
+{% block admin_hero_sub %}
+  <p class="admin-hero-sub admin-hero-sub--tight">Branding, homepage, SEO defaults, and social links.</p>
+{% endblock %}
+
+{% block admin_hero_actions %}
+  <a class="admin-btn-ghost" href="{{ url_for('home') }}">View site</a>
+  {% if cms_can('manage_themes') %}
+    <a class="admin-btn-primary" href="{{ url_for('admin.themes.index') }}">Themes</a>
+  {% endif %}
+{% endblock %}
+
+{% block admin_content %}
+  <div class="admin-settings-page">
+    <div class="admin-settings-intro">
+      <div class="admin-settings-intro-icon" aria-hidden="true">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3" />
+          <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
+        </svg>
+      </div>
+      <div class="admin-settings-intro-body">
+        <p class="admin-settings-intro-title">Global site configuration</p>
+        <p class="admin-settings-intro-text">
+          These values feed the public theme, meta tags, and parts of the admin (such as the panel title). Use <strong class="admin-settings-intro-strong">Save settings</strong> at the bottom to apply everything at once.
+        </p>
+      </div>
+    </div>
+
+    <nav class="admin-settings-toc" aria-label="Jump to section">
+      <a class="admin-settings-toc-link" href="#settings-general">General</a>
+      <a class="admin-settings-toc-link" href="#settings-registration">Registration</a>
+      <a class="admin-settings-toc-link" href="#settings-homepage">Homepage</a>
+      <a class="admin-settings-toc-link" href="#settings-seo">SEO defaults</a>
+      <a class="admin-settings-toc-link" href="#settings-branding">Branding</a>
+      <a class="admin-settings-toc-link" href="#settings-social">Social</a>
+      <a class="admin-settings-toc-link" href="#settings-suffix">Title &amp; robots</a>
+      <a class="admin-settings-toc-link" href="#settings-og">Social images</a>
+    </nav>
+
+    <form class="admin-form admin-settings-form" method="post" action="{{ url_for('admin.settings.save') }}">
+      <div class="admin-settings-stack">
+        <div class="admin-settings-row2">
+          <section id="settings-general" class="admin-card admin-settings-card admin-settings-section admin-settings-card--fill" tabindex="-1">
+            <h2 class="admin-settings-card-title">General</h2>
+            <p class="admin-settings-card-desc">Site name, tagline, footer, and contact.</p>
+            <div class="admin-form-grid">
+              <div class="admin-field admin-field--full {{ errors.site_name is defined ? 'admin-field--error' : '' }}">
+                <label class="admin-label" for="site_name">Site name <span class="admin-req">*</span></label>
+                <input class="admin-input" type="text" id="site_name" name="site_name" value="{{ settings_values.site_name|default('')|e('html_attr') }}" maxlength="120" required />
+                {% if errors.site_name is defined %}<p class="admin-field-error">{{ errors.site_name|e }}</p>{% endif %}
+              </div>
+              <div class="admin-field admin-field--full {{ errors.site_tagline is defined ? 'admin-field--error' : '' }}">
+                <label class="admin-label" for="site_tagline">Site tagline</label>
+                <input class="admin-input" type="text" id="site_tagline" name="site_tagline" value="{{ settings_values.site_tagline|default('')|e('html_attr') }}" maxlength="255" />
+                {% if errors.site_tagline is defined %}<p class="admin-field-error">{{ errors.site_tagline|e }}</p>{% endif %}
+              </div>
+              <div class="admin-field admin-field--full {{ errors.footer_text is defined ? 'admin-field--error' : '' }}">
+                <label class="admin-label" for="footer_text">Footer text</label>
+                <textarea class="admin-textarea" id="footer_text" name="footer_text" rows="3" maxlength="2000">{{ settings_values.footer_text|default('')|e }}</textarea>
+                {% if errors.footer_text is defined %}<p class="admin-field-error">{{ errors.footer_text|e }}</p>{% endif %}
+              </div>
+              <div class="admin-field admin-field--full {{ errors.contact_email is defined ? 'admin-field--error' : '' }}">
+                <label class="admin-label" for="contact_email">Contact email</label>
+                <input class="admin-input" type="email" id="contact_email" name="contact_email" value="{{ settings_values.contact_email|default('')|e('html_attr') }}" maxlength="191" />
+                {% if errors.contact_email is defined %}<p class="admin-field-error">{{ errors.contact_email|e }}</p>{% endif %}
+              </div>
+            </div>
+          </section>
+
+          <section id="settings-registration" class="admin-card admin-settings-card admin-settings-section admin-settings-card--fill" tabindex="-1">
+            <h2 class="admin-settings-card-title">Registration</h2>
+            <p class="admin-settings-card-desc">Public sign-up at <code class="admin-inline-code">/register</code>.</p>
+            <div class="admin-form-grid">
+              <div class="admin-field admin-field--full">
+                <input type="hidden" name="registration_collect_username" value="0" />
+                <label class="admin-label admin-settings-check-label">
+                  <input type="checkbox" name="registration_collect_username" value="1" {{ (settings_values.registration_collect_username|default('0') ~ '') == '1' ? 'checked' : '' }} />
+                  Ask for a username when registering
+                </label>
+                <p class="admin-hint" style="margin-top:0.35rem">Stored on the login account; unique when set.</p>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <div class="admin-settings-row2">
+          <section id="settings-homepage" class="admin-card admin-settings-card admin-settings-section admin-settings-card--fill" tabindex="-1">
+            <h2 class="admin-settings-card-title">Public site homepage</h2>
+            <p class="admin-settings-card-desc">
+              Override the theme’s <code class="admin-inline-code">page/home.twig</code> with a <strong>published</strong> page from
+              <a class="admin-link" href="{{ url_for('admin.pages.index') }}">Pages</a>.
+            </p>
+            <div class="admin-form-grid">
+              <div class="admin-field admin-field--full {{ errors.public_homepage_page_id is defined ? 'admin-field--error' : '' }}">
+                <label class="admin-label" for="public_homepage_page_id">Homepage page</label>
+                <select class="admin-select" id="public_homepage_page_id" name="public_homepage_page_id">
+                  <option value="">— Theme default (page/home.twig) —</option>
+                  {% for pg in published_pages_for_home|default([]) %}
+                    <option value="{{ pg.id }}" {{ (settings_values.public_homepage_page_id|default('') ~ '') == (pg.id ~ '') ? 'selected' : '' }}>#{{ pg.id }} — {{ pg.title|e }}</option>
+                  {% endfor %}
+                </select>
+                {% if errors.public_homepage_page_id is defined %}<p class="admin-field-error">{{ errors.public_homepage_page_id|e }}</p>{% endif %}
+              </div>
+            </div>
+          </section>
+
+          <section id="settings-seo" class="admin-card admin-settings-card admin-settings-section admin-settings-card--fill" tabindex="-1">
+            <h2 class="admin-settings-card-title">SEO defaults</h2>
+            <p class="admin-settings-card-desc">Fallback title and description when a page or entry leaves them blank.</p>
+            <div class="admin-form-grid">
+              <div class="admin-field admin-field--full {{ errors.default_meta_title is defined ? 'admin-field--error' : '' }}">
+                <label class="admin-label" for="default_meta_title">Default meta title</label>
+                <input class="admin-input" type="text" id="default_meta_title" name="default_meta_title" value="{{ settings_values.default_meta_title|default('')|e('html_attr') }}" maxlength="200" />
+                {% if errors.default_meta_title is defined %}<p class="admin-field-error">{{ errors.default_meta_title|e }}</p>{% endif %}
+              </div>
+              <div class="admin-field admin-field--full {{ errors.default_meta_description is defined ? 'admin-field--error' : '' }}">
+                <label class="admin-label" for="default_meta_description">Default meta description</label>
+                <textarea class="admin-textarea" id="default_meta_description" name="default_meta_description" rows="3" maxlength="500">{{ settings_values.default_meta_description|default('')|e }}</textarea>
+                {% if errors.default_meta_description is defined %}<p class="admin-field-error">{{ errors.default_meta_description|e }}</p>{% endif %}
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <section id="settings-branding" class="admin-card admin-settings-card admin-settings-section" tabindex="-1">
+          <h2 class="admin-settings-card-title">Branding</h2>
+          <p class="admin-settings-card-desc">Prefer assets from the <a class="admin-link" href="{{ url_for('admin.media.index') }}">media library</a>. Path fields are fallbacks and must start with <code class="admin-inline-code">/</code>.</p>
+          <div class="admin-form-grid admin-settings-branding-grid">
+            <div class="admin-field admin-field--full {{ errors.logo_media_id is defined ? 'admin-field--error' : '' }}">
+              <label class="admin-label" for="logo_media_id">Logo from media library</label>
+              <select class="admin-select" id="logo_media_id" name="logo_media_id">
+                <option value="">— None (use path below) —</option>
+                {% for im in media_picker_images|default([]) %}
+                  <option value="{{ im.id }}" {{ (settings_values.logo_media_id|default('') ~ '') == (im.id ~ '') ? 'selected' : '' }}>#{{ im.id }} — {{ im.original_name|e }}</option>
+                {% endfor %}
+              </select>
+              {% if errors.logo_media_id is defined %}<p class="admin-field-error">{{ errors.logo_media_id|e }}</p>{% endif %}
+            </div>
+            <div class="admin-field admin-field--full {{ errors.logo_path is defined ? 'admin-field--error' : '' }}">
+              <label class="admin-label" for="logo_path">Logo path (fallback)</label>
+              <input class="admin-input" type="text" id="logo_path" name="logo_path" value="{{ settings_values.logo_path|default('')|e('html_attr') }}" maxlength="500" placeholder="/images/logo.svg" />
+              {% if errors.logo_path is defined %}<p class="admin-field-error">{{ errors.logo_path|e }}</p>{% endif %}
+            </div>
+            <div class="admin-field admin-field--full {{ errors.favicon_media_id is defined ? 'admin-field--error' : '' }}">
+              <label class="admin-label" for="favicon_media_id">Favicon from media library</label>
+              <select class="admin-select" id="favicon_media_id" name="favicon_media_id">
+                <option value="">— None (use path below) —</option>
+                {% for im in media_picker_images|default([]) %}
+                  <option value="{{ im.id }}" {{ (settings_values.favicon_media_id|default('') ~ '') == (im.id ~ '') ? 'selected' : '' }}>#{{ im.id }} — {{ im.original_name|e }}</option>
+                {% endfor %}
+              </select>
+              {% if errors.favicon_media_id is defined %}<p class="admin-field-error">{{ errors.favicon_media_id|e }}</p>{% endif %}
+            </div>
+            <div class="admin-field admin-field--full {{ errors.favicon_path is defined ? 'admin-field--error' : '' }}">
+              <label class="admin-label" for="favicon_path">Favicon path (fallback)</label>
+              <input class="admin-input" type="text" id="favicon_path" name="favicon_path" value="{{ settings_values.favicon_path|default('')|e('html_attr') }}" maxlength="500" placeholder="/favicon.svg" />
+              {% if errors.favicon_path is defined %}<p class="admin-field-error">{{ errors.favicon_path|e }}</p>{% endif %}
+            </div>
+          </div>
+        </section>
+
+        <div class="admin-settings-row2">
+          <section id="settings-social" class="admin-card admin-settings-card admin-settings-section admin-settings-card--fill" tabindex="-1">
+            <h2 class="admin-settings-card-title">Social</h2>
+            <p class="admin-settings-card-desc">Public profile or page URLs.</p>
+            <div class="admin-form-grid">
+              <div class="admin-field admin-field--full {{ errors.social_facebook is defined ? 'admin-field--error' : '' }}">
+                <label class="admin-label" for="social_facebook">Facebook URL</label>
+                <input class="admin-input" type="url" id="social_facebook" name="social_facebook" value="{{ settings_values.social_facebook|default('')|e('html_attr') }}" placeholder="https://…" />
+                {% if errors.social_facebook is defined %}<p class="admin-field-error">{{ errors.social_facebook|e }}</p>{% endif %}
+              </div>
+              <div class="admin-field admin-field--full {{ errors.social_twitter is defined ? 'admin-field--error' : '' }}">
+                <label class="admin-label" for="social_twitter">Twitter / X URL</label>
+                <input class="admin-input" type="url" id="social_twitter" name="social_twitter" value="{{ settings_values.social_twitter|default('')|e('html_attr') }}" placeholder="https://…" />
+                {% if errors.social_twitter is defined %}<p class="admin-field-error">{{ errors.social_twitter|e }}</p>{% endif %}
+              </div>
+              <div class="admin-field admin-field--full {{ errors.social_instagram is defined ? 'admin-field--error' : '' }}">
+                <label class="admin-label" for="social_instagram">Instagram URL</label>
+                <input class="admin-input" type="url" id="social_instagram" name="social_instagram" value="{{ settings_values.social_instagram|default('')|e('html_attr') }}" placeholder="https://…" />
+                {% if errors.social_instagram is defined %}<p class="admin-field-error">{{ errors.social_instagram|e }}</p>{% endif %}
+              </div>
+            </div>
+          </section>
+
+          <section id="settings-suffix" class="admin-card admin-settings-card admin-settings-section admin-settings-card--fill" tabindex="-1">
+            <h2 class="admin-settings-card-title">Title suffix &amp; robots</h2>
+            <p class="admin-settings-card-desc">Optional suffix for HTML <code class="admin-inline-code">&lt;title&gt;</code> and custom <code class="admin-inline-code">/robots.txt</code>.</p>
+            <div class="admin-form-grid">
+              <div class="admin-field admin-field--full {{ errors.seo_title_suffix is defined ? 'admin-field--error' : '' }}">
+                <label class="admin-label" for="seo_title_suffix">HTML title suffix</label>
+                <input class="admin-input" type="text" id="seo_title_suffix" name="seo_title_suffix" value="{{ settings_values.seo_title_suffix|default('')|e('html_attr') }}" maxlength="120" placeholder=" — Site Name" />
+                <p class="admin-hint">Appended to page/entry titles when set.</p>
+                {% if errors.seo_title_suffix is defined %}<p class="admin-field-error">{{ errors.seo_title_suffix|e }}</p>{% endif %}
+              </div>
+              <div class="admin-field admin-field--full {{ errors.robots_txt_custom is defined ? 'admin-field--error' : '' }}">
+                <label class="admin-label" for="robots_txt_custom">Custom robots.txt</label>
+                <textarea class="admin-textarea" id="robots_txt_custom" name="robots_txt_custom" rows="5" maxlength="32000" placeholder="Leave blank for defaults (admin disallowed; Sitemap line added when enabled under SEO → Sitemap).">{{ settings_values.robots_txt_custom|default('')|e }}</textarea>
+                {% if errors.robots_txt_custom is defined %}<p class="admin-field-error">{{ errors.robots_txt_custom|e }}</p>{% endif %}
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <section id="settings-og" class="admin-card admin-settings-card admin-settings-section" tabindex="-1">
+          <h2 class="admin-settings-card-title">Default social images</h2>
+          <p class="admin-settings-card-desc">Fallback Open Graph and Twitter images when a page does not set its own.</p>
+          <div class="admin-form-grid">
+            <div class="admin-field admin-field--full {{ errors.seo_default_og_image_media_id is defined ? 'admin-field--error' : '' }}">
+              <label class="admin-label" for="seo_default_og_image_media_id">Default social image (OG)</label>
+              <select class="admin-select" id="seo_default_og_image_media_id" name="seo_default_og_image_media_id">
+                <option value="">— None —</option>
+                {% for im in media_picker_images|default([]) %}
+                  <option value="{{ im.id }}" {{ (settings_values.seo_default_og_image_media_id|default('') ~ '') == (im.id ~ '') ? 'selected' : '' }}>#{{ im.id }} — {{ im.original_name|e }}</option>
+                {% endfor %}
+              </select>
+              {% if errors.seo_default_og_image_media_id is defined %}<p class="admin-field-error">{{ errors.seo_default_og_image_media_id|e }}</p>{% endif %}
+            </div>
+            <div class="admin-field admin-field--full {{ errors.seo_default_twitter_image_media_id is defined ? 'admin-field--error' : '' }}">
+              <label class="admin-label" for="seo_default_twitter_image_media_id">Default Twitter image</label>
+              <select class="admin-select" id="seo_default_twitter_image_media_id" name="seo_default_twitter_image_media_id">
+                <option value="">— None —</option>
+                {% for im in media_picker_images|default([]) %}
+                  <option value="{{ im.id }}" {{ (settings_values.seo_default_twitter_image_media_id|default('') ~ '') == (im.id ~ '') ? 'selected' : '' }}>#{{ im.id }} — {{ im.original_name|e }}</option>
+                {% endfor %}
+              </select>
+              {% if errors.seo_default_twitter_image_media_id is defined %}<p class="admin-field-error">{{ errors.seo_default_twitter_image_media_id|e }}</p>{% endif %}
+            </div>
+          </div>
+          <p class="admin-hint admin-settings-card-footnote">SEO: <a class="admin-link" href="{{ url_for('admin.seo.redirects') }}">Redirects</a>, <a class="admin-link" href="{{ url_for('admin.seo.not_found') }}">404 log</a>, <a class="admin-link" href="{{ url_for('admin.seo.sitemap') }}">Sitemap</a></p>
+        </section>
+      </div>
+
+      <div class="admin-form-sticky-bar admin-settings-sticky">
+        <div class="admin-form-sticky-inner admin-settings-sticky-inner">
+          <button type="submit" class="admin-btn-primary">Save settings</button>
+          <span class="admin-hint admin-settings-sticky-hint">One save updates every section above.</span>
+        </div>
+      </div>
+    </form>
+  </div>
+{% endblock %}

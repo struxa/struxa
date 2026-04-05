@@ -1,0 +1,57 @@
+{% extends 'admin/base.twig' %}
+
+{% block admin_title %}Import / Export{% endblock %}
+
+{% block admin_hero_title %}<h1 class="admin-hero-title">Import / Export</h1>{% endblock %}
+
+{% block admin_hero_sub %}
+  <p class="admin-hero-sub">Export or import selected structure slices as JSON (<code class="admin-inline-code">cms_structure_export_version</code> 1.0). Safer than full blueprints when you only need menus or settings.</p>
+{% endblock %}
+
+{% block admin_content %}
+  <section class="admin-card" style="margin-bottom:1.25rem">
+    <h2 class="admin-card-title">Export</h2>
+    <form class="admin-form" method="post" action="{{ url_for('admin.tools.import_export.export') }}">
+      <p class="admin-hint">Choose scopes to include in the download.</p>
+      <div style="display:grid;gap:0.35rem;margin:0.75rem 0">
+        <label><input type="checkbox" name="scopes[]" value="meta" checked /> Meta (site profile summary, active theme, active plugins)</label>
+        <label><input type="checkbox" name="scopes[]" value="settings" checked /> Settings</label>
+        <label><input type="checkbox" name="scopes[]" value="menus" checked /> Menus</label>
+        <label><input type="checkbox" name="scopes[]" value="content_types" checked /> Content types, fields, taxonomies</label>
+        <label><input type="checkbox" name="scopes[]" value="entries" /> Content entries (up to 200 per type)</label>
+      </div>
+      <button type="submit" class="admin-btn-primary">Download JSON</button>
+    </form>
+  </section>
+
+  <section class="admin-card">
+    <h2 class="admin-card-title">Import</h2>
+    <p class="admin-hint">Scopes control which top-level sections are applied. Use <strong>Validate only</strong> first, then <strong>Apply to database</strong> with the same JSON.</p>
+    <form class="admin-form" method="post" action="{{ url_for('admin.tools.import_export.import') }}" enctype="multipart/form-data">
+      <div class="admin-field admin-field--full">
+        <label class="admin-label" for="ief">JSON file</label>
+        <input class="admin-input" id="ief" name="json_file" type="file" accept=".json,application/json" />
+      </div>
+      <div class="admin-field admin-field--full">
+        <label class="admin-label" for="iet">Or paste JSON</label>
+        <textarea class="admin-textarea" id="iet" name="json_text" rows="8"></textarea>
+      </div>
+      <p class="admin-label">Apply sections</p>
+      <div style="display:grid;gap:0.35rem;margin:0.35rem 0 0.75rem">
+        <label><input type="checkbox" name="scopes[]" value="meta" /> Meta (optional: apply theme from export)</label>
+        <label><input type="checkbox" name="scopes[]" value="settings" checked /> Settings</label>
+        <label><input type="checkbox" name="scopes[]" value="menus" checked /> Menus</label>
+        <label><input type="checkbox" name="scopes[]" value="content_types" checked /> Content types / fields / taxonomies</label>
+        <label><input type="checkbox" name="scopes[]" value="entries" /> Entries</label>
+      </div>
+      <input type="hidden" name="merge" value="0" />
+      <label class="admin-label"><input type="checkbox" name="merge" value="1" checked /> Merge</label>
+      <label class="admin-label"><input type="checkbox" name="apply_theme" value="1" /> When meta is selected, set active theme from export</label>
+      <label class="admin-label"><input type="checkbox" name="import_entries" value="1" /> Import entry rows (when entries scope checked)</label>
+      <div class="admin-form-actions admin-form-actions--split" style="margin-top:1rem">
+        <button type="submit" name="import_mode" value="dry_run" class="admin-btn-ghost">Validate only (dry run)</button>
+        <button type="submit" name="import_mode" value="apply" class="admin-btn-primary">Apply to database</button>
+      </div>
+    </form>
+  </section>
+{% endblock %}

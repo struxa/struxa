@@ -1,0 +1,42 @@
+{% extends 'base.twig' %}
+
+{% block title %}Log in — {{ settings.site_name|default('Your Studio')|e }}{% endblock %}
+
+{% block body %}
+<main>
+  <section class="section section-auth" aria-labelledby="auth-login-heading">
+    <div class="auth-card glass-panel">
+      <p class="eyebrow reveal" data-reveal><span class="eyebrow-pulse"></span> Account</p>
+      <h1 class="auth-title" id="auth-login-heading">Log in</h1>
+      <p class="auth-lede">Access your studio account. New here? <a href="{{ url_for('register') }}">Create one</a>. Staff with two-factor enabled will be asked for an app code after the password.</p>
+
+      {% if flash_error %}
+        <p class="auth-flash auth-flash--error" role="alert">{{ flash_error }}</p>
+      {% endif %}
+      {% if flash_success %}
+        <p class="auth-flash auth-flash--success" role="status">{{ flash_success }}</p>
+      {% endif %}
+
+      <form class="auth-form" method="post" action="{{ url_for('login') }}" novalidate>
+        {% if login_next %}
+          <input type="hidden" name="next" value="{{ login_next }}" />
+        {% endif %}
+        <label class="auth-label">
+          <span>Email</span>
+          <input class="auth-input" type="email" name="email" autocomplete="email" required />
+        </label>
+        <label class="auth-label">
+          <span>Password</span>
+          <input class="auth-input" type="password" name="password" autocomplete="current-password" required />
+        </label>
+        <label class="auth-check">
+          <input type="checkbox" name="remember" value="1" />
+          <span>Remember me</span>
+        </label>
+        <button class="btn btn-primary btn-lg auth-submit" type="submit">Log in</button>
+      </form>
+    </div>
+  </section>
+</main>
+{% include 'partials/_footer.twig' %}
+{% endblock %}

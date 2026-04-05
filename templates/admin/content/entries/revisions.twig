@@ -1,0 +1,45 @@
+{% extends 'admin/base.twig' %}
+
+{% block admin_title %}Revisions — {{ entry.title|e }}{% endblock %}
+
+{% block admin_hero_title %}<h1 class="admin-hero-title">Entry revisions</h1>{% endblock %}
+
+{% block admin_hero_sub %}
+  <p class="admin-hero-sub">
+    <a class="admin-link" href="{{ url_for('admin.content_types.entries.edit', { id: content_type.id, entryId: entry.id }) }}">← {{ entry.title|e }}</a>
+  </p>
+{% endblock %}
+
+{% block admin_content %}
+  <div class="admin-card">
+    {% if revision_rows is empty %}
+      <p class="admin-hint">No revisions yet.</p>
+    {% else %}
+      <div class="admin-table-wrap">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>When</th>
+              <th>By</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in revision_rows %}
+              <tr>
+                <td>{{ row.created_at|e }}</td>
+                <td class="admin-table-muted">{{ row.author_email|default('—')|e }}</td>
+                <td>
+                  <a class="admin-link" href="{{ url_for('admin.content_types.entries.revision_compare', { id: content_type.id, entryId: entry.id, revId: row.id }) }}">Compare</a>
+                  <form method="post" action="{{ url_for('admin.content_types.entries.revision_restore', { id: content_type.id, entryId: entry.id, revId: row.id }) }}" style="display:inline;margin-left:0.75rem" onsubmit="return confirm('Restore this snapshot?');">
+                    <button type="submit" class="admin-btn-ghost">Restore</button>
+                  </form>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% endif %}
+  </div>
+{% endblock %}

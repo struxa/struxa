@@ -1,0 +1,89 @@
+{% extends 'admin/base.twig' %}
+{% import 'admin/_ui_macros.twig' as ui %}
+
+{% block admin_title %}{{ content_type.name|e }} — Entries{% endblock %}
+
+{% block admin_hero_title %}
+  <h1 class="admin-hero-title">{{ content_type.name|e }}</h1>
+{% endblock %}
+
+{% block admin_hero_sub %}
+  <p class="admin-hero-sub">
+    Slug <code class="admin-inline-code">{{ content_type.slug|e }}</code>
+    · {{ field_count }} field{{ field_count == 1 ? '' : 's' }}
+    · {{ taxonomy_count|default(0) }} taxonom{{ taxonomy_count|default(0) == 1 ? 'y' : 'ies' }}
+    {% if content_type.hasPublicRoute %}
+      · Public base: <code class="admin-inline-code">{{ site_url }}/{{ content_type.slug|e }}/…</code>
+    {% endif %}
+  </p>
+{% endblock %}
+
+{% block admin_content %}
+  <div class="admin-toolbar" style="margin-bottom:1.5rem;flex-wrap:wrap;gap:0.75rem">
+    {% if content_type.hasPublicRoute %}
+      <a class="admin-btn-ghost" href="{{ url_for('public.content_type_index', { typeSlug: content_type.slug }) }}" target="_blank" rel="noopener noreferrer">View public index</a>
+    {% endif %}
+    {% if cms_can('create_content') %}
+      <a class="admin-btn-primary" href="{{ url_for('admin.content_types.entries.new', { id: content_type.id }) }}">New entry</a>
+    {% endif %}
+    {% if cms_can('manage_content_types') %}
+      <a class="admin-btn-primary" href="{{ url_for('admin.content_types.fields.index', { id: content_type.id }) }}">Manage fields</a>
+    {% endif %}
+    {% if cms_can('manage_taxonomies') %}
+      <a class="admin-btn-primary" href="{{ url_for('admin.content_types.taxonomies.index', { id: content_type.id }) }}">Taxonomies</a>
+    {% endif %}
+    {% if cms_can('manage_content_types') %}
+      <a class="admin-btn-ghost" href="{{ url_for('admin.content_types.edit', { id: content_type.id }) }}">Edit type</a>
+      <form method="post" action="{{ url_for('admin.content_types.delete', { id: content_type.id }) }}" style="display:inline" onsubmit="return confirm('Delete this content type and all its fields and entries? This cannot be undone.');">
+        <button type="submit" class="admin-btn-ghost" style="color:var(--accent-rose)">Delete type</button>
+      </form>
+    {% endif %}
+  </div>
+
+  {% if entry_rows is empty %}
+    {{ ui.empty_state(
+      'No entries yet',
+      'Create an entry to store structured content for this type. You can draft, send for review, and publish when ready.',
+      cms_can('create_content') ? url_for('admin.content_types.entries.new', { id: content_type.id }) : '',
+      cms_can('create_content') ? 'New entry' : '',
+      '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>'
+    ) }}
+  {% else %}
+    <div class="admin-table-wrap">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th scope="col">Title</th>
+            <th scope="col">Slug</th>
+            <th scope="col">Status</th>
+            <th scope="col">Updated</th>
+            <th scope="col" class="admin-table-col-actions"><span class="admin-table-muted">Actions</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for e in entry_rows %}
+            <tr>
+              <td><strong>{{ e.title|e }}</strong></td>
+              <td><code class="admin-inline-code">{{ e.slug|e }}</code></td>
+              <td>{{ ui.status_badge(e.status) }}</td>
+              <td class="admin-table-muted">{{ e.updated_at|e }}</td>
+              <td class="admin-table-actions">
+                <details class="admin-actions-menu">
+                  <summary class="admin-actions-menu-trigger" aria-label="Actions for {{ e.title|e('html_attr') }}">⋯</summary>
+                  <div class="admin-actions-menu-panel">
+                    {% if cms_can('edit_content') or cms_can('review_content') %}
+                      <a href="{{ url_for('admin.content_types.entries.edit', { id: content_type.id, entryId: e.id }) }}">Edit</a>
+                    {% endif %}
+                    {% if content_type.hasPublicRoute and e.status == 'published' %}
+                      <a href="{{ site_url }}/{{ content_type.slug|e }}/{{ e.slug|e }}" target="_blank" rel="noopener">View live</a>
+                    {% endif %}
+                  </div>
+                </details>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% endif %}
+{% endblock %}

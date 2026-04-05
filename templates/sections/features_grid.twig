@@ -1,0 +1,31 @@
+<section class="strux-section strux-features strux-bg--{{ options.background|default('default')|e('html_attr') }}" data-section="features_grid">
+  <div class="strux-section-inner strux-section-inner--{{ options.padding|default('comfortable')|e('html_attr') }}">
+    <div class="strux-features__lead">
+      {% if section.eyebrow|default('')|trim != '' %}
+        <p class="strux-section-eyebrow">{{ section.eyebrow|e }}</p>
+      {% endif %}
+      <h2 class="strux-section-title">{{ section.title|default('')|e }}</h2>
+      {% if section.intro_html|default('')|trim != '' %}
+        <div class="strux-section-intro cms-prose">{{ section.intro_html|raw }}</div>
+      {% endif %}
+    </div>
+    <ul class="strux-features__grid">
+      {% for item in section.items_json|default([]) %}
+        {% set badge_raw = item.badge|default('')|trim %}
+        {% set badge_is_soon = badge_raw != '' and ('coming' in badge_raw|lower) %}
+        <li class="strux-features__item{% if badge_raw != '' %} strux-features__item--badged{% endif %}" data-strux-feature="{{ loop.index0 }}">
+          {% if badge_raw != '' %}
+            <span class="strux-features__badge{% if badge_is_soon %} strux-features__badge--soon{% else %} strux-features__badge--free{% endif %}">{{ badge_raw|e }}</span>
+          {% endif %}
+          <div class="strux-features__body">
+            {% if item.icon_media_id %}
+              <div class="strux-features__icon"><img src="{{ media_url(item.icon_media_id) }}" alt="" width="48" height="48" loading="lazy" /></div>
+            {% endif %}
+            <h3 class="strux-features__item-title">{{ item.title|default('')|e }}</h3>
+            <p class="strux-features__item-body">{{ item.body|default('')|e }}</p>
+          </div>
+        </li>
+      {% endfor %}
+    </ul>
+  </div>
+</section>

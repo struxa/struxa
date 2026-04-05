@@ -1,0 +1,21 @@
+{
+  "catalog_version": 1,
+  "themes": [
+    {
+      "slug": "default",
+      "name": "Midnight Pulse",
+      "version": "1.0.0",
+      "description": "Dark SaaS-style layout with gradient accents.",
+      "author": "Struxa",
+      "download_url": "https://struxapoint.com/theme-repo/zips/default.zip"
+    },
+    {
+      "slug": "my-theme",
+      "name": "My theme",
+      "version": "1.0.0",
+      "description": "Short blurb for the browse screen.",
+      "author": "Your name",
+      "download_url": "https://codeload.github.com/your-org/your-theme/zip/refs/heads/main"
+    }
+  ]
+}

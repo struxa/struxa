@@ -1,0 +1,60 @@
+[tabs]
+[tab title="Overview"]
+<h3 class="mt-6 mb-2 font-semibold text-xl" data-streamdown="heading-3">Relay &mdash; SMS control plane for your own SIMs</h3>
+<p><span class="font-semibold" data-streamdown="strong">Relay</span>&nbsp;is a control plane and API that lets you&nbsp;<span class="font-semibold" data-streamdown="strong">send and receive SMS (and MMS)</span>&nbsp;through&nbsp;<span class="font-semibold" data-streamdown="strong">phones you own</span>, using real SIMs&mdash;without handing your traffic to a bulk SMS API unless you choose to. Pair the&nbsp;<span class="font-semibold" data-streamdown="strong">Relay Android app</span>&nbsp;with your account, queue messages from the web or HTTP API, and&nbsp;<span class="font-semibold" data-streamdown="strong">audit every job</span>&nbsp;from queue to delivery.</p>
+<p><span class="font-semibold" data-streamdown="strong">Who it&rsquo;s for</span><br>Operators, small teams, and builders who want&nbsp;<span class="font-semibold" data-streamdown="strong">carrier-native SMS</span>&nbsp;(OTP, alerts, two-way flows, light campaigns) with&nbsp;<span class="font-semibold" data-streamdown="strong">their hardware</span>,&nbsp;<span class="font-semibold" data-streamdown="strong">their numbers</span>, and a&nbsp;<span class="font-semibold" data-streamdown="strong">clear audit trail</span>&mdash;plus optional&nbsp;<span class="font-semibold" data-streamdown="strong">cloud SMS</span>&nbsp;when you need it.</p>
+<p><span class="font-semibold" data-streamdown="strong">What you get</span></p>
+<ul class="list-inside list-disc whitespace-normal [li_&amp;]:pl-6" data-streamdown="unordered-list">
+<li class="py-1 [&amp;&gt;p]:inline" data-streamdown="list-item"><span class="font-semibold" data-streamdown="strong">Handset gateway</span>&nbsp;&mdash; Android app polls your Relay server, sends SMS/MMS and USSD, reports status; inbound can flow back into Relay for inbox, chats, and webhooks.</li>
+<li class="py-1 [&amp;&gt;p]:inline" data-streamdown="list-item"><span class="font-semibold" data-streamdown="strong">Web console</span>&nbsp;&mdash; Queue messages, manage devices, bulk uploads, contacts, blocklist, call log, and (for admins) team, billing, and integrations.</li>
+<li class="py-1 [&amp;&gt;p]:inline" data-streamdown="list-item"><span class="font-semibold" data-streamdown="strong">HTTP API</span>&nbsp;&mdash; API tokens for your own scripts and systems; webhooks for job and inbound events.</li>
+<li class="py-1 [&amp;&gt;p]:inline" data-streamdown="list-item"><span class="font-semibold" data-streamdown="strong">Optional third-party SMS</span>&nbsp;&mdash; Connect&nbsp;<span class="font-semibold" data-streamdown="strong">Twilio</span>,&nbsp;<span class="font-semibold" data-streamdown="strong">Textlocal</span>, and similar drivers with&nbsp;<span class="font-semibold" data-streamdown="strong">per-server rate quotas</span>&nbsp;so you stay under provider limits while mixing SIM and API sends.</li>
+<li class="py-1 [&amp;&gt;p]:inline" data-streamdown="list-item"><span class="font-semibold" data-streamdown="strong">Faster wakeups</span>&nbsp;&mdash;&nbsp;<span class="font-semibold" data-streamdown="strong">Firebase (FCM)</span>&nbsp;can nudge the app when work is queued, with polling as a fallback.</li>
+<li class="py-1 [&amp;&gt;p]:inline" data-streamdown="list-item"><span class="font-semibold" data-streamdown="strong">Credits and plans</span> &mdash; Usage can be tied to your plan and credits model so costs stay predictable.</li>
+</ul>
+[/tab]
+[tab title="Stack"]
+<h3 class="mt-6 mb-2 font-semibold text-xl" data-streamdown="heading-3">Relay &mdash; technology stack</h3>
+<p><span class="font-semibold" data-streamdown="strong">Mobile app (handset)</span></p>
+<ul class="list-inside list-disc whitespace-normal [li_&amp;]:pl-6" data-streamdown="unordered-list">
+<li class="py-1 [&amp;&gt;p]:inline" data-streamdown="list-item"><span class="font-semibold" data-streamdown="strong">Expo</span>&nbsp;(~54) and&nbsp;<span class="font-semibold" data-streamdown="strong">React Native</span>&nbsp;(0.81)</li>
+<li class="py-1 [&amp;&gt;p]:inline" data-streamdown="list-item"><span class="font-semibold" data-streamdown="strong">React</span>&nbsp;19 &middot;&nbsp;<span class="font-semibold" data-streamdown="strong">TypeScript</span></li>
+<li class="py-1 [&amp;&gt;p]:inline" data-streamdown="list-item"><span class="font-semibold" data-streamdown="strong">expo-camera</span>&nbsp;(QR pairing),&nbsp;<span class="font-semibold" data-streamdown="strong">expo-font</span>,&nbsp;<span class="font-semibold" data-streamdown="strong">expo-linear-gradient</span>,&nbsp;<span class="font-semibold" data-streamdown="strong">expo-system-ui</span></li>
+<li class="py-1 [&amp;&gt;p]:inline" data-streamdown="list-item"><span class="font-semibold" data-streamdown="strong">Custom native module</span>&nbsp;<code class="">expo-sms-gateway</code>&nbsp;(local&nbsp;<code class="md-inline-path-filename-like"><span class="md-inline-path-prefix">modules/</span><span class="md-inline-path-filename">expo-sms-gateway</span></code>)</li>
+</ul>
+<p><span class="font-semibold" data-streamdown="strong">Android / native gateway</span></p>
+<ul class="list-inside list-disc whitespace-normal [li_&amp;]:pl-6" data-streamdown="unordered-list">
+<li class="py-1 [&amp;&gt;p]:inline" data-streamdown="list-item"><span class="font-semibold" data-streamdown="strong">Kotlin</span>,&nbsp;<span class="font-semibold" data-streamdown="strong">Kotlin coroutines</span></li>
+<li class="py-1 [&amp;&gt;p]:inline" data-streamdown="list-item"><span class="font-semibold" data-streamdown="strong">OkHttp</span>&nbsp;(HTTP to Relay API)</li>
+<li class="py-1 [&amp;&gt;p]:inline" data-streamdown="list-item"><span class="font-semibold" data-streamdown="strong">Firebase Cloud Messaging</span>&nbsp;(FCM) for job wakeups</li>
+<li class="py-1 [&amp;&gt;p]:inline" data-streamdown="list-item"><span class="font-semibold" data-streamdown="strong">Gradle</span>&nbsp;/ Android&nbsp;<span class="font-semibold" data-streamdown="strong">foreground service</span>&nbsp;(polling + SMS/USSD/MMS plumbing)</li>
+<li class="py-1 [&amp;&gt;p]:inline" data-streamdown="list-item"><span class="font-semibold" data-streamdown="strong">Expo config plugins</span>&nbsp;(e.g.&nbsp;<code class="md-inline-variable-like">withSmsGateway</code>&nbsp;for manifest / cleartext dev)</li>
+</ul>
+<p><span class="font-semibold" data-streamdown="strong">Web &amp; API server</span></p>
+<ul class="list-inside list-disc whitespace-normal [li_&amp;]:pl-6" data-streamdown="unordered-list">
+<li class="py-1 [&amp;&gt;p]:inline" data-streamdown="list-item"><span class="font-semibold" data-streamdown="strong">PHP</span>&nbsp;8.4+</li>
+<li class="py-1 [&amp;&gt;p]:inline" data-streamdown="list-item"><span class="font-semibold" data-streamdown="strong">Slim Framework</span>&nbsp;4 (PSR-7 via&nbsp;<span class="font-semibold" data-streamdown="strong">slim/psr7</span>)</li>
+<li class="py-1 [&amp;&gt;p]:inline" data-streamdown="list-item"><span class="font-semibold" data-streamdown="strong">Twig</span>&nbsp;(<span class="font-semibold" data-streamdown="strong">slim/twig-view</span>,&nbsp;<span class="font-semibold" data-streamdown="strong">symfony/twig-bridge</span>)</li>
+<li class="py-1 [&amp;&gt;p]:inline" data-streamdown="list-item"><span class="font-semibold" data-streamdown="strong">PHP-DI</span>&nbsp;7</li>
+<li class="py-1 [&amp;&gt;p]:inline" data-streamdown="list-item"><span class="font-semibold" data-streamdown="strong">Symfony</span>:&nbsp;<span class="font-semibold" data-streamdown="strong">Mailer</span>,&nbsp;<span class="font-semibold" data-streamdown="strong">Mime</span>,&nbsp;<span class="font-semibold" data-streamdown="strong">Translation</span>,&nbsp;<span class="font-semibold" data-streamdown="strong">EventDispatcher</span></li>
+<li class="py-1 [&amp;&gt;p]:inline" data-streamdown="list-item"><span class="font-semibold" data-streamdown="strong">vlucas/phpdotenv</span>&nbsp;(configuration)</li>
+</ul>
+<p><span class="font-semibold" data-streamdown="strong">Data &amp; persistence</span></p>
+<ul class="list-inside list-disc whitespace-normal [li_&amp;]:pl-6" data-streamdown="unordered-list">
+<li class="py-1 [&amp;&gt;p]:inline" data-streamdown="list-item"><span class="font-semibold" data-streamdown="strong">SQLite</span>&nbsp;(single-file app DB, migrations in-app)</li>
+</ul>
+<p><span class="font-semibold" data-streamdown="strong">Integrations &amp; libraries</span></p>
+<ul class="list-inside list-disc whitespace-normal [li_&amp;]:pl-6" data-streamdown="unordered-list">
+<li class="py-1 [&amp;&gt;p]:inline" data-streamdown="list-item"><span class="font-semibold" data-streamdown="strong">Stripe</span>&nbsp;(<span class="font-semibold" data-streamdown="strong">stripe-php</span>) &mdash; billing</li>
+<li class="py-1 [&amp;&gt;p]:inline" data-streamdown="list-item"><span class="font-semibold" data-streamdown="strong">Kreait Firebase PHP</span>&nbsp;&mdash; server-side FCM sends</li>
+<li class="py-1 [&amp;&gt;p]:inline" data-streamdown="list-item"><span class="font-semibold" data-streamdown="strong">Endroid QR Code</span>&nbsp;&mdash; pairing QR</li>
+<li class="py-1 [&amp;&gt;p]:inline" data-streamdown="list-item"><span class="font-semibold" data-streamdown="strong">PhpSpreadsheet</span>&nbsp;&mdash; bulk SMS spreadsheets</li>
+</ul>
+<p><span class="font-semibold" data-streamdown="strong">Ops &amp; tooling</span></p>
+<ul class="list-inside list-disc whitespace-normal [li_&amp;]:pl-6" data-streamdown="unordered-list">
+<li class="py-1 [&amp;&gt;p]:inline" data-streamdown="list-item"><span class="font-semibold" data-streamdown="strong">PHPUnit</span>&nbsp;(tests)</li>
+<li class="py-1 [&amp;&gt;p]:inline" data-streamdown="list-item"><span class="font-semibold" data-streamdown="strong">CLI workers</span>&nbsp;(e.g. PHP&nbsp;<code class="md-inline-path-filename-like"><span class="md-inline-path-prefix">bin/</span><span class="md-inline-path-filename">gateway-send-worker.php</span></code>&nbsp;for third-party SMS)</li>
+<li class="py-1 [&amp;&gt;p]:inline" data-streamdown="list-item"><span class="font-semibold" data-streamdown="strong">EAS Build</span>&nbsp;/&nbsp;<span class="font-semibold" data-streamdown="strong">expo prebuild</span>&nbsp;for Android releases (optional&nbsp;<span class="font-semibold" data-streamdown="strong">Node</span> mock gateway script)</li>
+</ul>
+[/tab]
+[/tabs]

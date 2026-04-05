@@ -1,0 +1,178 @@
+{
+    "cms_blueprint_version": "1.0",
+    "label": "Showcase: Agency / business",
+    "description": "Marketing pages, team directory with services taxonomy, homepage sections, contact settings.",
+    "settings": {
+        "site_name": "Northline Studio",
+        "site_tagline": "Design and engineering for serious teams.",
+        "default_meta_title": "Northline Studio",
+        "default_meta_description": "Product design, engineering, and content platforms.",
+        "footer_text": "© Northline Studio. Built with a structured CMS.",
+        "contact_email": "hello@example.com",
+        "social_twitter": "https://twitter.com/example"
+    },
+    "pages": [
+        {
+            "title": "Home",
+            "slug": "home",
+            "content": "<section class=\"theme-agency-hero\">\n  <h1>We build digital products that ship</h1>\n  <p class=\"theme-agency-lead\">Strategy, design, and engineering under one roof — without the WordPress plugin treadmill.</p>\n  <p><a class=\"theme-agency-cta\" href=\"/team\">Meet the team</a></p>\n</section>\n<section class=\"theme-agency-section\">\n  <h2>Services</h2>\n  <div class=\"theme-agency-grid\">\n    <article><h3>Product design</h3><p>Research, UX, and UI systems that scale across marketing and product.</p></article>\n    <article><h3>Engineering</h3><p>PHP, front-end, and integrations with clear ownership and observability.</p></article>\n    <article><h3>Content platforms</h3><p>Structured CMS models, blueprints, and migrations you can repeat.</p></article>\n  </div>\n</section>\n<section class=\"theme-agency-section theme-agency-section--muted\">\n  <h2>Selected work</h2>\n  <p>Replace this block with case studies or embed entries from a portfolio type — the homepage is just HTML in <code>cms_pages</code>.</p>\n</section>",
+            "status": "published"
+        },
+        {
+            "title": "Services",
+            "slug": "services",
+            "content": "<h1>Services</h1><p>We partner on discovery, delivery, and long-term operations. Contact us for a scoped proposal.</p>",
+            "status": "published"
+        },
+        {
+            "title": "Contact",
+            "slug": "contact",
+            "content": "<h1>Contact</h1><p>Email and social links come from <strong>Site settings</strong> so you can update them without redeploying templates.</p>",
+            "status": "published"
+        }
+    ],
+    "content_types": [
+        {
+            "slug": "team",
+            "name": "Team member",
+            "description": "People directory with role, bio, and service focus.",
+            "has_public_route": true,
+            "supports_seo": true,
+            "supports_featured_image": true,
+            "fields": [
+                {
+                    "field_key": "role",
+                    "label": "Role",
+                    "field_type": "text",
+                    "sort_order": 10
+                },
+                {
+                    "field_key": "bio",
+                    "label": "Bio",
+                    "field_type": "richtext",
+                    "sort_order": 20
+                },
+                {
+                    "field_key": "linkedin",
+                    "label": "LinkedIn URL",
+                    "field_type": "url",
+                    "sort_order": 30
+                }
+            ],
+            "taxonomies": [
+                {
+                    "slug": "service",
+                    "name": "Services",
+                    "taxonomy_type": "custom",
+                    "is_hierarchical": false,
+                    "terms": [
+                        {
+                            "slug": "design",
+                            "name": "Design"
+                        },
+                        {
+                            "slug": "engineering",
+                            "name": "Engineering"
+                        },
+                        {
+                            "slug": "strategy",
+                            "name": "Strategy"
+                        }
+                    ]
+                }
+            ]
+        }
+    ],
+    "menus": [
+        {
+            "location": "header",
+            "name": "Header",
+            "items": [
+                {
+                    "label": "Home",
+                    "url": "",
+                    "page_slug": "home",
+                    "target": "_self",
+                    "css_class": ""
+                },
+                {
+                    "label": "Services",
+                    "url": "",
+                    "page_slug": "services",
+                    "target": "_self",
+                    "css_class": ""
+                },
+                {
+                    "label": "Team",
+                    "url": "/team",
+                    "target": "_self",
+                    "css_class": ""
+                },
+                {
+                    "label": "Contact",
+                    "url": "",
+                    "page_slug": "contact",
+                    "target": "_self",
+                    "css_class": ""
+                }
+            ]
+        }
+    ],
+    "content_entries": [
+        {
+            "content_type_slug": "team",
+            "title": "Morgan Blake",
+            "slug": "morgan-blake",
+            "status": "published",
+            "published_at": "2024-06-01 10:00:00",
+            "seo_title": "Morgan Blake — Product design lead",
+            "field_values": {
+                "role": "Lead product designer",
+                "bio": "<p>Morgan runs discovery workshops and owns the design system for flagship clients.</p>",
+                "linkedin": "https://linkedin.com/in/example-morgan"
+            },
+            "taxonomy_terms": {
+                "service": [
+                    "design",
+                    "strategy"
+                ]
+            }
+        },
+        {
+            "content_type_slug": "team",
+            "title": "Riley Park",
+            "slug": "riley-park",
+            "status": "published",
+            "published_at": "2024-06-01 10:00:00",
+            "field_values": {
+                "role": "Principal engineer",
+                "bio": "<p>Riley architects APIs, performance budgets, and deployment pipelines.</p>",
+                "linkedin": "https://linkedin.com/in/example-riley"
+            },
+            "taxonomy_terms": {
+                "service": [
+                    "engineering",
+                    "strategy"
+                ]
+            }
+        },
+        {
+            "content_type_slug": "team",
+            "title": "Casey Nguyen",
+            "slug": "casey-nguyen",
+            "status": "published",
+            "published_at": "2024-06-01 10:00:00",
+            "field_values": {
+                "role": "Engineering manager",
+                "bio": "<p>Casey keeps delivery predictable and mentors the platform squad.</p>",
+                "linkedin": ""
+            },
+            "taxonomy_terms": {
+                "service": [
+                    "engineering"
+                ]
+            }
+        }
+    ],
+    "required_plugin_slugs": []
+}

@@ -1,0 +1,83 @@
+{# Embedded or standalone visual builder UI. Expects: page, section_rows, section_palette, section_labels #}
+{% set _standalone = builder_panel_standalone|default(false) %}
+{% set _post_suffix = _standalone ? '?embed=standalone' : '' %}
+{% set _builder_action = url_for('admin.pages.builder', { id: page.id }) ~ _post_suffix %}
+
+<div class="admin-page-builder-embed">
+  <div class="admin-page-builder-toolbar admin-toolbar admin-toolbar--spread" style="margin-bottom:1rem;flex-wrap:wrap;gap:0.75rem">
+    <form class="admin-inline-form" method="post" action="{{ _builder_action|e('html_attr') }}" style="display:flex;flex-wrap:wrap;gap:0.5rem;align-items:center">
+      <input type="hidden" name="_action" value="add" />
+      <label class="admin-label" for="add-section-key" style="margin:0">Add section</label>
+      <select class="admin-select" id="add-section-key" name="section_key" required>
+        {% for p in section_palette %}
+          <option value="{{ p.key|e('html_attr') }}">{{ p.label|e }} ({{ p.key|e }})</option>
+        {% endfor %}
+      </select>
+      <button type="submit" class="admin-btn-primary">Add</button>
+    </form>
+    <form id="page-builder-reorder-form" method="post" action="{{ _builder_action|e('html_attr') }}">
+      <input type="hidden" name="_action" value="reorder" />
+      <button type="submit" class="admin-btn-ghost">Save order</button>
+    </form>
+  </div>
+
+  <p class="admin-hint" style="margin-top:0;margin-bottom:1rem">Drag sections to reorder, then <strong>Save order</strong>. Edit content per block — JSON fields power grids, FAQs, and pricing; invalid JSON is rejected on save.</p>
+
+  {% if _standalone %}
+    <p class="admin-hint" style="margin-top:0;margin-bottom:1rem">
+      <a class="admin-link" href="{{ url_for('admin.pages.edit', { id: page.id }) }}#page-visual-builder">Edit page &amp; body</a>
+      — same builder also appears on the main page editor.
+    </p>
+  {% endif %}
+
+  {% if section_rows is empty %}
+    <div class="admin-card" style="padding:1.5rem">
+      <p class="admin-hint" style="margin:0">No sections yet. Choose a block type above to start a landing layout. Legacy page body still renders below sections when present.</p>
+    </div>
+  {% else %}
+    <ul id="page-builder-list" class="admin-page-builder-list" style="list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:0.75rem">
+      {% for row in section_rows %}
+        {% set label = section_labels[row.sectionKey]|default(row.sectionKey) %}
+        {% set d = row.data %}
+        {% set preview = d.headline|default(d.title|default(d.eyebrow|default(''))) %}
+        <li data-section-row="{{ row.id }}" class="admin-card admin-page-builder-card" style="margin:0;padding:0;border:1px solid rgba(255,255,255,0.08);cursor:grab">
+          <div class="admin-page-builder-card-inner" style="display:flex;align-items:flex-start;gap:1rem;padding:1rem 1.1rem;flex-wrap:wrap">
+            <span class="admin-page-builder-drag" aria-hidden="true" style="opacity:0.45;user-select:none;font-size:1.25rem;line-height:1">⠿</span>
+            <div style="flex:1;min-width:12rem">
+              <div class="admin-page-builder-card-head" style="display:flex;align-items:baseline;gap:0.5rem;flex-wrap:wrap;margin-bottom:0.35rem">
+                <strong>{{ label|e }}</strong>
+                <code class="admin-inline-code">{{ row.sectionKey|e }}</code>
+              </div>
+              <p class="admin-hint" style="margin:0;font-size:0.875rem">{{ preview|e }}</p>
+            </div>
+            <div class="admin-page-builder-actions" style="display:flex;flex-wrap:wrap;gap:0.5rem;align-items:center">
+              <a class="admin-btn-ghost" href="{{ url_for('admin.pages.builder.section_edit', { id: page.id, sectionId: row.id }) }}">Edit</a>
+              <form method="post" action="{{ _builder_action|e('html_attr') }}" class="admin-inline-form">
+                <input type="hidden" name="_action" value="duplicate" />
+                <input type="hidden" name="section_id" value="{{ row.id }}" />
+                <button type="submit" class="admin-btn-ghost">Duplicate</button>
+              </form>
+              <form method="post" action="{{ _builder_action|e('html_attr') }}" class="admin-inline-form">
+                <input type="hidden" name="_action" value="move" />
+                <input type="hidden" name="section_id" value="{{ row.id }}" />
+                <input type="hidden" name="direction" value="up" />
+                <button type="submit" class="admin-btn-ghost" {% if loop.first %}disabled{% endif %}>Up</button>
+              </form>
+              <form method="post" action="{{ _builder_action|e('html_attr') }}" class="admin-inline-form">
+                <input type="hidden" name="_action" value="move" />
+                <input type="hidden" name="section_id" value="{{ row.id }}" />
+                <input type="hidden" name="direction" value="down" />
+                <button type="submit" class="admin-btn-ghost" {% if loop.last %}disabled{% endif %}>Down</button>
+              </form>
+              <form method="post" action="{{ _builder_action|e('html_attr') }}" class="admin-inline-form" onsubmit="return confirm('Remove this section from the page?');">
+                <input type="hidden" name="_action" value="delete" />
+                <input type="hidden" name="section_id" value="{{ row.id }}" />
+                <button type="submit" class="admin-btn-ghost" style="color:var(--admin-danger, #f87171)">Delete</button>
+              </form>
+            </div>
+          </div>
+        </li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+</div>

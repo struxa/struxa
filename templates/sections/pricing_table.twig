@@ -1,0 +1,28 @@
+<section class="strux-section strux-pricing strux-bg--{{ options.background|default('default')|e('html_attr') }}" data-section="pricing_table">
+  <div class="strux-section-inner strux-section-inner--{{ options.padding|default('comfortable')|e('html_attr') }}">
+    <h2 class="strux-section-title">{{ section.title|default('')|e }}</h2>
+    {% if section.intro_html|default('')|trim != '' %}
+      <div class="strux-section-intro cms-prose">{{ section.intro_html|raw }}</div>
+    {% endif %}
+    <div class="strux-pricing__grid">
+      {% for plan in section.plans_json|default([]) %}
+        <article class="strux-pricing__card{% if plan.highlighted|default(false) %} strux-pricing__card--highlight{% endif %}">
+          <h3 class="strux-pricing__name">{{ plan.name|default('')|e }}</h3>
+          <p class="strux-pricing__price"><span class="strux-pricing__amount">{{ plan.price|default('')|e }}</span>
+            {% if plan.cadence|default('')|trim != '' %}<span class="strux-pricing__cadence">{{ plan.cadence|e }}</span>{% endif %}
+          </p>
+          {% if plan.bullets is iterable and plan.bullets is not empty %}
+            <ul class="strux-pricing__bullets">
+              {% for b in plan.bullets %}
+                <li>{{ b|e }}</li>
+              {% endfor %}
+            </ul>
+          {% endif %}
+          {% if plan.cta_label|default('')|trim != '' and plan.cta_url|default('')|trim != '' %}
+            <a class="strux-btn strux-btn--primary strux-pricing__cta" href="{{ plan.cta_url|e('html_attr') }}">{{ plan.cta_label|e }}</a>
+          {% endif %}
+        </article>
+      {% endfor %}
+    </div>
+  </div>
+</section>

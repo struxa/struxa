@@ -1,0 +1,23 @@
+{
+  "name": "Builder Queue",
+  "slug": "queue",
+  "version": "1.0.0",
+  "author": "Studio CMS",
+  "description": "Storefront skin tuned to the public CSS tokens from feedbackqueue.dev (ink #0d0a1a, pink #ff2d78, cyan #00e5ff, white headlines, grid). Extends Midnight Pulse; original copy only — not affiliated.",
+  "homepage": "https://example.com/themes/queue",
+  "repository_url": "https://example.com/repo/queue-theme",
+  "license": "MIT",
+  "support_url": "https://example.com/support",
+  "category": "marketing",
+  "tags": ["dark", "blog", "landing", "indie"],
+  "min_cms_version": "1.0.0",
+  "tested_up_to": "1.0.0",
+  "settings": {
+    "accent": {
+      "type": "string",
+      "label": "Accent color (hex)",
+      "default": "#ff2d78"
+    }
+  },
+  "parents": ["default"]
+}

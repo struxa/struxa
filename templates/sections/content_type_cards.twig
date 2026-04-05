@@ -1,0 +1,11 @@
+{# Published entries for a public content type — reuses content/_index_grid.twig (theme default). #}
+{# Core templates load before theme paths; Queue shell is applied here when the active theme is queue. #}
+{% if active_theme|default('') == 'queue' %}
+<div class="theme-home-fq theme-home-fq--section theme-home-fq--section-products theme-fq-products-shell strux-section" data-section="content_type_cards">
+  <div class="theme-home-fq__inner">
+    {% include 'sections/content_type_cards_body.twig' with { archive_section_class_extra: 'theme-fq-products-embed', archive_head_variant: 'queue' } %}
+  </div>
+</div>
+{% else %}
+  {% include 'sections/content_type_cards_body.twig' %}
+{% endif %}

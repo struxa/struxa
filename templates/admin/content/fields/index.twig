@@ -1,0 +1,67 @@
+{% extends 'admin/base.twig' %}
+
+{% block admin_title %}Fields — {{ content_type.name|e }}{% endblock %}
+
+{% block admin_hero_title %}
+  <h1 class="admin-hero-title">Custom fields</h1>
+{% endblock %}
+
+{% block admin_hero_sub %}
+  <p class="admin-hero-sub">
+    <a class="admin-link" href="{{ url_for('admin.content_types.entries.index', { id: content_type.id }) }}">{{ content_type.name|e }}</a>
+    — define the schema editors see when creating entries.
+  </p>
+{% endblock %}
+
+{% block admin_content %}
+  <div class="admin-toolbar" style="margin-bottom:1.25rem;flex-wrap:wrap;gap:0.75rem">
+    <a class="admin-btn-primary" href="{{ url_for('admin.content_types.fields.new', { id: content_type.id }) }}">Add field</a>
+    <button class="admin-btn-primary" type="submit" form="content-fields-reorder">Save order</button>
+    <a class="admin-btn-ghost" href="{{ url_for('admin.content_types.entries.index', { id: content_type.id }) }}">Manage entries</a>
+  </div>
+
+  <form id="content-fields-reorder" method="post" action="{{ url_for('admin.content_types.fields.reorder', { id: content_type.id }) }}" hidden aria-hidden="true"></form>
+
+  {% if fields is empty %}
+    <div class="admin-empty">
+      <p class="admin-empty-title">No fields yet</p>
+      <p class="admin-empty-text">Add at least one field so entry forms have inputs to capture structured data.</p>
+      <a class="admin-btn-primary" href="{{ url_for('admin.content_types.fields.new', { id: content_type.id }) }}">Add field</a>
+    </div>
+  {% else %}
+    <div class="admin-table-wrap">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th scope="col" style="width:5rem">Order</th>
+            <th scope="col">Label</th>
+            <th scope="col">Key</th>
+            <th scope="col">Type</th>
+            <th scope="col">Required</th>
+            <th scope="col" class="admin-table-col-actions">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for f in fields %}
+            <tr>
+              <td>
+                <input class="admin-input" type="number" form="content-fields-reorder" name="order[{{ f.id }}]" value="{{ f.sortOrder }}" min="0" step="1" style="max-width:5rem" />
+              </td>
+              <td><strong>{{ f.label|e }}</strong></td>
+              <td><code class="admin-inline-code">{{ f.fieldKey|e }}</code></td>
+              <td><span class="admin-pill">{{ f.fieldType|e }}</span></td>
+              <td>{{ f.isRequired ? 'Yes' : '—' }}</td>
+              <td>
+                <a class="admin-link" href="{{ url_for('admin.content_types.fields.edit', { id: content_type.id, fieldId: f.id }) }}">Edit</a>
+                ·
+                <form method="post" action="{{ url_for('admin.content_types.fields.delete', { id: content_type.id, fieldId: f.id }) }}" style="display:inline" onsubmit="return confirm('Remove this field? Stored values for this field on entries will be deleted.');">
+                  <button type="submit" class="admin-link" style="background:none;border:none;padding:0;cursor:pointer;color:var(--accent-rose)">Delete</button>
+                </form>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% endif %}
+{% endblock %}

@@ -1,0 +1,23 @@
+<section class="theme-strux-hero strux-section strux-bg--{{ options.background|default('default')|e('html_attr') }}" data-section="hero">
+  <div class="theme-strux-hero-inner strux-section-inner strux-section-inner--{{ options.padding|default('comfortable')|e('html_attr') }}{% if section.image_media_id %} theme-strux-hero-inner--split{% endif %}">
+    <div class="theme-strux-hero-copy">
+      <h1 class="theme-strux-hero-title">{{ section.headline|default('')|e }}</h1>
+      {% if section.subheadline|default('')|trim != '' %}
+        <p class="theme-strux-hero-sub">{{ section.subheadline|e }}</p>
+      {% endif %}
+      <div class="theme-strux-hero-actions">
+        {% if section.cta_label|default('')|trim != '' and section.cta_url|default('')|trim != '' %}
+          <a class="theme-strux-btn theme-strux-btn--primary" href="{{ section.cta_url|e('html_attr') }}">{{ section.cta_label|e }}</a>
+        {% endif %}
+        {% if section.secondary_cta_label|default('')|trim != '' and section.secondary_cta_url|default('')|trim != '' %}
+          <a class="theme-strux-btn theme-strux-btn--ghost" href="{{ section.secondary_cta_url|e('html_attr') }}">{{ section.secondary_cta_label|e }}</a>
+        {% endif %}
+      </div>
+    </div>
+    {% if section.image_media_id %}
+      <div class="theme-strux-hero-media{% if section.overlay_dark|default(false) %} theme-strux-hero-media--dark{% endif %}">
+        <img src="{{ media_url(section.image_media_id) }}" alt="" class="theme-strux-hero-img" loading="lazy" decoding="async" width="1200" height="800" />
+      </div>
+    {% endif %}
+  </div>
+</section>

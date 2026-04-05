@@ -1,0 +1,13 @@
+<section class="strux-section strux-cta strux-cta--{{ section.style|default('primary')|e('html_attr') }} strux-bg--{{ options.background|default('default')|e('html_attr') }}" data-section="cta_banner">
+  <div class="strux-section-inner strux-section-inner--{{ options.padding|default('comfortable')|e('html_attr') }} strux-cta__inner">
+    <div class="strux-cta__copy">
+      <h2 class="strux-cta__title">{{ section.headline|default('')|e }}</h2>
+      {% if section.body|default('')|trim != '' %}
+        <p class="strux-cta__body">{{ section.body|e }}</p>
+      {% endif %}
+    </div>
+    {% if section.cta_label|default('')|trim != '' and section.cta_url|default('')|trim != '' %}
+      <a class="strux-btn strux-btn--contrast" href="{{ section.cta_url|e('html_attr') }}">{{ section.cta_label|e }}</a>
+    {% endif %}
+  </div>
+</section>

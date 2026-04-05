@@ -1,0 +1,129 @@
+{% extends 'admin/base.twig' %}
+
+{% block admin_title %}Edit section — {{ page.title|e }}{% endblock %}
+
+{% block admin_hero_title %}
+  <h1 class="admin-hero-title">Edit section</h1>
+{% endblock %}
+
+{% block admin_hero_sub %}
+  <p class="admin-hero-sub">
+    <code class="admin-inline-code">{{ section_row.sectionKey|e }}</code>
+    · {{ section_def.label|default('')|e }}
+  </p>
+{% endblock %}
+
+{% block admin_breadcrumbs %}
+  {% set _pt = page.title|length > 36 ? page.title|slice(0, 33) ~ '…' : page.title %}
+  {% include 'admin/partials/_breadcrumbs.twig' with {
+    breadcrumbs: [
+      { label: 'Pages', url: url_for('admin.pages.index') },
+      { label: _pt, url: url_for('admin.pages.edit', { id: page.id }) },
+      { label: 'Builder', url: url_for('admin.pages.builder', { id: page.id }) },
+      { label: section_def.label|default(section_row.sectionKey) },
+    ],
+  } %}
+{% endblock %}
+
+{% block admin_content %}
+  {% if errors is defined and errors is not empty %}
+    <div class="admin-card admin-field--error" style="padding:1rem;margin-bottom:1rem">
+      <p class="admin-field-error" style="margin:0">Fix the following:</p>
+      <ul style="margin:0.5rem 0 0 1rem">
+        {% for e in errors %}<li>{{ e|e }}</li>{% endfor %}
+      </ul>
+    </div>
+  {% endif %}
+
+  <form id="section-edit-form" class="admin-form admin-form--wide" method="post" action="{{ url_for('admin.pages.builder.section_save', { id: page.id, sectionId: section_row.id }) }}">
+    <div class="admin-form-grid">
+      {% for field in section_def.schema %}
+        {% set fk = field.key %}
+        {% set val = section_row.data[fk]|default(section_def.defaults[fk] ?? null) %}
+        <div class="admin-field admin-field--full">
+          <label class="admin-label" for="f-{{ fk|e('html_attr') }}">{{ field.label|e }}{% if field.required|default(false) %} <span class="admin-req">*</span>{% endif %}</label>
+
+          {% if field.type == 'string' %}
+            {% if field.enum is defined %}
+              <select class="admin-select" id="f-{{ fk|e('html_attr') }}" name="data[{{ fk|e('html_attr') }}]">
+                {% for opt in field.enum %}
+                  <option value="{{ opt|e('html_attr') }}" {{ val == opt ? 'selected' : '' }}>{{ opt|e }}</option>
+                {% endfor %}
+              </select>
+            {% else %}
+              <input class="admin-input" id="f-{{ fk|e('html_attr') }}" name="data[{{ fk|e('html_attr') }}]" type="text" value="{{ val|default('')|e }}" maxlength="{{ field.max|default(2000) }}" />
+            {% endif %}
+
+          {% elseif field.type == 'text' %}
+            <textarea class="admin-textarea" id="f-{{ fk|e('html_attr') }}" name="data[{{ fk|e('html_attr') }}]" rows="3">{{ val|default('')|e }}</textarea>
+
+          {% elseif field.type == 'html' %}
+            <textarea class="admin-textarea" id="f-{{ fk|e('html_attr') }}" name="data[{{ fk|e('html_attr') }}]" rows="8">{{ val|default('')|e }}</textarea>
+
+          {% elseif field.type == 'url' %}
+            <input class="admin-input" id="f-{{ fk|e('html_attr') }}" name="data[{{ fk|e('html_attr') }}]" type="url" value="{{ val|default('')|e }}" placeholder="https:// or /path" />
+
+          {% elseif field.type == 'bool' %}
+            <input type="hidden" name="data[{{ fk|e('html_attr') }}]" value="0" />
+            <label class="admin-checkbox-label" style="display:flex;align-items:center;gap:0.5rem">
+              <input type="checkbox" name="data[{{ fk|e('html_attr') }}]" value="1" {{ val ? 'checked' : '' }} />
+              <span>Enabled</span>
+            </label>
+
+          {% elseif field.type == 'int' %}
+            <input class="admin-input" id="f-{{ fk|e('html_attr') }}" name="data[{{ fk|e('html_attr') }}]" type="number" step="1" value="{{ val|default(0)|e }}" />
+
+          {% elseif field.type == 'image_id' %}
+            <select class="admin-select" id="f-{{ fk|e('html_attr') }}" name="data[{{ fk|e('html_attr') }}]">
+              <option value="">— None —</option>
+              {% for im in media_picker_images|default([]) %}
+                <option value="{{ im.id }}" {{ (val ~ '') == (im.id ~ '') ? 'selected' : '' }}>#{{ im.id }} — {{ im.original_name|e }}</option>
+              {% endfor %}
+            </select>
+
+          {% elseif field.type == 'json' %}
+            <textarea class="admin-textarea admin-textarea--code" id="f-{{ fk|e('html_attr') }}" name="data[{{ fk|e('html_attr') }}]" rows="14" spellcheck="false">{% if val is iterable %}{{ val|json_encode|e }}{% else %}{{ val|default('')|e }}{% endif %}</textarea>
+            {% if field.json_hint is defined %}<p class="admin-hint">{{ field.json_hint|e }}</p>{% endif %}
+
+          {% else %}
+            <input class="admin-input" name="data[{{ fk|e('html_attr') }}]" type="text" value="{{ val|default('')|e }}" />
+          {% endif %}
+        </div>
+      {% endfor %}
+
+      <section class="admin-card admin-field--full" style="grid-column:1/-1;padding:1.1rem 1.25rem;margin:0">
+        <h2 class="admin-card-title" style="margin-bottom:0.75rem">Display options</h2>
+        <div class="admin-form-grid">
+          {% for field in section_def.option_schema|default([]) %}
+            {% set fk = field.key %}
+            {% set oval = section_row.options[fk]|default(section_def.option_defaults[fk]|default('')) %}
+            <div class="admin-field admin-field--full">
+              <label class="admin-label" for="o-{{ fk|e('html_attr') }}">{{ field.label|e }}</label>
+              {% if field.enum is defined %}
+                <select class="admin-select" id="o-{{ fk|e('html_attr') }}" name="options[{{ fk|e('html_attr') }}]">
+                  {% for opt in field.enum %}
+                    <option value="{{ opt|e('html_attr') }}" {{ oval == opt ? 'selected' : '' }}>{{ opt|e }}</option>
+                  {% endfor %}
+                </select>
+              {% else %}
+                <input class="admin-input" id="o-{{ fk|e('html_attr') }}" name="options[{{ fk|e('html_attr') }}]" type="text" value="{{ oval|e }}" />
+              {% endif %}
+            </div>
+          {% endfor %}
+        </div>
+      </section>
+
+      <div class="admin-field admin-field--full" style="display:flex;gap:0.75rem;flex-wrap:wrap;margin-top:0.5rem">
+        <button type="submit" class="admin-btn-primary">Save section</button>
+        <a class="admin-btn-ghost" href="{{ url_for('admin.pages.edit', { id: page.id }) }}#page-visual-builder">Back to editor</a>
+      </div>
+    </div>
+  </form>
+
+  <div class="admin-sticky-save-bar admin-sticky-save-bar--section" role="region" aria-label="Save section">
+    <div class="admin-sticky-save-inner">
+      <button type="submit" form="section-edit-form" class="admin-btn-primary" data-admin-save-primary>Save section</button>
+      <a class="admin-btn-ghost" href="{{ url_for('admin.pages.edit', { id: page.id }) }}#page-visual-builder">Back to editor</a>
+    </div>
+  </div>
+{% endblock %}

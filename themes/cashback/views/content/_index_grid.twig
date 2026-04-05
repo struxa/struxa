@@ -1,0 +1,257 @@
+{# Archive grid — styles live in theme assets/css/app.css (.theme-main …). #}
+{% set _section_class = section_modifier|default('blog-archive') %}
+{% set _is_product_catalog = _section_class == 'product-catalog' %}
+{% set _archive_extra = archive_section_class_extra|default('')|trim %}
+{% set _queue_head = archive_head_variant|default('archive') == 'queue' %}
+{% set _journal_sidebar_layout = archive_no_sidebar|default(false) ? false : (not _is_product_catalog and not _queue_head) %}
+{% set _suppress_archive_head = archive_suppress_head|default(false) %}
+{% set _show_featured_latest = feature_latest_journal|default(false) and _journal_sidebar_layout and index_page|default(1) == 1 and index_entries is not empty %}
+{% set _grid_entries = _show_featured_latest ? index_entries|slice(1) : index_entries %}
+<section
+  class="section {{ _section_class|e('html_attr') }} theme-archive theme-archive--{{ _is_product_catalog ? 'catalog' : 'journal' }}{% if _archive_extra != '' %} {{ _archive_extra|e('html_attr') }}{% endif %}"
+  aria-label="{{ content_type.name|e('html_attr') }}"
+  data-archive-kind="{{ _is_product_catalog ? 'catalog' : 'journal' }}"
+  {% if _queue_head %}data-queue-cms-products="1"{% endif %}
+  {% if _show_featured_latest %}data-archive-featured-latest="1"{% endif %}
+>
+{% if _show_featured_latest %}
+  {% set _feat = index_entries|first %}
+  {% set _frow = _feat.row %}
+  <div class="blog-feature-latest-wrap" data-reveal>
+    <a class="blog-feature-latest" href="{{ site_url }}/{{ content_type.slug|e }}/{{ _frow.slug|e }}">
+      <div class="blog-feature-latest__media" aria-hidden="true">
+        {% if _feat.featured_url %}
+          <img class="blog-feature-latest__img" src="{{ _feat.featured_url|e('html_attr') }}" alt="" loading="eager" decoding="async" width="1200" height="630" />
+        {% else %}
+          <div class="blog-feature-latest__placeholder">
+            <span class="blog-feature-latest__placeholder-glow" aria-hidden="true"></span>
+            <svg class="blog-feature-latest__placeholder-icon" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <rect x="8" y="14" width="48" height="36" rx="6" stroke="currentColor" stroke-width="1.75" opacity="0.35" />
+              <circle cx="24" cy="30" r="6" stroke="currentColor" stroke-width="1.75" opacity="0.5" />
+              <path d="M36 34 L52 20" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" opacity="0.4" />
+            </svg>
+          </div>
+        {% endif %}
+      </div>
+      <div class="blog-feature-latest__scrim" aria-hidden="true"></div>
+      <div class="blog-feature-latest__content">
+        <p class="blog-feature-latest__eyebrow">{{ 'Latest'|e }}</p>
+        {% if _frow.published_at %}
+          <p class="blog-feature-latest__meta">{{ _frow.published_at|e }}</p>
+        {% endif %}
+        <h2 class="blog-feature-latest__title">{{ _frow.title|e }}</h2>
+        {% if _feat.excerpt_plain|default('')|trim != '' %}
+          <p class="blog-feature-latest__excerpt">{{ _feat.excerpt_plain|e }}</p>
+        {% endif %}
+        <span class="blog-feature-latest__cta">{{ read_more_label|e }}</span>
+      </div>
+    </a>
+  </div>
+{% endif %}
+{% if _journal_sidebar_layout %}
+  <div class="theme-archive-layout theme-archive-layout--journal">
+    <div class="theme-archive-layout__main">
+{% endif %}
+  {% if not _suppress_archive_head %}
+  <div class="section-head blog-archive-head{% if _queue_head %} theme-fq-products-head{% endif %}">
+    {% if _queue_head %}
+      <p class="theme-fq-products__kicker">{{ eyebrow_label|e }}</p>
+      {% set _archive_title = blog_archive_title|default(content_type.name) %}
+      {% set _htag = archive_heading_tag|default('h1') %}
+      {% if _htag == 'h2' %}
+        <h2 class="theme-fq-products__title">{{ _archive_title|e }}</h2>
+      {% else %}
+        <h1 class="theme-fq-products__title">{{ _archive_title|e }}</h1>
+      {% endif %}
+    {% else %}
+    <p class="eyebrow reveal">
+      <span class="eyebrow-pulse"></span>
+      {{ eyebrow_label|e }}
+    </p>
+    {% set _archive_title = blog_archive_title|default(content_type.name) %}
+    {% set _htag = archive_heading_tag|default('h1') %}
+    {% if _htag == 'h2' %}
+      <h2 class="blog-archive-title">{{ _archive_title|e }}</h2>
+    {% else %}
+      <h1 class="blog-archive-title">{{ _archive_title|e }}</h1>
+    {% endif %}
+    {% endif %}
+    {% if blog_archive_intro_html|default('')|trim != '' %}
+      <div class="blog-archive-intro cms-prose">{{ blog_archive_intro_html|raw }}</div>
+    {% elseif content_index_description|default('')|trim != '' %}
+      <p>{{ content_index_description|e }}</p>
+    {% endif %}
+  </div>
+  {% elseif blog_archive_intro_html|default('')|trim != '' %}
+  <div class="section-head blog-archive-head blog-archive-head--intro-only">
+    <div class="blog-archive-intro cms-prose">{{ blog_archive_intro_html|raw }}</div>
+  </div>
+  {% endif %}
+
+  {% if index_entries is empty %}
+    <p class="blog-empty">{{ empty_message|e }}</p>
+  {% else %}
+    {% if _grid_entries is not empty %}
+    <div class="cards blog-cards{% if _queue_head %} theme-fq-products__grid{% endif %}">
+      {% for item in _grid_entries %}
+        {% set row = item.row %}
+        {% set mod = loop.index0 % 3 %}
+        {% set tone = mod == 0 ? 'violet' : (mod == 1 ? 'cyan' : 'rose') %}
+        {% set _is_new = false %}
+        {% if _is_product_catalog and row.published_at|default('')|trim != '' %}
+          {% set _age = 'now'|date('U') - row.published_at|date('U') %}
+          {% if _age >= 0 and _age < 1814400 %}
+            {% set _is_new = true %}
+          {% endif %}
+        {% endif %}
+        <article class="card card--{{ tone }} blog-card{% if _is_product_catalog %} blog-card--product{% endif %}" data-reveal>
+          <div class="card-glow"></div>
+          {% if _is_new %}
+            <span class="product-card-badge">New</span>
+          {% endif %}
+          {% if item.featured_url %}
+            <a class="blog-card-thumb{% if _is_product_catalog %} blog-card-thumb--product{% endif %}" href="{{ site_url }}/{{ content_type.slug|e }}/{{ row.slug|e }}" tabindex="-1" aria-hidden="true">
+              <img src="{{ item.featured_url|e('html_attr') }}" alt="" loading="lazy" decoding="async" />
+            </a>
+          {% elseif _is_product_catalog %}
+            <a class="blog-card-thumb blog-card-thumb--product blog-card-thumb--placeholder" href="{{ site_url }}/{{ content_type.slug|e }}/{{ row.slug|e }}" tabindex="-1" aria-hidden="true">
+              <span class="blog-card-thumb-placeholder__glow" aria-hidden="true"></span>
+              <svg class="blog-card-thumb-placeholder__icon" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <rect x="6" y="10" width="36" height="28" rx="5" stroke="currentColor" stroke-width="1.5" opacity="0.4" />
+                <circle cx="18" cy="22" r="4" stroke="currentColor" stroke-width="1.5" opacity="0.55" />
+                <path d="M28 26 L36 18" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity="0.45" />
+              </svg>
+            </a>
+          {% else %}
+            <a class="blog-card-thumb blog-card-thumb--placeholder" href="{{ site_url }}/{{ content_type.slug|e }}/{{ row.slug|e }}" tabindex="-1" aria-hidden="true">
+              <span class="blog-card-thumb-placeholder__glow" aria-hidden="true"></span>
+              <svg class="blog-card-thumb-placeholder__icon" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <rect x="6" y="10" width="36" height="28" rx="5" stroke="currentColor" stroke-width="1.5" opacity="0.4" />
+                <circle cx="18" cy="22" r="4" stroke="currentColor" stroke-width="1.5" opacity="0.55" />
+                <path d="M28 26 L36 18" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity="0.45" />
+              </svg>
+            </a>
+          {% endif %}
+          <div class="blog-card-body">
+            {% if not _is_product_catalog %}
+              {% if row.published_at %}
+                <span class="card-tag">{{ row.published_at|e }}</span>
+              {% else %}
+                <span class="card-tag">{{ card_tag_fallback|default('Article')|e }}</span>
+              {% endif %}
+            {% endif %}
+            <h3><a href="{{ site_url }}/{{ content_type.slug|e }}/{{ row.slug|e }}">{{ row.title|e }}</a></h3>
+            {% if item.price_plain|default('')|trim != '' %}
+              <p class="product-card-price">{{ item.price_plain|e }}</p>
+            {% endif %}
+            {% if item.excerpt_plain %}
+              <p>{{ item.excerpt_plain|e }}</p>
+            {% endif %}
+            {% if _is_product_catalog %}
+              <div class="blog-card-actions">
+                {% if item.buy_url|default('')|trim != '' %}
+                  <a class="btn btn-primary blog-card-btn-buy" href="{{ item.buy_url|trim|e('html_attr') }}" rel="noopener noreferrer">{{ (item.buy_label|default('')|trim != '' ? item.buy_label : 'Buy now')|e }}</a>
+                {% endif %}
+                <a class="btn btn-ghost blog-card-cta" href="{{ site_url }}/{{ content_type.slug|e }}/{{ row.slug|e }}">{{ read_more_label|e }}</a>
+              </div>
+            {% else %}
+              <a class="btn btn-ghost blog-card-cta" href="{{ site_url }}/{{ content_type.slug|e }}/{{ row.slug|e }}">{{ read_more_label|e }}</a>
+            {% endif %}
+          </div>
+        </article>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if not archive_hide_pager|default(false) %}
+    {% set _pager_base = url_for('public.content_type_index', { typeSlug: content_type.slug }) %}
+    <nav class="blog-pager blog-pager--numbered" aria-label="{{ 'Pagination'|e }}">
+      {% if index_page > 1 %}
+        <a class="btn btn-ghost blog-pager__step" rel="prev" href="{{ _pager_base }}?page={{ index_page - 1 }}">{{ newer_label|e }}</a>
+      {% else %}
+        <span class="blog-pager__step blog-pager__step--disabled">{{ newer_label|e }}</span>
+      {% endif %}
+
+      <ol class="blog-pager__pages" role="list">
+        {% for item in index_pager_items|default([]) %}
+          {% if item == 'gap' %}
+            <li class="blog-pager__ellipsis" aria-hidden="true"><span>…</span></li>
+          {% else %}
+            <li>
+              {% if item == index_page %}
+                <span class="blog-pager__num blog-pager__num--current" aria-current="page">{{ item }}</span>
+              {% else %}
+                <a class="blog-pager__num" href="{{ _pager_base }}{{ item > 1 ? '?page=' ~ item : '' }}">{{ item }}</a>
+              {% endif %}
+            </li>
+          {% endif %}
+        {% endfor %}
+      </ol>
+
+      {% if index_page < index_total_pages %}
+        <a class="btn btn-ghost blog-pager__step" rel="next" href="{{ _pager_base }}?page={{ index_page + 1 }}">{{ older_label|e }}</a>
+      {% else %}
+        <span class="blog-pager__step blog-pager__step--disabled">{{ older_label|e }}</span>
+      {% endif %}
+
+      <span class="blog-pager-status">{{ 'Page'|e }} {{ index_page }} {{ 'of'|e }} {{ index_total_pages }}</span>
+    </nav>
+    {% endif %}
+    {% if view_all_url|default('')|trim != '' %}
+      <p class="blog-archive-view-all">
+        <a class="btn btn-ghost" href="{{ view_all_url|e('html_attr') }}">{{ view_all_label|default('View all')|e }}</a>
+      </p>
+    {% endif %}
+  {% endif %}
+{% if _journal_sidebar_layout %}
+    </div>
+    <aside class="theme-archive-layout__aside" aria-label="{{ 'About this section'|e }}">
+      <div class="theme-archive-sidebar">
+        <p class="theme-archive-sidebar__eyebrow">{{ eyebrow_label|e }}</p>
+        <h2 class="theme-archive-sidebar__title">{{ content_type.name|e }}</h2>
+        {% if content_index_description|default('')|trim != '' %}
+          <p class="theme-archive-sidebar__body">{{ content_index_description|e }}</p>
+        {% else %}
+          <p class="theme-archive-sidebar__body">{{ 'Latest posts and updates from the team.'|e }}</p>
+        {% endif %}
+        {% set _sidebar_tax_groups = taxonomy_terms_for_type(content_type.id) %}
+        {% set _cat_groups = _sidebar_tax_groups|filter(g => g.taxonomy.taxonomyType == 'category') %}
+        {% set _tag_groups = _sidebar_tax_groups|filter(g => g.taxonomy.taxonomyType == 'tag') %}
+        {% set _cat_term_count = _cat_groups|reduce((carry, g) => carry + g.terms|length, 0) %}
+        {% set _tag_term_count = _tag_groups|reduce((carry, g) => carry + g.terms|length, 0) %}
+        {% if _cat_term_count > 0 %}
+          <div class="theme-archive-sidebar__tax theme-archive-sidebar__tax--categories">
+            <h3 class="theme-archive-sidebar__subhd">{{ 'Categories'|e }}</h3>
+            <ul class="theme-archive-sidebar__list" role="list">
+              {% for g in _cat_groups %}
+                {% for t in g.terms %}
+                  <li>
+                    <a href="{{ taxonomy_archive_url(content_type.slug, g.taxonomy.slug, t.slug) }}">{{ t.name|e }}</a>
+                  </li>
+                {% endfor %}
+              {% endfor %}
+            </ul>
+          </div>
+        {% endif %}
+        {% if _tag_term_count > 0 %}
+          <div class="theme-archive-sidebar__tax theme-archive-sidebar__tax--tags">
+            <h3 class="theme-archive-sidebar__subhd">{{ 'Tags'|e }}</h3>
+            <ul class="theme-archive-sidebar__list theme-archive-sidebar__list--tags" role="list">
+              {% for g in _tag_groups %}
+                {% for t in g.terms %}
+                  <li>
+                    <a href="{{ taxonomy_archive_url(content_type.slug, g.taxonomy.slug, t.slug) }}">{{ t.name|e }}</a>
+                  </li>
+                {% endfor %}
+              {% endfor %}
+            </ul>
+          </div>
+        {% endif %}
+        {% if settings.contact_email|default('')|trim != '' %}
+          <a class="btn btn-ghost theme-archive-sidebar__cta" href="mailto:{{ settings.contact_email|trim|e('html_attr') }}">{{ 'Get in touch'|e }}</a>
+        {% endif %}
+      </div>
+    </aside>
+  </div>
+{% endif %}
+</section>

@@ -1,0 +1,117 @@
+{% extends 'admin/base.twig' %}
+
+{% block admin_title %}Blueprints{% endblock %}
+
+{% block admin_hero_title %}<h1 class="admin-hero-title">Blueprints</h1>{% endblock %}
+
+{% block admin_hero_sub %}
+  <p class="admin-hero-sub">Export or import a JSON package of content types, fields, taxonomies, menus, and settings. Default behavior merges missing pieces only — it does not replace existing rows by slug.</p>
+{% endblock %}
+
+{% block admin_content %}
+  <div class="admin-form-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;align-items:start">
+    {% if site_profile %}
+      <section class="admin-card">
+        <h2 class="admin-card-title">Site profile</h2>
+        <p class="admin-hint">UUID and install metadata for portability tooling.</p>
+        <dl style="margin:0.75rem 0;font-size:0.9rem">
+          <dt class="admin-hint">Site UUID</dt>
+          <dd style="margin:0 0 0.75rem"><code class="admin-inline-code">{{ site_profile.site_uuid|e }}</code></dd>
+          <dt class="admin-hint">Installed CMS version</dt>
+          <dd style="margin:0 0 0.75rem">{{ site_profile.cms_version_installed|e }} <span class="admin-hint">(runtime {{ cms_version|e }})</span></dd>
+          <dt class="admin-hint">Created</dt>
+          <dd style="margin:0 0 0.75rem">{{ site_profile.created_at|e }}</dd>
+        </dl>
+        <form class="admin-form" method="post" action="{{ url_for('admin.tools.site_profile') }}">
+          <div class="admin-field">
+            <label class="admin-label" for="pn">Project name</label>
+            <input class="admin-input" id="pn" name="project_name" type="text" value="{{ site_profile.project_name|default('')|e }}" maxlength="200" />
+          </div>
+          <div class="admin-field">
+            <label class="admin-label" for="env">Environment label</label>
+            <input class="admin-input" id="env" name="environment_label" type="text" value="{{ site_profile.environment_label|default('')|e }}" placeholder="production, staging…" maxlength="64" />
+          </div>
+          <button type="submit" class="admin-btn-primary">Save profile</button>
+        </form>
+      </section>
+    {% endif %}
+
+    <section class="admin-card">
+      <h2 class="admin-card-title">Stored blueprints</h2>
+      <p class="admin-hint">These are JSON <strong>files</strong> on the server (<code class="admin-inline-code">storage/blueprints/</code>) — the import “recipe”. After you use <strong>Apply to database</strong> below, types, pages, posts, and menus live in the <strong>database</strong> and appear under Content and Pages in admin.</p>
+      {% if blueprint_files is empty %}
+        <p class="admin-hint">No files in <code class="admin-inline-code">storage/blueprints/</code> yet.</p>
+      {% else %}
+        <div class="admin-table-wrap">
+          <table class="admin-table">
+            <thead>
+              <tr><th>File</th><th>Label</th><th>Size</th></tr>
+            </thead>
+            <tbody>
+              {% for f in blueprint_files %}
+                <tr>
+                  <td><code class="admin-inline-code">{{ f.filename|e }}</code></td>
+                  <td>{{ f.label|e }}</td>
+                  <td class="admin-table-muted">{{ f.bytes }} B</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% endif %}
+    </section>
+  </div>
+
+  <section class="admin-card" style="margin-top:1.25rem">
+    <h2 class="admin-card-title">Export current structure</h2>
+    <form class="admin-form" method="post" action="{{ url_for('admin.tools.blueprints.export_download') }}" style="margin-bottom:1rem">
+      <div class="admin-field admin-field--full">
+        <label class="admin-label" for="ex-label">Blueprint label</label>
+        <input class="admin-input" id="ex-label" name="label" type="text" value="My site blueprint" maxlength="160" />
+      </div>
+      <label class="admin-label"><input type="checkbox" name="include_entries" value="1" /> Include sample content entries (up to 100 per type)</label>
+      <div class="admin-form-actions" style="margin-top:1rem">
+        <button type="submit" class="admin-btn-primary">Download JSON</button>
+      </div>
+    </form>
+    <form class="admin-form" method="post" action="{{ url_for('admin.tools.blueprints.save') }}">
+      <div class="admin-form-grid">
+        <div class="admin-field">
+          <label class="admin-label" for="sv-label">Label</label>
+          <input class="admin-input" id="sv-label" name="label" type="text" value="saved-blueprint" />
+        </div>
+        <div class="admin-field">
+          <label class="admin-label" for="sv-base">Filename (no .json)</label>
+          <input class="admin-input" id="sv-base" name="basename" type="text" placeholder="auto from label" pattern="[a-z0-9][a-z0-9\-]*" />
+        </div>
+      </div>
+      <label class="admin-label"><input type="checkbox" name="include_entries" value="1" /> Include entries</label>
+      <div class="admin-form-actions" style="margin-top:1rem">
+        <button type="submit" class="admin-btn-ghost">Save to storage/blueprints</button>
+      </div>
+    </form>
+  </section>
+
+  <section class="admin-card" style="margin-top:1.25rem">
+    <h2 class="admin-card-title">Import blueprint</h2>
+    <p class="admin-hint"><strong>Validate only</strong> checks JSON and shows what would change (no writes). <strong>Apply to database</strong> runs the import. Use validate first, then apply with the same file or pasted JSON. With <strong>Merge</strong>, existing slugs are kept and only missing types, fields, taxonomies, terms, and menu items are added.</p>
+    <form class="admin-form" method="post" action="{{ url_for('admin.tools.blueprints.import') }}" enctype="multipart/form-data">
+      <div class="admin-field admin-field--full">
+        <label class="admin-label" for="imp-file">JSON file</label>
+        <input class="admin-input" id="imp-file" name="json_file" type="file" accept=".json,application/json" />
+      </div>
+      <div class="admin-field admin-field--full">
+        <label class="admin-label" for="imp-ta">Or paste JSON</label>
+        <textarea class="admin-textarea" id="imp-ta" name="json_text" rows="8" placeholder="{ &quot;cms_blueprint_version&quot;: &quot;1.0&quot;, … }"></textarea>
+      </div>
+      <input type="hidden" name="merge" value="0" />
+      <label class="admin-label"><input type="checkbox" name="merge" value="1" checked /> Merge (recommended)</label>
+      <label class="admin-label"><input type="checkbox" name="apply_theme" value="1" /> Apply <code class="admin-inline-code">active_theme_slug</code> from file if theme exists</label>
+      <label class="admin-label"><input type="checkbox" name="import_entries" value="1" /> Import content entries from file</label>
+      <div class="admin-form-actions admin-form-actions--split" style="margin-top:1rem">
+        <button type="submit" name="import_mode" value="dry_run" class="admin-btn-ghost">Validate only (dry run)</button>
+        <button type="submit" name="import_mode" value="apply" class="admin-btn-primary">Apply to database</button>
+      </div>
+    </form>
+  </section>
+{% endblock %}

@@ -1,0 +1,5 @@
+<section class="strux-section strux-richtext strux-bg--{{ options.background|default('default')|e('html_attr') }}" data-section="rich_text">
+  <div class="strux-section-inner strux-section-inner--{{ options.padding|default('comfortable')|e('html_attr') }} cms-prose">
+    {{ section.body_html|default('')|raw }}
+  </div>
+</section>

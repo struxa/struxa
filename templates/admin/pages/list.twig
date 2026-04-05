@@ -1,0 +1,71 @@
+{% extends 'admin/base.twig' %}
+{% import 'admin/_ui_macros.twig' as ui %}
+
+{% block admin_title %}Pages{% endblock %}
+
+{% block admin_hero_title %}
+  <h1 class="admin-hero-title">Pages</h1>
+{% endblock %}
+
+{% block admin_hero_sub %}
+  <p class="admin-hero-sub">Draft and publish content. Public URLs use <code class="admin-inline-code">/p/your-slug</code>.</p>
+{% endblock %}
+
+{% block admin_content %}
+  <div class="admin-toolbar admin-toolbar--spread">
+    {% if cms_can('manage_pages') %}
+      <a class="admin-btn-primary" href="{{ url_for('admin.pages.new') }}">New page</a>
+    {% endif %}
+  </div>
+
+  {% if pages is empty %}
+    {{ ui.empty_state(
+      'No pages yet',
+      'Pages are the backbone of your site — start with a home page, then add more as you grow.',
+      cms_can('manage_pages') ? url_for('admin.pages.new') : '',
+      cms_can('manage_pages') ? 'Create your first page' : '',
+      '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>'
+    ) }}
+  {% else %}
+    <div class="admin-table-wrap">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th scope="col">Title</th>
+            <th scope="col">Slug</th>
+            <th scope="col">Status</th>
+            <th scope="col">Updated</th>
+            <th scope="col" class="admin-table-col-actions"><span class="admin-table-muted">Actions</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in pages %}
+            <tr>
+              <td><strong>{{ p.title|e }}</strong></td>
+              <td><code class="admin-inline-code">{{ p.slug|e }}</code></td>
+              <td>{{ ui.status_badge(p.status) }}</td>
+              <td class="admin-table-muted">{{ p.updatedAt|e }}</td>
+              <td class="admin-table-actions">
+                <details class="admin-actions-menu">
+                  <summary class="admin-actions-menu-trigger" aria-label="Actions for {{ p.title|e('html_attr') }}">⋯</summary>
+                  <div class="admin-actions-menu-panel">
+                    {% if p.status == 'published' %}
+                      <a href="{{ url_for('public.page', { slug: p.slug }) }}" target="_blank" rel="noopener">View live</a>
+                    {% endif %}
+                    <a href="{{ url_for('admin.pages.edit', { id: p.id }) }}">Edit</a>
+                    <a href="{{ url_for('admin.pages.builder', { id: p.id }) }}">Builder</a>
+                    {% if cms_can('delete_content') %}
+                      <form method="post" action="{{ url_for('admin.pages.delete', { id: p.id }) }}" onsubmit="return confirm('Delete this page?');">
+                        <button type="submit" class="admin-actions-danger">Delete</button>
+                      </form>
+                    {% endif %}
+                  </div>
+                </details>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% endif %}
+{% endblock %}

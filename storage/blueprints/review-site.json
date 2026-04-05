@@ -1,0 +1,162 @@
+{
+    "cms_blueprint_version": "1.0",
+    "label": "Showcase: Review site",
+    "description": "Product reviews with scores, pros/cons, verdict, affiliate link, categories, sample reviews.",
+    "settings": {
+        "site_tagline": "Honest reviews with structured scores and SEO-friendly layouts.",
+        "default_meta_title": "Reviews",
+        "default_meta_description": "Editorial reviews: scores, pros, cons, and verdicts."
+    },
+    "content_types": [
+        {
+            "slug": "review",
+            "name": "Review",
+            "description": "Structured product or service reviews.",
+            "has_public_route": true,
+            "supports_seo": true,
+            "supports_featured_image": true,
+            "fields": [
+                {
+                    "field_key": "score",
+                    "label": "Score (1–5)",
+                    "field_type": "number",
+                    "sort_order": 10,
+                    "help_text": "Whole number rating."
+                },
+                {
+                    "field_key": "summary",
+                    "label": "Summary",
+                    "field_type": "textarea",
+                    "sort_order": 20
+                },
+                {
+                    "field_key": "pros",
+                    "label": "Pros",
+                    "field_type": "richtext",
+                    "sort_order": 30
+                },
+                {
+                    "field_key": "cons",
+                    "label": "Cons",
+                    "field_type": "richtext",
+                    "sort_order": 40
+                },
+                {
+                    "field_key": "verdict",
+                    "label": "Verdict",
+                    "field_type": "richtext",
+                    "sort_order": 50
+                },
+                {
+                    "field_key": "affiliate_link",
+                    "label": "Affiliate / outbound link",
+                    "field_type": "url",
+                    "sort_order": 60,
+                    "help_text": "Optional monetized link; disclose in copy."
+                }
+            ],
+            "taxonomies": [
+                {
+                    "slug": "category",
+                    "name": "Categories",
+                    "taxonomy_type": "category",
+                    "is_hierarchical": false,
+                    "terms": [
+                        {
+                            "slug": "software",
+                            "name": "Software"
+                        },
+                        {
+                            "slug": "hardware",
+                            "name": "Hardware"
+                        },
+                        {
+                            "slug": "services",
+                            "name": "Services"
+                        }
+                    ]
+                }
+            ]
+        }
+    ],
+    "pages": [],
+    "menus": [
+        {
+            "location": "header",
+            "name": "Header",
+            "items": [
+                {
+                    "label": "Reviews",
+                    "url": "/review",
+                    "target": "_self",
+                    "css_class": ""
+                }
+            ]
+        }
+    ],
+    "content_entries": [
+        {
+            "content_type_slug": "review",
+            "title": "Northwind Analytics — dashboard that stays fast",
+            "slug": "northwind-analytics",
+            "status": "published",
+            "published_at": "2025-01-22 11:00:00",
+            "seo_title": "Northwind Analytics review",
+            "seo_description": "Pros, cons, and verdict for Northwind Analytics.",
+            "field_values": {
+                "score": "4",
+                "summary": "A focused analytics tool with crisp reports and sane defaults. Some integrations still maturing.",
+                "pros": "<ul><li>Fast load times on large datasets</li><li>Clear funnel visualizations</li><li>Sensible role model</li></ul>",
+                "cons": "<ul><li>Fewer third-party connectors than incumbents</li><li>Mobile app is read-only</li></ul>",
+                "verdict": "<p><strong>Verdict:</strong> Strong pick for teams that want speed and clarity over feature sprawl. Disclosure: outbound links may be affiliate partnerships; always verify pricing on the vendor site.</p>",
+                "affiliate_link": "https://example.com/out/northwind-analytics"
+            },
+            "taxonomy_terms": {
+                "category": [
+                    "software"
+                ]
+            }
+        },
+        {
+            "content_type_slug": "review",
+            "title": "HarborDock USB-C dock",
+            "slug": "harbordock-usbc-dock",
+            "status": "published",
+            "published_at": "2025-02-05 14:20:00",
+            "field_values": {
+                "score": "5",
+                "summary": "Rock-solid connectivity and cool-running power delivery for laptop-first desks.",
+                "pros": "<ul><li>Stable dual 4K</li><li>Excellent cable management</li><li>Firmware updates via USB</li></ul>",
+                "cons": "<ul><li>Premium price</li><li>No HDMI 2.1</li></ul>",
+                "verdict": "<p><strong>Verdict:</strong> Worth it if you live on one cable. We may earn a commission from merchant links.</p>",
+                "affiliate_link": "https://example.com/out/harbordock"
+            },
+            "taxonomy_terms": {
+                "category": [
+                    "hardware"
+                ]
+            }
+        },
+        {
+            "content_type_slug": "review",
+            "title": "Summit Cloud Migration partner program",
+            "slug": "summit-cloud-migration",
+            "status": "published",
+            "published_at": "2025-02-12 09:00:00",
+            "field_values": {
+                "score": "4",
+                "summary": "Methodical assessments and cutover playbooks for mid-market moves to the cloud.",
+                "pros": "<ul><li>Strong documentation</li><li>Realistic timelines</li><li>Security-first defaults</li></ul>",
+                "cons": "<ul><li>Less hand-holding on app refactors</li></ul>",
+                "verdict": "<p><strong>Verdict:</strong> Reliable services partner for lift-and-shift plus incremental modernization.</p>",
+                "affiliate_link": ""
+            },
+            "taxonomy_terms": {
+                "category": [
+                    "services"
+                ]
+            }
+        }
+    ],
+    "required_plugin_slugs": []
+}

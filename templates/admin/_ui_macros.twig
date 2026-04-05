@@ -1,0 +1,24 @@
+{# Reusable admin UI fragments — {% import 'admin/_ui_macros.twig' as ui %} #}
+
+{% macro status_badge(status) %}
+  {% set st = status|default('') %}
+  {% set badge = 'admin-badge admin-badge--muted' %}
+  {% if st == 'published' %}{% set badge = 'admin-badge admin-badge--ok' %}
+  {% elseif st == 'draft' %}{% set badge = 'admin-badge admin-badge--draft' %}
+  {% elseif st == 'in_review' %}{% set badge = 'admin-badge admin-badge--review' %}
+  {% elseif st == 'approved' %}{% set badge = 'admin-badge admin-badge--approved' %}
+  {% elseif st == 'archived' %}{% set badge = 'admin-badge admin-badge--archived' %}
+  {% endif %}
+  <span class="{{ badge }}">{{ st|replace({'_': ' '})|e }}</span>
+{% endmacro %}
+
+{% macro empty_state(title, text, primary_href, primary_label, icon) %}
+  <div class="admin-empty admin-empty--premium" role="status">
+    <div class="admin-empty-icon" aria-hidden="true">{{ icon|default('')|raw }}</div>
+    <p class="admin-empty-title">{{ title|e }}</p>
+    <p class="admin-empty-text">{{ text|e }}</p>
+    {% if primary_href and primary_label %}
+      <a class="admin-btn-primary admin-empty-cta" href="{{ primary_href|e('html_attr') }}">{{ primary_label|e }}</a>
+    {% endif %}
+  </div>
+{% endmacro %}

@@ -1,0 +1,79 @@
+{
+  "cms_blueprint_version": "1.0",
+    "label": "Queue: marketing homepage sections",
+    "description": "Adds a published Home page with Queue hero, stat bar, a product grid (Content type cards → slug `products`), and footnote. Shows up to six **published** product entries when a `products` content type exists with **Public route** enabled (e.g. after importing “Showcase: Product catalog”). After import, set Settings → Public site homepage to this page for ` / `. Safe to merge: skips if slug `home` already exists.",
+  "content_types": [],
+  "menus": [],
+  "pages": [
+    {
+      "title": "Home",
+      "slug": "home",
+      "content": "",
+      "status": "published",
+      "sections": [
+        {
+          "sort_order": 0,
+          "section_key": "queue_marketing_hero",
+          "data": {
+            "kicker": "",
+            "kicker_fallback": "Honest structure beats vague “looks fine” — for your site and your editors.",
+            "title_line_1": "You ship the product.",
+            "title_line_2_before": "Now ship the ",
+            "highlight_word": "experience",
+            "title_line_2_after": ".",
+            "badges_json": ["Pages", "Types", "Themes"],
+            "lead_use_branded_opening": true,
+            "lead_branded_rest": "runs on Struxa — structured content, real Twig templates, and a public theme you can swap without migrating data.",
+            "lead_html": "",
+            "chips_json": ["Visual page builder", "First-class types & taxonomies", "Theme inheritance"],
+            "primary_cta_label": "Get started free",
+            "primary_cta_url": "/register",
+            "secondary_cta_label": "Sign in",
+            "secondary_cta_url": "/login",
+            "show_cms_mock": true
+          },
+          "options": { "padding": "comfortable", "background": "default" }
+        },
+        {
+          "sort_order": 1,
+          "section_key": "queue_marketing_stats",
+          "data": {
+            "queue_stats_json": [
+              { "heading": "Model", "text": "Entries + routes" },
+              { "heading": "Surface", "text": "Blog · catalog · CMS pages" },
+              { "heading": "You keep", "text": "Code + database" }
+            ]
+          },
+          "options": { "padding": "comfortable", "background": "default" }
+        },
+        {
+          "sort_order": 2,
+          "section_key": "content_type_cards",
+          "data": {
+            "content_type_slug": "products",
+            "limit": "6",
+            "layout_style": "auto",
+            "eyebrow": "",
+            "title": "Featured products",
+            "intro_html": "",
+            "empty_message": "",
+            "read_more_label": "",
+            "card_tag_fallback": "",
+            "show_view_all": true,
+            "view_all_path": "",
+            "view_all_label": "View all products"
+          },
+          "options": { "padding": "comfortable", "background": "default" }
+        },
+        {
+          "sort_order": 3,
+          "section_key": "queue_marketing_note",
+          "data": {
+            "body_html": "<p>Branding lives in <strong>Settings</strong>. This look ships from <code>themes/queue</code> (extends <code>themes/default</code>). Reorder or edit these blocks under <strong>Pages → Visual builder</strong>.</p>"
+          },
+          "options": { "padding": "compact", "background": "default" }
+        }
+      ]
+    }
+  ]
+}

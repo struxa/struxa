@@ -1,0 +1,127 @@
+{% extends 'admin/base.twig' %}
+
+{% block admin_title %}AI draft{% endblock %}
+
+{% block admin_hero_title %}<h1 class="admin-hero-title">AI draft</h1>{% endblock %}
+
+{% block admin_hero_sub %}
+  <p class="admin-hero-sub">Use the <strong>floating assistant</strong> (blue icon, bottom corner) to chat about your idea, then create a draft—or use the form below for a one-shot brief. Drafts use your content type&rsquo;s text and rich-text fields; when you generate a draft, the model sees a list of <strong>published</strong> CMS pages and public entries so it can suggest accurate internal links (root-relative <code class="admin-inline-code">href</code>s). You always review in the normal editor before publishing.</p>
+{% endblock %}
+
+{% block admin_content %}
+  {% if can_save_openai_settings %}
+    <section class="admin-card" style="margin-bottom:1.25rem">
+      <h2 class="admin-card-title">OpenAI connection</h2>
+      <p class="admin-hint">API calls use the server-side key only. You can set <code class="admin-inline-code">OPENAI_API_KEY</code> (or <code class="admin-inline-code">STRUXA_OPENAI_API_KEY</code>) in the environment instead of storing a key in the database.</p>
+      {% if openai_key_from_env %}
+        <p class="admin-hint" style="margin-top:0.5rem">An API key is set via environment variables; the fields below apply to the model name and enable toggle.</p>
+      {% endif %}
+      <form class="admin-form" method="post" action="{{ url_for('admin.tools.ai_blog.settings') }}">
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+        <div class="admin-field admin-field--full">
+          <label class="admin-label"><input type="checkbox" name="openai_enabled" value="1" {{ openai_enabled ? 'checked' : '' }} /> Enable AI draft generation</label>
+        </div>
+        <div class="admin-field admin-field--full">
+          <label class="admin-label" for="openai_model">Model</label>
+          <input class="admin-input" id="openai_model" name="openai_model" type="text" value="{{ openai_model|e }}" autocomplete="off" />
+          <p class="admin-hint">Default <code class="admin-inline-code">gpt-4o-mini</code>. Override with <code class="admin-inline-code">OPENAI_MODEL</code> or <code class="admin-inline-code">STRUXA_OPENAI_MODEL</code> if set.</p>
+        </div>
+        {% if not openai_key_from_env %}
+          <div class="admin-field admin-field--full">
+            <label class="admin-label" for="openai_api_key">API key</label>
+            <input class="admin-input" id="openai_api_key" name="openai_api_key" type="password" value="" autocomplete="new-password" placeholder="{{ openai_key_stored ? 'Leave blank to keep existing key' : 'sk-…' }}" />
+          </div>
+          {% if openai_key_stored %}
+            <div class="admin-field admin-field--full">
+              <label class="admin-label"><input type="checkbox" name="openai_api_key_clear" value="1" /> Remove stored API key</label>
+            </div>
+          {% endif %}
+        {% endif %}
+        <h3 class="admin-card-title" style="margin-top:1.25rem;font-size:1rem">Rate limits &amp; retention</h3>
+        <p class="admin-hint">Set to <strong>0</strong> to disable that action (chat or drafts) for all editors.</p>
+        <div class="admin-field admin-field--full">
+          <label class="admin-label" for="ai_rate_chat_per_hour">Max AI chat messages per user per hour</label>
+          <input class="admin-input" id="ai_rate_chat_per_hour" name="ai_rate_chat_per_hour" type="number" min="0" max="500" value="{{ ai_rate_chat_per_hour }}" />
+        </div>
+        <div class="admin-field admin-field--full">
+          <label class="admin-label" for="ai_rate_draft_per_day">Max AI draft creations per user per 24 hours</label>
+          <input class="admin-input" id="ai_rate_draft_per_day" name="ai_rate_draft_per_day" type="number" min="0" max="200" value="{{ ai_rate_draft_per_day }}" />
+        </div>
+        <div class="admin-field admin-field--full">
+          <label class="admin-label"><input type="checkbox" name="ai_chat_persist" value="1" {{ ai_chat_persist ? 'checked' : '' }} /> Persist chat history in the database (per user; session still used for the active thread)</label>
+          <p class="admin-hint">When enabled, messages reload across devices and browser restarts. Clearing chat removes stored rows for your account.</p>
+        </div>
+        <div class="admin-field admin-field--full">
+          <label class="admin-label" for="ai_chat_retention_days">Retention: delete messages older than (days)</label>
+          <input class="admin-input" id="ai_chat_retention_days" name="ai_chat_retention_days" type="number" min="0" max="365" value="{{ ai_chat_retention_days }}" />
+          <p class="admin-hint">Use <strong>0</strong> to skip automatic purge (not recommended for large teams).</p>
+        </div>
+        <div class="admin-form-actions">
+          <button type="submit" class="admin-btn-primary">Save settings</button>
+        </div>
+      </form>
+    </section>
+  {% endif %}
+
+  {% if ai_usage_totals %}
+    <section class="admin-card" style="margin-bottom:1.25rem">
+      <h2 class="admin-card-title">Your AI usage</h2>
+      <p class="admin-hint">Counts successful requests recorded by the CMS (rolling windows, UTC).</p>
+      <ul class="admin-hint" style="margin:0.5rem 0 0 1rem;line-height:1.6">
+        <li>Chat messages — last 24h: <strong>{{ ai_usage_totals.chat_24h }}</strong>, last 7d: <strong>{{ ai_usage_totals.chat_7d }}</strong></li>
+        <li>Draft creations — last 24h: <strong>{{ ai_usage_totals.draft_24h }}</strong>, last 7d: <strong>{{ ai_usage_totals.draft_7d }}</strong></li>
+      </ul>
+    </section>
+  {% endif %}
+
+  {% if can_save_openai_settings and ai_usage_top_users is not empty %}
+    <section class="admin-card" style="margin-bottom:1.25rem">
+      <h2 class="admin-card-title">Top users by volume (7 days)</h2>
+      <table class="admin-table" style="margin-top:0.5rem">
+        <thead>
+          <tr><th>User</th><th>Chat</th><th>Drafts</th></tr>
+        </thead>
+        <tbody>
+          {% for row in ai_usage_top_users %}
+            <tr>
+              <td>{{ row.email|default('—')|e }} <span class="admin-hint">(#{{ row.user_id }})</span></td>
+              <td>{{ row.chat_7d }}</td>
+              <td>{{ row.draft_7d }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </section>
+  {% endif %}
+
+  <section class="admin-card">
+    <h2 class="admin-card-title">Generate draft</h2>
+    {% if not can_generate %}
+      <p class="admin-hint">You need <strong>Create content</strong> permission, OpenAI enabled, and a configured API key to generate drafts.</p>
+    {% else %}
+      <p class="admin-hint">Choose a content type that has at least one text, textarea, or rich text field. Required image or other fields the model cannot fill may cause validation to fail—add those in the editor after the draft is created.</p>
+      <form class="admin-form" method="post" action="{{ url_for('admin.tools.ai_blog.generate') }}">
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+        <div class="admin-field admin-field--full">
+          <label class="admin-label" for="content_type_id">Content type</label>
+          <select class="admin-input" id="content_type_id" name="content_type_id" required>
+            {% for t in content_types %}
+              <option value="{{ t.id }}">{{ t.name|e }} ({{ t.slug|e }})</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="admin-field admin-field--full">
+          <label class="admin-label" for="brief">Topic / brief</label>
+          <textarea class="admin-textarea" id="brief" name="brief" rows="6" required placeholder="Audience, angle, key points, tone notes…"></textarea>
+        </div>
+        <div class="admin-field admin-field--full">
+          <label class="admin-label" for="tone">Tone (optional)</label>
+          <input class="admin-input" id="tone" name="tone" type="text" value="" placeholder="e.g. friendly expert, concise, UK English" />
+        </div>
+        <div class="admin-form-actions">
+          <button type="submit" class="admin-btn-primary">Create draft entry</button>
+        </div>
+      </form>
+    {% endif %}
+  </section>
+{% endblock %}

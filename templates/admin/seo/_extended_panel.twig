@@ -1,0 +1,150 @@
+{# Reusable extended SEO (canonical, social, schema). Expects: seo_ctx (object-like keys), errors, media_images (optional list for selects), include_basic_seo (bool for term SEO title/desc) #}
+{% set ctx = seo_ctx|default({}) %}
+{% set err = errors|default({}) %}
+{% set imgs = media_images|default([]) %}
+{% set basic = include_basic_seo|default(false) %}
+
+<details class="admin-card admin-seo-suite-panel"{% if panel_open|default(true) %} open{% endif %}>
+  <summary class="admin-seo-suite-summary">
+    <span class="admin-card-title" style="margin:0;display:inline">Advanced SEO</span>
+    <span class="admin-hint" style="margin-left:0.5rem;font-weight:400">Canonical, indexing, Open Graph, Twitter, JSON-LD</span>
+  </summary>
+  <div class="admin-seo-suite-body" style="margin-top:1rem">
+    {% if basic %}
+      <div class="admin-form-grid">
+        <div class="admin-field admin-field--full {{ err.seo_title is defined ? 'admin-field--error' : '' }}">
+          <label class="admin-label" for="seo-suite-title">SEO title</label>
+          <input class="admin-input js-seo-count" id="seo-suite-title" name="seo_title" type="text" maxlength="255" data-seo-target="seo-suite-title-count" data-seo-good="60" data-seo-warn="70" value="{{ ctx.seo_title|default('')|e }}" />
+          <p class="admin-hint"><span id="seo-suite-title-count">0</span> / 255 · Aim ~50–60 characters for titles</p>
+          {% if err.seo_title is defined %}<p class="admin-field-error">{{ err.seo_title|e }}</p>{% endif %}
+        </div>
+        <div class="admin-field admin-field--full {{ err.seo_description is defined ? 'admin-field--error' : '' }}">
+          <label class="admin-label" for="seo-suite-desc">Meta description</label>
+          <textarea class="admin-textarea js-seo-count" id="seo-suite-desc" name="seo_description" rows="2" maxlength="500" data-seo-target="seo-suite-desc-count" data-seo-good="155" data-seo-warn="160">{{ ctx.seo_description|default('')|e }}</textarea>
+          <p class="admin-hint"><span id="seo-suite-desc-count">0</span> / 500 · Aim ~150–160 characters for snippets</p>
+          {% if err.seo_description is defined %}<p class="admin-field-error">{{ err.seo_description|e }}</p>{% endif %}
+        </div>
+      </div>
+    {% endif %}
+
+    <div class="admin-form-grid" style="margin-top:0.5rem">
+      <div class="admin-field admin-field--full {{ err.canonical_url is defined ? 'admin-field--error' : '' }}">
+        <label class="admin-label" for="seo-canonical">Canonical URL</label>
+        <input class="admin-input" id="seo-canonical" name="canonical_url" type="url" maxlength="2048" placeholder="https://example.com/path or leave blank for default" value="{{ ctx.canonical_url|default('')|e }}" />
+        <p class="admin-hint" style="margin-top:0.35rem">Optional absolute URL search engines should treat as the main version (avoids duplicate-content issues).</p>
+        {% if err.canonical_url is defined %}<p class="admin-field-error">{{ err.canonical_url|e }}</p>{% endif %}
+      </div>
+      <div class="admin-field admin-field--full">
+        <label class="admin-label">
+          <input type="checkbox" name="seo_noindex" value="1" {{ ctx.seo_noindex|default(false) ? 'checked' : '' }} />
+          Hide from search engines (noindex)
+        </label>
+      </div>
+    </div>
+
+    <h3 class="admin-card-title" style="margin:1.25rem 0 0.5rem;font-size:0.8125rem">Open Graph</h3>
+    <div class="admin-form-grid">
+      <div class="admin-field admin-field--full {{ err.og_title is defined ? 'admin-field--error' : '' }}">
+        <label class="admin-label" for="seo-og-title">OG title</label>
+        <input class="admin-input js-seo-count" id="seo-og-title" name="og_title" type="text" maxlength="255" data-seo-target="seo-og-title-count" data-seo-good="60" data-seo-warn="70" value="{{ ctx.og_title|default('')|e }}" />
+        <p class="admin-hint"><span id="seo-og-title-count">0</span> / 255</p>
+      </div>
+      <div class="admin-field admin-field--full {{ err.og_description is defined ? 'admin-field--error' : '' }}">
+        <label class="admin-label" for="seo-og-desc">OG description</label>
+        <textarea class="admin-textarea js-seo-count" id="seo-og-desc" name="og_description" rows="2" maxlength="500" data-seo-target="seo-og-desc-count" data-seo-good="155" data-seo-warn="200">{{ ctx.og_description|default('')|e }}</textarea>
+        <p class="admin-hint"><span id="seo-og-desc-count">0</span> / 500</p>
+      </div>
+      <div class="admin-field admin-field--full {{ err.og_image_id is defined ? 'admin-field--error' : '' }}">
+        <label class="admin-label" for="seo-og-img">OG image</label>
+        <select class="admin-select" id="seo-og-img" name="og_image_id">
+          <option value="">— Default / featured —</option>
+          {% for im in imgs %}
+            <option value="{{ im.id }}" {{ (ctx.og_image_id|default('') ~ '') == (im.id ~ '') ? 'selected' : '' }}>#{{ im.id }} — {{ im.original_name|default('')|e }}</option>
+          {% endfor %}
+        </select>
+        {% if err.og_image_id is defined %}<p class="admin-field-error">{{ err.og_image_id|e }}</p>{% endif %}
+      </div>
+    </div>
+
+    <h3 class="admin-card-title" style="margin:1.25rem 0 0.5rem;font-size:0.8125rem">Twitter</h3>
+    <div class="admin-form-grid">
+      <div class="admin-field admin-field--full">
+        <label class="admin-label" for="seo-tw-title">Twitter title</label>
+        <input class="admin-input js-seo-count" id="seo-tw-title" name="twitter_title" type="text" maxlength="255" data-seo-target="seo-tw-title-count" data-seo-good="60" data-seo-warn="70" value="{{ ctx.twitter_title|default('')|e }}" />
+        <p class="admin-hint"><span id="seo-tw-title-count">0</span> / 255</p>
+      </div>
+      <div class="admin-field admin-field--full">
+        <label class="admin-label" for="seo-tw-desc">Twitter description</label>
+        <textarea class="admin-textarea js-seo-count" id="seo-tw-desc" name="twitter_description" rows="2" maxlength="500" data-seo-target="seo-tw-desc-count" data-seo-good="155" data-seo-warn="200">{{ ctx.twitter_description|default('')|e }}</textarea>
+        <p class="admin-hint"><span id="seo-tw-desc-count">0</span> / 500</p>
+      </div>
+      <div class="admin-field admin-field--full {{ err.twitter_image_id is defined ? 'admin-field--error' : '' }}">
+        <label class="admin-label" for="seo-tw-img">Twitter image</label>
+        <select class="admin-select" id="seo-tw-img" name="twitter_image_id">
+          <option value="">— Default / OG —</option>
+          {% for im in imgs %}
+            <option value="{{ im.id }}" {{ (ctx.twitter_image_id|default('') ~ '') == (im.id ~ '') ? 'selected' : '' }}>#{{ im.id }} — {{ im.original_name|default('')|e }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+
+    <div class="admin-field admin-field--full {{ err.schema_json is defined ? 'admin-field--error' : '' }}" style="margin-top:1rem">
+      <label class="admin-label" for="seo-schema">JSON-LD (schema.org)</label>
+      <p class="admin-hint" style="margin:0 0 0.35rem">Valid JSON only, e.g. <code class="admin-inline-code">{"@context":"https://schema.org","@type":"Article","headline":"…"}</code> — see <a class="admin-link" href="https://schema.org/docs/schemas.html" target="_blank" rel="noopener noreferrer">schema.org</a>.</p>
+      <textarea class="admin-textarea admin-textarea--code" id="seo-schema" name="schema_json" rows="8" placeholder='{"@context":"https://schema.org","@type":"WebPage","name":"…"}'>{{ ctx.schema_json|default('')|e }}</textarea>
+      {% if err.schema_json is defined %}<p class="admin-field-error">{{ err.schema_json|e }}</p>{% endif %}
+    </div>
+
+    <div class="admin-card" style="margin-top:1rem;background:rgba(255,255,255,0.03)">
+      <p class="admin-label" style="margin-bottom:0.35rem">Preview (with fallbacks)</p>
+      <p class="admin-hint" style="margin-top:0"><strong id="seo-preview-title">—</strong></p>
+      <p class="admin-hint" id="seo-preview-desc" style="margin-top:0.35rem">—</p>
+      <p class="admin-hint" id="seo-preview-canonical" style="margin-top:0.35rem;font-size:0.75rem;word-break:break-all">—</p>
+    </div>
+  </div>
+</details>
+
+<script>
+(function () {
+  function upd() {
+    document.querySelectorAll('.js-seo-count').forEach(function (el) {
+      var tid = el.getAttribute('data-seo-target');
+      if (!tid) return;
+      var t = document.getElementById(tid);
+      if (t) t.textContent = String(el.value.length);
+    });
+    var titleEl = document.getElementById('page-title') || document.getElementById('ent-title');
+    var seoTitle = document.getElementById('page-seo-title') || document.getElementById('ent-seo-title');
+    var seoOg = document.getElementById('seo-og-title');
+    var tmName = document.getElementById('tm-name');
+    var suiteTitle = document.getElementById('seo-suite-title');
+    var baseTitle = '';
+    if (seoTitle && seoTitle.value.trim()) baseTitle = seoTitle.value.trim();
+    else if (titleEl && titleEl.value.trim()) baseTitle = titleEl.value.trim();
+    else if (tmName && tmName.value.trim()) baseTitle = tmName.value.trim();
+    else if (suiteTitle && suiteTitle.value.trim()) baseTitle = suiteTitle.value.trim();
+    var ogT = seoOg && seoOg.value.trim() ? seoOg.value.trim() : baseTitle;
+    var descEl = document.getElementById('page-seo-desc') || document.getElementById('ent-seo-desc');
+    var suiteDesc = document.getElementById('seo-suite-desc');
+    var ogD = document.getElementById('seo-og-desc');
+    var baseDesc = '';
+    if (descEl && descEl.value.trim()) baseDesc = descEl.value.trim();
+    else if (suiteDesc && suiteDesc.value.trim()) baseDesc = suiteDesc.value.trim();
+    else if (ogD && ogD.value.trim()) baseDesc = ogD.value.trim();
+    var can = document.getElementById('seo-canonical');
+    var pvT = document.getElementById('seo-preview-title');
+    var pvD = document.getElementById('seo-preview-desc');
+    var pvC = document.getElementById('seo-preview-canonical');
+    if (pvT) pvT.textContent = ogT || '—';
+    if (pvD) pvD.textContent = baseDesc || '—';
+    if (pvC && can) pvC.textContent = can.value.trim() || '(default canonical)';
+  }
+  document.addEventListener('DOMContentLoaded', function () {
+    upd();
+    document.querySelectorAll('.js-seo-count, #page-title, #page-seo-title, #page-seo-desc, #ent-title, #ent-seo-title, #ent-seo-desc, #tm-name, #seo-canonical, #seo-og-title, #seo-og-desc, #seo-suite-title, #seo-suite-desc').forEach(function (el) {
+      el.addEventListener('input', upd);
+    });
+  });
+})();
+</script>

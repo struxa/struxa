@@ -1,0 +1,32 @@
+{% extends 'base.twig' %}
+
+{% block title %}Two-factor authentication — {{ settings.site_name|default('Your Studio')|e }}{% endblock %}
+
+{% block body %}
+<main>
+  <section class="section section-auth" aria-labelledby="auth-2fa-heading">
+    <div class="auth-card glass-panel">
+      <p class="eyebrow reveal" data-reveal><span class="eyebrow-pulse"></span> Security</p>
+      <h1 class="auth-title" id="auth-2fa-heading">Authenticator code</h1>
+      <p class="auth-lede">Enter the 6-digit code from your authenticator app to finish signing in.</p>
+
+      {% if flash_error %}
+        <p class="auth-flash auth-flash--error" role="alert">{{ flash_error }}</p>
+      {% endif %}
+
+      <form class="auth-form" method="post" action="{{ url_for('login.two_factor.submit') }}" novalidate>
+        {% if login_next %}
+          <input type="hidden" name="next" value="{{ login_next }}" />
+        {% endif %}
+        <label class="auth-label">
+          <span>Code</span>
+          <input class="auth-input" type="text" name="code" inputmode="numeric" pattern="[0-9]*" autocomplete="one-time-code" maxlength="12" required autofocus />
+        </label>
+        <button class="btn btn-primary btn-lg auth-submit" type="submit">Continue</button>
+      </form>
+      <p class="auth-lede" style="margin-top:1.25rem;font-size:0.9rem"><a href="{{ url_for('login') }}">Back to log in</a></p>
+    </div>
+  </section>
+</main>
+{% include 'partials/_footer.twig' %}
+{% endblock %}

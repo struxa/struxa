@@ -1,0 +1,32 @@
+{% extends 'admin/base.twig' %}
+
+{% block admin_title %}Compare entry revision{% endblock %}
+
+{% block admin_hero_title %}<h1 class="admin-hero-title">Revision compare</h1>{% endblock %}
+
+{% block admin_hero_sub %}
+  <p class="admin-hero-sub">
+    <a class="admin-link" href="{{ url_for('admin.content_types.entries.revisions', { id: content_type.id, entryId: entry.id }) }}">← Revisions</a>
+    · {{ revision.created_at|e }}
+  </p>
+{% endblock %}
+
+{% block admin_content %}
+  {% set snap = snapshot.entry|default({}) %}
+  <div class="admin-form-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;align-items:start">
+    <div class="admin-card">
+      <h2 class="admin-card-title">Current</h2>
+      <p class="admin-hint">{{ entry.status|e }} · {{ entry.slug|e }}</p>
+      <h3 style="margin:0.75rem 0 0.35rem">{{ entry.title|e }}</h3>
+      <p class="admin-hint">Field values (IDs):</p>
+      <pre style="white-space:pre-wrap;font-size:0.85rem;opacity:0.9">{{ current_value_map|json_encode|e }}</pre>
+    </div>
+    <div class="admin-card">
+      <h2 class="admin-card-title">Revision snapshot</h2>
+      <p class="admin-hint">{{ snap.status|default('')|e }} · {{ snap.slug|default('')|e }}</p>
+      <h3 style="margin:0.75rem 0 0.35rem">{{ snap.title|default('')|e }}</h3>
+      <p class="admin-hint">Field values:</p>
+      <pre style="white-space:pre-wrap;font-size:0.85rem;opacity:0.9">{{ (snapshot.values|default({}))|json_encode|e }}</pre>
+    </div>
+  </div>
+{% endblock %}

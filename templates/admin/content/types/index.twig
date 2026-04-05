@@ -1,0 +1,71 @@
+{% extends 'admin/base.twig' %}
+{% import 'admin/_ui_macros.twig' as ui %}
+
+{% block admin_title %}Content types{% endblock %}
+
+{% block admin_hero_title %}
+  <h1 class="admin-hero-title">Content types</h1>
+{% endblock %}
+
+{% block admin_hero_sub %}
+  <p class="admin-hero-sub">Define structured content models — blog posts, products, team members — with custom fields and optional public URLs.</p>
+{% endblock %}
+
+{% block admin_content %}
+  {% if cms_can('manage_content_types') %}
+    <div class="admin-toolbar admin-toolbar--spread">
+      <a class="admin-btn-primary" href="{{ url_for('admin.content_types.new') }}">New content type</a>
+    </div>
+  {% endif %}
+
+  {% if content_types is empty %}
+    {{ ui.empty_state(
+      'No content types yet',
+      'Create a type, add fields, then publish entries. Each type can have its own public URL prefix when routing is enabled.',
+      cms_can('manage_content_types') ? url_for('admin.content_types.new') : '',
+      cms_can('manage_content_types') ? 'Create a content type' : '',
+      '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>'
+    ) }}
+  {% else %}
+    <div class="admin-table-wrap">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th scope="col">Name</th>
+            <th scope="col">Slug</th>
+            <th scope="col">Options</th>
+            <th class="admin-table-col-actions" scope="col"><span class="admin-table-muted">Actions</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for t in content_types %}
+            <tr>
+              <td>
+                <strong>{{ t.name|e }}</strong>
+                {% if t.description %}<br /><span class="admin-hint" style="margin:0">{{ t.description|e|slice(0, 120) }}{% if t.description|length > 120 %}…{% endif %}</span>{% endif %}
+              </td>
+              <td><code class="admin-inline-code">{{ t.slug|e }}</code></td>
+              <td>
+                <span class="admin-pill {{ t.hasPublicRoute ? 'admin-pill--accent' : '' }}">{{ t.hasPublicRoute ? 'Public URL' : 'Admin only' }}</span>
+                {% if t.supportsSeo %}<span class="admin-pill">SEO</span>{% endif %}
+                {% if t.supportsFeaturedImage %}<span class="admin-pill">Featured</span>{% endif %}
+              </td>
+              <td class="admin-table-actions">
+                <details class="admin-actions-menu">
+                  <summary class="admin-actions-menu-trigger" aria-label="Actions for {{ t.name|e('html_attr') }}">⋯</summary>
+                  <div class="admin-actions-menu-panel">
+                    <a href="{{ url_for('admin.content_types.entries.index', { id: t.id }) }}">Entries</a>
+                    {% if cms_can('manage_content_types') %}
+                      <a href="{{ url_for('admin.content_types.edit', { id: t.id }) }}">Edit type</a>
+                      <a href="{{ url_for('admin.content_types.fields.index', { id: t.id }) }}">Fields</a>
+                    {% endif %}
+                  </div>
+                </details>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% endif %}
+{% endblock %}

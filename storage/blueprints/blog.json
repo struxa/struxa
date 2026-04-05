@@ -1,0 +1,344 @@
+{
+    "cms_blueprint_version": "1.0",
+    "label": "Showcase: Editorial blog",
+    "description": "Blog content type with categories, tags, theme templates at /blog, and sample posts (published, draft, and in review). Import from Admin → Tools → Blueprints with entries enabled.",
+    "settings": {
+        "site_tagline": "Editorial publishing without WordPress bloat.",
+        "default_meta_title": "Blog",
+        "default_meta_description": "Articles, categories, and tags powered by structured content types."
+    },
+    "content_types": [
+        {
+            "slug": "blog",
+            "name": "Blog",
+            "description": "",
+            "has_public_route": true,
+            "supports_seo": true,
+            "supports_featured_image": true,
+            "fields": [
+                {
+                    "field_key": "excerpt",
+                    "label": "Excerpt",
+                    "field_type": "textarea",
+                    "sort_order": 10,
+                    "help_text": "Shown on the type index (/blog) and in meta descriptions when empty."
+                },
+                {
+                    "field_key": "body",
+                    "label": "Body",
+                    "field_type": "richtext",
+                    "sort_order": 20
+                },
+                {
+                    "field_key": "author_name",
+                    "label": "Author",
+                    "field_type": "text",
+                    "sort_order": 30,
+                    "placeholder": "Display name"
+                },
+                {
+                    "field_key": "read_time",
+                    "label": "Read time",
+                    "field_type": "text",
+                    "sort_order": 40,
+                    "placeholder": "e.g. 6 min read"
+                }
+            ],
+            "taxonomies": [
+                {
+                    "slug": "category",
+                    "name": "Categories",
+                    "taxonomy_type": "category",
+                    "is_hierarchical": true,
+                    "terms": [
+                        {
+                            "slug": "tutorials",
+                            "name": "Tutorials"
+                        },
+                        {
+                            "slug": "editorial",
+                            "name": "Editorial"
+                        },
+                        {
+                            "slug": "news",
+                            "name": "News"
+                        }
+                    ]
+                },
+                {
+                    "slug": "tag",
+                    "name": "Tags",
+                    "taxonomy_type": "tag",
+                    "is_hierarchical": false,
+                    "terms": [
+                        {
+                            "slug": "cms",
+                            "name": "CMS"
+                        },
+                        {
+                            "slug": "performance",
+                            "name": "Performance"
+                        },
+                        {
+                            "slug": "architecture",
+                            "name": "Architecture"
+                        },
+                        {
+                            "slug": "workflow",
+                            "name": "Workflow"
+                        },
+                        {
+                            "slug": "accessibility",
+                            "name": "Accessibility"
+                        },
+                        {
+                            "slug": "security",
+                            "name": "Security"
+                        }
+                    ]
+                }
+            ]
+        }
+    ],
+    "pages": [],
+    "menus": [
+        {
+            "location": "header",
+            "name": "Header",
+            "items": [
+                {
+                    "label": "Blog",
+                    "url": "/blog",
+                    "target": "_self",
+                    "css_class": ""
+                }
+            ]
+        }
+    ],
+    "content_entries": [
+        {
+            "content_type_slug": "blog",
+            "title": "Why teams leave WordPress for structured content",
+            "slug": "why-teams-leave-wordpress",
+            "status": "published",
+            "published_at": "2026-01-10 12:00:00",
+            "seo_title": "Why teams leave WordPress for structured content",
+            "seo_description": "Fewer plugins, clearer models, and safer upgrades with a bespoke CMS.",
+            "field_values": {
+                "excerpt": "WordPress excels at blogs; complex editorial workflows often outgrow it. Here is a calmer path.",
+                "body": "<p>Structured content types replace a pile of custom fields and brittle themes. You ship HTML from real templates, store data in first-class tables, and migrate with blueprints instead of cloning databases.</p><p>In this CMS, each article is an <strong>entry</strong> of the <em>Blog</em> type. Fields like excerpt and body are defined once; editors fill forms instead of fighting the block editor. Public URLs follow <code>/blog/your-slug</code> when the type has a public route enabled.</p><p>This demo blueprint seeds categories, tags, and routes so you can click through like a production blog.</p>",
+                "author_name": "Jordan Lee",
+                "read_time": "5 min read"
+            },
+            "taxonomy_terms": {
+                "category": [
+                    "editorial"
+                ],
+                "tag": [
+                    "cms",
+                    "architecture"
+                ]
+            }
+        },
+        {
+            "content_type_slug": "blog",
+            "title": "Performance budgets that actually stick",
+            "slug": "performance-budgets",
+            "status": "published",
+            "published_at": "2026-01-18 09:30:00",
+            "seo_title": "Performance budgets that actually stick",
+            "seo_description": "Pair Core Web Vitals with a CMS that outputs lean markup.",
+            "field_values": {
+                "excerpt": "Ship fast pages by pairing metrics with a CMS that does not fight the front-end.",
+                "body": "<p>When the CMS renders predictable markup and avoids plugin soup, your team can focus on images, fonts, and caching. Measure LCP and CLS, then guard them in CI so regressions never reach production.</p><p>Structured fields help: you store an excerpt for cards, a single body for the article, and optional featured images—no duplicate page builders re-downloading half the internet.</p>",
+                "author_name": "Sam Rivera",
+                "read_time": "4 min read"
+            },
+            "taxonomy_terms": {
+                "category": [
+                    "tutorials"
+                ],
+                "tag": [
+                    "performance"
+                ]
+            }
+        },
+        {
+            "content_type_slug": "blog",
+            "title": "Taxonomies without the taxonomy plugin maze",
+            "slug": "taxonomies-without-plugins",
+            "status": "published",
+            "published_at": "2026-02-01 15:00:00",
+            "seo_title": "Taxonomies without the taxonomy plugin maze",
+            "seo_description": "Categories and tags as first-class data, with archive URLs you can theme.",
+            "field_values": {
+                "excerpt": "First-class categories and tags, wired to archives you can theme per type.",
+                "body": "<p>Instead of bolting on CPT UI and remembering which slug maps to which template, the core engine links types to vocabularies. Archives paginate; URLs stay readable for humans and search engines.</p><p>Try opening a post below and clicking a category or tag—you will land on a filtered archive for that taxonomy term.</p>",
+                "author_name": "Alex Chen",
+                "read_time": "3 min read"
+            },
+            "taxonomy_terms": {
+                "category": [
+                    "tutorials"
+                ],
+                "tag": [
+                    "cms",
+                    "architecture"
+                ]
+            }
+        },
+        {
+            "content_type_slug": "blog",
+            "title": "Content modeling for multi-channel publishing",
+            "slug": "content-modeling-multichannel",
+            "status": "published",
+            "published_at": "2026-02-14 11:00:00",
+            "seo_description": "One structured model, many surfaces: web today, APIs and partners tomorrow.",
+            "field_values": {
+                "excerpt": "Design fields once; reuse the same entry for the site, newsletters, or downstream APIs.",
+                "body": "<p>Flat posts work until you need the same story in email, in-app, and partner feeds. A clear content model—title, slug, excerpt, body, taxonomies—becomes the contract every channel reads from.</p><p>This stack keeps values in normalized tables, so you are not scraping HTML when a new channel appears. Add fields deliberately; every new knob is a promise to every consumer.</p>",
+                "author_name": "Jordan Lee",
+                "read_time": "6 min read"
+            },
+            "taxonomy_terms": {
+                "category": [
+                    "editorial"
+                ],
+                "tag": [
+                    "architecture",
+                    "cms"
+                ]
+            }
+        },
+        {
+            "content_type_slug": "blog",
+            "title": "Accessibility checks you can automate from the CMS",
+            "slug": "automate-a11y-from-cms",
+            "status": "published",
+            "published_at": "2026-02-22 10:15:00",
+            "seo_description": "Required alt text, heading order, and previews that mirror the real theme.",
+            "field_values": {
+                "excerpt": "Use required fields and sane defaults so the easy path is also the accessible path.",
+                "body": "<p>Accessibility is mostly boring discipline: alt text on images, logical headings, sufficient contrast in the theme. The CMS can enforce the first two with required fields and rich text that maps to semantic HTML.</p><p>Pair that with a theme that uses real heading levels in templates, and run axe or Lighthouse in CI against a few canonical URLs. You will catch regressions before editors do.</p>",
+                "author_name": "Riley Park",
+                "read_time": "5 min read"
+            },
+            "taxonomy_terms": {
+                "category": [
+                    "tutorials"
+                ],
+                "tag": [
+                    "accessibility",
+                    "cms"
+                ]
+            }
+        },
+        {
+            "content_type_slug": "blog",
+            "title": "Why database migrations beat click-ops for schema changes",
+            "slug": "migrations-beat-clickops",
+            "status": "published",
+            "published_at": "2026-03-05 14:45:00",
+            "field_values": {
+                "excerpt": "Versioned SQL (or blueprint imports) turn scary deploys into reviewable diffs.",
+                "body": "<p>Clicking through phpMyAdmin in production is a rehearsal for outage theater. Migrations checked into git give you rollback stories, code review, and identical staging behavior.</p><p>The same idea applies to structure: blueprints can describe types, fields, and taxonomies so new environments do not drift from the one laptop where everything worked.</p>",
+                "author_name": "Alex Chen",
+                "read_time": "4 min read"
+            },
+            "taxonomy_terms": {
+                "category": [
+                    "editorial"
+                ],
+                "tag": [
+                    "cms",
+                    "architecture"
+                ]
+            }
+        },
+        {
+            "content_type_slug": "blog",
+            "title": "Preview and staging: a practical editorial workflow",
+            "slug": "preview-staging-workflow",
+            "status": "published",
+            "published_at": "2026-03-12 09:00:00",
+            "field_values": {
+                "excerpt": "Draft, in review, approved, published—statuses that match how real teams ship.",
+                "body": "<p>Not everyone should publish directly. Workflow statuses let authors save drafts, send work to reviewers, and publish only when ready—without a separate spreadsheet of who approved what.</p><p>This demo includes sample posts still in <strong>draft</strong> and <strong>in review</strong> so you can see those states in the admin list while the public blog only shows published entries.</p>",
+                "author_name": "Sam Rivera",
+                "read_time": "5 min read"
+            },
+            "taxonomy_terms": {
+                "category": [
+                    "tutorials"
+                ],
+                "tag": [
+                    "workflow",
+                    "cms"
+                ]
+            }
+        },
+        {
+            "content_type_slug": "blog",
+            "title": "Ship log: what is new in the March release",
+            "slug": "ship-log-march-release",
+            "status": "published",
+            "published_at": "2026-03-20 16:30:00",
+            "field_values": {
+                "excerpt": "A sample news-style post with a different category to show archive variety.",
+                "body": "<p>Use the <em>News</em> category for short announcements and the <em>Editorial</em> lane for longer essays. Tags still cross-cut both, so readers can follow topics like performance or security across formats.</p><p>This post is intentionally lighter—like a changelog or product update you might ship alongside deeper articles.</p>",
+                "author_name": "Studio Bot",
+                "read_time": "2 min read"
+            },
+            "taxonomy_terms": {
+                "category": [
+                    "news"
+                ],
+                "tag": [
+                    "cms"
+                ]
+            }
+        },
+        {
+            "content_type_slug": "blog",
+            "title": "Building a design system on top of structured fields",
+            "slug": "design-system-structured-fields",
+            "status": "draft",
+            "field_values": {
+                "excerpt": "Draft example — visible in admin, not on the public blog index.",
+                "body": "<p>This entry is intentionally still a draft. In the CMS, open <strong>Content → Blog</strong> and filter by status to see it alongside published work.</p><p>Finish the body, pass review, then publish to appear on <code>/blog</code>.</p>",
+                "author_name": "Jordan Lee",
+                "read_time": "7 min read"
+            },
+            "taxonomy_terms": {
+                "category": [
+                    "editorial"
+                ],
+                "tag": [
+                    "architecture"
+                ]
+            }
+        },
+        {
+            "content_type_slug": "blog",
+            "title": "API security patterns for editorial tools",
+            "slug": "api-security-editorial-tools",
+            "status": "in_review",
+            "field_values": {
+                "excerpt": "In-review example — reviewers can see it; the public site cannot.",
+                "body": "<p>This post waits in <strong>in review</strong>. It is a good place to test reviewer permissions and transitions before you flip the status to published.</p><p>Body content can still be edited; nothing here is final until publish rules say so.</p>",
+                "author_name": "Riley Park",
+                "read_time": "6 min read"
+            },
+            "taxonomy_terms": {
+                "category": [
+                    "tutorials"
+                ],
+                "tag": [
+                    "security",
+                    "cms"
+                ]
+            }
+        }
+    ],
+    "required_plugin_slugs": []
+}

@@ -1,0 +1,77 @@
+{% extends 'admin/base.twig' %}
+
+{% set is_edit = form_mode == 'edit' %}
+{% set o = old ?? {} %}
+{% set n = o.name|default(content_type ? content_type.name : '') %}
+{% set s = o.slug|default(content_type ? content_type.slug : '') %}
+{% set ic = o.icon|default(content_type ? (content_type.icon ?? '') : '') %}
+{% set d = o.description|default(content_type ? (content_type.description ?? '') : '') %}
+{% set hpr = o.has_public_route is defined ? o.has_public_route : (content_type ? content_type.hasPublicRoute : false) %}
+{% set sse = o.supports_seo is defined ? o.supports_seo : (content_type ? content_type.supportsSeo : false) %}
+{% set sfi = o.supports_featured_image is defined ? o.supports_featured_image : (content_type ? content_type.supportsFeaturedImage : false) %}
+
+{% block admin_title %}{{ is_edit ? 'Edit content type' : 'New content type' }}{% endblock %}
+
+{% block admin_hero_title %}
+  <h1 class="admin-hero-title">{{ is_edit ? 'Edit content type' : 'New content type' }}</h1>
+{% endblock %}
+
+{% block admin_hero_sub %}
+  <p class="admin-hero-sub">The slug becomes the first URL segment for public entries (e.g. <code class="admin-inline-code">blog</code> → <code class="admin-inline-code">/blog/my-post</code>). It must stay unique and cannot match reserved paths.</p>
+{% endblock %}
+
+{% block admin_content %}
+  <form class="admin-form" method="post" action="{{ is_edit ? url_for('admin.content_types.update', { id: content_type.id }) : url_for('admin.content_types.store') }}">
+    <div class="admin-form-grid">
+      <div class="admin-field {{ errors.name is defined ? 'admin-field--error' : '' }}">
+        <label class="admin-label" for="ct-name">Name <span class="admin-req">*</span></label>
+        <input class="admin-input" id="ct-name" name="name" type="text" maxlength="160" value="{{ n|e }}" required />
+        {% if errors.name is defined %}<p class="admin-field-error">{{ errors.name|e }}</p>{% endif %}
+      </div>
+
+      <div class="admin-field {{ errors.slug is defined ? 'admin-field--error' : '' }}">
+        <label class="admin-label" for="ct-slug">Slug</label>
+        <input class="admin-input" id="ct-slug" name="slug" type="text" value="{{ s|e }}" placeholder="auto from name" autocomplete="off" />
+        <p class="admin-hint">Lowercase machine name: letters, numbers, hyphens (2–63 chars).</p>
+        {% if errors.slug is defined %}<p class="admin-field-error">{{ errors.slug|e }}</p>{% endif %}
+      </div>
+
+      <div class="admin-field admin-field--full">
+        <label class="admin-label" for="ct-icon">Icon (optional)</label>
+        <input class="admin-input" id="ct-icon" name="icon" type="text" maxlength="64" value="{{ ic|e }}" placeholder="e.g. post-outline" />
+        {% if errors.icon is defined %}<p class="admin-field-error">{{ errors.icon|e }}</p>{% endif %}
+      </div>
+
+      <div class="admin-field admin-field--full">
+        <label class="admin-label" for="ct-desc">Description</label>
+        <textarea class="admin-textarea" id="ct-desc" name="description" rows="3">{{ d|e }}</textarea>
+      </div>
+
+      <div class="admin-field admin-field--full">
+        <label class="admin-check">
+          <input type="checkbox" name="has_public_route" value="1" {{ hpr ? 'checked' : '' }} />
+          <span>Public route — publish entries at <code class="admin-inline-code">/{{ '{slug}' }}/…</code></span>
+        </label>
+      </div>
+
+      <div class="admin-field admin-field--full">
+        <label class="admin-check">
+          <input type="checkbox" name="supports_seo" value="1" {{ sse ? 'checked' : '' }} />
+          <span>Support SEO title &amp; description on entries</span>
+        </label>
+      </div>
+
+      <div class="admin-field admin-field--full">
+        <label class="admin-check">
+          <input type="checkbox" name="supports_featured_image" value="1" {{ sfi ? 'checked' : '' }} />
+          <span>Support featured image (media library)</span>
+        </label>
+      </div>
+    </div>
+
+    <div class="admin-form-actions">
+      <button class="admin-btn-primary" type="submit">{{ is_edit ? 'Save changes' : 'Create content type' }}</button>
+      <a class="admin-btn-ghost" href="{{ url_for('admin.content_types.index') }}">Cancel</a>
+    </div>
+  </form>
+{% endblock %}

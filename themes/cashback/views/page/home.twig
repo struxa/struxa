@@ -1,0 +1,159 @@
+{% extends 'layouts/base.twig' %}
+
+{% block body %}
+<div id="main-content">
+  <div class="cb-filters">
+    <h1>Earn</h1>
+    <div class="cb-chip">🤖 Android <span class="cb-tick" aria-hidden="true">✓</span></div>
+    <div class="cb-chip">🍎 iOS <span class="cb-tick" aria-hidden="true">✓</span></div>
+    <div class="cb-chip">🖥 Desktop <span class="cb-tick" aria-hidden="true">✓</span></div>
+  </div>
+
+  <div class="cb-live-strip" aria-label="Live cashouts">
+    <div class="cb-live-card"><div class="cb-who"><strong>CIS Panelist</strong><span>PAYPAL</span></div><div class="cb-amt">$2.55</div></div>
+    <div class="cb-live-card"><div class="cb-who"><strong>2ez</strong><span>CRYPTO LTC</span></div><div class="cb-amt">$2.44</div></div>
+    <div class="cb-live-card"><div class="cb-who"><strong>NightlySakura</strong><span>CRYPTO LTC</span></div><div class="cb-amt">$100.00</div></div>
+    <div class="cb-live-card"><div class="cb-who"><strong>CIS Panelist</strong><span>PAYPAL</span></div><div class="cb-amt">$6.26</div></div>
+    <div class="cb-live-card"><div class="cb-who"><strong>CIS PRINCEE</strong><span>PAYPAL</span></div><div class="cb-amt">$4.18</div></div>
+  </div>
+
+  <div class="cb-grid">
+    <section class="cb-stack" aria-label="Offers and walls">
+      <div class="cb-section-card">
+        <div class="cb-section-head">
+          <h2>🔥 Gaming Offers</h2>
+          <a href="#">View All</a>
+        </div>
+        <div class="cb-carousel-wrap">
+        <div class="cb-carousel">
+          <article class="cb-offer">
+            <div class="cb-thumb"><div class="cb-os-tags"><span aria-hidden="true">🍎</span><span aria-hidden="true">🤖</span></div><div class="cb-thumb-badge" aria-hidden="true"></div></div>
+            <div class="cb-offer-body"><div class="cb-offer-title">Disney Solitaire</div><div class="cb-offer-type">Game</div><div class="cb-offer-meta"><span class="cb-offer-price">£1,480</span><span class="cb-offer-score">$$$</span></div></div>
+          </article>
+          <article class="cb-offer">
+            <div class="cb-thumb"><div class="cb-os-tags"><span aria-hidden="true">🍎</span></div><div class="cb-thumb-badge" aria-hidden="true"></div></div>
+            <div class="cb-offer-body"><div class="cb-offer-title">Dice Dreams Island</div><div class="cb-offer-type">Game</div><div class="cb-offer-meta"><span class="cb-offer-price">£287</span><span class="cb-offer-score">$$$</span></div></div>
+          </article>
+          <article class="cb-offer">
+            <div class="cb-thumb"><div class="cb-os-tags"><span aria-hidden="true">🍎</span></div><div class="cb-thumb-badge" aria-hidden="true"></div></div>
+            <div class="cb-offer-body"><div class="cb-offer-title">Domino Dreams</div><div class="cb-offer-type">Game</div><div class="cb-offer-meta"><span class="cb-offer-price">£959</span><span class="cb-offer-score">$$$</span></div></div>
+          </article>
+          <article class="cb-offer">
+            <div class="cb-thumb"><div class="cb-os-tags"><span aria-hidden="true">🖥</span></div><div class="cb-thumb-badge" aria-hidden="true"></div></div>
+            <div class="cb-offer-body"><div class="cb-offer-title">Solitaire Riches</div><div class="cb-offer-type">Game</div><div class="cb-offer-meta"><span class="cb-offer-price">£1,058</span><span class="cb-offer-score">$$</span></div></div>
+          </article>
+          <article class="cb-offer">
+            <div class="cb-thumb"><div class="cb-os-tags"><span aria-hidden="true">🍎</span></div><div class="cb-thumb-badge" aria-hidden="true"></div></div>
+            <div class="cb-offer-body"><div class="cb-offer-title">Palmon Survival</div><div class="cb-offer-type">Game</div><div class="cb-offer-meta"><span class="cb-offer-price">£1,109</span><span class="cb-offer-score">$$$</span></div></div>
+          </article>
+          <article class="cb-offer">
+            <div class="cb-thumb"><div class="cb-os-tags"><span aria-hidden="true">🍎</span></div><div class="cb-thumb-badge" aria-hidden="true"></div></div>
+            <div class="cb-offer-body"><div class="cb-offer-title">Frost &amp; Flame</div><div class="cb-offer-type">Game</div><div class="cb-offer-meta"><span class="cb-offer-price">£772</span><span class="cb-offer-score">$$$</span></div></div>
+          </article>
+        </div>
+        </div>
+      </div>
+
+      {% set home_blog_pack = content_type_cards_journal(12) %}
+      {% if home_blog_pack.type %}
+        <div class="cb-section-card">
+          <div class="cb-section-head">
+            <h2>🔥 {{ home_blog_pack.type.name|e }}</h2>
+            <a href="{{ url_for('public.content_type_index', { typeSlug: home_blog_pack.type.slug }) }}">{{ 'View All'|e }}</a>
+          </div>
+          {% if home_blog_pack.entries is not empty %}
+            <div class="cb-carousel-wrap">
+            <div class="cb-carousel">
+              {% for item in home_blog_pack.entries %}
+                {% set row = item.row %}
+                {% set _tone = (loop.index0 % 6) + 1 %}
+                {% set _scores = ['$$$', '$$', '$'] %}
+                {% set _score = _scores[loop.index0 % 3] %}
+                {% set _meta_left = 'New' %}
+                {% if row.published_at is defined and row.published_at is not empty %}
+                  {% set _meta_left = row.published_at|date('M j') %}
+                {% endif %}
+                <a class="cb-offer cb-offer-link" href="{{ site_url }}/{{ home_blog_pack.type.slug|e }}/{{ row.slug|default('')|e }}">
+                  <div class="cb-thumb{% if item.featured_url|default('')|trim != '' %} cb-thumb--photo{% else %} cb-thumb--t{{ _tone }}{% endif %}">
+                    <div class="cb-os-tags"><span aria-hidden="true">📰</span></div>
+                    {% if item.featured_url|default('')|trim != '' %}
+                      <img class="cb-thumb-img" src="{{ item.featured_url|e('html_attr') }}" alt="" loading="lazy" decoding="async" width="400" height="256" />
+                    {% endif %}
+                    <div class="cb-thumb-badge" aria-hidden="true"></div>
+                  </div>
+                  <div class="cb-offer-body">
+                    <div class="cb-offer-title">{{ row.title|e }}</div>
+                    <div class="cb-offer-type">{{ 'Article'|e }}</div>
+                    <div class="cb-offer-meta"><span class="cb-offer-price">{{ _meta_left|e }}</span><span class="cb-offer-score">{{ _score|e }}</span></div>
+                  </div>
+                </a>
+              {% endfor %}
+            </div>
+            </div>
+          {% else %}
+            <p class="cb-home-empty">{{ 'No published posts yet. Publish an entry in this type to show cards here.'|e }}</p>
+          {% endif %}
+        </div>
+      {% endif %}
+
+      <div class="cb-section-card">
+        <div class="cb-section-head">
+          <h2>📋 Surveys</h2>
+          <a href="#">View All</a>
+        </div>
+        <div class="cb-survey-row">
+          <div class="cb-survey-card"><div class="cb-survey-top" aria-hidden="true">📋</div><div><div class="cb-survey-title">Survey (963614018)</div><div class="cb-survey-pay">$1.99</div></div></div>
+          <div class="cb-survey-card"><div class="cb-survey-top" aria-hidden="true">🅿️</div><div><div class="cb-survey-title">PrimeSurveys - GB</div><div class="cb-survey-pay">Dynamic Pay</div></div></div>
+          <div class="cb-survey-card"><div class="cb-survey-top" aria-hidden="true">📋</div><div><div class="cb-survey-title">Survey (48777392)</div><div class="cb-survey-pay">$0.32</div></div></div>
+        </div>
+      </div>
+
+      <div class="cb-section-card">
+        <div class="cb-section-head">
+          <h2>🏠 Walls</h2>
+          <a href="#">View All</a>
+        </div>
+        <div class="cb-walls">
+          <div class="cb-wall"><span class="cb-hot" aria-hidden="true">🔥</span> Surveys</div>
+          <div class="cb-wall"><span class="cb-hot" aria-hidden="true">🔥</span> TOROX</div>
+          <div class="cb-wall">TyrAds</div>
+          <div class="cb-wall"><span class="cb-hot" aria-hidden="true">🔥</span> myChips</div>
+          <div class="cb-wall"><span class="cb-hot" aria-hidden="true">🔥</span> RevU</div>
+          <div class="cb-wall"><span class="cb-hot" aria-hidden="true">🔥</span> AyeStudios</div>
+        </div>
+      </div>
+    </section>
+
+    <aside class="cb-side-stack" aria-label="More offers">
+      <div class="cb-feature-panel">
+        <div class="cb-section-head">
+          <h2>🍀 Other Offers</h2>
+          <a href="#">View All</a>
+        </div>
+        <div class="cb-carousel-wrap">
+        <div class="cb-carousel cb-carousel--dense">
+          <article class="cb-offer">
+            <div class="cb-thumb" style="background:linear-gradient(135deg,#7b1dff,#2b2cff 55%,#efb400 100%);"><div class="cb-thumb-badge" aria-hidden="true"></div></div>
+            <div class="cb-offer-body"><div class="cb-offer-title">Bingo Cash</div><div class="cb-offer-type">Other</div><div class="cb-offer-meta"><span class="cb-offer-price">£1,024</span><span class="cb-offer-score">$$</span></div></div>
+          </article>
+          <article class="cb-offer">
+            <div class="cb-thumb" style="background:linear-gradient(135deg,#d9a94d,#6a4a22 55%,#2c203e 100%);"><div class="cb-thumb-badge" aria-hidden="true"></div></div>
+            <div class="cb-offer-body"><div class="cb-offer-title">Scavenger Hunt</div><div class="cb-offer-type">Other</div><div class="cb-offer-meta"><span class="cb-offer-price">£48.99</span><span class="cb-offer-score">$</span></div></div>
+          </article>
+        </div>
+        </div>
+      </div>
+
+      <div class="cb-feature-panel">
+        <h3>⚡ Featured cashouts</h3>
+        <div class="cb-mini-list">
+          <div class="cb-mini-item"><div class="cb-mini-icon" aria-hidden="true"></div><div class="cb-mini-copy"><strong>PayPal</strong><span>Most popular</span></div><div class="cb-mini-amt">Instant</div></div>
+          <div class="cb-mini-item"><div class="cb-mini-icon" aria-hidden="true"></div><div class="cb-mini-copy"><strong>Bitcoin</strong><span>Crypto payout</span></div><div class="cb-mini-amt">Fast</div></div>
+          <div class="cb-mini-item"><div class="cb-mini-icon" aria-hidden="true"></div><div class="cb-mini-copy"><strong>Amazon</strong><span>Gift card</span></div><div class="cb-mini-amt">Hot</div></div>
+          <div class="cb-mini-item"><div class="cb-mini-icon" aria-hidden="true"></div><div class="cb-mini-copy"><strong>Visa</strong><span>Digital card</span></div><div class="cb-mini-amt">New</div></div>
+        </div>
+      </div>
+    </aside>
+  </div>
+</div>
+{% endblock %}

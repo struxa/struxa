@@ -1,0 +1,164 @@
+{
+    "cms_blueprint_version": "1.0",
+    "label": "Showcase: Product catalog (apps)",
+    "description": "A Product content type with blurbs, optional card image URLs, sample prices, and three sample apps. Images in media_seed download from images.unsplash.com into the media library and attach as featured images. Import from Admin → Tools → Blueprints and enable “Import content entries”. Public URLs: /products",
+    "content_types": [
+        {
+            "slug": "products",
+            "name": "Products",
+            "icon": "cube-outline",
+            "description": "Shippable apps and platforms — blurbs, hero images, prices, and rich detail for each listing.",
+            "has_public_route": true,
+            "supports_seo": true,
+            "supports_featured_image": true,
+            "fields": [
+                {
+                    "field_key": "excerpt",
+                    "label": "Blurb",
+                    "field_type": "textarea",
+                    "sort_order": 10,
+                    "help_text": "Short pitch for cards on /products and search snippets."
+                },
+                {
+                    "field_key": "price_display",
+                    "label": "Price",
+                    "field_type": "text",
+                    "sort_order": 12,
+                    "help_text": "Shown on the product card and detail page (e.g. From $499/mo or $12,000 one-time)."
+                },
+                {
+                    "field_key": "buy_url",
+                    "label": "Buy now",
+                    "field_type": "url",
+                    "sort_order": 13,
+                    "help_text": "Primary CTA on the product page (checkout, signup, or external purchase link)."
+                },
+                {
+                    "field_key": "demo_url",
+                    "label": "Book a demo",
+                    "field_type": "url",
+                    "sort_order": 14,
+                    "help_text": "Optional second CTA (Calendly, demo request, or trial)."
+                },
+                {
+                    "field_key": "thumbnail_url",
+                    "label": "Card image URL",
+                    "field_type": "url",
+                    "sort_order": 15,
+                    "help_text": "Optional external image (HTTPS) when you are not using the featured image from the media library."
+                },
+                {
+                    "field_key": "body",
+                    "label": "Details",
+                    "field_type": "richtext",
+                    "sort_order": 20,
+                    "help_text": "Longer story, features, and pricing notes."
+                }
+            ],
+            "taxonomies": [
+                {
+                    "slug": "suite",
+                    "name": "Product suite",
+                    "taxonomy_type": "category",
+                    "is_hierarchical": false,
+                    "terms": [
+                        { "slug": "connect", "name": "Connect" },
+                        { "slug": "learn", "name": "Learn" },
+                        { "slug": "speak", "name": "Speak" }
+                    ]
+                }
+            ]
+        }
+    ],
+    "media_seed": [
+        {
+            "slug": "product-signalbridge",
+            "source_url": "https://images.unsplash.com/photo-1551434678-e076c223a692?w=800&h=500&fit=crop&auto=format&q=82"
+        },
+        {
+            "slug": "product-campus-compass",
+            "source_url": "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=800&h=500&fit=crop&auto=format&q=82"
+        },
+        {
+            "slug": "product-casa-lingua",
+            "source_url": "https://images.unsplash.com/photo-1546412414-1885d6e292dd?w=800&h=500&fit=crop&auto=format&q=82"
+        }
+    ],
+    "pages": [],
+    "menus": [
+        {
+            "location": "header",
+            "name": "Header",
+            "items": [
+                {
+                    "label": "Products",
+                    "url": "/products",
+                    "target": "_self",
+                    "css_class": ""
+                }
+            ]
+        }
+    ],
+    "content_entries": [
+        {
+            "content_type_slug": "products",
+            "title": "SignalBridge",
+            "slug": "signalbridge",
+            "status": "published",
+            "published_at": "2026-03-01 10:00:00",
+            "featured_image_media_slug": "product-signalbridge",
+            "seo_title": "SignalBridge — enterprise SMS & messaging API",
+            "seo_description": "Reliable delivery, webhooks, and compliance-friendly messaging for product teams.",
+            "field_values": {
+                "excerpt": "Enterprise-grade SMS and transactional messaging with dashboards, retries, and carrier-aware routing — the serious upgrade from a basic SMS gateway.",
+                "price_display": "From $899/mo · custom enterprise",
+                "buy_url": "https://example.com/signalbridge/checkout",
+                "demo_url": "https://example.com/signalbridge/demo",
+                "body": "<p><strong>SignalBridge</strong> is built for teams who outgrew ad-hoc gateways. You get structured APIs, delivery receipts, and quiet hours — without duct-taping five vendors together.</p><ul><li>REST + webhook events</li><li>Multi-region failover</li><li>Role-scoped API keys</li></ul><p>License the stack or bring us in for a custom build on your cloud.</p>"
+            },
+            "taxonomy_terms": {
+                "suite": ["connect"]
+            }
+        },
+        {
+            "content_type_slug": "products",
+            "title": "Campus Compass",
+            "slug": "campus-compass",
+            "status": "published",
+            "published_at": "2026-03-05 14:30:00",
+            "featured_image_media_slug": "product-campus-compass",
+            "seo_title": "Campus Compass — learning paths for schools & teams",
+            "seo_description": "Structured curricula, progress signals, and admin tooling for modern education programs.",
+            "field_values": {
+                "excerpt": "A calm learning platform for cohorts: pathways, checkpoints, and coach-ready analytics — more focused than a generic “education app” bolted onto a CMS.",
+                "price_display": "$6/student/mo · volume tiers",
+                "buy_url": "https://example.com/campus-compass/start",
+                "demo_url": "https://example.com/campus-compass/demo",
+                "body": "<p><strong>Campus Compass</strong> helps schools and training teams ship structured programs without wrestling a generic LMS. Learners see a clear path; leads see completion and risk flags early.</p><ul><li>Modular learning paths</li><li>Manager and instructor views</li><li>Export-friendly progress</li></ul>"
+            },
+            "taxonomy_terms": {
+                "suite": ["learn"]
+            }
+        },
+        {
+            "content_type_slug": "products",
+            "title": "Casa Lingua",
+            "slug": "casa-lingua",
+            "status": "published",
+            "published_at": "2026-03-12 09:00:00",
+            "featured_image_media_slug": "product-casa-lingua",
+            "seo_title": "Casa Lingua — Spanish that sticks",
+            "seo_description": "Conversation-first Spanish lessons with spaced repetition and real-world scenarios.",
+            "field_values": {
+                "excerpt": "Conversation-led Spanish with spaced repetition and bite-sized scenarios — friendlier than drill-only apps and more focused than “learn everything” marketplaces.",
+                "price_display": "$14.99/mo · annual save 20%",
+                "buy_url": "https://example.com/casa-lingua/subscribe",
+                "demo_url": "https://example.com/casa-lingua/try",
+                "body": "<p><strong>Casa Lingua</strong> treats Spanish as something you <em>use</em>, not only memorize. Daily prompts, audio-first drills, and gentle review cycles keep intermediate learners moving without burnout.</p><ul><li>Scenario-based dialogues</li><li>Offline-friendly packs</li><li>Streaks that forgive real life</li></ul>"
+            },
+            "taxonomy_terms": {
+                "suite": ["speak"]
+            }
+        }
+    ]
+}

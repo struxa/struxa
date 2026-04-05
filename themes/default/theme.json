@@ -1,0 +1,24 @@
+{
+  "name": "Midnight Pulse",
+  "slug": "default",
+  "version": "1.0.0",
+  "author": "Studio CMS",
+  "description": "Dark SaaS-style layout with gradient accents, header, footer, and content-focused typography. Uses global settings and menus.",
+  "homepage": "https://example.com/themes/default",
+  "repository_url": "https://example.com/repo/default-theme",
+  "license": "MIT",
+  "support_url": "https://example.com/support",
+  "category": "minimal",
+  "tags": ["dark", "blog"],
+  "min_cms_version": "1.0.0",
+  "tested_up_to": "1.0.0",
+  "screenshot": "assets/screenshot.png",
+  "settings": {
+    "accent": {
+      "type": "string",
+      "label": "Accent color (hex)",
+      "default": "#8b7cf6"
+    }
+  },
+  "parents": []
+}

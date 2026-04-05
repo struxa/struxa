@@ -1,0 +1,23 @@
+{% extends 'layouts/base.twig' %}
+
+{% block title %}{{ content_type.name|e }} — {{ settings.site_name|default('Site')|e }}{% endblock %}
+{% block meta_description %}{{ content_index_description|default(settings.default_meta_description|default(''))|e }}{% endblock %}
+{% block og_title %}{{ content_type.name|e }}{% endblock %}
+{% block og_description %}{{ content_index_description|default(settings.default_meta_description|default(''))|e }}{% endblock %}
+{% block twitter_title %}{{ content_type.name|e }}{% endblock %}
+{% block twitter_description %}{{ content_index_description|default(settings.default_meta_description|default(''))|e }}{% endblock %}
+
+{% block canonical_href %}{{ site_url }}/{{ content_type.slug }}{% if index_page > 1 %}?page={{ index_page }}{% endif %}{% endblock %}
+
+{% block body %}
+<main id="main-content">
+  <h1 class="visually-hidden">{{ content_type.name|e }}</h1>
+  {% include 'content/_index_grid.twig' with {
+    empty_message: 'No posts yet. Import the blog showcase blueprint or publish your first entry.',
+    read_more_label: 'Read article →',
+    newer_label: 'Newer posts',
+    older_label: 'Older posts',
+    archive_suppress_head: true,
+  } %}
+</main>
+{% endblock %}

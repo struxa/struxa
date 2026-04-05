@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>
+      {%- if struxa_seo|default(false) -%}
+        {{- struxa_html_title|default('')|e -}}
+      {%- else -%}
+        {%- block title -%}{{ settings.default_meta_title|default(settings.site_name)|e }}{%- endblock -%}
+      {%- endif -%}
+    </title>
+    <meta
+      name="description"
+      content="{%- if struxa_seo|default(false) -%}{{ struxa_meta_description|default('')|e('html_attr') }}{%- else -%}{%- block meta_description -%}{{ settings.default_meta_description|default('')|e }}{%- endblock -%}{%- endif -%}"
+    />
+    {% block meta_extra %}
+      {% if struxa_seo|default(false) %}
+        {% include 'public/_struxa_social_head.twig' %}
+      {% endif %}
+    {% endblock %}
+    <link rel="canonical" href="{% if struxa_seo|default(false) %}{{ struxa_canonical_url|default('')|e('html_attr') }}{% else %}{% block canonical_href %}{{ site_url }}/{% endblock %}{% endif %}" />
+    <meta name="theme-color" content="#07080d" />
+    <meta name="color-scheme" content="dark" />
+    <link rel="icon" href="{{ settings.favicon_href|default('/favicon.svg')|e('html_attr') }}" />
+    {% include 'partials/_deferred_theme_css.twig' with {
+      font_url: 'https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Space+Grotesk:wght@400;500;600;700&display=swap',
+      theme_stylesheets: ['css/app.css'],
+    } only %}
+    <style>:root { --theme-accent: {{ theme_settings.accent|default('#8b7cf6')|e('html_attr') }}; }</style>
+    {% if not struxa_seo|default(false) %}
+      <meta property="og:type" content="website" />
+      <meta property="og:site_name" content="{{ settings.site_name|e }}" />
+      <meta property="og:title" content="{% block og_title %}{{ settings.default_meta_title|default(settings.site_name)|e }}{% endblock %}" />
+      <meta property="og:description" content="{% block og_description %}{{ settings.default_meta_description|default('')|e }}{% endblock %}" />
+      <meta name="twitter:card" content="summary_large_image" />
+      <meta name="twitter:title" content="{% block twitter_title %}{{ settings.default_meta_title|default(settings.site_name)|e }}{% endblock %}" />
+      <meta name="twitter:description" content="{% block twitter_description %}{{ settings.default_meta_description|default('')|e }}{% endblock %}" />
+    {% endif %}
+    {% block head_extra %}{% endblock %}
+  </head>
+  <body class="theme-default">
+    <div class="theme-shell">
+      <a class="theme-skip-link" href="#main-content">Skip to main content</a>
+      {% include 'partials/header.twig' %}
+      <div class="theme-main">
+        {% block body %}{% endblock %}
+      </div>
+      {% include 'partials/footer.twig' %}
+    </div>
+    <script src="{{ theme_asset('js/main.js') }}" defer></script>
+    {% block scripts_extra %}{% endblock %}
+  </body>
+</html>

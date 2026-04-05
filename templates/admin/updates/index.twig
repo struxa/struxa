@@ -1,0 +1,153 @@
+{% extends 'admin/base.twig' %}
+
+{% block admin_title %}CMS updates{% endblock %}
+
+{% block admin_hero_title %}
+  <h1 class="admin-hero-title">CMS updates</h1>
+{% endblock %}
+
+{% block admin_hero_sub %}
+  <p class="admin-hero-sub">Compare your install to the public feed. This page refreshes status on a timer; use <strong>Check now</strong> to bypass the cache.</p>
+{% endblock %}
+
+{% block admin_content %}
+  {% set st = cms_update_page_status|default({}) %}
+  <div class="admin-card admin-updates-card" id="admin-updates-root" data-poll-url="{{ cms_update_poll_url|e('html_attr') }}">
+    <h2 class="admin-card-title">Version</h2>
+    <dl class="admin-updates-dl">
+      <div class="admin-updates-dl-row">
+        <dt>Installed</dt>
+        <dd><code class="admin-inline-code">{{ st.current_version|default(cms_version)|e }}</code></dd>
+      </div>
+      <div class="admin-updates-dl-row">
+        <dt>Latest (feed)</dt>
+        <dd id="admin-updates-latest">
+          {% if st.ok|default(false) and st.latest_version|default('') != '' %}
+            <code class="admin-inline-code">{{ st.latest_version|e }}</code>
+          {% elseif st.ok|default(false) %}
+            <span class="admin-table-muted">—</span>
+          {% else %}
+            <span class="admin-table-muted">Unavailable</span>
+          {% endif %}
+        </dd>
+      </div>
+      <div class="admin-updates-dl-row">
+        <dt>Status</dt>
+        <dd id="admin-updates-status-line">
+          {% if st.update_available|default(false) %}
+            <span class="admin-pill admin-pill--warn">Update available</span>
+          {% elseif st.ok|default(false) %}
+            <span class="admin-pill admin-pill--ok">Up to date</span>
+          {% else %}
+            <span class="admin-pill admin-pill--muted">Check failed</span>
+          {% endif %}
+        </dd>
+      </div>
+    </dl>
+
+    {% if st.title|default('') != '' %}
+      <h3 class="admin-updates-subtitle">{{ st.title|e }}</h3>
+    {% endif %}
+    <div class="admin-updates-summary" id="admin-updates-summary">
+      {% if st.summary|default('') != '' %}
+        <p class="admin-updates-summary-text">{{ st.summary|e }}</p>
+      {% endif %}
+      {% if st.release_url|default('') != '' %}
+        <p class="admin-updates-links" id="admin-updates-release-wrap">
+          <a class="admin-link" href="{{ st.release_url|e('html_attr') }}" rel="noopener noreferrer" target="_blank">Release notes →</a>
+        </p>
+      {% endif %}
+      {% if st.error|default('') != '' %}
+        <p class="admin-form-error admin-updates-error" id="admin-updates-error">{{ st.error|e }}</p>
+      {% endif %}
+    </div>
+
+    <p class="admin-hint admin-updates-feed-hint">Feed: <code class="admin-inline-code">{{ st.feed_url|default('')|e }}</code> · override with <code class="admin-inline-code">STRUXA_UPDATES_JSON_URL</code> in <code class="admin-inline-code">.env</code>.</p>
+
+    <div class="admin-updates-actions">
+      <a class="admin-btn-ghost" href="{{ url_for('admin.updates.index', {}, { fresh: 1 }) }}">Check now</a>
+      <span class="admin-table-muted admin-updates-poll-hint" id="admin-updates-poll-hint">Auto-refresh every 3 minutes while this tab is open.</span>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      var root = document.getElementById('admin-updates-root');
+      if (!root) return;
+      var url = root.getAttribute('data-poll-url');
+      if (!url) return;
+      var pollMs = 180000;
+      var latestEl = document.getElementById('admin-updates-latest');
+      var statusEl = document.getElementById('admin-updates-status-line');
+      var summaryEl = document.getElementById('admin-updates-summary');
+      var hintEl = document.getElementById('admin-updates-poll-hint');
+
+      function esc(s) {
+        if (!s) return '';
+        var d = document.createElement('div');
+        d.textContent = s;
+        return d.innerHTML;
+      }
+
+      function apply(data) {
+        if (!data || typeof data !== 'object') return;
+        if (latestEl) {
+          if (data.ok && data.latest_version) {
+            latestEl.innerHTML = '<code class="admin-inline-code">' + esc(String(data.latest_version)) + '</code>';
+          } else if (data.ok) {
+            latestEl.innerHTML = '<span class="admin-table-muted">—</span>';
+          } else {
+            latestEl.innerHTML = '<span class="admin-table-muted">Unavailable</span>';
+          }
+        }
+        if (statusEl) {
+          if (data.update_available) {
+            statusEl.innerHTML = '<span class="admin-pill admin-pill--warn">Update available</span>';
+          } else if (data.ok) {
+            statusEl.innerHTML = '<span class="admin-pill admin-pill--ok">Up to date</span>';
+          } else {
+            statusEl.innerHTML = '<span class="admin-pill admin-pill--muted">Check failed</span>';
+          }
+        }
+        if (summaryEl) {
+          var parts = [];
+          if (data.title) parts.push('<h3 class="admin-updates-subtitle">' + esc(data.title) + '</h3>');
+          if (data.summary) parts.push('<p class="admin-updates-summary-text">' + esc(data.summary) + '</p>');
+          if (data.release_url) {
+            parts.push(
+              '<p class="admin-updates-links"><a class="admin-link" href="' +
+                esc(data.release_url) +
+                '" rel="noopener noreferrer" target="_blank">Release notes →</a></p>'
+            );
+          }
+          if (data.error) {
+            parts.push('<p class="admin-form-error admin-updates-error">' + esc(data.error) + '</p>');
+          }
+          summaryEl.innerHTML = parts.join('') || summaryEl.innerHTML;
+        }
+        if (hintEl && document.hidden) {
+          hintEl.textContent = 'Paused while tab in background; will resume when visible.';
+        } else if (hintEl) {
+          hintEl.textContent = 'Auto-refresh every 3 minutes while this tab is open.';
+        }
+      }
+
+      function tick() {
+        if (document.hidden) return;
+        fetch(url, { headers: { Accept: 'application/json' }, credentials: 'same-origin' })
+          .then(function (r) {
+            return r.json();
+          })
+          .then(apply)
+          .catch(function () {});
+      }
+
+      if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        setInterval(tick, pollMs);
+      }
+      document.addEventListener('visibilitychange', function () {
+        if (!document.hidden) tick();
+      });
+    })();
+  </script>
+{% endblock %}

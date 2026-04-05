@@ -1,0 +1,20 @@
+<footer class="site-footer">
+  <span>
+    {% if settings.footer_text|default('')|trim != '' %}
+      {{ settings.footer_text|e }}
+    {% else %}
+      © {{ "now"|date("Y") }} {{ settings.site_name|e }}
+    {% endif %}
+  </span>
+  {% if footer_menu is not empty %}
+    <span class="footer-links">
+      {% for item in footer_menu %}
+        <a
+          href="{{ item.href|e('html_attr') }}"
+          {% if item.target == '_blank' %}target="_blank" rel="noopener noreferrer"{% endif %}
+          class="{{ item.css_class|default('')|e('html_attr') }}"
+        >{{ item.label|e }}</a>
+      {% endfor %}
+    </span>
+  {% endif %}
+</footer>

@@ -1,0 +1,13 @@
+<section class="theme-strux-faq strux-section strux-bg--{{ options.background|default('default')|e('html_attr') }}" data-section="faq">
+  <div class="theme-strux-faq-inner strux-section-inner strux-section-inner--{{ options.padding|default('comfortable')|e('html_attr') }}">
+    <h2 class="theme-strux-faq-title">{{ section.title|default('')|e }}</h2>
+    <div class="theme-strux-faq-list">
+      {% for item in section.items_json|default([]) %}
+        <details class="theme-strux-faq-item">
+          <summary class="theme-strux-faq-q">{{ item.question|default('')|e }}</summary>
+          <div class="theme-strux-faq-a cms-prose">{{ item.answer_html|default('')|raw }}</div>
+        </details>
+      {% endfor %}
+    </div>
+  </div>
+</section>

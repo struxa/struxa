@@ -1,0 +1,78 @@
+{% extends 'admin/base.twig' %}
+
+{% set is_edit = term is not null %}
+{% set o = old ?? {} %}
+{% set nm = o.name|default(term ? term.name : '') %}
+{% set sl = o.slug|default(term ? term.slug : '') %}
+{% set dsc = o.description|default(term ? (term.description ?? '') : '') %}
+{% set pid = o.parent_id|default(term and term.parentId ? term.parentId : '') %}
+{% set so = o.sort_order is defined ? o.sort_order : (term ? term.sortOrder : 0) %}
+{% set seo_ctx = {
+  seo_title: o.seo_title|default(term ? (term.seoTitle|default('')) : ''),
+  seo_description: o.seo_description|default(term ? (term.seoDescription|default('')) : ''),
+  canonical_url: o.canonical_url|default(term ? (term.canonicalUrl|default('')) : ''),
+  seo_noindex: o.seo_noindex|default(term ? term.seoNoindex : false),
+  og_title: o.og_title|default(term ? (term.ogTitle|default('')) : ''),
+  og_description: o.og_description|default(term ? (term.ogDescription|default('')) : ''),
+  og_image_id: o.og_image_id|default(term and term.ogImageId ? term.ogImageId : ''),
+  twitter_title: o.twitter_title|default(term ? (term.twitterTitle|default('')) : ''),
+  twitter_description: o.twitter_description|default(term ? (term.twitterDescription|default('')) : ''),
+  twitter_image_id: o.twitter_image_id|default(term and term.twitterImageId ? term.twitterImageId : ''),
+  schema_json: o.schema_json|default(term ? (term.schemaJson|default('')) : '')
+} %}
+
+{% block admin_title %}{{ is_edit ? 'Edit term' : 'New term' }} — {{ taxonomy.name|e }}{% endblock %}
+
+{% block admin_hero_title %}
+  <h1 class="admin-hero-title">{{ is_edit ? 'Edit term' : 'New term' }}</h1>
+{% endblock %}
+
+{% block admin_hero_sub %}
+  <p class="admin-hero-sub">
+    <a class="admin-link" href="{{ url_for('admin.content_types.taxonomies.terms.index', { id: content_type.id, taxId: taxonomy.id }) }}">← Terms</a>
+    · {{ taxonomy.name|e }}
+  </p>
+{% endblock %}
+
+{% block admin_content %}
+  <form class="admin-form" method="post" action="{{ is_edit ? url_for('admin.content_types.taxonomies.terms.update', { id: content_type.id, taxId: taxonomy.id, termId: term.id }) : url_for('admin.content_types.taxonomies.terms.store', { id: content_type.id, taxId: taxonomy.id }) }}">
+    <div class="admin-form-grid">
+      <div class="admin-field {{ errors.name is defined ? 'admin-field--error' : '' }}">
+        <label class="admin-label" for="tm-name">Name <span class="admin-req">*</span></label>
+        <input class="admin-input" id="tm-name" name="name" type="text" maxlength="191" value="{{ nm|e }}" required />
+        {% if errors.name is defined %}<p class="admin-field-error">{{ errors.name|e }}</p>{% endif %}
+      </div>
+      <div class="admin-field {{ errors.slug is defined ? 'admin-field--error' : '' }}">
+        <label class="admin-label" for="tm-slug">Slug</label>
+        <input class="admin-input" id="tm-slug" name="slug" type="text" value="{{ sl|e }}" placeholder="auto from name" />
+        {% if errors.slug is defined %}<p class="admin-field-error">{{ errors.slug|e }}</p>{% endif %}
+      </div>
+      {% if taxonomy.isHierarchical %}
+        <div class="admin-field admin-field--full {{ errors.parent_id is defined ? 'admin-field--error' : '' }}">
+          <label class="admin-label" for="tm-parent">Parent</label>
+          <select class="admin-select" id="tm-parent" name="parent_id">
+            <option value="">— None (root) —</option>
+            {% for p in parent_options %}
+              <option value="{{ p.id }}" {{ (pid ~ '') == (p.id ~ '') ? 'selected' : '' }}>{{ p.name|e }}</option>
+            {% endfor %}
+          </select>
+          {% if errors.parent_id is defined %}<p class="admin-field-error">{{ errors.parent_id|e }}</p>{% endif %}
+        </div>
+      {% endif %}
+      <div class="admin-field {{ errors.sort_order is defined ? 'admin-field--error' : '' }}">
+        <label class="admin-label" for="tm-sort">Sort order</label>
+        <input class="admin-input" id="tm-sort" name="sort_order" type="number" min="0" step="1" value="{{ so }}" />
+        {% if errors.sort_order is defined %}<p class="admin-field-error">{{ errors.sort_order|e }}</p>{% endif %}
+      </div>
+      <div class="admin-field admin-field--full">
+        <label class="admin-label" for="tm-desc">Description</label>
+        <textarea class="admin-textarea" id="tm-desc" name="description" rows="2">{{ dsc|e }}</textarea>
+      </div>
+    </div>
+    {% include 'admin/seo/_extended_panel.twig' with { seo_ctx: seo_ctx, errors: errors, media_images: seo_media_select|default([]), include_basic_seo: true } %}
+    <div class="admin-form-actions">
+      <button class="admin-btn-primary" type="submit">{{ is_edit ? 'Save' : 'Create' }}</button>
+      <a class="admin-btn-ghost" href="{{ url_for('admin.content_types.taxonomies.terms.index', { id: content_type.id, taxId: taxonomy.id }) }}">Cancel</a>
+    </div>
+  </form>
+{% endblock %}

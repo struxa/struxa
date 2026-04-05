@@ -1,0 +1,54 @@
+{% set _rp = request_path|default('/') %}
+{% set _side_icons = ['🏠', '📋', '🎁', '📈', '💸', '🏆', '👥', '🎮', '💬', '❓', '⭐', '🔗', '📰', '🎯', '✨'] %}
+<aside class="cb-sidebar" aria-label="Primary">
+  <div class="cb-sidebar-inner">
+    <div class="cb-sidebar-brand-block">
+      <a class="cb-brand" href="{{ url_for('home') }}">
+        <span class="cb-brand-mark" aria-hidden="true">
+          {% if settings.site_name|default('')|length > 0 %}
+            {{ settings.site_name|slice(0, 1)|upper|e }}
+          {% else %}
+            ₵
+          {% endif %}
+        </span>
+        <span class="cb-brand-text">{{ settings.site_name|default('CashMint')|e }}</span>
+      </a>
+    </div>
+
+    <p class="cb-menu-label">{{ 'Menu'|e }}</p>
+    <div class="cb-menu-scroll">
+      <nav class="cb-menu" aria-label="Sidebar">
+        {% if header_menu is not empty %}
+          {% for item in header_menu %}
+            {% set _ico = _side_icons[loop.index0 % _side_icons|length] %}
+            <a
+              href="{{ item.href|e('html_attr') }}"
+              class="cb-menu-link{% if item.is_active|default(false) %} cb-active{% endif %}"
+              {% if item.is_active|default(false) %}aria-current="page"{% endif %}
+              {% if item.target == '_blank' %}target="_blank" rel="noopener noreferrer"{% endif %}
+            >
+              <span class="cb-menu-ico" aria-hidden="true">{{ _ico }}</span>
+              <span class="cb-menu-txt">{{ item.label|e }}</span>
+            </a>
+          {% endfor %}
+        {% else %}
+          <a class="cb-menu-link cb-active" href="{{ url_for('home') }}"{% if _rp == '/' %} aria-current="page"{% endif %}><span class="cb-menu-ico" aria-hidden="true">🏠</span><span class="cb-menu-txt">{{ 'Earn'|e }}</span></a>
+          <a class="cb-menu-link" href="#"><span class="cb-menu-ico" aria-hidden="true">📋</span><span class="cb-menu-txt">{{ 'Surveys'|e }}</span></a>
+          <a class="cb-menu-link" href="#"><span class="cb-menu-ico" aria-hidden="true">🎁</span><span class="cb-menu-txt">{{ 'Offers'|e }}</span></a>
+          <a class="cb-menu-link" href="#"><span class="cb-menu-ico" aria-hidden="true">📈</span><span class="cb-menu-txt">{{ 'Activity'|e }}</span></a>
+          <a class="cb-menu-link" href="#"><span class="cb-menu-ico" aria-hidden="true">💸</span><span class="cb-menu-txt">{{ 'Withdraw'|e }}</span></a>
+          <a class="cb-menu-link" href="#"><span class="cb-menu-ico" aria-hidden="true">🏆</span><span class="cb-menu-txt">{{ 'Contest'|e }}</span></a>
+          <a class="cb-menu-link" href="#"><span class="cb-menu-ico" aria-hidden="true">👥</span><span class="cb-menu-txt">{{ 'Affiliates'|e }}</span></a>
+          <a class="cb-menu-link" href="#"><span class="cb-menu-ico" aria-hidden="true">🎮</span><span class="cb-menu-txt">{{ 'Rewards'|e }}</span></a>
+          <a class="cb-menu-link" href="#"><span class="cb-menu-ico" aria-hidden="true">💬</span><span class="cb-menu-txt">{{ 'Community chat'|e }}</span></a>
+          <a class="cb-menu-link" href="#"><span class="cb-menu-ico" aria-hidden="true">❓</span><span class="cb-menu-txt">{{ 'FAQ'|e }}</span></a>
+        {% endif %}
+      </nav>
+    </div>
+
+    <div class="cb-store-card">
+      <p>Love apps? We’ve got one for you.</p>
+      <a class="cb-store-btn" href="#" rel="noopener noreferrer"><span aria-hidden="true">▶</span> {{ 'Get it on Google Play'|e }}</a>
+    </div>
+  </div>
+</aside>

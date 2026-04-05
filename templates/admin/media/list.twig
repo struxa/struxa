@@ -1,0 +1,164 @@
+{% extends 'admin/base.twig' %}
+{% import 'admin/_ui_macros.twig' as ui %}
+
+{% block admin_title %}Media library{% endblock %}
+
+{% block admin_hero_title %}
+  <h1 class="admin-hero-title">Media library</h1>
+{% endblock %}
+
+{% block admin_hero_sub %}
+  <p class="admin-hero-sub">Upload and reuse images across the site. Max <strong>{{ max_upload_mb }} MB</strong> per file — set <code class="admin-inline-code">CMS_UPLOAD_MAX_MB</code> in <code class="admin-inline-code">.env</code> (PHP <code class="admin-inline-code">upload_max_filesize</code> must allow it).</p>
+{% endblock %}
+
+{% block admin_content %}
+  <div class="admin-media-toolbar admin-toolbar admin-toolbar--spread">
+    <div class="admin-media-toolbar-start">
+      <a class="admin-btn-primary" href="{{ url_for('admin.media.upload') }}">Upload file</a>
+      <div class="admin-media-view-toggle" role="group" aria-label="Library layout">
+        <a
+          href="{{ url_for('admin.media.index', {}, search_q ? { q: search_q } : {}) }}"
+          class="admin-media-view-btn{% if media_view != 'gallery' %} is-active{% endif %}"
+        >List</a>
+        <a
+          href="{{ url_for('admin.media.index', {}, search_q ? { q: search_q, view: 'gallery' } : { view: 'gallery' }) }}"
+          class="admin-media-view-btn{% if media_view == 'gallery' %} is-active{% endif %}"
+        >Gallery</a>
+      </div>
+    </div>
+    <form class="admin-media-search" method="get" action="{{ url_for('admin.media.index') }}">
+      {% if media_view == 'gallery' %}
+        <input type="hidden" name="view" value="gallery" />
+      {% endif %}
+      <input class="admin-input admin-media-search-input admin-search-field" type="search" name="q" value="{{ search_q|e('html_attr') }}" placeholder="Search by filename…" autocomplete="off" />
+      <button type="submit" class="admin-btn-ghost admin-media-search-btn">Search</button>
+      {% if search_q %}
+        <a class="admin-link" href="{{ url_for('admin.media.index', {}, media_view == 'gallery' ? { view: 'gallery' } : {}) }}">Clear</a>
+      {% endif %}
+    </form>
+  </div>
+
+  {% if media_rows is empty %}
+    {{ ui.empty_state(
+      search_q ? 'No matches' : 'No files yet',
+      search_q ? 'Try another search term or clear filters.' : 'Upload images to use in pages, entries, and theme settings. Files live under /uploads/.',
+      url_for('admin.media.upload'),
+      'Upload an image',
+      '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>'
+    ) }}
+  {% else %}
+    {% set mq = {} %}
+    {% if search_q != '' %}{% set mq = mq|merge({ q: search_q }) %}{% endif %}
+    {% if media_view == 'gallery' %}{% set mq = mq|merge({ view: 'gallery' }) %}{% endif %}
+
+    <p class="admin-media-count">{{ total }} file{% if total != 1 %}s{% endif %}{% if total_pages > 1 %} · Page {{ page }} of {{ total_pages }}{% endif %}</p>
+
+    {% if media_view == 'gallery' %}
+      <ul class="admin-media-gallery" role="list">
+        {% for row in media_rows %}
+          {% set is_img = row.mime_type|slice(0, 6) == 'image/' %}
+          {% set thumb = media_url(row.id) %}
+          <li class="admin-media-gallery-card">
+            <div class="admin-media-gallery-visual">
+              {% if is_img and thumb != '' %}
+                <a href="{{ url_for('admin.media.edit', { id: row.id }) }}" class="admin-media-gallery-img-wrap" title="Edit">
+                  <img src="{{ thumb|e('html_attr') }}" alt="" class="admin-media-gallery-img" width="400" height="400" loading="lazy" decoding="async" />
+                </a>
+              {% else %}
+                <span class="admin-media-gallery-placeholder" title="No preview">?</span>
+              {% endif %}
+            </div>
+            <div class="admin-media-gallery-body">
+              <a href="{{ url_for('admin.media.edit', { id: row.id }) }}" class="admin-media-gallery-title">{{ row.original_name|e }}</a>
+              <div class="admin-media-gallery-meta">
+                <span class="admin-badge admin-badge--muted">{{ row.mime_type|e }}</span>
+                {% set b = row.file_size %}
+                <span class="admin-media-gallery-size">
+                  {% if b < 1024 %}{{ b }} B{% elseif b < 1048576 %}{{ (b / 1024)|round(1) }} KB{% else %}{{ (b / 1048576)|round(2) }} MB{% endif %}
+                </span>
+              </div>
+              <div class="admin-media-gallery-foot">
+                <span class="admin-table-muted admin-media-gallery-date">{{ row.created_at|slice(0, 16)|replace({'T': ' '}) }}</span>
+                <details class="admin-actions-menu">
+                  <summary class="admin-actions-menu-trigger" aria-label="Actions for {{ row.original_name|e('html_attr') }}">⋯</summary>
+                  <div class="admin-actions-menu-panel">
+                    <a href="{{ url_for('admin.media.edit', { id: row.id }) }}">Edit</a>
+                    <form method="post" action="{{ url_for('admin.media.delete', { id: row.id }) }}" onsubmit="return confirm('Delete this file permanently?');">
+                      <button type="submit" class="admin-actions-danger">Delete</button>
+                    </form>
+                  </div>
+                </details>
+              </div>
+            </div>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <div class="admin-table-wrap admin-table-wrap--media">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th class="admin-table-col-thumb" scope="col">Preview</th>
+              <th scope="col">File</th>
+              <th scope="col">MIME</th>
+              <th scope="col">Size</th>
+              <th scope="col">Uploaded</th>
+              <th scope="col">By</th>
+              <th class="admin-table-col-actions" scope="col"><span class="admin-table-muted">Actions</span></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in media_rows %}
+              {% set is_img = row.mime_type|slice(0, 6) == 'image/' %}
+              {% set thumb = media_url(row.id) %}
+              <tr>
+                <td>
+                  {% if is_img and thumb != '' %}
+                    <a href="{{ url_for('admin.media.edit', { id: row.id }) }}" class="admin-media-thumb-link" title="Edit">
+                      <img src="{{ thumb|e('html_attr') }}" alt="" class="admin-media-thumb" width="48" height="48" loading="lazy" decoding="async" />
+                    </a>
+                  {% else %}
+                    <span class="admin-media-thumb admin-media-thumb--placeholder" title="No preview">?</span>
+                  {% endif %}
+                </td>
+                <td>
+                  <strong class="admin-media-name">{{ row.original_name|e }}</strong>
+                  <div class="admin-table-muted admin-media-stored">{{ row.filename|e }}</div>
+                </td>
+                <td class="admin-table-muted"><span class="admin-badge admin-badge--muted">{{ row.mime_type|e }}</span></td>
+                <td class="admin-table-muted">
+                  {% set b = row.file_size %}
+                  {% if b < 1024 %}{{ b }} B{% elseif b < 1048576 %}{{ (b / 1024)|round(1) }} KB{% else %}{{ (b / 1048576)|round(2) }} MB{% endif %}
+                </td>
+                <td class="admin-table-muted">{{ row.created_at|slice(0, 16)|replace({'T': ' '}) }}</td>
+                <td class="admin-table-muted">{{ row.uploader_email|default('—')|e }}</td>
+                <td class="admin-table-actions">
+                  <details class="admin-actions-menu">
+                    <summary class="admin-actions-menu-trigger" aria-label="Actions for {{ row.original_name|e('html_attr') }}">⋯</summary>
+                    <div class="admin-actions-menu-panel">
+                      <a href="{{ url_for('admin.media.edit', { id: row.id }) }}">Edit</a>
+                      <form method="post" action="{{ url_for('admin.media.delete', { id: row.id }) }}" onsubmit="return confirm('Delete this file permanently?');">
+                        <button type="submit" class="admin-actions-danger">Delete</button>
+                      </form>
+                    </div>
+                  </details>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% endif %}
+
+    {% if total_pages > 1 %}
+      <nav class="admin-pagination" aria-label="Pagination">
+        {% if page > 1 %}
+          <a class="admin-pagination-btn" href="{{ url_for('admin.media.index', {}, mq|merge({ page: page - 1 })) }}">Previous</a>
+        {% endif %}
+        {% if page < total_pages %}
+          <a class="admin-pagination-btn" href="{{ url_for('admin.media.index', {}, mq|merge({ page: page + 1 })) }}">Next</a>
+        {% endif %}
+      </nav>
+    {% endif %}
+  {% endif %}
+{% endblock %}
