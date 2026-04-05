@@ -28,6 +28,8 @@ services:
       # Mount themes from the host so CSS/JS changes apply without rebuilding the image
       # (otherwise /theme-assets/* may 404 or serve stale files from the last docker build).
       - ./themes:/var/www/html/themes
+      # Mount plugins from the host so new/updated plugins appear without rebuilding the image.
+      - ./plugins:/var/www/html/plugins
     env_file:
       - path: .env
         required: false
