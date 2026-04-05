@@ -79,7 +79,7 @@ final class CmsUpdateChecker
             $cached = $this->internalCache->get(self::CACHE_KEY_FEED);
             if (is_array($cached) && isset($cached['current_version'], $cached['fetched_at'], $cached['feed_url'])) {
                 /** @var UpdateStatus $cached */
-                return $cached;
+                return $this->reconcileCachedStatus(self::CACHE_KEY_FEED, $cached);
             }
         }
 
@@ -206,7 +206,7 @@ final class CmsUpdateChecker
             $cached = $this->internalCache->get($cacheKey);
             if (is_array($cached) && isset($cached['current_version'], $cached['fetched_at'], $cached['feed_url'])) {
                 /** @var UpdateStatus $cached */
-                return $cached;
+                return $this->reconcileCachedStatus($cacheKey, $cached);
             }
         }
 
@@ -337,6 +337,34 @@ final class CmsUpdateChecker
         $this->internalCache->set($cacheKey, $out, self::CACHE_TTL);
 
         return $out;
+    }
+
+    /**
+     * When the install was upgraded without clearing cache, refresh current_version and update_available from cache + CmsVersion::CURRENT.
+     *
+     * @param array<string, mixed> $cached
+     * @return UpdateStatus
+     */
+    private function reconcileCachedStatus(string $persistKey, array $cached): array
+    {
+        $installed = CmsVersion::CURRENT;
+        $cachedCv = isset($cached['current_version']) && is_string($cached['current_version'])
+            ? trim($cached['current_version'])
+            : '';
+        if ($cachedCv === $installed) {
+            /** @var UpdateStatus $cached */
+            return $cached;
+        }
+        $cached['current_version'] = $installed;
+        if (!empty($cached['ok']) && isset($cached['latest_version']) && is_string($cached['latest_version'])) {
+            $latest = trim($cached['latest_version']);
+            if ($latest !== '' && self::isReasonableSemver($latest)) {
+                $cached['update_available'] = version_compare($latest, $installed, '>');
+            }
+        }
+        $this->internalCache->set($persistKey, $cached, self::CACHE_TTL);
+        /** @var UpdateStatus $cached */
+        return $cached;
     }
 
     public function feedUrl(): string

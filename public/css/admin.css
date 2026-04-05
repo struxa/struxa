@@ -238,10 +238,12 @@
 
 .admin-top-update-bell {
   position: relative;
-  display: grid;
-  place-items: center;
-  width: 2.35rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.35rem;
   height: 2.35rem;
+  padding: 0 0.35rem;
   border-radius: 10px;
   color: var(--admin-muted);
   border: 1px solid transparent;
@@ -251,6 +253,31 @@
     color 0.2s ease,
     background 0.2s ease,
     border-color 0.2s ease;
+}
+
+.admin-top-update-bell-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.05rem;
+  line-height: 1;
+}
+
+.admin-top-update-version {
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: inherit;
+  opacity: 0.95;
+  max-width: 3.25rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-top-update-bell--alert .admin-top-update-version {
+  color: #fed7aa;
 }
 
 .admin-top-update-bell:hover {

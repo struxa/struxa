@@ -118,7 +118,7 @@ final class TwigCmsGlobals implements MiddlewareInterface
         $env->addGlobal('cms_version', CmsVersion::CURRENT);
 
         $adminPath = $this->normalizeRequestPath($request->getUri()->getPath());
-        if (str_starts_with($adminPath, '/admin') && $internal !== null) {
+        if ($this->isAdminRequestPath($adminPath) && $internal !== null) {
             $env->addGlobal('cms_update_status', (new CmsUpdateChecker($internal))->check());
         } else {
             $env->addGlobal('cms_update_status', [
@@ -142,6 +142,14 @@ final class TwigCmsGlobals implements MiddlewareInterface
         }
 
         return $path === '' ? '/' : $path;
+    }
+
+    /**
+     * True when the request targets the CMS admin UI (root /admin or subdirectory .../admin/...).
+     */
+    private function isAdminRequestPath(string $path): bool
+    {
+        return preg_match('#(?:^|/)admin(?:/|$)#', $path) === 1;
     }
 
     /**

@@ -28,13 +28,18 @@
           <a
             href="{{ url_for('admin.updates.index') }}"
             class="admin-top-update-bell{% if _cms_up.update_available|default(false) %} admin-top-update-bell--alert{% endif %}"
-            title="{% if _cms_up.update_available|default(false) %}CMS update available{% else %}CMS updates{% endif %}"
-            aria-label="{% if _cms_up.update_available|default(false) %}CMS update available. Open updates.{% else %}Open CMS updates.{% endif %}"
+            title="{% if _cms_up.update_available|default(false) and _cms_up.latest_version|default('') != '' %}Struxa {{ _cms_up.latest_version|e }} available{% elseif _cms_up.update_available|default(false) %}CMS update available{% else %}CMS updates{% endif %}"
+            aria-label="{% if _cms_up.update_available|default(false) and _cms_up.latest_version|default('') != '' %}Struxa version {{ _cms_up.latest_version|e }} is available. Open updates.{% elseif _cms_up.update_available|default(false) %}CMS update available. Open updates.{% else %}Open CMS updates.{% endif %}"
           >
-            <svg class="admin-top-update-bell-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-              <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-            </svg>
+            <span class="admin-top-update-bell-inner">
+              <svg class="admin-top-update-bell-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+              </svg>
+              {% if _cms_up.update_available|default(false) and _cms_up.latest_version|default('') != '' %}
+                <span class="admin-top-update-version" aria-hidden="true">v{{ _cms_up.latest_version|e }}</span>
+              {% endif %}
+            </span>
             {% if _cms_up.update_available|default(false) %}
               <span class="admin-top-update-badge" aria-hidden="true"></span>
             {% endif %}
