@@ -19,6 +19,9 @@ dump*.sql
 /data/mysql/
 /mysql-data/
 
+# Maintainer-only Cursor rule (repo owner workflow; not shipped to clones)
+.cursor/rules/version-bump-on-push.mdc
+
 # OS / editor noise
 .DS_Store
 Thumbs.db
