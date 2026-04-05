@@ -55,6 +55,22 @@ final class SiteProfileRepository
         $stmt->execute([CmsVersion::CURRENT]);
     }
 
+    /** Use after self-update while the running PHP process may still load the previous CmsVersion constant. */
+    public function setInstalledVersionString(string $version): void
+    {
+        if (!$this->tableExists()) {
+            return;
+        }
+        $v = trim($version);
+        if ($v === '') {
+            return;
+        }
+        $stmt = $this->pdo->prepare(
+            'UPDATE ' . self::TABLE . ' SET cms_version_installed = ? WHERE id = 1'
+        );
+        $stmt->execute([$v]);
+    }
+
     /**
      * @param array<string, string> $fields allowed: project_name, environment_label
      */

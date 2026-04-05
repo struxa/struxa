@@ -3,6 +3,8 @@
 declare(strict_types=1);
 
 use App\Http\Middleware\RequireCmsStaff;
+use App\SiteProfile\SiteProfileRepository;
+use App\Update\CmsSelfUpdater;
 use App\Update\CmsUpdateChecker;
 use App\Cache\CacheManager;
 use PHPAuth\Auth;
@@ -47,17 +49,23 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
         $adminContext,
         $withCmsUser,
         $checker,
-        $jsonResponse
+        $jsonResponse,
+        $root,
+        $pdo,
+        $cacheInternal
     ): void {
         $group->get('/updates', function (Request $request, Response $response) use ($twig, $adminContext, $withCmsUser, $checker): Response {
             $qp = $request->getQueryParams();
             $fresh = isset($qp['fresh']) && ($qp['fresh'] === '1' || $qp['fresh'] === 'true');
             $status = $checker->check($fresh);
+            $parser = RouteContext::fromRequest($request)->getRouteParser();
 
             return $twig->render($response, 'admin/updates/index.twig', $withCmsUser($request, array_merge($adminContext(), [
                 'admin_nav' => 'updates',
                 'cms_update_page_status' => $status,
-                'cms_update_poll_url' => RouteContext::fromRequest($request)->getRouteParser()->urlFor('admin.updates.status'),
+                'cms_update_poll_url' => $parser->urlFor('admin.updates.status'),
+                'cms_update_apply_url' => $parser->urlFor('admin.updates.apply'),
+                'cms_auto_update_allowed' => CmsSelfUpdater::autoUpdateAllowedByEnv(),
             ])));
         })->setName('admin.updates.index');
 
@@ -68,5 +76,37 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
 
             return $jsonResponse($response, $status);
         })->setName('admin.updates.status');
+
+        $group->post('/updates/apply', function (Request $request, Response $response) use (
+            $checker,
+            $jsonResponse,
+            $root,
+            $pdo,
+            $cacheInternal
+        ): Response {
+            if (!CmsSelfUpdater::autoUpdateAllowedByEnv()) {
+                return $jsonResponse($response, [
+                    'ok' => false,
+                    'message' => 'Automatic updates are disabled. Add STRUXA_ALLOW_AUTO_UPDATE=1 to .env to enable.',
+                    'warnings' => [],
+                ], 403);
+            }
+            $st = $checker->check(true);
+            $result = (new CmsSelfUpdater())->apply($root, $st);
+            if ($result['ok']) {
+                $profile = new SiteProfileRepository($pdo);
+                $latest = isset($st['latest_version']) && is_string($st['latest_version'])
+                    ? trim($st['latest_version'])
+                    : '';
+                if ($latest !== '') {
+                    $profile->setInstalledVersionString($latest);
+                } else {
+                    $profile->syncInstalledVersion();
+                }
+                $cacheInternal->clear();
+            }
+
+            return $jsonResponse($response, $result, $result['ok'] ? 200 : 422);
+        })->setName('admin.updates.apply');
     })->add($middleware);
 };

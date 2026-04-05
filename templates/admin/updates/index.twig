@@ -12,7 +12,14 @@
 
 {% block admin_content %}
   {% set st = cms_update_page_status|default({}) %}
-  <div class="admin-card admin-updates-card" id="admin-updates-root" data-poll-url="{{ cms_update_poll_url|e('html_attr') }}">
+  <div
+    class="admin-card admin-updates-card"
+    id="admin-updates-root"
+    data-poll-url="{{ cms_update_poll_url|e('html_attr') }}"
+    data-apply-url="{{ cms_update_apply_url|default('')|e('html_attr') }}"
+    data-auto-allowed="{{ cms_auto_update_allowed|default(false) ? '1' : '0' }}"
+    data-csrf="{{ csrf_token()|e('html_attr') }}"
+  >
     <h2 class="admin-card-title">Version</h2>
     <dl class="admin-updates-dl">
       <div class="admin-updates-dl-row">
@@ -57,11 +64,6 @@
           <a class="admin-link" href="{{ st.release_url|e('html_attr') }}" rel="noopener noreferrer" target="_blank">Release notes →</a>
         </p>
       {% endif %}
-      {% if st.download_url|default('') != '' %}
-        <p class="admin-updates-links" id="admin-updates-download-wrap">
-          <a class="admin-link" href="{{ st.download_url|e('html_attr') }}" rel="noopener noreferrer" target="_blank">Download source (ZIP) →</a>
-        </p>
-      {% endif %}
       {% if st.error|default('') != '' %}
         <p class="admin-form-error admin-updates-error" id="admin-updates-error">{{ st.error|e }}</p>
       {% endif %}
@@ -74,6 +76,30 @@
         Feed: <code class="admin-inline-code">{{ st.feed_url|default('')|e }}</code> (static <code class="admin-inline-code">.json</code> or PHP that returns JSON) · override with <code class="admin-inline-code">STRUXA_UPDATES_JSON_URL</code>, or use GitHub with <code class="admin-inline-code">STRUXA_UPDATES_GITHUB_REPO</code>.
       {% endif %}
     </p>
+
+    <div class="admin-updates-cta" id="admin-updates-cta">
+      <a
+        id="admin-updates-download-btn"
+        class="admin-btn-primary{% if st.download_url|default('') == '' %} admin-updates-cta--hidden{% endif %}"
+        href="{{ (st.download_url|default('') != '' ? st.download_url : '#')|e('html_attr') }}"
+        rel="noopener noreferrer"
+        target="_blank"
+      >Download update (ZIP)</a>
+      {% if cms_auto_update_allowed|default(false) %}
+        <button
+          type="button"
+          class="admin-btn-primary"
+          id="admin-updates-apply-btn"
+          {% if not st.update_available|default(false) or st.download_url|default('') == '' %}disabled{% endif %}
+        >Update automatically</button>
+      {% endif %}
+    </div>
+    {% if not cms_auto_update_allowed|default(false) %}
+      <p class="admin-hint admin-updates-auto-hint">To enable in-place updates, set <code class="admin-inline-code">STRUXA_ALLOW_AUTO_UPDATE=1</code> in <code class="admin-inline-code">.env</code> (staff only; backs up nothing—have your own backups).</p>
+    {% else %}
+      <p class="admin-hint admin-updates-auto-hint">Automatic update merges the ZIP from the feed (same hosts as theme downloads), keeps <code class="admin-inline-code">.env</code>, <code class="admin-inline-code">storage/</code>, <code class="admin-inline-code">public/uploads/</code>, and plugin <code class="admin-inline-code">vendor/</code>, then runs Composer, migrations, and plugin dependencies.</p>
+    {% endif %}
+    <p class="admin-form-error admin-updates-apply-result" id="admin-updates-apply-result" hidden></p>
 
     <div class="admin-updates-actions">
       <a class="admin-btn-ghost" href="{{ url_for('admin.updates.index', {}, { fresh: 1 }) }}">Check now</a>
@@ -92,6 +118,12 @@
       var statusEl = document.getElementById('admin-updates-status-line');
       var summaryEl = document.getElementById('admin-updates-summary');
       var hintEl = document.getElementById('admin-updates-poll-hint');
+      var autoAllowed = root.getAttribute('data-auto-allowed') === '1';
+      var applyUrl = root.getAttribute('data-apply-url');
+      var csrf = root.getAttribute('data-csrf') || '';
+      var downloadBtn = document.getElementById('admin-updates-download-btn');
+      var applyBtn = document.getElementById('admin-updates-apply-btn');
+      var applyResult = document.getElementById('admin-updates-apply-result');
 
       function esc(s) {
         if (!s) return '';
@@ -131,17 +163,22 @@
                 '" rel="noopener noreferrer" target="_blank">Release notes →</a></p>'
             );
           }
-          if (data.download_url) {
-            parts.push(
-              '<p class="admin-updates-links"><a class="admin-link" href="' +
-                esc(data.download_url) +
-                '" rel="noopener noreferrer" target="_blank">Download source (ZIP) →</a></p>'
-            );
-          }
           if (data.error) {
             parts.push('<p class="admin-form-error admin-updates-error">' + esc(data.error) + '</p>');
           }
           summaryEl.innerHTML = parts.join('') || summaryEl.innerHTML;
+        }
+        if (downloadBtn) {
+          if (data.download_url) {
+            downloadBtn.href = data.download_url;
+            downloadBtn.classList.remove('admin-updates-cta--hidden');
+          } else {
+            downloadBtn.classList.add('admin-updates-cta--hidden');
+          }
+        }
+        if (applyBtn) {
+          var canApply = autoAllowed && data.ok && data.update_available && data.download_url;
+          applyBtn.disabled = !canApply;
         }
         if (hintEl && document.hidden) {
           hintEl.textContent = 'Paused while tab in background; will resume when visible.';
@@ -166,6 +203,63 @@
       document.addEventListener('visibilitychange', function () {
         if (!document.hidden) tick();
       });
+
+      if (applyBtn && applyUrl) {
+        applyBtn.addEventListener('click', function () {
+          if (applyBtn.disabled) return;
+          if (
+            !confirm(
+              'Apply this update now? CMS files will be overwritten from the ZIP (except .env, storage/, public/uploads/, and plugins/*/vendor/). Continue?'
+            )
+          ) {
+            return;
+          }
+          applyBtn.disabled = true;
+          if (applyResult) {
+            applyResult.hidden = true;
+            applyResult.textContent = '';
+          }
+          var body = '_csrf_token=' + encodeURIComponent(csrf);
+          fetch(applyUrl, {
+            method: 'POST',
+            headers: {
+              Accept: 'application/json',
+              'Content-Type': 'application/x-www-form-urlencoded',
+              'X-CSRF-Token': csrf,
+            },
+            credentials: 'same-origin',
+            body: body,
+          })
+            .then(function (r) {
+              return r.json().then(function (data) {
+                return { ok: r.ok, data: data };
+              });
+            })
+            .then(function (res) {
+              var data = res.data || {};
+              var msg = data.message || (res.ok ? 'Done.' : 'Update failed.');
+              var lines = [msg];
+              if (data.warnings && data.warnings.length) {
+                lines = lines.concat(data.warnings);
+              }
+              if (applyResult) {
+                applyResult.textContent = lines.join('\n\n');
+                applyResult.hidden = false;
+                applyResult.style.color = data.ok ? 'inherit' : '';
+              }
+              if (!data.ok) {
+                applyBtn.disabled = false;
+              }
+            })
+            .catch(function () {
+              if (applyResult) {
+                applyResult.textContent = 'Request failed (network or timeout). Check the site and PHP error logs.';
+                applyResult.hidden = false;
+              }
+              applyBtn.disabled = false;
+            });
+        });
+      }
     })();
   </script>
 {% endblock %}
