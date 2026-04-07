@@ -21,7 +21,7 @@
       {% endif %}
     {% endblock %}
     <link rel="canonical" href="{% if struxa_seo|default(false) %}{{ struxa_canonical_url|default('')|e('html_attr') }}{% else %}{% block canonical_href %}{{ site_url }}/{% endblock %}{% endif %}" />
-    <meta name="theme-color" content="#151a2e" />
+    <meta name="theme-color" content="{% if active_theme|default('') == 'queue' %}#0d0a1a{% else %}#151a2e{% endif %}" />
     <meta name="color-scheme" content="dark" />
     <link rel="icon" href="{{ settings.favicon_href|default('/favicon.svg')|e('html_attr') }}" />
     <link rel="apple-touch-icon" href="{{ settings.favicon_href|default('/favicon.svg')|e('html_attr') }}" />
@@ -65,7 +65,7 @@
     <link rel="stylesheet" href="{{ theme_asset('css/app.css') }}" />
     {% block head_extra %}{% endblock %}
   </head>
-  <body>
+  <body{% if active_theme|default('') == 'queue' %} class="theme-queue"{% endif %}>
     {% include 'partials/_shell.twig' %}
     {% include 'partials/_header.twig' %}
 

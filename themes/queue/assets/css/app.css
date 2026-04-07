@@ -5171,3 +5171,283 @@ body.theme-queue .theme-main .pill--violet {
   border-color: rgba(255, 92, 154, 0.35);
 }
 
+/* =============================================================================
+ * Public `public/root.twig` pages (login, register, plugin tools) when the
+ * active theme is Builder Queue — align header, footer, auth panels, and
+ * Content Stream with the storefront shell (ink base, glass bar, pink CTA).
+ * ============================================================================= */
+
+body.theme-queue .atmosphere,
+body.theme-queue .aurora,
+body.theme-queue .ambient-canvas,
+body.theme-queue .film-grain {
+  display: none;
+}
+
+/* Full-width bar like .theme-header (inner content aligns via padding, not max-width on the bar). */
+body.theme-queue .site-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  height: auto;
+  min-height: 3.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem 1.5rem;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 0.95rem clamp(1.25rem, 4vw, 2.5rem);
+  box-sizing: border-box;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(10, 8, 20, 0.78);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.045),
+    0 1px 0 rgba(0, 229, 255, 0.06),
+    0 18px 50px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(22px) saturate(1.35);
+  -webkit-backdrop-filter: blur(22px) saturate(1.35);
+  transition:
+    border-color 0.25s ease,
+    background 0.25s ease,
+    box-shadow 0.25s ease;
+}
+
+@supports (backdrop-filter: blur(1px)) {
+  body.theme-queue .site-header {
+    background: rgba(13, 10, 26, 0.72);
+  }
+}
+
+body.theme-queue .site-header.is-scrolled {
+  border-bottom-color: rgba(255, 255, 255, 0.1);
+  background: rgba(10, 8, 20, 0.92);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 12px 48px rgba(0, 0, 0, 0.5);
+}
+
+body.theme-queue .site-header .logo {
+  font-family: var(--theme-display);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  font-size: 1.2rem;
+  color: #ffffff;
+  filter: none;
+}
+
+body.theme-queue .site-header .logo:hover {
+  color: var(--theme-pink-soft);
+  transform: none;
+}
+
+body.theme-queue .site-header .logo-dot {
+  animation: none;
+  color: var(--theme-accent-bright);
+  background: none;
+  -webkit-background-clip: unset;
+  background-clip: unset;
+}
+
+body.theme-queue .site-header .nav-link {
+  color: rgba(255, 255, 255, 0.82);
+  border: 1px solid transparent;
+  box-shadow: none;
+}
+
+body.theme-queue .site-header .nav-link:hover {
+  color: #ffffff;
+  background: rgba(255, 45, 120, 0.12);
+  border-color: rgba(255, 92, 154, 0.28);
+}
+
+body.theme-queue .site-header .nav-link--violet:hover,
+body.theme-queue .site-header .nav-link--cyan:hover {
+  background: rgba(255, 45, 120, 0.12);
+  border-color: rgba(255, 92, 154, 0.28);
+}
+
+body.theme-queue .site-footer {
+  position: relative;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  box-sizing: border-box;
+  padding: 2.25rem clamp(1.25rem, 4vw, 2.5rem) 2.75rem;
+  background: transparent;
+  color: var(--theme-muted);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+body.theme-queue .site-footer::before {
+  display: none;
+}
+
+body.theme-queue .site-footer .footer-links {
+  gap: 1rem;
+}
+
+body.theme-queue .site-footer .footer-links a {
+  color: rgba(255, 255, 255, 0.55);
+  font-weight: 600;
+  background: none;
+  padding-bottom: 0;
+  text-decoration: underline;
+  text-decoration-color: rgba(255, 92, 154, 0.35);
+  text-underline-offset: 0.2em;
+}
+
+body.theme-queue .site-footer .footer-links a:hover {
+  color: var(--theme-pink-soft);
+  text-decoration-color: var(--theme-pink-soft);
+}
+
+/*
+ * Auth / plugin pages use sticky .site-header (not fixed). Editorial main panel
+ * needs gap from chrome so it matches storefront rhythm (theme-main + footer).
+ */
+body.theme-queue .section-auth {
+  padding-top: 2rem;
+  padding-bottom: 3rem;
+}
+
+body.theme-queue main.theme-fq-editorial > .section-auth.cs-stream-page {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  padding-left: 0;
+  padding-right: 0;
+  box-sizing: border-box;
+}
+
+/* Content stream: breathing room above/below the editorial slab vs header & footer */
+body.theme-queue main#main-content.theme-fq-editorial.cs-stream-page-root {
+  margin-top: 1.5rem;
+  margin-bottom: 2.5rem;
+  padding-top: 2.5rem;
+  padding-bottom: 3rem;
+  padding-left: clamp(1.35rem, 4vw, 2.25rem);
+  padding-right: clamp(1.35rem, 4vw, 2.25rem);
+}
+
+@media (max-width: 40rem) {
+  body.theme-queue main#main-content.theme-fq-editorial.cs-stream-page-root {
+    margin-top: 1rem;
+    margin-bottom: 1.75rem;
+    margin-left: 0.75rem;
+    margin-right: 0.75rem;
+    padding-top: 2rem;
+    padding-bottom: 2.5rem;
+    padding-left: 1.15rem;
+    padding-right: 1.15rem;
+  }
+}
+
+body.theme-queue .cs-stream-page-root.theme-fq-editorial {
+  min-height: min(52vh, 32rem);
+}
+
+/* Space between main and footer on public-root pages (login, content-stream, etc.). */
+body.theme-queue main + .site-footer {
+  margin-top: 1.25rem;
+}
+
+body.theme-queue .auth-card.glass-panel,
+body.theme-queue .cs-stream-card {
+  background: var(--theme-surface);
+  border: 1px solid var(--theme-border);
+  border-radius: var(--theme-radius);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.04) inset,
+    0 24px 64px rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(18px) saturate(1.2);
+  -webkit-backdrop-filter: blur(18px) saturate(1.2);
+}
+
+body.theme-queue .auth-title {
+  font-family: var(--theme-display);
+  color: var(--theme-text);
+}
+
+body.theme-queue .auth-lede {
+  color: var(--theme-muted);
+}
+
+body.theme-queue .auth-lede a {
+  color: var(--theme-pink-soft);
+  font-weight: 700;
+}
+
+body.theme-queue .auth-lede a:hover {
+  color: #ffffff;
+}
+
+body.theme-queue .auth-label span {
+  color: var(--theme-muted);
+}
+
+body.theme-queue .auth-input {
+  background: var(--theme-bg-elevated);
+  border-color: var(--theme-border);
+  color: var(--theme-text);
+}
+
+body.theme-queue .auth-input:focus {
+  border-color: rgba(255, 92, 154, 0.45);
+  box-shadow: 0 0 0 3px rgba(255, 45, 120, 0.18);
+}
+
+body.theme-queue .auth-flash--error {
+  background: rgba(255, 45, 120, 0.12);
+  border-color: rgba(255, 92, 154, 0.35);
+  color: #fecdd3;
+}
+
+body.theme-queue .auth-flash--success {
+  background: rgba(0, 229, 255, 0.08);
+  border-color: rgba(0, 229, 255, 0.28);
+  color: #a5f3fc;
+}
+
+/* Primary actions on public-root pages (no .theme-main wrapper) */
+body.theme-queue .btn.btn-primary,
+body.theme-queue button.btn-primary.auth-submit {
+  color: #0a0a0a;
+  background: linear-gradient(135deg, var(--theme-accent), #e91e6b);
+  background-size: 100% auto;
+  box-shadow: 0 8px 28px var(--theme-pink-glow);
+  border: 1px solid transparent;
+}
+
+body.theme-queue .btn.btn-primary:hover,
+body.theme-queue button.btn-primary.auth-submit:hover {
+  box-shadow: 0 12px 40px var(--theme-pink-glow);
+}
+
+body.theme-queue .cs-brief-progress {
+  border-color: var(--theme-border);
+  background: var(--theme-bg-elevated);
+}
+
+body.theme-queue .cs-brief-progress-track {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+body.theme-queue .cs-brief-progress-fill {
+  background: linear-gradient(
+    90deg,
+    var(--theme-accent),
+    var(--theme-accent-bright),
+    var(--theme-accent)
+  );
+  background-size: 200% 100%;
+}
+

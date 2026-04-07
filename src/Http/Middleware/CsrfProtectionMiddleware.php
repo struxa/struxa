@@ -64,25 +64,28 @@ final class CsrfProtectionMiddleware implements MiddlewareInterface
             return true;
         }
 
+        if ($path === '/content-stream') {
+            return true;
+        }
+
         return false;
     }
 
     private function readSubmittedToken(ServerRequestInterface $request): ?string
     {
+        $body = $request->getParsedBody();
+        if (is_array($body)) {
+            if (isset($body['_csrf_token']) && is_string($body['_csrf_token']) && $body['_csrf_token'] !== '') {
+                return $body['_csrf_token'];
+            }
+            if (isset($body['csrf_token']) && is_string($body['csrf_token']) && $body['csrf_token'] !== '') {
+                return $body['csrf_token'];
+            }
+        }
+
         $h = trim($request->getHeaderLine('X-CSRF-Token'));
         if ($h !== '') {
             return $h;
-        }
-
-        $body = $request->getParsedBody();
-        if (!is_array($body)) {
-            return null;
-        }
-        if (isset($body['_csrf_token']) && is_string($body['_csrf_token'])) {
-            return $body['_csrf_token'];
-        }
-        if (isset($body['csrf_token']) && is_string($body['csrf_token'])) {
-            return $body['csrf_token'];
         }
 
         return null;
@@ -131,7 +134,7 @@ final class CsrfProtectionMiddleware implements MiddlewareInterface
             $reqPath = '/';
         }
         if (str_starts_with($reqPath, '/admin')
-            || in_array($reqPath, ['/login', '/login/two-factor', '/register', '/logout'], true)) {
+            || in_array($reqPath, ['/login', '/login/two-factor', '/register', '/logout', '/content-stream'], true)) {
             return $reqPath;
         }
 
@@ -159,7 +162,8 @@ final class CsrfProtectionMiddleware implements MiddlewareInterface
             || $path === '/login'
             || $path === '/login/two-factor'
             || $path === '/register'
-            || $path === '/logout';
+            || $path === '/logout'
+            || $path === '/content-stream';
         if (!$allowed) {
             return null;
         }

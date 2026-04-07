@@ -13,11 +13,25 @@ use Psr\Http\Message\ServerRequestInterface;
 final class ClientIp
 {
     /**
+     * Same as {@see fromRequest} using PHP superglobals (PHPAuth and other code paths without a PSR-7 request).
+     *
      * @return non-empty-string
      */
-    public static function fromRequest(ServerRequestInterface $request): string
+    public static function fromSuperglobals(): string
     {
-        $server = $request->getServerParams();
+        /** @var array<string, mixed> $server */
+        $server = $_SERVER;
+
+        return self::fromServerParams($server);
+    }
+
+    /**
+     * @param array<string, mixed> $server
+     *
+     * @return non-empty-string
+     */
+    public static function fromServerParams(array $server): string
+    {
         $remote = isset($server['REMOTE_ADDR']) && is_string($server['REMOTE_ADDR']) ? trim($server['REMOTE_ADDR']) : '';
         if ($remote === '') {
             return '0.0.0.0';
@@ -28,9 +42,12 @@ final class ClientIp
             return $remote;
         }
 
-        $xff = trim($request->getHeaderLine('X-Forwarded-For'));
-        if ($xff === '') {
-            $xff = trim($request->getHeaderLine('X-Real-IP'));
+        $xff = '';
+        if (isset($server['HTTP_X_FORWARDED_FOR']) && is_string($server['HTTP_X_FORWARDED_FOR'])) {
+            $xff = trim($server['HTTP_X_FORWARDED_FOR']);
+        }
+        if ($xff === '' && isset($server['HTTP_X_REAL_IP']) && is_string($server['HTTP_X_REAL_IP'])) {
+            $xff = trim($server['HTTP_X_REAL_IP']);
         }
         if ($xff === '') {
             return $remote;
@@ -47,6 +64,17 @@ final class ClientIp
         }
 
         return $remote;
+    }
+
+    /**
+     * @return non-empty-string
+     */
+    public static function fromRequest(ServerRequestInterface $request): string
+    {
+        /** @var array<string, mixed> $server */
+        $server = $request->getServerParams();
+
+        return self::fromServerParams($server);
     }
 
     /**

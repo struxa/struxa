@@ -19,12 +19,13 @@ Each plugin is **`plugins/{slug}/`** where `{slug}` matches `^[a-z0-9]+(?:-[a-z0
 ## Lifecycle
 
 1. **Discovery** — `PluginScanner` reads valid `plugin.json` files.
-2. **Activation** — Rows in **`cms_plugins`** mark which slugs are active.
+2. **Activation** — Rows in **`cms_plugins`** mark which slugs are active. Pending `migrations/*.sql` files are applied and recorded in **`cms_plugin_migrations`**.
 3. **Boot** — For each active plugin, autoload is registered, Twig paths added, routes loaded, then `main_class` (if present) is instantiated; if it implements `PluginServiceProviderInterface`, `boot()` runs (nav items, event listeners).
+4. **Remove (delete from disk)** — If the plugin root contains **`uninstall.sql`**, it is executed (typically `DROP TABLE` for that plugin’s tables), then **`cms_plugin_migrations`** rows for that slug are deleted so a future reinstall can run migrations again.
 
 ## Example plugins
 
-See **`plugins/hello-plugin`**, **`plugins/seo-helper-plugin`**, and **`plugins/analytics-widget-plugin`** for small, copy-paste-friendly patterns.
+See **`plugins/hello-plugin`**, **`plugins/seo-helper-plugin`**, **`plugins/analytics-widget-plugin`**, and **`plugins/content-stream-plugin`** (OpenAI-backed public form + admin API settings) for small, copy-paste-friendly patterns.
 
 **Commerce:** **`plugins/stripe-store-plugin`** adds Stripe Checkout for purchasable content entries (e.g. products) without core code changes. Run its SQL migration, **`composer install` at the project root** (Stripe PHP is required in the root `composer.json`), activate the plugin, add optional content fields `stripe_price_id` / `stripe_amount_cents`, and include `<script src="…/stripe-store/embed.js" defer></script>` on your storefront layout.
 

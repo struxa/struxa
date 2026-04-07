@@ -617,8 +617,9 @@ $pluginManager = new PluginManager($root, $pluginRepo, new PluginScanner($root),
 $pluginContexts = $pluginManager->registerActivePublicRoutes($app, $twig, $auth, $pdo, $viewData, $eventDispatcher);
 
 (require $root . '/routes/public_pages.php')($app, $twig, $pdo, $viewData);
-(require $root . '/routes/public_taxonomy_archive.php')($app, $twig, $pdo, $viewData);
+// Before public_taxonomy_archive: FastRoute errors if plugin admin adds /admin/.../... after /{a}/{b}/{c}.
 $pluginManager->registerActiveAdminRoutes($app, $pluginContexts);
+(require $root . '/routes/public_taxonomy_archive.php')($app, $twig, $pdo, $viewData);
 (require $root . '/routes/public_content_index.php')($app, $twig, $pdo, $viewData);
 (require $root . '/routes/public_content.php')($app, $twig, $pdo, $viewData);
 

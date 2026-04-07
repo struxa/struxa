@@ -19,6 +19,8 @@ final class ReservedContentSlugs
         'login',
         'register',
         'logout',
+        /** Plugin: content-stream-plugin (must not be a content type slug). */
+        'content-stream',
         'uploads',
         'css',
         'js',

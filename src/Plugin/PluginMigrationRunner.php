@@ -62,6 +62,14 @@ final class PluginMigrationRunner
         return $map;
     }
 
+    /**
+     * Executes one or more semicolon-separated SQL statements (e.g. plugin uninstall.sql).
+     */
+    public function executeScript(string $sql): void
+    {
+        $this->runSqlFile($sql);
+    }
+
     private function runSqlFile(string $sql): void
     {
         $sql = preg_replace('/^\s*--.*$/m', '', $sql) ?? $sql;

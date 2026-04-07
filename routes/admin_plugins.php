@@ -13,6 +13,7 @@ use App\Filesystem\SafeDirectoryRemoval;
 use App\Plugin\PluginManager;
 use App\Plugin\PluginMigrationRunner;
 use App\Plugin\PluginRepository;
+use App\Plugin\PluginUninstaller;
 use App\Plugin\PluginScanner;
 use App\Plugin\PluginValidator;
 use PHPAuth\Auth;
@@ -61,7 +62,8 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
         $validator,
         $migrationRunner,
         $activity,
-        $cmsUid
+        $cmsUid,
+        $pdo
     ): void {
         $group->get('/extensions/plugins', function (Request $request, Response $response) use (
             $twig,
@@ -169,8 +171,10 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
         $group->post('/extensions/plugins/remove', function (Request $request, Response $response) use (
             $repo,
             $scanner,
+            $migrationRunner,
             $activity,
-            $cmsUid
+            $cmsUid,
+            $pdo
         ): Response {
             $body = $request->getParsedBody();
             $slug = is_array($body) ? trim((string) ($body['slug'] ?? '')) : '';
@@ -197,6 +201,15 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             }
 
             $repo->setActive($slug, false);
+
+            try {
+                (new PluginUninstaller($pdo, $migrationRunner))->uninstall($slug, $discovered->rootPath);
+            } catch (\Throwable $e) {
+                Flash::set('error', 'Plugin uninstall SQL failed: ' . $e->getMessage());
+
+                return $response->withHeader('Location', $back)->withStatus(302);
+            }
+
             $rm = SafeDirectoryRemoval::removeIfInside($discovered->rootPath, $pluginsRootReal);
             if ($rm !== null) {
                 Flash::set('error', 'Could not remove plugin files: ' . $rm);

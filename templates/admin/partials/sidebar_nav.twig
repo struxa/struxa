@@ -129,15 +129,19 @@
   {% endif %}
 
   {% if cms_can('manage_plugins') %}
+    {% set plugins_list_path_raw = url_for('admin.extensions.plugins.index')|split('?')|first %}
+    {% set plugins_list_path = plugins_list_path_raw == '' or plugins_list_path_raw == '/' ? '/' : plugins_list_path_raw|trim('/', 'right') %}
     <details class="admin-nav-group" {{ nav == 'extensions_plugins' ? 'open' : '' }}>
       <summary class="admin-nav-group-title">Extensions</summary>
       <div class="admin-nav-group-items">
-        <a href="{{ url_for('admin.extensions.plugins.index') }}" class="{{ nav == 'extensions_plugins' ? 'is-active' : '' }}">
+        <a href="{{ url_for('admin.extensions.plugins.index') }}" class="{{ request_path == plugins_list_path ? 'is-active' : '' }}">
           <svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
           Plugins
         </a>
         {% for nav_item in plugin_admin_nav_items %}
-          <a href="{{ url_for(nav_item.route_name, nav_item.route_params|default({})) }}">
+          {% set plugin_item_path_raw = url_for(nav_item.route_name, nav_item.route_params|default({}))|split('?')|first %}
+          {% set plugin_item_path = plugin_item_path_raw == '' or plugin_item_path_raw == '/' ? '/' : plugin_item_path_raw|trim('/', 'right') %}
+          <a href="{{ url_for(nav_item.route_name, nav_item.route_params|default({})) }}" class="{{ request_path == plugin_item_path ? 'is-active' : '' }}">
             <svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="12" cy="12" r="3"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2"/></svg>
             {{ nav_item.label|e }}
           </a>
