@@ -1,0 +1,28 @@
+---
+description: Always increment Struxa semver and sync version files when committing product changes; commit and push with version
+alwaysApply: true
+---
+
+# Version bump on every commit (and push)
+
+Whenever you **commit** changes that affect **shipped product** (PHP, Twig, theme assets, plugins, routes, migrations, public scripts, etc.), **increment the project version** in the **same commit**. Do not leave version files at an old number while landing new behavior.
+
+When you **finish a task** that changed the product: **bump version → commit → push** (unless the user explicitly says not to commit, not to bump, or gives an exact version).
+
+**Docs-only or tooling-only** changes (e.g. only `.md` the user did not ask to ship, or local editor config) may skip a bump if the user prefers — default is still to bump when anything in `src/`, `templates/`, `themes/`, `plugins/`, `bootstrap/`, `routes/`, `public/` (app surface), or `storage/` (example feeds) changes.
+
+## What to bump (patch by default)
+
+1. **`src/CmsVersion.php`** — `CURRENT` (e.g. `1.0.5` → `1.0.6`)
+2. **`composer.json`** — `"version"` field (must match `CmsVersion::CURRENT`)
+3. **`README.md`** — the line `**Version:** …` under the title
+4. **`storage/cms-updates.example.json`** — `latest_version`, `title`, and a one-line `summary` for the release note
+
+Default: **patch** increment (`x.y.Z+1`). Use **minor** or **major** only if the user asks or the change clearly warrants it.
+
+## Workflow
+
+- Put the version bump in the **same commit** as the functional change (preferred), or a single follow-up commit that only bumps version—**never** push product changes to `main` without updating these four files.
+- After committing, **push** to `origin` (or the user’s default remote) so the registry and installs see the new version.
+
+The user may refer to this as “page number”; they mean **version number**.
