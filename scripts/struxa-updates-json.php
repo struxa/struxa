@@ -15,7 +15,7 @@ declare(strict_types=1);
  *
  * Usage:
  *   - Web: https://example.com/dist/struxa-updates-json.php  → application/json (path is up to you)
- *   - Web refresh cache: ?refresh=1  (optional secret: STRUXA_UPDATES_GEN_SECRET in Apache/Nginx env)
+ *   - Web refresh cache: ?refresh=1  (if STRUXA_UPDATES_GEN_SECRET is set, add &key=<same value> or refresh is ignored and you may get stale JSON)
  *   - CLI: php struxa-updates-json.php
  *   - CLI write file: php struxa-updates-json.php --write=/path/to/updates.json
  *   - Health (no GitHub call): ?ping=1 → plain text (verify PHP runs in this directory)
@@ -334,16 +334,34 @@ $defaultCachePath = $scriptDir . DIRECTORY_SEPARATOR . '.struxa-updates-cache.js
 $cachePath = struxa_env('STRUXA_UPDATES_CACHE_PATH', $defaultCachePath);
 
 $bypassCache = false;
+$webRefreshRequested = false;
 if (!$isCli) {
     $secret = struxa_env('STRUXA_UPDATES_GEN_SECRET', '');
-    $refresh = isset($_GET['refresh']) && ($_GET['refresh'] === '1' || $_GET['refresh'] === 'true');
-    if ($refresh) {
+    $webRefreshRequested = isset($_GET['refresh']) && ($_GET['refresh'] === '1' || $_GET['refresh'] === 'true');
+    if ($webRefreshRequested) {
         if ($secret !== '') {
             $key = isset($_GET['key']) ? (string) $_GET['key'] : '';
             $bypassCache = hash_equals($secret, $key);
         } else {
             $bypassCache = true;
         }
+    }
+    // Do not serve stale cache when operator asked to refresh but auth failed (would look like refresh "worked").
+    if ($webRefreshRequested && $secret !== '' && !$bypassCache) {
+        if (!headers_sent()) {
+            header('Content-Type: application/json; charset=utf-8', true, 403);
+            header('Cache-Control: no-store');
+        }
+        try {
+            echo json_encode([
+                'schema_version' => 1,
+                'error' => 'refresh_forbidden',
+                'hint' => 'STRUXA_UPDATES_GEN_SECRET is set; pass matching &key= on the query string to bypass cache.',
+            ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+        } catch (JsonException) {
+            echo '{"schema_version":1,"error":"refresh_forbidden"}';
+        }
+        exit;
     }
 } elseif (in_array('--refresh', array_slice($argv ?? [], 1), true)) {
     $bypassCache = true;
@@ -430,7 +448,12 @@ if ($isCli) {
 
 if (!headers_sent()) {
     header('Content-Type: application/json; charset=utf-8');
-    header('Cache-Control: public, max-age=' . min($cacheTtl, 3600));
+    // Successful cache-bypass refresh should not be stored by browsers or edge caches.
+    if (!$isCli && $webRefreshRequested && $bypassCache) {
+        header('Cache-Control: no-store');
+    } else {
+        header('Cache-Control: public, max-age=' . min($cacheTtl, 3600));
+    }
 }
 
 echo $json;

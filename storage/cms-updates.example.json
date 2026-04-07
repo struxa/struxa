@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.0.21",
-    "title": "Struxa 1.0.21",
-    "summary": "Cursor rule: bump semver on every product commit; finish tasks with bump, commit, push. Track .cursor/rules/version-bump-on-push.mdc in repo.",
+    "latest_version": "1.0.22",
+    "title": "Struxa 1.0.22",
+    "summary": "struxa-updates-json.php: 403 if refresh=1 without key when STRUXA_UPDATES_GEN_SECRET set; no-store on successful refresh. Fixes stale feed when ?refresh=1 looked like it worked.",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "minor"
