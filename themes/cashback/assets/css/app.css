@@ -2730,3 +2730,14 @@ body.theme-cashback a {
   border: 0;
 }
 
+/* Login/register: label + input as siblings (password manager friendly) */
+.theme-main .auth-field {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.theme-main .auth-field > .auth-label {
+  display: block;
+  margin: 0;
+}
+

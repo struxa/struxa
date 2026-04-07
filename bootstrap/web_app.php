@@ -475,7 +475,9 @@ $app->post('/login/two-factor', function (Request $request, Response $response) 
 
 $app->post('/login', function (Request $request, Response $response) use ($auth, $pdo): Response {
     $body = $request->getParsedBody();
-    $email = is_array($body) ? trim((string) ($body['email'] ?? '')) : '';
+    $email = is_array($body)
+        ? trim((string) ($body['email'] ?? $body['username'] ?? ''))
+        : '';
     $password = is_array($body) ? (string) ($body['password'] ?? '') : '';
     $remember = is_array($body) && !empty($body['remember']) ? 1 : 0;
 

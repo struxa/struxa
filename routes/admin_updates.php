@@ -54,7 +54,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
         $pdo,
         $cacheInternal
     ): void {
-        $group->get('/updates', function (Request $request, Response $response) use ($twig, $adminContext, $withCmsUser, $checker): Response {
+        $group->get('/updates', function (Request $request, Response $response) use ($twig, $adminContext, $withCmsUser, $checker, $root): Response {
             $qp = $request->getQueryParams();
             $fresh = isset($qp['fresh']) && ($qp['fresh'] === '1' || $qp['fresh'] === 'true');
             $status = $checker->check($fresh);
@@ -65,7 +65,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 'cms_update_page_status' => $status,
                 'cms_update_poll_url' => $parser->urlFor('admin.updates.status'),
                 'cms_update_apply_url' => $parser->urlFor('admin.updates.apply'),
-                'cms_auto_update_allowed' => CmsSelfUpdater::autoUpdateAllowedByEnv(),
+                'cms_auto_update_allowed' => CmsSelfUpdater::autoUpdateAllowedByEnv($root),
             ])));
         })->setName('admin.updates.index');
 
@@ -84,7 +84,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             $pdo,
             $cacheInternal
         ): Response {
-            if (!CmsSelfUpdater::autoUpdateAllowedByEnv()) {
+            if (!CmsSelfUpdater::autoUpdateAllowedByEnv($root)) {
                 return $jsonResponse($response, [
                     'ok' => false,
                     'message' => 'Automatic updates are disabled. Add STRUXA_ALLOW_AUTO_UPDATE=1 to .env to enable.',
@@ -95,9 +95,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             $result = (new CmsSelfUpdater())->apply($root, $st);
             if ($result['ok']) {
                 $profile = new SiteProfileRepository($pdo);
-                $latest = isset($st['latest_version']) && is_string($st['latest_version'])
-                    ? trim($st['latest_version'])
-                    : '';
+                $latest = trim((string) ($st['latest_version'] ?? ''));
                 if ($latest !== '') {
                     $profile->setInstalledVersionString($latest);
                 } else {

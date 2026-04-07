@@ -5418,6 +5418,16 @@ body.theme-queue .theme-main .auth-form {
   margin-top: 0.25rem;
 }
 
+body.theme-queue .theme-main .auth-field {
+  display: grid;
+  gap: 0.4rem;
+}
+
+body.theme-queue .theme-main .auth-field > .auth-label {
+  display: block;
+  margin: 0;
+}
+
 body.theme-queue .theme-main .auth-label {
   display: grid;
   gap: 0.4rem;

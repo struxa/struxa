@@ -24,23 +24,42 @@
         <p class="auth-divider" role="presentation">or use your email and password</p>
       {% endif %}
 
-      <form id="login-form" class="auth-form" method="post" action="{{ url_for('login') }}" autocomplete="on" novalidate>
-        <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
-        {% if login_next %}
-          <input type="hidden" name="next" value="{{ login_next }}" />
-        {% endif %}
-        <label class="auth-label" for="login-email">
-          <span>Email</span>
-          <input class="auth-input" id="login-email" type="email" name="email" inputmode="email" autocomplete="username" autocapitalize="none" spellcheck="false" required />
-        </label>
-        <label class="auth-label" for="login-password">
-          <span>Password</span>
-          <input class="auth-input" id="login-password" type="password" name="password" autocomplete="current-password" required />
-        </label>
+      {# ids username + password match common browser/extension heuristics (with name="username" for email login). #}
+      <form id="login-form" name="login" class="auth-form" method="post" action="{{ url_for('login') }}" autocomplete="on" novalidate>
+        <div class="auth-field">
+          <label class="auth-label" for="username"><span>Email</span></label>
+          <input
+            class="auth-input"
+            id="username"
+            type="email"
+            name="username"
+            inputmode="email"
+            autocomplete="username"
+            autocapitalize="none"
+            autocorrect="off"
+            spellcheck="false"
+            required
+          />
+        </div>
+        <div class="auth-field">
+          <label class="auth-label" for="password"><span>Password</span></label>
+          <input
+            class="auth-input"
+            id="password"
+            type="password"
+            name="password"
+            autocomplete="current-password"
+            required
+          />
+        </div>
         <label class="auth-check">
           <input type="checkbox" name="remember" value="1" />
           <span>Remember me</span>
         </label>
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+        {% if login_next %}
+          <input type="hidden" name="next" value="{{ login_next }}" />
+        {% endif %}
         <button class="btn btn-primary btn-lg auth-submit" type="submit">Log in</button>
       </form>
     </div>

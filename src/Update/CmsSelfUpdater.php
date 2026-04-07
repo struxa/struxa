@@ -178,16 +178,83 @@ final class CmsSelfUpdater
         }
     }
 
-    public static function autoUpdateAllowedByEnv(): bool
+    /**
+     * Whether Admin → Updates may POST apply. Checks getenv / $_ENV / $_SERVER first, then reads
+     * STRUXA_ALLOW_AUTO_UPDATE from the project `.env` file if all runtime values are empty.
+     *
+     * vlucas/phpdotenv {@see Dotenv::safeLoad()} does not override variables already present in the
+     * process environment (even when set to an empty string in php-fpm pool / Apache SetEnv), so a
+     * line like STRUXA_ALLOW_AUTO_UPDATE=1 in .env would otherwise be ignored.
+     *
+     * @param non-empty-string|null $projectRoot Pass the CMS root (same as bootstrap) for .env fallback
+     */
+    public static function autoUpdateAllowedByEnv(?string $projectRoot = null): bool
     {
-        if (isset($_ENV['STRUXA_ALLOW_AUTO_UPDATE'])) {
-            $v = trim((string) $_ENV['STRUXA_ALLOW_AUTO_UPDATE']);
-        } else {
-            $g = getenv('STRUXA_ALLOW_AUTO_UPDATE');
-            $v = $g === false ? '' : trim($g);
+        $sources = [
+            getenv('STRUXA_ALLOW_AUTO_UPDATE'),
+            $_ENV['STRUXA_ALLOW_AUTO_UPDATE'] ?? null,
+            $_SERVER['STRUXA_ALLOW_AUTO_UPDATE'] ?? null,
+        ];
+        foreach ($sources as $raw) {
+            if ($raw === false || $raw === null) {
+                continue;
+            }
+            $v = trim((string) $raw);
+            if ($v === '') {
+                continue;
+            }
+
+            return self::envValueMeansEnabled($v);
         }
 
-        return in_array(strtolower($v), ['1', 'true', 'yes', 'on'], true);
+        $root = $projectRoot ?? dirname(__DIR__, 2);
+        $fromFile = self::readDotenvValue($root, 'STRUXA_ALLOW_AUTO_UPDATE');
+
+        return $fromFile !== '' && self::envValueMeansEnabled($fromFile);
+    }
+
+    private static function envValueMeansEnabled(string $v): bool
+    {
+        return in_array(strtolower(trim($v)), ['1', 'true', 'yes', 'on'], true);
+    }
+
+    /**
+     * Minimal .env parser for one key (KEY=value). Does not expand variables.
+     */
+    private static function readDotenvValue(string $projectRoot, string $key): string
+    {
+        if ($key === '' || preg_match('/[^A-Z0-9_]/', $key) === 1) {
+            return '';
+        }
+        $path = rtrim($projectRoot, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . '.env';
+        if (!is_file($path) || !is_readable($path)) {
+            return '';
+        }
+        $lines = file($path, FILE_IGNORE_NEW_LINES);
+        if ($lines === false) {
+            return '';
+        }
+        $prefix = $key . '=';
+        foreach ($lines as $line) {
+            $line = trim($line);
+            if ($line === '' || str_starts_with($line, '#')) {
+                continue;
+            }
+            if (!str_starts_with($line, $prefix)) {
+                continue;
+            }
+            $val = trim(substr($line, strlen($prefix)));
+            if ($val !== '' && ($val[0] === '"' || $val[0] === "'")) {
+                $q = $val[0];
+                if (str_ends_with($val, $q) && strlen($val) >= 2) {
+                    $val = substr($val, 1, -1);
+                }
+            }
+
+            return trim($val);
+        }
+
+        return '';
     }
 
     private function verifyComposerIdentity(string $dir): bool
