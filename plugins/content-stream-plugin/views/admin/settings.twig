@@ -1,0 +1,101 @@
+{% extends 'admin/base.twig' %}
+
+{% block admin_title %}Content Stream{% endblock %}
+
+{% block admin_hero_title %}
+  <h1 class="admin-hero-title">Content Stream</h1>
+{% endblock %}
+
+{% block admin_hero_sub %}
+  <p class="admin-hero-sub">OpenAI for domain analysis; optional DataForSEO for live keyword metrics (volume, CPC, competition, difficulty, variations) on the domain tool.</p>
+{% endblock %}
+
+{% block admin_content %}
+  {% if content_stream_table_ok|default(false) %}
+    <section class="admin-section">
+      <div class="admin-callout admin-callout--success" role="status">
+        <p class="admin-prose" style="margin:0 0 0.75rem">The domain tool is not listed under <strong>Pages</strong> — open it from Extensions or here:</p>
+        <a class="admin-btn-primary" href="{{ url_for('plugin.content_stream_plugin.tool') }}">Open domain tool</a>
+        <span class="admin-hint" style="display:block;margin-top:0.65rem">Staff-only URL: <code class="admin-inline-code">{{ site_url|default('')|e }}/content-stream</code></span>
+      </div>
+    </section>
+  {% endif %}
+
+  {% if not content_stream_table_ok|default(false) %}
+    <section class="admin-section">
+      <div class="admin-callout">
+        <p class="admin-prose"><strong>Database</strong> — create the plugin table first:</p>
+        <pre class="admin-code-block" style="margin-top:0.75rem;overflow:auto;">mysql -u … -p … &lt; plugins/content-stream-plugin/migrations/001_content_stream_settings.sql
+mysql -u … -p … &lt; plugins/content-stream-plugin/migrations/002_content_stream_dataforseo.sql</pre>
+        <p class="admin-prose">Then activate <strong>Content Stream</strong> under Admin → Extensions. The page (staff-only) is at <code class="admin-inline-code">{{ site_url|default('')|e }}/content-stream</code>.</p>
+      </div>
+    </section>
+  {% else %}
+    <section class="admin-section">
+      <form class="admin-form" method="post" action="{{ url_for('plugin.content_stream_plugin.admin') }}">
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+
+        <div class="admin-field admin-field--full">
+          <label class="admin-label" for="openai_api_key">OpenAI API key</label>
+          <input class="admin-input" type="password" id="openai_api_key" name="openai_api_key" value="" autocomplete="new-password" maxlength="512" placeholder="{{ content_stream_settings.api_key_stored|default(false) ? 'Leave blank to keep existing key' : 'sk-…' }}" />
+          {% if content_stream_settings.api_key_stored|default(false) %}
+            <label class="admin-label admin-settings-check-label" style="margin-top:0.5rem">
+              <input type="checkbox" name="openai_api_key_clear" value="1" />
+              Remove stored API key
+            </label>
+          {% endif %}
+          <p class="admin-field-hint">From <a class="admin-link" href="https://platform.openai.com/api-keys" rel="noopener noreferrer" target="_blank">OpenAI API keys</a>. Stored in your database; restrict admin access.</p>
+        </div>
+
+        <div class="admin-field admin-field--full">
+          <label class="admin-label" for="openai_organization">Organization ID (optional)</label>
+          <input class="admin-input" type="text" id="openai_organization" name="openai_organization" value="{{ content_stream_settings.openai_organization|default('')|e('html_attr') }}" maxlength="120" autocomplete="off" placeholder="org-…" />
+        </div>
+
+        <div class="admin-field admin-field--full">
+          <label class="admin-label" for="openai_model">Model</label>
+          <input class="admin-input" type="text" id="openai_model" name="openai_model" value="{{ content_stream_settings.openai_model|default('gpt-4o-mini')|e('html_attr') }}" maxlength="80" />
+          <p class="admin-field-hint">Default <code class="admin-inline-code">gpt-4o-mini</code>. Use a chat-capable model you have access to.</p>
+        </div>
+
+        <h2 class="admin-section-title" style="margin-top:2rem;font-size:1.1rem">DataForSEO (optional)</h2>
+        <p class="admin-field-hint">Paid API — <a class="admin-link" href="https://app.dataforseo.com/api-access" rel="noopener noreferrer" target="_blank">API access</a> login + password. Run migration <code class="admin-inline-code">002_content_stream_dataforseo.sql</code> if these fields are missing from the database.</p>
+
+        <div class="admin-field admin-field--full">
+          <label class="admin-label" for="dataforseo_login">DataForSEO login (email)</label>
+          <input class="admin-input" type="text" id="dataforseo_login" name="dataforseo_login" value="{{ content_stream_settings.dataforseo_login|default('')|e('html_attr') }}" maxlength="255" autocomplete="off" />
+        </div>
+
+        <div class="admin-field admin-field--full">
+          <label class="admin-label" for="dataforseo_password">DataForSEO API password</label>
+          <input class="admin-input" type="password" id="dataforseo_password" name="dataforseo_password" value="" autocomplete="new-password" maxlength="512" placeholder="{{ content_stream_settings.dataforseo_configured|default(false) ? 'Leave blank to keep existing password' : '' }}" />
+          {% if content_stream_settings.dataforseo_configured|default(false) %}
+            <label class="admin-label admin-settings-check-label" style="margin-top:0.5rem">
+              <input type="checkbox" name="dataforseo_password_clear" value="1" />
+              Remove stored DataForSEO password
+            </label>
+          {% endif %}
+        </div>
+
+        <div class="admin-field admin-field--full">
+          <label class="admin-label" for="keyword_location_code">Keyword location code</label>
+          <input class="admin-input" type="number" id="keyword_location_code" name="keyword_location_code" value="{{ content_stream_settings.keyword_location_code|default(2840) }}" min="1" step="1" />
+          <p class="admin-field-hint">Default <code class="admin-inline-code">2840</code> (United States). See DataForSEO location lists for other codes.</p>
+        </div>
+
+        <div class="admin-field admin-field--full">
+          <label class="admin-label" for="keyword_language_code">Keyword language code</label>
+          <input class="admin-input" type="text" id="keyword_language_code" name="keyword_language_code" value="{{ content_stream_settings.keyword_language_code|default('en')|e('html_attr') }}" maxlength="8" />
+        </div>
+
+        <div class="admin-form-actions">
+          <button type="submit" class="admin-btn-primary">Save</button>
+        </div>
+      </form>
+    </section>
+
+    <section class="admin-section">
+      <p class="admin-prose">Public URL: <a class="admin-link" href="{{ site_url|default('')|e }}/content-stream" target="_blank" rel="noopener">{{ site_url|default('')|e }}/content-stream</a></p>
+    </section>
+  {% endif %}
+{% endblock %}

@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.0.17",
-    "title": "Struxa 1.0.17",
-    "summary": "Site language (HTML lang + og:locale) in Site settings; admin update banner + fresher remote feed checks.",
+    "latest_version": "1.0.18",
+    "title": "Struxa 1.0.18",
+    "summary": "Storefront-aligned login/register/2FA/logout (theme shell + CSRF); Queue auth typography and form UI; plugin public theme bridge; Content Stream public page matches active theme.",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "minor"

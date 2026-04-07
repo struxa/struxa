@@ -5309,15 +5309,25 @@ body.theme-queue .site-footer .footer-links a:hover {
 }
 
 /*
- * Auth / plugin pages use sticky .site-header (not fixed). Editorial main panel
- * needs gap from chrome so it matches storefront rhythm (theme-main + footer).
+ * Auth / plugin pages — storefront shell (theme-main). Core `styles.css` is not loaded here,
+ * so auth layout + form primitives must live in the theme (previously came from public/root).
  */
 body.theme-queue .section-auth {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: min(70vh, 44rem);
   padding-top: 2rem;
   padding-bottom: 3rem;
+  box-sizing: border-box;
 }
 
 body.theme-queue main.theme-fq-editorial > .section-auth.cs-stream-page {
+  display: block;
+  min-height: 0;
+  align-items: stretch;
+  justify-content: flex-start;
   width: 100%;
   max-width: none;
   margin: 0;
@@ -5372,9 +5382,138 @@ body.theme-queue .cs-stream-card {
   -webkit-backdrop-filter: blur(18px) saturate(1.2);
 }
 
+body.theme-queue .theme-main .auth-card:not(.cs-stream-card) {
+  width: min(100% - 2rem, 26rem);
+  margin: 0 auto;
+  padding: clamp(1.5rem, 4vw, 2.25rem);
+  box-sizing: border-box;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Match homepage hero title weight / tracking (theme-home-fq__title). */
 body.theme-queue .auth-title {
   font-family: var(--theme-display);
   color: var(--theme-text);
+  font-weight: 900;
+  font-size: clamp(1.65rem, 4vw, 2rem);
+  letter-spacing: -0.04em;
+  line-height: 1.08;
+  margin: 0.35rem 0 0.5rem;
+}
+
+body.theme-queue .theme-main .auth-form {
+  display: grid;
+  gap: 1rem;
+  margin-top: 0.25rem;
+}
+
+body.theme-queue .theme-main .auth-label {
+  display: grid;
+  gap: 0.4rem;
+  font-family: var(--theme-font);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  line-height: 1.35;
+}
+
+body.theme-queue .theme-main .auth-check {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--theme-font);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  line-height: 1.45;
+  letter-spacing: -0.01em;
+  color: var(--theme-muted);
+  cursor: pointer;
+}
+
+body.theme-queue .theme-main .auth-check input {
+  width: 1rem;
+  height: 1rem;
+  accent-color: var(--theme-accent);
+}
+
+body.theme-queue .theme-main .auth-oauth {
+  margin: 0 0 0.75rem;
+}
+
+body.theme-queue .theme-main .auth-oauth .btn {
+  box-sizing: border-box;
+  width: 100%;
+  justify-content: center;
+}
+
+body.theme-queue .theme-main .auth-divider {
+  text-align: center;
+  margin: 0 0 1rem;
+  font-family: var(--theme-font);
+  font-size: 1rem;
+  font-weight: 500;
+  line-height: 1.55;
+  letter-spacing: -0.01em;
+  color: var(--theme-muted);
+}
+
+body.theme-queue .theme-main .auth-flash {
+  margin: 0 0 1rem;
+  padding: 0.65rem 0.85rem;
+  border-radius: 10px;
+  font-family: var(--theme-font);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  line-height: 1.45;
+  letter-spacing: -0.01em;
+  border: 1px solid transparent;
+}
+
+body.theme-queue .theme-main .auth-submit {
+  margin-top: 0.25rem;
+  width: 100%;
+  justify-content: center;
+}
+
+body.theme-queue .theme-main a.btn-secondary.auth-submit,
+body.theme-queue .theme-main .btn.btn-secondary {
+  color: var(--theme-text);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--theme-border);
+  box-shadow: none;
+}
+
+body.theme-queue .theme-main a.btn-secondary.auth-submit:hover,
+body.theme-queue .theme-main .btn.btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 92, 154, 0.45);
+  color: #fff;
+}
+
+/* Same metrics as .theme-home-fq__lead (core marketing copy no longer loaded here). */
+body.theme-queue .theme-main .auth-lede {
+  margin: 0 0 1.25rem;
+  max-width: 38rem;
+  font-family: var(--theme-font);
+  font-size: 1.125rem;
+  line-height: 1.65;
+  font-weight: 400;
+  letter-spacing: -0.012em;
+  color: var(--theme-muted);
+}
+
+body.theme-queue .theme-main .auth-lede a {
+  color: var(--theme-pink-soft);
+  font-weight: 700;
+  text-decoration: underline;
+  text-decoration-color: rgba(255, 92, 154, 0.35);
+  text-underline-offset: 0.2em;
+  text-decoration-thickness: 1px;
+}
+
+body.theme-queue .theme-main .auth-lede a:hover {
+  color: #ffffff;
+  text-decoration-color: var(--theme-pink-soft);
 }
 
 body.theme-queue .auth-lede {
@@ -5394,15 +5533,42 @@ body.theme-queue .auth-label span {
   color: var(--theme-muted);
 }
 
-body.theme-queue .auth-input {
-  background: var(--theme-bg-elevated);
-  border-color: var(--theme-border);
-  color: var(--theme-text);
+body.theme-queue .theme-main .auth-card .auth-label span {
+  font-weight: 600;
+  letter-spacing: -0.015em;
 }
 
-body.theme-queue .auth-input:focus {
-  border-color: rgba(255, 92, 154, 0.45);
-  box-shadow: 0 0 0 3px rgba(255, 45, 120, 0.18);
+/* Full field chrome (core styles.css is not loaded on theme-layout auth pages). */
+body.theme-queue .theme-main .auth-input {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  padding: 0.75rem 0.95rem;
+  border-radius: var(--theme-radius);
+  border: 1px solid var(--theme-border);
+  background: var(--theme-bg-elevated);
+  color: var(--theme-text);
+  font-size: 1rem;
+  font-family: inherit;
+  line-height: 1.4;
+  box-shadow: none;
+  appearance: none;
+  -webkit-appearance: none;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+body.theme-queue .theme-main .auth-input::placeholder {
+  color: var(--theme-muted);
+  opacity: 1;
+}
+
+body.theme-queue .theme-main .auth-input:focus {
+  outline: none;
+  border-color: rgba(255, 92, 154, 0.55);
+  box-shadow: 0 0 0 3px rgba(255, 45, 120, 0.22);
 }
 
 body.theme-queue .auth-flash--error {
@@ -5417,7 +5583,7 @@ body.theme-queue .auth-flash--success {
   color: #a5f3fc;
 }
 
-/* Primary actions on public-root pages (no .theme-main wrapper) */
+/* Auth + marketing-root primary CTAs — storefront uses .theme-main; keep both selectors. */
 body.theme-queue .btn.btn-primary,
 body.theme-queue button.btn-primary.auth-submit {
   color: #0a0a0a;
@@ -5430,6 +5596,40 @@ body.theme-queue button.btn-primary.auth-submit {
 body.theme-queue .btn.btn-primary:hover,
 body.theme-queue button.btn-primary.auth-submit:hover {
   box-shadow: 0 12px 40px var(--theme-pink-glow);
+}
+
+/* Form-shaped controls (full-width auth) — calmer than header pill buttons. */
+body.theme-queue .theme-main .auth-form .btn,
+body.theme-queue .theme-main .auth-oauth .btn {
+  border-radius: var(--theme-radius);
+  min-height: 3rem;
+  padding: 0.8rem 1.35rem;
+  font-size: 1rem;
+  font-weight: 700;
+  width: 100%;
+  max-width: none;
+}
+
+body.theme-queue .theme-main .auth-form .btn-primary,
+body.theme-queue .theme-main .auth-form button.btn-primary {
+  color: #0a0a0a;
+  background: linear-gradient(135deg, var(--theme-accent), #e91e6b);
+  background-size: 100% auto;
+  box-shadow: 0 8px 28px var(--theme-pink-glow);
+  border: 1px solid transparent;
+}
+
+body.theme-queue .theme-main .auth-form .btn-primary:hover,
+body.theme-queue .theme-main .auth-form button.btn-primary:hover {
+  box-shadow: 0 12px 40px var(--theme-pink-glow);
+  transform: translateY(-1px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body.theme-queue .theme-main .auth-form .btn-primary:hover,
+  body.theme-queue .theme-main .auth-form button.btn-primary:hover {
+    transform: none;
+  }
 }
 
 body.theme-queue .cs-brief-progress {

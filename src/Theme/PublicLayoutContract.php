@@ -12,6 +12,8 @@ namespace App\Theme;
  * - {@see THEME_SHELL} is defined only under active theme `views/layouts/`. Theme storefront templates
  *   extend this. Do not add `templates/layouts/base.twig` in core: the loader checks core first and would
  *   steal resolution from every theme.
+ * - Plugin public pages that must match the storefront shell extend `pages/plugin_public_theme_shell.twig`
+ *   (core bridge to the active theme layout), not `theme_layout()` or `layouts/base.twig` directly.
  */
 final class PublicLayoutContract
 {

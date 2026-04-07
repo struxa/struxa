@@ -1,9 +1,9 @@
-{% extends 'base.twig' %}
+{% extends theme_layout() %}
 
 {% block title %}Two-factor authentication — {{ settings.site_name|default('Your Studio')|e }}{% endblock %}
 
 {% block body %}
-<main>
+<main id="main-content" class="{% if active_theme|default('') == 'queue' %}theme-fq-editorial theme-fq-editorial--narrow{% endif %}">
   <section class="section section-auth" aria-labelledby="auth-2fa-heading">
     <div class="auth-card glass-panel">
       <p class="eyebrow reveal" data-reveal><span class="eyebrow-pulse"></span> Security</p>
@@ -15,6 +15,7 @@
       {% endif %}
 
       <form class="auth-form" method="post" action="{{ url_for('login.two_factor.submit') }}" novalidate>
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
         {% if login_next %}
           <input type="hidden" name="next" value="{{ login_next }}" />
         {% endif %}
@@ -28,5 +29,4 @@
     </div>
   </section>
 </main>
-{% include 'partials/_footer.twig' %}
 {% endblock %}

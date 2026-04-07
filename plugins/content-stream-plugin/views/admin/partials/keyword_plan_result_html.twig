@@ -1,0 +1,132 @@
+{# Fragment returned by AJAX (no extends). All dynamic text escaped. #}
+<style>
+  .cs-kp-wrap { margin-top: 1.25rem; font-size: 0.9375rem; line-height: 1.5; }
+  .cs-kp-wrap--error {
+    padding: 1.25rem 1.35rem;
+    border-radius: 12px;
+    border: 1px solid rgba(220, 38, 38, 0.35);
+    background: linear-gradient(135deg, rgba(254, 226, 226, 0.55) 0%, rgba(255, 255, 255, 0.9) 100%);
+    color: #7f1d1d;
+  }
+  .cs-kp-wrap--ok {
+    border-radius: 14px;
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    background: linear-gradient(160deg, rgba(241, 245, 249, 0.9) 0%, rgba(255, 255, 255, 0.98) 45%, rgba(248, 250, 252, 0.95) 100%);
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 12px 32px -12px rgba(15, 23, 42, 0.12);
+    overflow: hidden;
+  }
+  .cs-kp-head {
+    padding: 1.25rem 1.35rem 1rem;
+    border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+    background: linear-gradient(90deg, rgba(59, 130, 246, 0.08), transparent);
+  }
+  .cs-kp-head h3 { margin: 0; font-size: 1.15rem; font-weight: 650; letter-spacing: -0.02em; color: #0f172a; }
+  .cs-kp-head p { margin: 0.35rem 0 0; font-size: 0.8125rem; color: #64748b; }
+  .cs-kp-meta { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.75rem; }
+  .cs-kp-pill {
+    display: inline-flex; align-items: center; gap: 0.35rem;
+    padding: 0.2rem 0.55rem; border-radius: 999px; font-size: 0.75rem; font-weight: 500;
+    background: rgba(15, 23, 42, 0.06); color: #334155;
+  }
+  .cs-kp-grid {
+    display: grid;
+    gap: 0.75rem;
+    padding: 1rem 1.1rem 1.25rem;
+    max-height: min(70vh, 42rem);
+    overflow: auto;
+  }
+  @media (min-width: 720px) {
+    .cs-kp-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (min-width: 1100px) {
+    .cs-kp-grid { grid-template-columns: repeat(3, 1fr); }
+  }
+  .cs-kp-card {
+    border-radius: 10px;
+    border: 1px solid rgba(15, 23, 42, 0.07);
+    background: #fff;
+    padding: 0.85rem 1rem 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+  .cs-kp-card:hover {
+    border-color: rgba(59, 130, 246, 0.25);
+    box-shadow: 0 4px 14px -6px rgba(37, 99, 235, 0.2);
+  }
+  .cs-kp-card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 0.5rem; }
+  .cs-kp-day {
+    flex-shrink: 0; min-width: 2rem; height: 2rem; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.8125rem; font-weight: 700; color: #fff;
+    background: linear-gradient(135deg, #2563eb, #4f46e5);
+    box-shadow: 0 2px 6px rgba(37, 99, 235, 0.35);
+  }
+  .cs-kp-score { font-size: 0.75rem; font-weight: 600; color: #059669; }
+  .cs-kp-title { margin: 0; font-size: 0.9375rem; font-weight: 650; color: #0f172a; line-height: 1.35; }
+  .cs-kp-kw { font-size: 0.75rem; color: #64748b; word-break: break-word; }
+  .cs-kp-intent {
+    align-self: flex-start; font-size: 0.6875rem; text-transform: uppercase; letter-spacing: 0.04em;
+    padding: 0.15rem 0.45rem; border-radius: 4px;
+    background: rgba(99, 102, 241, 0.12); color: #4338ca; font-weight: 600;
+  }
+  .cs-kp-desc { margin: 0; font-size: 0.8125rem; color: #475569; line-height: 1.45; }
+  .cs-kp-rat { margin: 0; font-size: 0.75rem; color: #64748b; font-style: italic; }
+  .cs-kp-outline { margin: 0.25rem 0 0; padding-left: 1.1rem; font-size: 0.75rem; color: #334155; line-height: 1.45; }
+  .cs-kp-outline li { margin-bottom: 0.2rem; }
+</style>
+
+{% if cs_plan_html_error is not empty %}
+  <div class="cs-kp-wrap cs-kp-wrap--error" data-status="error" data-cs-plan-response="html">
+    <strong style="display:block;margin-bottom:0.35rem;font-size:0.9rem;">Could not build the plan</strong>
+    <span class="admin-prose" style="margin:0;">{{ cs_plan_html_error|e }}</span>
+  </div>
+{% else %}
+  <div class="cs-kp-wrap cs-kp-wrap--ok" data-status="ok" data-cs-plan-response="html">
+    <header class="cs-kp-head">
+      <h3>Monthly editorial calendar</h3>
+      <p>One idea per day — diversified angles, on-brand for this business.</p>
+      <div class="cs-kp-meta">
+        {% if cs_plan_html_plan.plan_month is defined and cs_plan_html_plan.plan_month|trim != '' %}
+          <span class="cs-kp-pill">{{ cs_plan_html_plan.plan_month|e }}</span>
+        {% endif %}
+        {% if cs_plan_html_plan.label is defined and cs_plan_html_plan.label|trim != '' %}
+          <span class="cs-kp-pill">{{ cs_plan_html_plan.label|e }}</span>
+        {% endif %}
+        {% if cs_plan_html_plan.domain is defined and cs_plan_html_plan.domain|trim != '' %}
+          <span class="cs-kp-pill">{{ cs_plan_html_plan.domain|e }}</span>
+        {% endif %}
+        <span class="cs-kp-pill">{{ cs_plan_html_items|length }} {% if cs_plan_html_items|length == 1 %}post{% else %}posts{% endif %}</span>
+      </div>
+    </header>
+    <div class="cs-kp-grid">
+      {% for row in cs_plan_html_items %}
+        <article class="cs-kp-card">
+          <div class="cs-kp-card-top">
+            <span class="cs-kp-day" aria-label="Day {{ row.day_index|e }}">{{ row.day_index|e }}</span>
+            {% if row.opportunity_score is not null %}
+              <span class="cs-kp-score">{{ row.opportunity_score|e }} pts</span>
+            {% endif %}
+          </div>
+          <span class="cs-kp-intent">{{ (row.search_intent|default('—'))|e }}</span>
+          <h4 class="cs-kp-title">{{ row.title|e }}</h4>
+          <p class="cs-kp-kw"><strong style="font-weight:600;color:#475569;">Keyword:</strong> {{ row.primary_keyword|e }}</p>
+          {% if row.meta_description is defined and row.meta_description|trim != '' %}
+            <p class="cs-kp-desc">{{ row.meta_description|e }}</p>
+          {% endif %}
+          {% if row.score_rationale is defined and row.score_rationale|trim != '' %}
+            <p class="cs-kp-rat">{{ row.score_rationale|e }}</p>
+          {% endif %}
+          {% if row.outline_lines is defined and row.outline_lines is iterable and row.outline_lines|length > 0 %}
+            <ul class="cs-kp-outline">
+              {% for line in row.outline_lines %}
+                <li>{{ line|e }}</li>
+              {% endfor %}
+            </ul>
+          {% endif %}
+        </article>
+      {% endfor %}
+    </div>
+  </div>
+{% endif %}

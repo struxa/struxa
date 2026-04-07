@@ -1,0 +1,129 @@
+{# Shared fetch + progress for domain brief tool (admin + public). Expects theme: 'admin' | 'public' #}
+<script>
+(function () {
+  var form = document.getElementById('cs-brief-form');
+  var progress = document.getElementById('cs-progress');
+  var errWrap = document.getElementById('cs-error-wrap');
+  var errText = document.getElementById('cs-error-text');
+  var resultWrap = document.getElementById('cs-result-wrap');
+  var resultBody = document.getElementById('cs-result-body');
+  var resultDomain = document.getElementById('cs-result-domain');
+  var submitBtn = document.getElementById('cs-brief-submit');
+  var continueA = document.getElementById('cs-continue-admin');
+  var toolBase = form.getAttribute('data-cs-admin-tool') || '';
+  if (!form || !progress || !window.fetch) return;
+
+  function escapeHtml(s) {
+    return String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.setAttribute('aria-busy', 'true');
+    }
+    if (errWrap) {
+      errWrap.hidden = true;
+      if (errText) errText.textContent = '';
+    }
+    progress.hidden = false;
+
+    var csrfField = form.querySelector('input[name="_csrf_token"]');
+    var csrfVal = csrfField && csrfField.value ? String(csrfField.value) : '';
+    var domainEl = document.getElementById('cs_domain');
+    var domainVal = domainEl ? String(domainEl.value || '') : '';
+    var params = new URLSearchParams();
+    params.set('_csrf_token', csrfVal);
+    params.set('domain', domainVal);
+
+    fetch(form.action, {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'X-Requested-With': 'XMLHttpRequest',
+        'X-CSRF-Token': csrfVal
+      },
+      body: params.toString(),
+      credentials: 'same-origin'
+    })
+      .then(function (r) {
+        if (!r.ok) {
+          return r.json().catch(function () {
+            return { error: 'Request failed (' + r.status + ').' };
+          }).then(function (j) {
+            throw new Error(j.message || j.error || 'Request failed.');
+          });
+        }
+        return r.json();
+      })
+      .then(function (data) {
+        progress.hidden = true;
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.removeAttribute('aria-busy');
+        }
+        var err = (data && data.error) ? String(data.error).trim() : '';
+        if (err !== '') {
+          if (errWrap && errText) {
+            errText.textContent = err;
+            errWrap.hidden = false;
+          }
+          if (resultWrap) resultWrap.hidden = true;
+          return;
+        }
+        var html = data && data.result_html ? String(data.result_html) : '';
+        var brief = '';
+        if (html.trim() === '') {
+          if (data && data.analysis !== null && data.analysis !== undefined && typeof data.analysis === 'object') {
+            try {
+              brief = JSON.stringify(data.analysis, null, 2);
+            } catch (e) {
+              brief = data && data.brief ? String(data.brief) : '';
+            }
+          } else {
+            brief = data && data.brief ? String(data.brief) : '';
+          }
+        }
+        var domain = (data && data.domain) ? String(data.domain) : domainVal.trim();
+        if (continueA && toolBase) {
+          continueA.href = domain !== '' ? toolBase + '?domain=' + encodeURIComponent(domain) : toolBase;
+        }
+        if (resultBody) {
+          if (html.trim() !== '') {
+            resultBody.innerHTML = html;
+          } else {
+            resultBody.innerHTML =
+              '<pre id="cs-result-brief-fallback" style="white-space:pre-wrap;font-family:inherit;margin:0;background:transparent;border:0;padding:0">' +
+              escapeHtml(brief) +
+              '</pre>';
+          }
+        }
+        if (resultDomain) resultDomain.textContent = domain;
+        if (resultWrap) {
+          resultWrap.hidden = html.trim() === '' && brief.trim() === '';
+        }
+      })
+      .catch(function (err) {
+        progress.hidden = true;
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.removeAttribute('aria-busy');
+        }
+        if (errWrap && errText) {
+          var msg =
+            err && typeof err.message === 'string' && err.message.trim() !== ''
+              ? err.message
+              : 'Network error. Check your connection and try again.';
+          errText.textContent = msg;
+          errWrap.hidden = false;
+        }
+      });
+  });
+})();
+</script>

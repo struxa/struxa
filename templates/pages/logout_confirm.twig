@@ -1,9 +1,9 @@
-{% extends 'base.twig' %}
+{% extends theme_layout() %}
 
 {% block title %}Sign out — {{ settings.site_name|default('Your Studio')|e }}{% endblock %}
 
 {% block body %}
-<main>
+<main id="main-content" class="{% if active_theme|default('') == 'queue' %}theme-fq-editorial theme-fq-editorial--narrow{% endif %}">
   <section class="section section-auth" aria-labelledby="logout-heading">
     <div class="auth-card glass-panel">
       <h1 class="auth-title" id="logout-heading">Sign out</h1>
@@ -16,5 +16,4 @@
     </div>
   </section>
 </main>
-{% include 'partials/_footer.twig' %}
 {% endblock %}
