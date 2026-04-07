@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.0.18",
-    "title": "Struxa 1.0.18",
-    "summary": "Storefront-aligned login/register/2FA/logout (theme shell + CSRF); Queue auth typography and form UI; plugin public theme bridge; Content Stream public page matches active theme.",
+    "latest_version": "1.0.19",
+    "title": "Struxa 1.0.19",
+    "summary": "Updates feed fetch: cURL + HTTP checks, optional STRUXA_UPDATES_JSON_PATH; auth forms autocomplete/ids, header/footer spacing; Queue auth lede + primary/secondary buttons aligned with nav CTA.",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "minor"

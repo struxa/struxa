@@ -8,7 +8,7 @@
     <div class="auth-card glass-panel">
       <h1 class="auth-title" id="logout-heading">Sign out</h1>
       <p class="auth-lede">Confirm that you want to end your session on this device.</p>
-      <form class="auth-form" method="post" action="{{ url_for('logout') }}" style="margin-top:1rem">
+      <form id="logout-form" class="auth-form" method="post" action="{{ url_for('logout') }}" style="margin-top:1rem">
         <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
         <button type="submit" class="btn btn-primary btn-lg auth-submit">Sign out</button>
       </form>

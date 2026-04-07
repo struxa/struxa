@@ -115,7 +115,7 @@ final class CmsUpdateChecker
             }
         }
 
-        $raw = $this->httpGetLimited($feedUrl, self::MAX_BYTES, false);
+        $raw = $this->fetchJsonFeedBody($feedUrl);
         if ($raw === null || $raw === '') {
             $out = array_merge($base, [
                 'ok' => false,
@@ -419,6 +419,51 @@ final class CmsUpdateChecker
         return self::DEFAULT_FEED_URL;
     }
 
+    /**
+     * Load feed: optional local file (hairpin/NAT-safe) then HTTPS GET with cURL → fopen fallback.
+     */
+    private function fetchJsonFeedBody(string $feedUrl): ?string
+    {
+        $localPath = self::envString('STRUXA_UPDATES_JSON_PATH');
+        if ($localPath !== '') {
+            $fromFile = $this->readLocalUpdatesFile($localPath);
+            if ($fromFile !== null) {
+                return $fromFile;
+            }
+        }
+
+        return $this->httpGetLimited($feedUrl, self::MAX_BYTES, false);
+    }
+
+    /**
+     * Read updates JSON from disk (.env STRUXA_UPDATES_JSON_PATH). Use when the server cannot HTTP-fetch its own public URL.
+     *
+     * @return non-empty-string|null
+     */
+    private function readLocalUpdatesFile(string $path): ?string
+    {
+        $path = trim($path);
+        if ($path === '' || str_contains($path, "\0")) {
+            return null;
+        }
+        if (!is_file($path) || !is_readable($path)) {
+            return null;
+        }
+        $size = filesize($path);
+        if ($size === false || $size < 1 || $size > self::MAX_BYTES) {
+            return null;
+        }
+        $raw = file_get_contents($path, false, null, 0, self::MAX_BYTES + 1);
+        if (!is_string($raw) || $raw === '') {
+            return null;
+        }
+        if (strlen($raw) > self::MAX_BYTES) {
+            return null;
+        }
+
+        return $raw;
+    }
+
     private static function envString(string $key, string $default = ''): string
     {
         if (isset($_ENV[$key])) {
@@ -496,11 +541,77 @@ final class CmsUpdateChecker
             return null;
         }
 
-        $ua = 'Struxa-CmsUpdateCheck/1.0 (+https://struxapoint.com)';
         $accept = $githubApi ? 'application/vnd.github+json' : 'application/json';
+        $userAgents = [
+            'Struxa-CmsUpdateCheck/1.0 (+https://struxapoint.com)',
+            'Mozilla/5.0 (compatible; StruxaCMS/' . CmsVersion::CURRENT . '; +https://struxapoint.com) update-check',
+        ];
+
+        foreach ($userAgents as $ua) {
+            if (function_exists('curl_init')) {
+                $data = $this->httpGetCurl($url, $maxBytes, $ua, $accept, $githubApi);
+                if ($data !== null) {
+                    return $data;
+                }
+            }
+            $data = $this->httpGetFopen($url, $maxBytes, $ua, $accept);
+            if ($data !== null) {
+                return $data;
+            }
+        }
+
+        return null;
+    }
+
+    private function httpGetCurl(string $url, int $maxBytes, string $ua, string $accept, bool $githubApi): ?string
+    {
+        $ch = curl_init($url);
+        if ($ch === false) {
+            return null;
+        }
+        $headers = [
+            'Accept: ' . $accept,
+        ];
+        if ($githubApi) {
+            $headers[] = 'X-GitHub-Api-Version: 2022-11-28';
+        }
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_MAXREDIRS => 5,
+            CURLOPT_TIMEOUT => 20,
+            CURLOPT_USERAGENT => $ua,
+            CURLOPT_HTTPHEADER => $headers,
+            CURLOPT_SSL_VERIFYPEER => true,
+            CURLOPT_SSL_VERIFYHOST => 2,
+            CURLOPT_PROTOCOLS => CURLPROTO_HTTPS,
+            CURLOPT_REDIR_PROTOCOLS => CURLPROTO_HTTPS,
+        ]);
+        if (defined('CURLOPT_MAXFILESIZE')) {
+            curl_setopt($ch, CURLOPT_MAXFILESIZE, $maxBytes + 1);
+        }
+        $data = curl_exec($ch);
+        $errno = curl_errno($ch);
+        $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+        if ($errno !== 0 || !is_string($data)) {
+            return null;
+        }
+        if ($code < 200 || $code >= 300) {
+            return null;
+        }
+        if ($data === '' || strlen($data) > $maxBytes) {
+            return null;
+        }
+
+        return $data;
+    }
+
+    private function httpGetFopen(string $url, int $maxBytes, string $ua, string $accept): ?string
+    {
         $ctx = stream_context_create([
             'http' => [
-                'timeout' => 15,
+                'timeout' => 20,
                 'follow_location' => 1,
                 'max_redirects' => 5,
                 'header' => "User-Agent: {$ua}\r\nAccept: {$accept}\r\n",
@@ -514,6 +625,12 @@ final class CmsUpdateChecker
         if ($h === false) {
             return null;
         }
+        $statusLine = $http_response_header[0] ?? '';
+        if (!preg_match('#\s2\d\d\s#', $statusLine)) {
+            fclose($h);
+
+            return null;
+        }
         $data = '';
         while (!feof($h) && strlen($data) < $maxBytes) {
             $chunk = fread($h, 8192);
@@ -523,7 +640,7 @@ final class CmsUpdateChecker
             $data .= $chunk;
         }
         fclose($h);
-        if (strlen($data) >= $maxBytes) {
+        if ($data === '' || strlen($data) > $maxBytes) {
             return null;
         }
 

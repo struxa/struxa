@@ -14,25 +14,25 @@
         <p class="auth-flash auth-flash--error" role="alert">{{ flash_error }}</p>
       {% endif %}
 
-      <form class="auth-form" method="post" action="{{ url_for('register') }}" novalidate>
+      <form id="register-form" class="auth-form" method="post" action="{{ url_for('register') }}" autocomplete="on" novalidate>
         <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
         {% if registration_collect_username|default(false) %}
-        <label class="auth-label">
+        <label class="auth-label" for="register-username">
           <span>Username</span>
-          <input class="auth-input" type="text" name="username" autocomplete="username" maxlength="32" required pattern="[a-zA-Z0-9][a-zA-Z0-9_-]*" title="Letters, numbers, underscores, or hyphens; start with a letter or number." />
+          <input class="auth-input" id="register-username" type="text" name="username" autocomplete="username" maxlength="32" required pattern="[a-zA-Z0-9][a-zA-Z0-9_-]*" title="Letters, numbers, underscores, or hyphens; start with a letter or number." autocapitalize="none" spellcheck="false" />
         </label>
         {% endif %}
-        <label class="auth-label">
+        <label class="auth-label" for="register-email">
           <span>Email</span>
-          <input class="auth-input" type="email" name="email" autocomplete="email" required />
+          <input class="auth-input" id="register-email" type="email" name="email" inputmode="email" autocomplete="email" autocapitalize="none" spellcheck="false" required />
         </label>
-        <label class="auth-label">
+        <label class="auth-label" for="register-password">
           <span>Password</span>
-          <input class="auth-input" type="password" name="password" autocomplete="new-password" required />
+          <input class="auth-input" id="register-password" type="password" name="password" autocomplete="new-password" required />
         </label>
-        <label class="auth-label">
+        <label class="auth-label" for="register-password-confirm">
           <span>Confirm password</span>
-          <input class="auth-input" type="password" name="password_confirm" autocomplete="new-password" required />
+          <input class="auth-input" id="register-password-confirm" type="password" name="password_confirm" autocomplete="new-password" required />
         </label>
         <button class="btn btn-primary btn-lg auth-submit" type="submit">Create account</button>
       </form>
