@@ -2348,6 +2348,10 @@ body.theme-queue .theme-fq-editorial .theme-fq-generic-entry h1 {
 }
 
 .theme-main article.theme-cms-page.theme-error-404 .theme-error-404__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
   margin: 1.5rem 0 0;
 }
 
@@ -5347,6 +5351,35 @@ body.theme-queue .site-footer .footer-links a:hover {
  * Auth / plugin pages — storefront shell (theme-main). Core `styles.css` is not loaded here,
  * so auth layout + form primitives must live in the theme (previously came from public/root).
  */
+body.theme-queue .theme-main main#main-content.theme-public-solo.theme-fq-editorial.theme-fq-editorial--narrow {
+  margin-top: 1.25rem;
+  margin-bottom: 2.5rem;
+  min-height: min(72vh, 46rem);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+body.theme-queue .theme-main main#main-content.theme-public-solo.theme-fq-editorial:not(.theme-fq-editorial--narrow) {
+  margin-top: 1rem;
+  margin-bottom: 2rem;
+  min-height: min(68vh, 42rem);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+body.theme-queue .theme-main .theme-auth-page .theme-auth-page__form-wrap {
+  width: 100%;
+  max-width: 22rem;
+  margin-top: 0.35rem;
+}
+
+body.theme-queue .theme-main .theme-auth-page .theme-auth-page__footer-link {
+  margin: 1.35rem 0 0;
+  font-size: 0.9375rem;
+}
+
 body.theme-queue .section-auth {
   display: flex;
   flex-direction: column;
@@ -5539,6 +5572,8 @@ body.theme-queue .theme-main .auth-submit {
 }
 
 /* Outlines / OAuth: light text (native button styles often force black on dark themes). */
+body.theme-queue .theme-main .theme-auth-page .theme-cms-page-hero a.btn-secondary.auth-submit,
+body.theme-queue .theme-main .theme-auth-page .theme-cms-page-hero .btn.btn-secondary,
 body.theme-queue .theme-main .auth-card a.btn-secondary.auth-submit,
 body.theme-queue .theme-main .auth-card .btn.btn-secondary {
   color: #ffffff;
@@ -5548,6 +5583,8 @@ body.theme-queue .theme-main .auth-card .btn.btn-secondary {
   box-shadow: 0 1px 0 rgba(255, 255, 255, 0.06) inset;
 }
 
+body.theme-queue .theme-main .theme-auth-page .theme-cms-page-hero a.btn-secondary.auth-submit:hover,
+body.theme-queue .theme-main .theme-auth-page .theme-cms-page-hero .btn.btn-secondary:hover,
 body.theme-queue .theme-main .auth-card a.btn-secondary.auth-submit:hover,
 body.theme-queue .theme-main .auth-card .btn.btn-secondary:hover {
   background: rgba(255, 255, 255, 0.16);
@@ -5599,6 +5636,7 @@ body.theme-queue .auth-label span {
   color: var(--theme-muted);
 }
 
+body.theme-queue .theme-main .theme-auth-page .auth-label span,
 body.theme-queue .theme-main .auth-card .auth-label span {
   font-weight: 600;
   letter-spacing: -0.015em;

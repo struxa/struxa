@@ -538,13 +538,28 @@ $app->post('/login', function (Request $request, Response $response) use ($auth,
     return $response->withHeader('Location', $target)->withStatus(302);
 });
 
-$app->get('/register', function (Request $request, Response $response) use ($twig, $viewData): Response {
+$app->get('/register', function (Request $request, Response $response) use ($twig, $viewData, $auth): Response {
+    if ($auth->isLogged()) {
+        $routeParser = RouteContext::fromRequest($request)->getRouteParser();
+
+        return $response
+            ->withHeader('Location', $routeParser->urlFor('home'))
+            ->withStatus(302);
+    }
+
     return $twig->render($response, 'pages/register.twig', array_merge($viewData(), [
         'registration_collect_username' => Settings::get('registration_collect_username', '0') === '1',
     ]));
 })->setName('register');
 
 $app->post('/register', function (Request $request, Response $response) use ($auth, $pdo): Response {
+    $routeParser = RouteContext::fromRequest($request)->getRouteParser();
+    if ($auth->isLogged()) {
+        return $response
+            ->withHeader('Location', $routeParser->urlFor('home'))
+            ->withStatus(302);
+    }
+
     $body = $request->getParsedBody();
     $email = is_array($body) ? trim((string) ($body['email'] ?? '')) : '';
     $password = is_array($body) ? (string) ($body['password'] ?? '') : '';
@@ -552,7 +567,6 @@ $app->post('/register', function (Request $request, Response $response) use ($au
     $usernameRaw = is_array($body) ? (string) ($body['username'] ?? '') : '';
     $collectUsername = Settings::get('registration_collect_username', '0') === '1';
     $usernameCheck = UsernameValidation::validate($usernameRaw, $collectUsername);
-    $routeParser = RouteContext::fromRequest($request)->getRouteParser();
     $registerUrl = $routeParser->urlFor('register');
 
     if (!$usernameCheck['ok']) {

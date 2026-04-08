@@ -16,7 +16,7 @@
 {% block twitter_description %}This page does not exist or has moved.{% endblock %}
 
 {% block body %}
-<main id="main-content"{% if active_theme|default('') == 'queue' %} class="theme-fq-editorial" data-fq-subpage{% endif %}>
+<main id="main-content" class="theme-public-solo{% if active_theme|default('') == 'queue' %} theme-fq-editorial{% endif %}"{% if active_theme|default('') == 'queue' %} data-fq-subpage{% endif %}>
   <article class="theme-cms-page theme-error-404" aria-labelledby="not-found-heading">
     <header class="theme-cms-page-hero">
       <p class="eyebrow">
@@ -27,9 +27,10 @@
       <p class="theme-error-404__lede">
         We couldn’t find that page. It may have been removed or the link might be wrong.
       </p>
-      <p class="theme-error-404__actions">
+      <div class="theme-error-404__actions" role="group" aria-label="{{ 'Next steps'|e }}">
         <a class="theme-home-fq__btn theme-home-fq__btn--primary" href="{{ url_for('home') }}">{{ 'Back to home'|e }}</a>
-      </p>
+        <a class="theme-home-fq__btn theme-home-fq__btn--ghost" href="{{ url_for('login') }}">{{ 'Sign in'|e }}</a>
+      </div>
       {% if not_found_debug and not_found_debug_detail %}
         <details class="theme-error-404__debug">
           <summary>Technical details (APP_DEBUG)</summary>
