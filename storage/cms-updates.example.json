@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.0.22",
-    "title": "Struxa 1.0.22",
-    "summary": "struxa-updates-json.php: 403 if refresh=1 without key when STRUXA_UPDATES_GEN_SECRET set; no-store on successful refresh. Fixes stale feed when ?refresh=1 looked like it worked.",
+    "latest_version": "1.0.23",
+    "title": "Struxa 1.0.23",
+    "summary": "Queue theme: regenerate themes/queue/assets/css/app.min.css from app.css so login/register auth styles apply when assets_prefer_minified or STRUXA_ASSETS_PREFER_MIN is on.",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "minor"
