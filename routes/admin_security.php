@@ -102,9 +102,22 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             $back = $redirectAfterIpBlockAdd($body, $routeParser);
             $raw = trim((string) ($body['pattern'] ?? ''));
             $note = isset($body['note']) && is_string($body['note']) ? $body['note'] : '';
+            $wantsJson = str_contains(strtolower($request->getHeaderLine('Accept')), 'application/json');
+
+            $jsonBody = static function (Response $r, array $payload, int $status): Response {
+                $r->getBody()->write(json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR));
+
+                return $r
+                    ->withStatus($status)
+                    ->withHeader('Content-Type', 'application/json; charset=utf-8')
+                    ->withHeader('Cache-Control', 'no-store');
+            };
 
             $norm = IpBlockPatternValidator::normalize($raw);
             if (!$norm['ok']) {
+                if ($wantsJson) {
+                    return $jsonBody($response, ['ok' => false, 'error' => $norm['error']], 422);
+                }
                 Flash::set('error', $norm['error']);
 
                 return $response->withHeader('Location', $back)->withStatus(302);
@@ -112,12 +125,18 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
 
             $ins = $repo->insert($norm['pattern'], $note);
             if (!$ins['ok']) {
+                if ($wantsJson) {
+                    return $jsonBody($response, ['ok' => false, 'error' => 'That pattern is already blocked.'], 409);
+                }
                 Flash::set('error', 'That pattern is already blocked.');
 
                 return $response->withHeader('Location', $back)->withStatus(302);
             }
 
             $invalidateIpBlockCache();
+            if ($wantsJson) {
+                return $jsonBody($response, ['ok' => true, 'pattern' => $norm['pattern']], 200);
+            }
             Flash::set('success', 'IP block added.');
 
             return $response->withHeader('Location', $back)->withStatus(302);

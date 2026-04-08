@@ -260,9 +260,9 @@
               if (note.length > 255) note = note.slice(0, 252) + '…';
               blockCol =
                 '<td class="admin-table-actions" style="white-space:nowrap">' +
-                '<form method="post" action="' +
+                '<form class="js-nf-ip-block-form" method="post" action="' +
                 escAttr(blockAddUrl) +
-                '" style="display:inline" onsubmit="return confirm(&quot;Block this IP from the entire site (storefront and admin)?&quot;);">' +
+                '" style="display:inline">' +
                 '<input type="hidden" name="_csrf_token" value="' +
                 escAttr(blockCsrf) +
                 '" />' +
@@ -293,6 +293,103 @@
             '</td>' +
             blockCol;
           tbody.appendChild(tr);
+        });
+      }
+
+      if (wrapEl && canBlockIp && blockAddUrl) {
+        wrapEl.addEventListener('submit', function (e) {
+          var f = e.target;
+          if (!f || f.tagName !== 'FORM' || !f.classList.contains('js-nf-ip-block-form')) {
+            return;
+          }
+          e.preventDefault();
+          if (!confirm('Block this IP from the entire site (storefront and admin)?')) {
+            return;
+          }
+          var patternInp = f.querySelector('input[name=pattern]');
+          var submittedPattern = patternInp ? patternInp.value.trim() : '';
+          var btn = f.querySelector('button[type="submit"]');
+          var prevLabel = btn ? btn.textContent : '';
+          if (btn) {
+            btn.disabled = true;
+            btn.textContent = 'Blocking…';
+          }
+          errEl.hidden = true;
+          var fd = new FormData(f);
+          var params = new URLSearchParams();
+          fd.forEach(function (v, k) {
+            params.append(k, typeof v === 'string' ? v : String(v));
+          });
+          fetch(f.action, {
+            method: 'POST',
+            headers: {
+              Accept: 'application/json',
+              'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+            },
+            body: params.toString(),
+            credentials: 'same-origin',
+          })
+            .then(function (r) {
+              return r.text().then(function (text) {
+                var data = null;
+                if (text) {
+                  try {
+                    data = JSON.parse(text);
+                  } catch (ignore) {
+                    data = null;
+                  }
+                }
+                return { ok: r.ok, status: r.status, data: data };
+              });
+            })
+            .then(function (res) {
+              if (!res.data || typeof res.data !== 'object') {
+                errEl.textContent =
+                  res.status === 403
+                    ? 'Could not verify this action. Refresh the page and try again.'
+                    : 'Unexpected response from server.';
+                errEl.hidden = false;
+                if (btn) {
+                  btn.disabled = false;
+                  btn.textContent = prevLabel;
+                }
+                return;
+              }
+              if (res.data.ok) {
+                var normPattern = String(res.data.pattern || '');
+                var badge =
+                  '<span class="admin-badge admin-badge--muted" title="This address matches your IP block list (exact or CIDR)">Already blocked</span>';
+                tbody.querySelectorAll('form.js-nf-ip-block-form').forEach(function (form) {
+                  var inp = form.querySelector('input[name=pattern]');
+                  if (!inp) {
+                    return;
+                  }
+                  var v = inp.value.trim();
+                  if (v === submittedPattern || (normPattern !== '' && v === normPattern)) {
+                    var cell = form.closest('td');
+                    if (cell) {
+                      cell.innerHTML = badge;
+                    }
+                  }
+                });
+                errEl.hidden = true;
+                return;
+              }
+              errEl.textContent = (res.data.error && String(res.data.error)) || 'Could not add IP block.';
+              errEl.hidden = false;
+              if (btn) {
+                btn.disabled = false;
+                btn.textContent = prevLabel;
+              }
+            })
+            .catch(function () {
+              errEl.textContent = 'Request failed.';
+              errEl.hidden = false;
+              if (btn) {
+                btn.disabled = false;
+                btn.textContent = prevLabel;
+              }
+            });
         });
       }
 
