@@ -114,6 +114,32 @@ final class NotFoundLogRepository
         $stmt->execute([$id]);
     }
 
+    /**
+     * @param list<int|string> $ids
+     *
+     * @return int Rows deleted
+     */
+    public function deleteByIds(array $ids): int
+    {
+        $clean = [];
+        foreach ($ids as $v) {
+            $i = (int) $v;
+            if ($i > 0) {
+                $clean[$i] = true;
+            }
+        }
+        $clean = array_keys($clean);
+        if ($clean === []) {
+            return 0;
+        }
+        $clean = array_slice($clean, 0, 200);
+        $placeholders = implode(',', array_fill(0, count($clean), '?'));
+        $stmt = $this->pdo->prepare('DELETE FROM ' . self::TABLE . ' WHERE id IN (' . $placeholders . ')');
+        $stmt->execute($clean);
+
+        return $stmt->rowCount();
+    }
+
     public function deleteByPath(string $path): void
     {
         $stmt = $this->pdo->prepare('DELETE FROM ' . self::TABLE . ' WHERE path = ?');

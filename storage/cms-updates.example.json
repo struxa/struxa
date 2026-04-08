@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.0.29",
-    "title": "Struxa 1.0.29",
-    "summary": "Content Stream public page: restore card/page padding (cs-stream-card excluded from theme auth padding). Queue app.css + plugin 1.0.1.",
+    "latest_version": "1.0.30",
+    "title": "Struxa 1.0.30",
+    "summary": "Admin 404 monitor: bulk select/delete, sticky hit datatable modal, Queue palette accent + CSRF on dismiss.",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "minor"

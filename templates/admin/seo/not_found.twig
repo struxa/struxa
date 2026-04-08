@@ -11,45 +11,74 @@
     <a class="admin-link" href="{{ url_for('admin.seo.redirects') }}">URL redirects</a>
     ·
     <a class="admin-link" href="{{ url_for('admin.seo.sitemap') }}">Sitemap</a>
-    · Sorted by hit count. <strong>Details</strong> lists client IP and time for each request (after migration <code class="admin-inline-code">026_not_found_hit_events.sql</code>). Add a redirect from the <strong>Redirects</strong> screen using the path below.
+    · Sorted by hit count. <strong>Details</strong> opens a scrollable table of IP, time, and user agent (after migration <code class="admin-inline-code">026_not_found_hit_events.sql</code>). Add a redirect from <strong>Redirects</strong> using the path below.
   </p>
 {% endblock %}
 
 {% block admin_content %}
-  <section class="admin-card">
-    <div class="admin-toolbar admin-toolbar--spread" style="margin-bottom:0.75rem">
-      <h2 class="admin-settings-card-title" style="margin:0">Logged 404s</h2>
+  <section class="admin-card admin-settings-card admin-role-edit-card admin-seo-nf-card">
+    <span class="admin-seo-nf-queue-accent" aria-hidden="true"></span>
+    <div class="admin-toolbar admin-toolbar--spread" style="margin-bottom:0.75rem;align-items:flex-start;gap:1rem;flex-wrap:wrap">
+      <div>
+        <h2 class="admin-settings-card-title" style="margin:0">Logged 404s</h2>
+        <p class="admin-settings-card-desc" style="margin:0.35rem 0 0">Storefront requests only · matches the <strong>Queue</strong> theme palette accent above</p>
+      </div>
       {% if not_found_total|default(0) > 0 %}
         <p class="admin-hint" style="margin:0">
           {{ not_found_total }} total{% if not_found_total_pages|default(1) > 1 %} · Page {{ not_found_list_page }} of {{ not_found_total_pages }}{% endif %}
         </p>
       {% endif %}
     </div>
+
     {% if not_found_rows is empty %}
       <p class="admin-hint" style="margin-top:0">No 404s logged yet.</p>
     {% else %}
+      <form id="nf-bulk-form" method="post" action="{{ url_for('admin.seo.not_found.bulk_delete') }}" style="display:none" aria-hidden="true">
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+        <input type="hidden" name="return_page" value="{{ not_found_list_page|default(1) }}" />
+      </form>
+
+      <div class="admin-toolbar admin-toolbar--spread" style="margin-bottom:0.75rem;flex-wrap:wrap;gap:0.65rem">
+        <label class="admin-hint" style="display:inline-flex;align-items:center;gap:0.45rem;margin:0;cursor:pointer">
+          <input type="checkbox" id="nf-select-all" autocomplete="off" />
+          Select all on this page
+        </label>
+        <button
+          type="submit"
+          form="nf-bulk-form"
+          class="admin-btn-danger"
+          id="nf-bulk-delete"
+        >Delete selected</button>
+      </div>
+
       <div class="admin-table-wrap" style="overflow-x:auto">
         <table class="admin-table">
           <thead>
             <tr>
-              <th>Path</th>
-              <th>Hits</th>
-              <th>Last seen</th>
-              <th>Referer</th>
-              <th></th>
+              <th class="admin-table-col-actions" scope="col" style="width:2.5rem">
+                <span class="admin-table-muted">Sel</span>
+              </th>
+              <th scope="col">Path</th>
+              <th scope="col">Hits</th>
+              <th scope="col">Last seen</th>
+              <th scope="col">Referer</th>
+              <th class="admin-table-col-actions" scope="col"><span class="admin-table-muted">Actions</span></th>
             </tr>
           </thead>
           <tbody>
             {% for row in not_found_rows %}
               <tr>
                 <td>
+                  <input type="checkbox" form="nf-bulk-form" name="ids[]" value="{{ row.id }}" class="nf-row-cb" autocomplete="off" aria-label="Select {{ row.path|e('html_attr') }}" />
+                </td>
+                <td>
                   <code class="admin-inline-code">{{ row.path|e }}</code>
                   <p class="admin-hint" style="margin:0.35rem 0 0;font-size:0.75rem">First seen {{ row.created_at|default('—')|e }}</p>
                 </td>
                 <td>{{ row.hit_count|default(0) }}</td>
-                <td>{{ row.last_seen_at|default('')|e }}</td>
+                <td><code class="admin-inline-code" style="font-size:0.8125rem">{{ row.last_seen_at|default('')|e }}</code></td>
                 <td style="max-width:14rem;word-break:break-all;font-size:0.8125rem">{{ row.referer|default('—')|e }}</td>
-                <td style="white-space:nowrap">
+                <td class="admin-table-actions" style="white-space:nowrap">
                   <button
                     type="button"
                     class="admin-link"
@@ -61,6 +90,7 @@
                   <span class="admin-table-muted" aria-hidden="true"> · </span>
                   <a class="admin-link" href="{{ url_for('admin.seo.redirects') }}?prefill={{ row.path|url_encode }}">Redirect…</a>
                   <form method="post" action="{{ url_for('admin.seo.not_found.delete', { id: row.id }) }}" style="display:inline;margin-left:0.5rem" onsubmit="return confirm('Remove this log row?');">
+                    <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
                     <input type="hidden" name="return_page" value="{{ not_found_list_page|default(1) }}" />
                     <button type="submit" class="admin-link" style="background:none;border:none;padding:0;cursor:pointer;color:inherit">Dismiss</button>
                   </form>
@@ -70,6 +100,7 @@
           </tbody>
         </table>
       </div>
+
       {% if not_found_total_pages|default(1) > 1 %}
         <nav class="admin-pagination" aria-label="404 log pages" style="margin-top:1rem">
           {% if not_found_list_page > 1 %}
@@ -86,9 +117,9 @@
 
   <div id="admin-nf-modal" class="admin-media-modal" hidden role="dialog" aria-modal="true" aria-labelledby="admin-nf-modal-title">
     <div class="admin-media-modal-backdrop" id="admin-nf-modal-backdrop" tabindex="-1"></div>
-    <div class="admin-media-modal-panel" style="max-height:min(90vh,680px);width:min(44rem,100%)">
+    <div class="admin-media-modal-panel admin-nf-modal-panel">
       <header class="admin-media-modal-head">
-        <h2 class="admin-media-modal-title" id="admin-nf-modal-title">404 request log</h2>
+        <h2 class="admin-media-modal-title" id="admin-nf-modal-title">404 hit log</h2>
         <button type="button" class="admin-media-modal-close" id="admin-nf-modal-close" aria-label="Close">×</button>
       </header>
       <div class="admin-media-modal-body">
@@ -96,13 +127,14 @@
         <p class="admin-form-error" id="admin-nf-modal-error" hidden></p>
         <p class="admin-table-muted" id="admin-nf-modal-loading">Loading…</p>
         <div id="admin-nf-modal-empty" class="admin-hint" hidden>No per-request rows yet. New 404s are logged here after migration 026.</div>
-        <div id="admin-nf-modal-table-wrap" hidden style="overflow-x:auto">
-          <table class="admin-table" style="font-size:0.875rem">
+        <div id="admin-nf-modal-table-wrap" hidden class="admin-table-wrap admin-table-wrap--sticky">
+          <table class="admin-table admin-table--nf-hits">
             <thead>
               <tr>
-                <th>Time (server)</th>
-                <th>IP</th>
-                <th>User agent</th>
+                <th scope="col" class="admin-table-col-num">#</th>
+                <th scope="col">Time (server)</th>
+                <th scope="col">IP</th>
+                <th scope="col">User agent</th>
               </tr>
             </thead>
             <tbody id="admin-nf-modal-tbody"></tbody>
@@ -123,6 +155,9 @@
       var emptyEl = document.getElementById('admin-nf-modal-empty');
       var wrapEl = document.getElementById('admin-nf-modal-table-wrap');
       var tbody = document.getElementById('admin-nf-modal-tbody');
+      var selectAll = document.getElementById('nf-select-all');
+      var bulkBtn = document.getElementById('nf-bulk-delete');
+      var bulkForm = document.getElementById('nf-bulk-form');
       if (!modal || !tbody) return;
 
       function esc(s) {
@@ -170,14 +205,16 @@
         }
         emptyEl.hidden = true;
         wrapEl.hidden = false;
-        hits.forEach(function (h) {
+        hits.forEach(function (h, idx) {
           var tr = document.createElement('tr');
           tr.innerHTML =
-            '<td><code class="admin-inline-code">' +
+            '<td class="admin-table-muted">' +
+            esc(String(idx + 1)) +
+            '</td><td><code class="admin-inline-code">' +
             esc(h.seen_at || '') +
             '</code></td><td><code class="admin-inline-code">' +
             esc(h.client_ip || '') +
-            '</code></td><td style="max-width:18rem;word-break:break-word;font-size:0.8125rem">' +
+            '</code></td><td style="max-width:22rem;word-break:break-word;font-size:0.8125rem;line-height:1.45">' +
             esc(h.user_agent || '—') +
             '</td>';
           tbody.appendChild(tr);
@@ -207,6 +244,12 @@
               if (data.path && data.path !== p) {
                 pathEl.innerHTML = '<strong>Path</strong> <code class="admin-inline-code">' + esc(data.path) + '</code>';
               }
+              if (typeof data.hit_count === 'number' && data.hit_count >= 0) {
+                pathEl.innerHTML +=
+                  ' <span class="admin-table-muted">·</span> <span class="admin-hint" style="margin:0">' +
+                  esc(String(data.hit_count)) +
+                  ' total hits (aggregated)</span>';
+              }
               renderRows(data.hits);
             })
             .catch(function () {
@@ -223,6 +266,33 @@
       document.addEventListener('keydown', function (e) {
         if (e.key === 'Escape' && !modal.hidden) onClose();
       });
+
+      if (selectAll) {
+        selectAll.addEventListener('change', function () {
+          document.querySelectorAll('input.nf-row-cb').forEach(function (c) {
+            c.checked = selectAll.checked;
+          });
+        });
+      }
+
+      function anyChecked() {
+        return Array.prototype.some.call(document.querySelectorAll('input.nf-row-cb'), function (c) {
+          return c.checked;
+        });
+      }
+
+      if (bulkForm && bulkBtn) {
+        bulkForm.addEventListener('submit', function (e) {
+          if (!anyChecked()) {
+            e.preventDefault();
+            alert('Select at least one row to delete.');
+            return;
+          }
+          if (!confirm('Delete the selected 404 log rows? Hit history for those paths will be removed.')) {
+            e.preventDefault();
+          }
+        });
+      }
     })();
   </script>
 {% endblock %}

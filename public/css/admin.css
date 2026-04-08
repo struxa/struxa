@@ -5882,3 +5882,25 @@ body.admin-nav-open {
     transform: none;
   }
 }
+
+/* —— SEO 404 monitor: Queue storefront palette accent + wide hit-details modal —— */
+.admin-seo-nf-queue-accent {
+  display: block;
+  height: 3px;
+  border-radius: 999px;
+  margin: 0 0 1.1rem;
+  background: linear-gradient(90deg, var(--admin-teal), var(--admin-purple), var(--admin-orange));
+  opacity: 0.92;
+}
+
+.admin-nf-modal-panel.admin-media-modal-panel {
+  width: min(56rem, 100%);
+  max-height: min(92vh, 720px);
+}
+
+.admin-table-col-num {
+  width: 2.5rem;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--admin-muted);
+}

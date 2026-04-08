@@ -251,6 +251,33 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 ->withStatus(302);
         })->setName('admin.seo.not_found.delete');
 
+        $group->post('/seo/not-found/bulk-delete', function (Request $request, Response $response) use ($notFound, $notFoundListPerPage): Response {
+            $body = $request->getParsedBody();
+            $body = is_array($body) ? $body : [];
+            $raw = $body['ids'] ?? [];
+            if (!is_array($raw)) {
+                $raw = [];
+            }
+            $deleted = $notFound->deleteByIds($raw);
+            if ($deleted > 0) {
+                Flash::set('success', $deleted === 1 ? 'Removed 1 log row.' : 'Removed ' . $deleted . ' log rows.');
+            } else {
+                Flash::set('success', 'Nothing was selected to remove.');
+            }
+            $returnPage = isset($body['return_page']) && is_numeric($body['return_page']) ? max(1, (int) $body['return_page']) : 1;
+            $total = $notFound->countAll();
+            $totalPages = $total > 0 ? (int) ceil($total / $notFoundListPerPage) : 1;
+            $page = min($returnPage, max(1, $totalPages));
+            $url = RouteContext::fromRequest($request)->getRouteParser()->urlFor('admin.seo.not_found');
+            if ($page > 1) {
+                $url .= '?' . http_build_query(['page' => $page]);
+            }
+
+            return $response
+                ->withHeader('Location', $url)
+                ->withStatus(302);
+        })->setName('admin.seo.not_found.bulk_delete');
+
         $group->get('/seo/sitemap', function (Request $request, Response $response) use ($twig, $adminContext, $withCmsUser, $pdo, $viewData): Response {
             $siteUrl = rtrim((string) (($viewData())['site_url'] ?? ''), '/');
             $svc = new SitemapService($pdo, new PageRepository($pdo), new ContentEntryRepository($pdo));
