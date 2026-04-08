@@ -250,7 +250,12 @@
           var ip = h.client_ip != null ? String(h.client_ip).trim() : '';
           var blockCol = '';
           if (canBlockIp) {
-            if (looksLikeClientIp(ip) && blockAddUrl && blockCsrf) {
+            var alreadyBlocked = h.ip_already_blocked === true;
+            if (alreadyBlocked) {
+              blockCol =
+                '<td class="admin-table-actions" style="white-space:nowrap">' +
+                '<span class="admin-badge admin-badge--muted" title="This address matches your IP block list (exact or CIDR)">Already blocked</span></td>';
+            } else if (looksLikeClientIp(ip) && blockAddUrl && blockCsrf) {
               var note = '404 log: ' + (modalNfPath || '—');
               if (note.length > 255) note = note.slice(0, 252) + '…';
               blockCol =

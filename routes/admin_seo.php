@@ -8,6 +8,8 @@ use App\Event\StorefrontCachesInvalidateEvent;
 use App\Flash;
 use App\Http\Middleware\RequireCmsStaff;
 use App\Http\Middleware\RequirePermission;
+use App\Security\IpBlockMatcher;
+use App\Security\IpBlockRepository;
 use App\Seo\NotFoundLogRepository;
 use App\Seo\RedirectRepository;
 use App\Seo\SitemapOptions;
@@ -219,19 +221,27 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             ])));
         })->setName('admin.seo.not_found');
 
-        $group->get('/seo/not-found/{id:[0-9]+}/hits', function (Request $request, Response $response, array $args) use ($notFound, $jsonResponse): Response {
+        $group->get('/seo/not-found/{id:[0-9]+}/hits', function (Request $request, Response $response, array $args) use ($notFound, $jsonResponse, $pdo): Response {
             $id = (int) $args['id'];
             $row = $notFound->findById($id);
             if ($row === null) {
                 return $jsonResponse($response, ['ok' => false, 'error' => 'Log entry not found.'], 404);
             }
             $hits = $notFound->listHitsForLogId($id);
+            $blockPatterns = (new IpBlockRepository($pdo))->allPatterns();
+            $annotatedHits = [];
+            foreach ($hits as $h) {
+                $ip = isset($h['client_ip']) ? trim((string) $h['client_ip']) : '';
+                $annotatedHits[] = array_merge($h, [
+                    'ip_already_blocked' => $ip !== '' && IpBlockMatcher::isBlocked($ip, $blockPatterns),
+                ]);
+            }
 
             return $jsonResponse($response, [
                 'ok' => true,
                 'path' => (string) ($row['path'] ?? ''),
                 'hit_count' => (int) ($row['hit_count'] ?? 0),
-                'hits' => $hits,
+                'hits' => $annotatedHits,
             ]);
         })->setName('admin.seo.not_found.hits');
 
