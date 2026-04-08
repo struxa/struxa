@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Page;
 
 use App\Media\MediaUrlHelper;
+use App\Seo\ExternalLinkPolicy;
 use App\Section\PageSectionRepository;
 use App\Section\SectionManager;
 use App\Section\SectionRenderer;
@@ -53,8 +54,11 @@ final class PublicCmsPageRenderer
             Settings::get('site_name') ?: null
         ));
 
+        $bodyHtml = ExternalLinkPolicy::maybeNofollowExternalAnchorsInHtml($page->content);
+        $pageForView = $bodyHtml === $page->content ? $page : $page->withContent($bodyHtml);
+
         return $twig->render($response, 'page/show.twig', array_merge($viewData(), $seoTwig, [
-            'cms_page' => $page,
+            'cms_page' => $pageForView,
             'cms_page_has_sections' => $rows !== [],
             'cms_page_sections_html' => $sectionsHtml,
             'cms_page_featured_url' => $featuredUrl,

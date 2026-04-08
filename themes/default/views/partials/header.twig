@@ -14,7 +14,7 @@
     </button>
     <nav id="theme-primary-nav" class="theme-nav" aria-label="Primary">
       {% for item in header_menu %}
-        <a href="{{ item.href|e('html_attr') }}" class="{% if item.is_active|default(false) %}is-nav-active{% endif %}" {% if item.target == '_blank' %}target="_blank" rel="noopener noreferrer"{% endif %}{% if item.is_active|default(false) %} aria-current="page"{% endif %}>{{ item.label|e }}</a>
+        <a href="{{ item.href|e('html_attr') }}" class="{% if item.is_active|default(false) %}is-nav-active{% endif %}" {% if item.target == '_blank' %}target="_blank"{% endif %}{% if item.anchor_rel|default('')|trim != '' %} rel="{{ item.anchor_rel|e('html_attr') }}"{% endif %}{% if item.is_active|default(false) %} aria-current="page"{% endif %}>{{ item.label|e }}</a>
       {% endfor %}
       {% if logged_in %}
         {% set _uname = user_username|default('')|trim %}

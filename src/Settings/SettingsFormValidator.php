@@ -133,6 +133,9 @@ final class SettingsFormValidator
         $googleAuto = $this->str($body, 'google_sso_auto_provision');
         $googleAutoOn = $googleAuto === '1' ? '1' : '0';
 
+        $extNofollow = $this->str($body, 'seo_external_links_nofollow');
+        $extNofollowOn = $extNofollow === '1' ? '1' : '0';
+
         $values = [
             'site_name' => $siteName,
             'site_language' => $siteLanguage,
@@ -160,6 +163,7 @@ final class SettingsFormValidator
             'google_oauth_redirect_uri' => $googleRedirect,
             'google_sso_allowed_domains' => $googleDomains,
             'google_sso_auto_provision' => $googleAutoOn,
+            'seo_external_links_nofollow' => $extNofollowOn,
         ];
 
         return ['errors' => $errors, 'values' => $values];

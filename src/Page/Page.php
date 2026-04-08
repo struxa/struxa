@@ -109,4 +109,30 @@ final class Page
     {
         return PageTagParser::slugsToEditString($this->tags);
     }
+
+    public function withContent(string $content): self
+    {
+        return new self(
+            $this->id,
+            $this->title,
+            $this->slug,
+            $this->seoTitle,
+            $this->seoDescription,
+            $this->tags,
+            $this->featuredImageId,
+            $this->canonicalUrl,
+            $this->seoNoindex,
+            $this->ogTitle,
+            $this->ogDescription,
+            $this->ogImageId,
+            $this->twitterTitle,
+            $this->twitterDescription,
+            $this->twitterImageId,
+            $this->schemaJson,
+            $content,
+            $this->status,
+            $this->createdAt,
+            $this->updatedAt,
+        );
+    }
 }

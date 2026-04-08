@@ -16,7 +16,7 @@
     <nav id="theme-primary-nav" class="theme-nav" aria-label="Primary">
       <div class="theme-nav__primary">
         {% for item in header_menu %}
-          <a class="theme-nav__link{% if item.is_active|default(false) %} theme-nav__link--active{% endif %}" href="{{ item.href|e('html_attr') }}" {% if item.target == '_blank' %}target="_blank" rel="noopener noreferrer"{% endif %}{% if item.is_active|default(false) %} aria-current="page"{% endif %}>{{ item.label|e }}</a>
+          <a class="theme-nav__link{% if item.is_active|default(false) %} theme-nav__link--active{% endif %}" href="{{ item.href|e('html_attr') }}" {% if item.target == '_blank' %}target="_blank"{% endif %}{% if item.anchor_rel|default('')|trim != '' %} rel="{{ item.anchor_rel|e('html_attr') }}"{% endif %}{% if item.is_active|default(false) %} aria-current="page"{% endif %}>{{ item.label|e }}</a>
         {% endfor %}
       </div>
       <div class="theme-nav__actions">

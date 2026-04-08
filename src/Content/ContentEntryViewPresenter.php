@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Content;
 
 use App\Media\MediaUrlHelper;
+use App\Seo\ExternalLinkPolicy;
 
 /**
  * Prepares structured field rows for public (and admin preview) Twig rendering.
@@ -40,15 +41,29 @@ final class ContentEntryViewPresenter
 
         return match ($type) {
             'text', 'textarea' => nl2br($e($raw)),
-            'richtext' => RichtextTabsShortcode::transform($raw),
+            'richtext' => ExternalLinkPolicy::maybeNofollowExternalAnchorsInHtml(RichtextTabsShortcode::transform($raw)),
             'number' => $e($raw),
             'boolean' => $raw === '1' ? 'Yes' : 'No',
             'select' => $e($raw),
             'date' => $e($raw),
-            'url' => $raw !== '' ? '<a href="' . $e($raw) . '" rel="noopener noreferrer">' . $e($raw) . '</a>' : '',
+            'url' => $raw !== '' ? self::urlFieldAnchor($raw, $e) : '',
             'image' => self::imageHtml($raw, $mediaUrls, $e),
             default => $e($raw),
         };
+    }
+
+    /**
+     * @param callable(string): string $e
+     */
+    private static function urlFieldAnchor(string $raw, callable $e): string
+    {
+        $rel = ['noopener', 'noreferrer'];
+        $host = ExternalLinkPolicy::configuredSiteHost();
+        if (ExternalLinkPolicy::isEnabled() && $host !== null && ExternalLinkPolicy::hrefIsExternalHttp($raw, $host)) {
+            $rel[] = 'nofollow';
+        }
+
+        return '<a href="' . $e($raw) . '" rel="' . $e(implode(' ', array_unique($rel))) . '">' . $e($raw) . '</a>';
     }
 
     /**

@@ -65,7 +65,8 @@ final class PageContentSanitizer
         $config->set('URI.AllowedSchemes', ['http' => true, 'https' => true, 'mailto' => true]);
         $config->set('Attr.AllowedFrameTargets', ['_blank', '_self']);
         $config->set('HTML.TargetBlank', true);
-        $config->set('HTML.Nofollow', true);
+        /** @see \App\Seo\ExternalLinkPolicy Optional nofollow is applied at render when setting is on. */
+        $config->set('HTML.Nofollow', false);
         $config->set('AutoFormat.RemoveEmpty.RemoveNbsp', true);
 
         $base = $siteBaseUrl !== null ? rtrim($siteBaseUrl, '/') : '';

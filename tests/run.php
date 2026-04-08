@@ -13,6 +13,7 @@ use App\Cache\PublicPageCacheKey;
 use App\Cache\PublicResponseCacheEnvelope;
 use App\Content\PublicContentIndexPager;
 use App\Content\RichtextTabsShortcode;
+use App\Seo\ExternalLinkPolicy;
 use App\Seo\MetaTagBuilder;
 use App\Seo\SeoFormParser;
 use App\Dev\PluginDependencyHealthCheck;
@@ -143,6 +144,20 @@ if (!str_contains($tabsOut, 'data-cms-tabs') || !str_contains($tabsOut, '>A</but
 $single = RichtextTabsShortcode::transform('[tabs]<p>only</p>[/tabs]');
 if (!str_contains($single, 'cms-tabs-shortcode--single') || str_contains($single, 'data-cms-tabs')) {
     $fail('RichtextTabsShortcode single-pane should not use data-cms-tabs.');
+}
+
+if (!ExternalLinkPolicy::hrefIsExternalHttp('https://other.com/x', 'example.com')) {
+    $fail('ExternalLinkPolicy should treat other host as external.');
+}
+if (ExternalLinkPolicy::hrefIsExternalHttp('https://example.com/x', 'example.com')) {
+    $fail('ExternalLinkPolicy should not mark same host as external.');
+}
+if (ExternalLinkPolicy::hrefIsExternalHttp('/local', 'example.com')) {
+    $fail('ExternalLinkPolicy relative href is not external http.');
+}
+$navRel = ExternalLinkPolicy::anchorRelForNavLink('https://x.com', '_blank', true, 'mysite.com');
+if (!str_contains($navRel, 'nofollow') || !str_contains($navRel, 'noopener')) {
+    $fail('ExternalLinkPolicy::anchorRelForNavLink should combine blank target and nofollow.');
 }
 
 $badLd = SeoFormParser::normalizeSchemaJsonForStorage('{not json');

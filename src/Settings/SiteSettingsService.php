@@ -46,6 +46,8 @@ final class SiteSettingsService
         'google_sso_allowed_domains' => '',
         /** When "1", first Google sign-in creates a PHPAuth account if the email is new. */
         'google_sso_auto_provision' => '0',
+        /** When "1", public HTML adds rel="nofollow" to external http(s) links (content, pages, sections, menus). */
+        'seo_external_links_nofollow' => '0',
     ];
 
     /** @var list<string> */
@@ -76,6 +78,7 @@ final class SiteSettingsService
         'google_oauth_redirect_uri',
         'google_sso_allowed_domains',
         'google_sso_auto_provision',
+        'seo_external_links_nofollow',
     ];
 
     public function __construct(

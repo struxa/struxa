@@ -11,7 +11,8 @@
       <a
         href="{{ item.href|e('html_attr') }}"
         class="{{ (item.css_class|default('nav-link nav-link--violet'))|e('html_attr') }}"
-        {% if item.target == '_blank' %}target="_blank" rel="noopener noreferrer"{% endif %}
+        {% if item.target == '_blank' %}target="_blank"{% endif %}
+        {% if item.anchor_rel|default('')|trim != '' %}rel="{{ item.anchor_rel|e('html_attr') }}"{% endif %}
       >
         <span class="nav-link-label">{{ item.label|e }}</span>
       </a>
@@ -65,7 +66,8 @@
     <a
       href="{{ item.href|e('html_attr') }}"
       class="{{ (item.css_class|default('nav-link nav-link--violet'))|e('html_attr') }} nav-link--mobile"
-      {% if item.target == '_blank' %}target="_blank" rel="noopener noreferrer"{% endif %}
+      {% if item.target == '_blank' %}target="_blank"{% endif %}
+      {% if item.anchor_rel|default('')|trim != '' %}rel="{{ item.anchor_rel|e('html_attr') }}"{% endif %}
     >
       <span class="nav-link-label">{{ item.label|e }}</span>
     </a>

@@ -25,7 +25,8 @@
               href="{{ item.href|e('html_attr') }}"
               class="cb-menu-link{% if item.is_active|default(false) %} cb-active{% endif %}"
               {% if item.is_active|default(false) %}aria-current="page"{% endif %}
-              {% if item.target == '_blank' %}target="_blank" rel="noopener noreferrer"{% endif %}
+              {% if item.target == '_blank' %}target="_blank"{% endif %}
+              {% if item.anchor_rel|default('')|trim != '' %}rel="{{ item.anchor_rel|e('html_attr') }}"{% endif %}
             >
               <span class="cb-menu-ico" aria-hidden="true">{{ _ico }}</span>
               <span class="cb-menu-txt">{{ item.label|e }}</span>

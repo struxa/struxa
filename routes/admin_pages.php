@@ -28,6 +28,7 @@ use App\Section\SectionManager;
 use App\Section\SectionRenderer;
 use App\Section\SectionSchemaValidator;
 use App\Section\SectionTemplateResolver;
+use App\Seo\ExternalLinkPolicy;
 use App\Seo\MetaTagBuilder;
 use App\Seo\RedirectRepository;
 use App\Seo\SeoFormParser;
@@ -260,8 +261,10 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 $siteUrl,
                 Settings::get('site_name') ?: null
             ));
+            $previewBody = ExternalLinkPolicy::maybeNofollowExternalAnchorsInHtml($previewPage->content);
+            $cmsPageView = $previewBody === $previewPage->content ? $previewPage : $previewPage->withContent($previewBody);
             $html = $twig->fetch('page/show.twig', array_merge($vd, $seoTwig, [
-                'cms_page' => $previewPage,
+                'cms_page' => $cmsPageView,
                 'cms_page_preview' => true,
                 'cms_page_has_sections' => $hasSections,
                 'cms_page_sections_html' => $sectionsHtml,
