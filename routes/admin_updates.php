@@ -102,7 +102,18 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                     $profile->syncInstalledVersion();
                 }
                 $cacheInternal->clear();
-                $result['status'] = $checker->check(true);
+                $fresh = $checker->check(true);
+                $applied = trim((string) ($result['applied_version'] ?? ''));
+                if ($applied !== '') {
+                    $fresh['current_version'] = $applied;
+                    $lv = trim((string) ($fresh['latest_version'] ?? ''));
+                    if ($lv !== '') {
+                        $fresh['update_available'] = version_compare($lv, $applied, '>');
+                    } else {
+                        $fresh['update_available'] = false;
+                    }
+                }
+                $result['status'] = $fresh;
             }
 
             return $jsonResponse($response, $result, $result['ok'] ? 200 : 422);

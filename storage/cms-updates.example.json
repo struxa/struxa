@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.0.26",
-    "title": "Struxa 1.0.26",
-    "summary": "Admin updates: effective installed version = max(CmsVersion, cms_site_profile.cms_version_installed) so post–auto-update UI shows Up to date; apply response includes status for immediate AJAX refresh.",
+    "latest_version": "1.0.27",
+    "title": "Struxa 1.0.27",
+    "summary": "Admin updates: abort stale status poll after apply; coerce apply JSON status from applied_version; follow-up tick with fresh=1.",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "minor"

@@ -144,6 +144,7 @@
       var applyProgress = document.getElementById('admin-updates-apply-progress');
       var applyPanel = document.getElementById('admin-updates-apply-panel');
       var applyDisabledHint = document.getElementById('admin-updates-apply-disabled-hint');
+      var statusPollAbort = null;
 
       function esc(s) {
         if (!s) return '';
@@ -293,14 +294,32 @@
         }
       }
 
-      function tick() {
+      function tick(forceFresh) {
         if (document.hidden) return;
-        fetch(url, { headers: { Accept: 'application/json' }, credentials: 'same-origin' })
+        if (statusPollAbort) {
+          statusPollAbort.abort();
+        }
+        statusPollAbort = new AbortController();
+        var myCtrl = statusPollAbort;
+        var fetchUrl =
+          url + (forceFresh ? (url.indexOf('?') >= 0 ? '&' : '?') + 'fresh=1' : '');
+        fetch(fetchUrl, {
+          headers: { Accept: 'application/json' },
+          credentials: 'same-origin',
+          signal: myCtrl.signal,
+        })
           .then(function (r) {
             return r.json();
           })
           .then(apply)
-          .catch(function () {});
+          .catch(function (err) {
+            if (err && err.name === 'AbortError') return;
+          })
+          .finally(function () {
+            if (statusPollAbort === myCtrl) {
+              statusPollAbort = null;
+            }
+          });
       }
 
       tick();
@@ -322,6 +341,10 @@
             return;
           }
           applyBtn.disabled = true;
+          if (statusPollAbort) {
+            statusPollAbort.abort();
+            statusPollAbort = null;
+          }
           if (applyPanel) {
             applyPanel.hidden = true;
             applyPanel.innerHTML = '';
@@ -358,6 +381,7 @@
               }
               if (data.ok && data.status) {
                 apply(data.status);
+                tick(true);
               }
               if (!data.ok) {
                 applyBtn.disabled = false;
