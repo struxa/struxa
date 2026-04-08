@@ -658,6 +658,41 @@ body.theme-cashback a {
   }
 }
 
+.theme-main article.theme-cms-page.theme-error-404 .theme-error-404__lede {
+  margin: 0.35rem 0 0;
+  max-width: 38rem;
+  font-size: 1.0625rem;
+  line-height: 1.65;
+  color: var(--theme-muted);
+}
+
+.theme-main article.theme-cms-page.theme-error-404 .theme-error-404__actions {
+  margin: 1.5rem 0 0;
+}
+
+.theme-main article.theme-cms-page.theme-error-404 .theme-error-404__debug {
+  margin-top: 1.75rem;
+  font-size: 0.85rem;
+  color: var(--theme-muted);
+}
+
+.theme-main article.theme-cms-page.theme-error-404 .theme-error-404__debug summary {
+  cursor: pointer;
+  color: #6ee7b7;
+}
+
+.theme-main article.theme-cms-page.theme-error-404 .theme-error-404__debug pre {
+  margin: 0.75rem 0 0;
+  padding: 0.75rem 1rem;
+  font-size: 0.75rem;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-word;
+  border-radius: 8px;
+  border: 1px solid rgba(52, 211, 153, 0.28);
+  background: rgba(0, 0, 0, 0.35);
+}
+
 .theme-cms-tags {
   display: flex;
   flex-wrap: wrap;
