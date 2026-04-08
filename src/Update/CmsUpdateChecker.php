@@ -6,6 +6,8 @@ namespace App\Update;
 
 use App\Cache\FileCache;
 use App\CmsVersion;
+use App\SiteProfile\SiteProfileRepository;
+use PDO;
 
 /**
  * Fetches semver CMS update metadata from a remote JSON feed or GitHub (cached).
@@ -46,7 +48,37 @@ final class CmsUpdateChecker
 
     public function __construct(
         private readonly FileCache $internalCache,
+        private readonly ?PDO $pdo = null,
     ) {
+    }
+
+    /**
+     * Version shown as “installed” for update checks: max of {@see CmsVersion::CURRENT} and
+     * {@see SiteProfileRepository} cms_version_installed when both are valid semver.
+     * After self-update, the DB row is set immediately while OPcache may still serve the old constant.
+     */
+    private function effectiveCurrentVersion(): string
+    {
+        $code = CmsVersion::CURRENT;
+        if ($this->pdo === null) {
+            return $code;
+        }
+        $repo = new SiteProfileRepository($this->pdo);
+        $row = $repo->get();
+        if ($row === null) {
+            return $code;
+        }
+        $db = isset($row['cms_version_installed']) && is_string($row['cms_version_installed'])
+            ? trim($row['cms_version_installed'])
+            : '';
+        if ($db === '' || !self::isReasonableSemver($db)) {
+            return $code;
+        }
+        if (!self::isReasonableSemver($code)) {
+            return $db;
+        }
+
+        return version_compare($db, $code, '>') ? $db : $code;
     }
 
     /**
@@ -100,7 +132,7 @@ final class CmsUpdateChecker
         $base = [
             'ok' => false,
             'update_available' => false,
-            'current_version' => CmsVersion::CURRENT,
+            'current_version' => $this->effectiveCurrentVersion(),
             'fetched_at' => time(),
             'feed_url' => $feedUrl,
             'source' => 'feed',
@@ -184,7 +216,7 @@ final class CmsUpdateChecker
             return $out;
         }
 
-        $current = CmsVersion::CURRENT;
+        $current = $this->effectiveCurrentVersion();
         $available = version_compare($latest, $current, '>');
 
         $title = isset($cms['title']) && is_string($cms['title']) ? trim($cms['title']) : '';
@@ -203,6 +235,7 @@ final class CmsUpdateChecker
         $out = array_merge($base, [
             'ok' => true,
             'update_available' => $available,
+            'current_version' => $current,
             'latest_version' => $latest,
             'title' => $title,
             'summary' => $summary,
@@ -227,7 +260,7 @@ final class CmsUpdateChecker
         $base = [
             'ok' => false,
             'update_available' => false,
-            'current_version' => CmsVersion::CURRENT,
+            'current_version' => $this->effectiveCurrentVersion(),
             'fetched_at' => time(),
             'feed_url' => $feedDisplay,
             'source' => 'github',
@@ -308,12 +341,13 @@ final class CmsUpdateChecker
             return $out;
         }
 
-        $current = CmsVersion::CURRENT;
+        $current = $this->effectiveCurrentVersion();
         $available = version_compare($ver, $current, '>');
         $zipUrl = 'https://github.com/' . $repo . '/archive/refs/heads/' . rawurlencode($ref) . '.zip';
         $out = array_merge($base, [
             'ok' => true,
             'update_available' => $available,
+            'current_version' => $current,
             'latest_version' => $ver,
             'title' => 'Struxa ' . $ver,
             'summary' => 'No published GitHub Release yet; version is taken from composer.json on branch ' . $ref . '.',
@@ -333,7 +367,7 @@ final class CmsUpdateChecker
      */
     private function buildGithubSuccess(array $base, string $cacheKey, string $latest, array $payload, string $repo): array
     {
-        $current = CmsVersion::CURRENT;
+        $current = $this->effectiveCurrentVersion();
         $available = version_compare($latest, $current, '>');
         $name = isset($payload['name']) && is_string($payload['name']) ? trim($payload['name']) : '';
         $title = $name !== '' ? $name : ('Struxa ' . $latest);
@@ -357,6 +391,7 @@ final class CmsUpdateChecker
         $out = array_merge($base, [
             'ok' => true,
             'update_available' => $available,
+            'current_version' => $current,
             'latest_version' => $latest,
             'title' => $title,
             'summary' => $summary,
@@ -372,14 +407,14 @@ final class CmsUpdateChecker
     }
 
     /**
-     * When the install was upgraded without clearing cache, refresh current_version and update_available from cache + CmsVersion::CURRENT.
+     * When the install was upgraded without clearing cache, refresh current_version and update_available from cache + effective installed version.
      *
      * @param array<string, mixed> $cached
      * @return UpdateStatus
      */
     private function reconcileCachedStatus(string $persistKey, array $cached): array
     {
-        $installed = CmsVersion::CURRENT;
+        $installed = $this->effectiveCurrentVersion();
         $cachedCv = isset($cached['current_version']) && is_string($cached['current_version'])
             ? trim($cached['current_version'])
             : '';
@@ -544,7 +579,7 @@ final class CmsUpdateChecker
         $accept = $githubApi ? 'application/vnd.github+json' : 'application/json';
         $userAgents = [
             'Struxa-CmsUpdateCheck/1.0 (+https://struxapoint.com)',
-            'Mozilla/5.0 (compatible; StruxaCMS/' . CmsVersion::CURRENT . '; +https://struxapoint.com) update-check',
+            'Mozilla/5.0 (compatible; StruxaCMS/' . $this->effectiveCurrentVersion() . '; +https://struxapoint.com) update-check',
         ];
 
         foreach ($userAgents as $ua) {

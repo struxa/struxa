@@ -133,7 +133,7 @@ final class TwigCmsGlobals implements MiddlewareInterface
             dirname(__DIR__, 3) . DIRECTORY_SEPARATOR . 'storage' . DIRECTORY_SEPARATOR . 'cache'
         ))->internal();
         if ($this->isAdminRequestPath($adminPath)) {
-            $env->addGlobal('cms_update_status', (new CmsUpdateChecker($internalForUpdates))->checkForAdminUi());
+            $env->addGlobal('cms_update_status', (new CmsUpdateChecker($internalForUpdates, $this->pdo))->checkForAdminUi());
         } else {
             $env->addGlobal('cms_update_status', [
                 'ok' => true,

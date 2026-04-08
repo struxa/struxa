@@ -24,7 +24,7 @@
     <dl class="admin-updates-dl">
       <div class="admin-updates-dl-row">
         <dt>Installed</dt>
-        <dd><code class="admin-inline-code">{{ st.current_version|default(cms_version)|e }}</code></dd>
+        <dd id="admin-updates-installed"><code class="admin-inline-code">{{ st.current_version|default(cms_version)|e }}</code></dd>
       </div>
       <div class="admin-updates-dl-row">
         <dt>Latest (remote)</dt>
@@ -131,6 +131,7 @@
       var url = root.getAttribute('data-poll-url');
       if (!url) return;
       var pollMs = 180000;
+      var installedEl = document.getElementById('admin-updates-installed');
       var latestEl = document.getElementById('admin-updates-latest');
       var statusEl = document.getElementById('admin-updates-status-line');
       var summaryEl = document.getElementById('admin-updates-summary');
@@ -163,7 +164,7 @@
               '</p>'
           );
           parts.push(
-            '<p class="admin-updates-apply-banner-text">New files are in place. Reload this page so the admin shows the current version. If the site acts strangely, restart PHP-FPM or clear OPcache.</p>'
+            '<p class="admin-updates-apply-banner-text">New files are in place. The version row should update above; if it still shows the old number, reload this page or restart PHP-FPM / clear OPcache.</p>'
           );
           parts.push('</div>');
           if (data.steps && data.steps.length) {
@@ -214,6 +215,10 @@
 
       function apply(data) {
         if (!data || typeof data !== 'object') return;
+        if (installedEl && data.current_version) {
+          installedEl.innerHTML =
+            '<code class="admin-inline-code">' + esc(String(data.current_version)) + '</code>';
+        }
         if (latestEl) {
           if (data.ok && data.latest_version) {
             latestEl.innerHTML = '<code class="admin-inline-code">' + esc(String(data.latest_version)) + '</code>';
@@ -350,6 +355,9 @@
               if (applyPanel) {
                 applyPanel.innerHTML = renderApplyPanel(data);
                 applyPanel.hidden = false;
+              }
+              if (data.ok && data.status) {
+                apply(data.status);
               }
               if (!data.ok) {
                 applyBtn.disabled = false;
