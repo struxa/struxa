@@ -16,6 +16,8 @@ use App\Content\RichtextTabsShortcode;
 use App\Seo\ExternalLinkPolicy;
 use App\Seo\MetaTagBuilder;
 use App\Seo\SeoFormParser;
+use App\Security\IpBlockMatcher;
+use App\Security\IpBlockPatternValidator;
 use App\Dev\PluginDependencyHealthCheck;
 use App\Dev\TwigLayoutContractLinter;
 use App\Manifest\ManifestMeta;
@@ -171,6 +173,23 @@ if ($goodLd['error'] !== null || $goodLd['value'] === null) {
 $safeScript = MetaTagBuilder::jsonLdSafeForScript($goodLd['value']);
 if ($safeScript === null || str_contains(strtolower($safeScript), '</script>')) {
     $fail('MetaTagBuilder::jsonLdSafeForScript should escape script breakout sequences.');
+}
+
+if (IpBlockMatcher::isBlocked('192.0.2.1', ['192.0.2.2'])) {
+    $fail('IpBlockMatcher should not block different IPv4.');
+}
+if (!IpBlockMatcher::isBlocked('192.0.2.1', ['192.0.2.1'])) {
+    $fail('IpBlockMatcher should block exact IPv4.');
+}
+if (!IpBlockMatcher::isBlocked('192.0.2.10', ['192.0.2.0/24'])) {
+    $fail('IpBlockMatcher should block IPv4 in CIDR.');
+}
+if (IpBlockMatcher::isBlocked('192.0.3.1', ['192.0.2.0/24'])) {
+    $fail('IpBlockMatcher should not block IPv4 outside CIDR.');
+}
+$cidrNorm = IpBlockPatternValidator::normalize('192.0.2.5/24');
+if (!$cidrNorm['ok'] || $cidrNorm['pattern'] !== '192.0.2.0/24') {
+    $fail('IpBlockPatternValidator should normalize IPv4 CIDR to network base.');
 }
 
 echo "All tests passed.\n";

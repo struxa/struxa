@@ -24,6 +24,7 @@ use App\Http\Middleware\CsrfProtectionMiddleware;
 use App\Http\Middleware\NotFoundLogMiddleware;
 use App\Http\PublicNotFoundHandler;
 use App\Http\Middleware\RedirectMiddleware;
+use App\Http\Middleware\IpBlockMiddleware;
 use App\Http\Middleware\SecurityHeadersMiddleware;
 use App\Http\Middleware\ThrottlingMiddleware;
 use App\Http\Middleware\TwigCmsGlobals;
@@ -45,6 +46,7 @@ use App\Plugin\PluginManager;
 use App\Plugin\PluginRepository;
 use App\Plugin\PluginScanner;
 use App\Plugin\PluginValidator;
+use App\Security\IpBlockRepository;
 use App\Security\TwoFactorLoginSession;
 use App\Security\TotpService;
 use App\Settings;
@@ -172,6 +174,7 @@ $app->add(new NotFoundLogMiddleware($pdo));
 $app->add(new RedirectMiddleware($pdo));
 $app->add(new ThrottlingMiddleware($root));
 $app->add(new SecurityHeadersMiddleware());
+$app->add(new IpBlockMiddleware(new IpBlockRepository($pdo), $cacheManager->internal()));
 
 $displayErrorDetails = in_array(
     strtolower(trim((string) ($_ENV['APP_DEBUG'] ?? ''))),
@@ -632,6 +635,7 @@ $app->get('/logout', function (Request $request, Response $response) use ($twig,
 (require $root . '/routes/admin_settings.php')($app, $twig, $auth, $pdo, $viewData);
 (require $root . '/routes/admin_cache.php')($app, $twig, $auth, $pdo, $viewData);
 (require $root . '/routes/admin_seo.php')($app, $twig, $auth, $pdo, $viewData);
+(require $root . '/routes/admin_security.php')($app, $twig, $auth, $pdo, $viewData);
 (require $root . '/routes/admin_account.php')($app, $twig, $auth, $pdo, $viewData);
 (require $root . '/routes/admin_menus.php')($app, $twig, $auth, $pdo, $viewData);
 (require $root . '/routes/admin_media.php')($app, $twig, $auth, $pdo, $viewData);

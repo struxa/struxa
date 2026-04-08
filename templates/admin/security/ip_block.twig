@@ -1,0 +1,74 @@
+{% extends 'admin/base.twig' %}
+
+{% block admin_title %}IP blocking{% endblock %}
+
+{% block admin_hero_title %}
+  <h1 class="admin-hero-title">IP blocking</h1>
+{% endblock %}
+
+{% block admin_hero_sub %}
+  <p class="admin-hero-sub">Block client IPs or IPv4 ranges from the entire site (storefront and admin). The resolved IP follows <code class="admin-inline-code">CMS_TRUSTED_PROXY_IPS</code> when your app sits behind a trusted reverse proxy.</p>
+{% endblock %}
+
+{% block admin_content %}
+  <section class="admin-card" style="margin-bottom:1.25rem">
+    <h2 class="admin-card-title">Before you block</h2>
+    <ul class="admin-hint" style="margin:0; padding-left:1.25rem; line-height:1.65">
+      <li>Blocking your own IP locks you out of admin and the storefront. Remove the row from <code class="admin-inline-code">cms_ip_blocks</code> in the database, or run a migration rollback, or ask another admin to delete the rule.</li>
+      <li>Single IPv4 or IPv6 addresses are matched exactly. IPv4 CIDR (e.g. <code class="admin-inline-code">203.0.113.0/24</code>) is supported; IPv6 CIDR is not.</li>
+    </ul>
+  </section>
+
+  <section class="admin-card" style="margin-bottom:1.25rem">
+    <h2 class="admin-card-title">Add block</h2>
+    <form method="post" action="{{ url_for('admin.security.ip_block_add') }}" class="admin-form-stack" style="max-width:36rem">
+      <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+      <label class="admin-field">
+        <span class="admin-field-label">IP or IPv4 CIDR</span>
+        <input type="text" name="pattern" class="admin-input" placeholder="203.0.113.42 or 203.0.113.0/24" autocomplete="off" required />
+      </label>
+      <label class="admin-field">
+        <span class="admin-field-label">Note (optional)</span>
+        <input type="text" name="note" class="admin-input" placeholder="e.g. repeat scanner" maxlength="255" />
+      </label>
+      <p class="admin-hint" style="margin:0">Rules apply within about a minute for other requests due to a short server cache.</p>
+      <button type="submit" class="admin-btn admin-btn--primary">Add block</button>
+    </form>
+  </section>
+
+  <section class="admin-card">
+    <h2 class="admin-card-title">Blocked addresses</h2>
+    {% if ip_block_rows is empty %}
+      <p class="admin-hint" style="margin:0">No IP blocks yet.</p>
+    {% else %}
+      <div class="admin-table-wrap" style="overflow-x:auto">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th scope="col">Pattern</th>
+              <th scope="col">Note</th>
+              <th scope="col">Added</th>
+              <th scope="col"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in ip_block_rows %}
+              <tr>
+                <td><code class="admin-inline-code">{{ row.pattern|e }}</code></td>
+                <td>{{ row.note|default('—')|e }}</td>
+                <td>{{ row.created_at|e }}</td>
+                <td>
+                  <form method="post" action="{{ url_for('admin.security.ip_block_delete') }}" style="display:inline" onsubmit="return confirm('Remove this block?');">
+                    <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+                    <input type="hidden" name="id" value="{{ row.id }}" />
+                    <button type="submit" class="admin-btn admin-btn--ghost admin-btn--sm">Remove</button>
+                  </form>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% endif %}
+  </section>
+{% endblock %}

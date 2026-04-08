@@ -29,6 +29,18 @@
     Updates
   </a>
 
+  {% if cms_can('manage_security') %}
+    <details class="admin-nav-group" {{ nav == 'security_ip_block' ? 'open' : '' }}>
+      <summary class="admin-nav-group-title">Security</summary>
+      <div class="admin-nav-group-items">
+        <a href="{{ url_for('admin.security.ip_block') }}" class="{{ nav == 'security_ip_block' ? 'is-active' : '' }}">
+          <svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          IP blocking
+        </a>
+      </div>
+    </details>
+  {% endif %}
+
   {% if cms_can('manage_users') or cms_can('manage_roles') or cms_can('view_activity') %}
     <details class="admin-nav-group" {{ nav in ['users','roles','activity'] ? 'open' : '' }}>
       <summary class="admin-nav-group-title">System</summary>

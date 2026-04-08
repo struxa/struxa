@@ -24,4 +24,5 @@ final class PermissionSlug
     public const REVIEW_CONTENT = 'review_content';
     public const VIEW_ACTIVITY = 'view_activity';
     public const MANAGE_PORTABILITY = 'manage_portability';
+    public const MANAGE_SECURITY = 'manage_security';
 }
