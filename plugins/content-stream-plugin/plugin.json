@@ -1,7 +1,7 @@
 {
   "name": "Content Stream",
   "slug": "content-stream-plugin",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "author": "Struxa",
   "description": "Admin OpenAI API settings and a public page to enter a domain and preview a short AI-generated content stream brief.",
   "requires_cms_version": "1.0.0",

@@ -6,7 +6,7 @@
 {% set cs_has_result = content_stream_error|default('')|trim == '' and content_stream_brief|default('')|trim != '' %}
 <main id="main-content" class="{% if active_theme|default('') == 'queue' %}theme-fq-editorial theme-fq-editorial--narrow {% endif %}cs-stream-page-root">
   <section class="section section-auth cs-stream-page" aria-labelledby="cs-stream-heading">
-  <div class="auth-card glass-panel cs-stream-card" style="max-width:56rem;margin:0 auto;width:min(100%,56rem)">
+  <div class="auth-card glass-panel cs-stream-card">
     {% if active_theme|default('') == 'queue' %}
     <p class="eyebrow reveal" data-reveal><span class="eyebrow-pulse"></span> Staff tool</p>
     {% endif %}
@@ -21,6 +21,20 @@
       {% include '@plugin_content_stream_plugin/partials/content_stream_analysis_styles.twig' %}
 
       <style>
+        /* Queue (and any theme) excludes .cs-stream-card from global auth-card padding — restore it here. */
+        .cs-stream-page-root .auth-card.cs-stream-card {
+          max-width: 56rem;
+          width: min(100%, 56rem);
+          margin-left: auto;
+          margin-right: auto;
+          padding: clamp(1.35rem, 4vw, 2.25rem);
+          box-sizing: border-box;
+        }
+        /* Themes without Queue editorial shell: page gutters so the card is not edge-to-edge. */
+        main.cs-stream-page-root:not(.theme-fq-editorial) {
+          padding: clamp(1.25rem, 4vw, 2rem);
+          box-sizing: border-box;
+        }
         .cs-stream-page-root .cs-wizard-canvas {
           position: relative;
           --admin-radius: 12px;

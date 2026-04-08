@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.0.28",
-    "title": "Struxa 1.0.28",
-    "summary": "404 monitor: migration 026 hit events (IP, time, UA); Details modal + JSON API; run bin/migrate.",
+    "latest_version": "1.0.29",
+    "title": "Struxa 1.0.29",
+    "summary": "Content Stream public page: restore card/page padding (cs-stream-card excluded from theme auth padding). Queue app.css + plugin 1.0.1.",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "minor"
