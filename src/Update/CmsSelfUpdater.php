@@ -60,10 +60,18 @@ final class CmsSelfUpdater
 
         @set_time_limit(600);
 
-        $body = $this->httpGetLimited($url, self::MAX_ZIP_BYTES);
-        if ($body === null) {
-            return ['ok' => false, 'message' => 'Could not download the update package (size, network, or timeout).', 'warnings' => []];
+        $fetched = $this->fetchUpdateZip($url, self::MAX_ZIP_BYTES);
+        if ($fetched['body'] === null) {
+            $detail = trim($fetched['detail']);
+            $msg = 'Could not download the update package (network, timeout, HTTP error, or ZIP larger than '
+                . (int) round(self::MAX_ZIP_BYTES / 1_000_000) . 'MB).';
+            if ($detail !== '') {
+                $msg .= ' ' . $detail;
+            }
+
+            return ['ok' => false, 'message' => $msg, 'warnings' => []];
         }
+        $body = $fetched['body'];
 
         $work = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'struxa-self-update-' . bin2hex(random_bytes(8));
         if (!@mkdir($work, 0700, true) || !is_dir($work)) {
@@ -397,14 +405,112 @@ final class CmsSelfUpdater
         return $zip->extractTo($destDir);
     }
 
-    private function httpGetLimited(string $url, int $maxBytes): ?string
+    /**
+     * @return array{body: ?string, detail: string}
+     */
+    private function fetchUpdateZip(string $url, int $maxBytes): array
     {
+        if (!str_starts_with($url, 'https://')) {
+            return ['body' => null, 'detail' => 'Download URL must use HTTPS.'];
+        }
+
+        $curlDetail = '';
+        if (function_exists('curl_init')) {
+            $curl = $this->fetchUpdateZipCurl($url, $maxBytes);
+            if ($curl['body'] !== null) {
+                return $curl;
+            }
+            $curlDetail = $curl['detail'];
+        }
+
+        $fopen = $this->fetchUpdateZipFopen($url, $maxBytes);
+        if ($fopen['body'] !== null) {
+            return $fopen;
+        }
+
+        $parts = [];
+        if (!function_exists('curl_init')) {
+            $parts[] = 'PHP ext-curl is not loaded.';
+        }
+        if (!filter_var(ini_get('allow_url_fopen'), FILTER_VALIDATE_BOOLEAN)) {
+            $parts[] = 'allow_url_fopen is Off.';
+        }
+        if ($curlDetail !== '') {
+            $parts[] = 'cURL: ' . $curlDetail;
+        }
+        if ($fopen['detail'] !== '') {
+            $parts[] = 'URL wrapper: ' . $fopen['detail'];
+        }
+        if ($parts === []) {
+            $parts[] = 'Enable ext-curl or allow_url_fopen for remote ZIP downloads.';
+        }
+
+        return ['body' => null, 'detail' => implode(' ', $parts)];
+    }
+
+    /**
+     * @return array{body: ?string, detail: string}
+     */
+    private function fetchUpdateZipCurl(string $url, int $maxBytes): array
+    {
+        $ch = curl_init($url);
+        if ($ch === false) {
+            return ['body' => null, 'detail' => 'cURL could not start.'];
+        }
+        $ua = 'Struxa-SelfUpdate/1.0 (+https://struxapoint.com)';
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_MAXREDIRS => 10,
+            CURLOPT_CONNECTTIMEOUT => 30,
+            CURLOPT_TIMEOUT => 600,
+            CURLOPT_USERAGENT => $ua,
+            CURLOPT_HTTPHEADER => [
+                'Accept: application/zip, application/octet-stream, */*',
+            ],
+            CURLOPT_SSL_VERIFYPEER => true,
+            CURLOPT_SSL_VERIFYHOST => 2,
+            CURLOPT_PROTOCOLS => CURLPROTO_HTTPS,
+            CURLOPT_REDIR_PROTOCOLS => CURLPROTO_HTTPS,
+        ]);
+        if (defined('CURLOPT_MAXFILESIZE')) {
+            curl_setopt($ch, CURLOPT_MAXFILESIZE, $maxBytes + 1);
+        }
+        $data = curl_exec($ch);
+        $errno = curl_errno($ch);
+        $err = curl_error($ch);
+        $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+        if ($errno !== 0) {
+            $hint = $err !== '' ? $err : ('cURL error ' . (string) $errno);
+
+            return ['body' => null, 'detail' => $hint];
+        }
+        if (!is_string($data)) {
+            return ['body' => null, 'detail' => 'Empty or invalid response from server.'];
+        }
+        if ($code < 200 || $code >= 300) {
+            return ['body' => null, 'detail' => 'HTTP status ' . (string) $code . ' from download URL.'];
+        }
+        if ($data === '' || strlen($data) > $maxBytes) {
+            return ['body' => null, 'detail' => $data === '' ? 'Download body was empty.' : 'Download exceeds maximum allowed size.'];
+        }
+
+        return ['body' => $data, 'detail' => ''];
+    }
+
+    /**
+     * @return array{body: ?string, detail: string}
+     */
+    private function fetchUpdateZipFopen(string $url, int $maxBytes): array
+    {
+        $ua = 'Struxa-SelfUpdate/1.0 (+https://struxapoint.com)';
         $ctx = stream_context_create([
             'http' => [
-                'timeout' => 180,
+                'timeout' => 600,
                 'follow_location' => 1,
                 'max_redirects' => 10,
-                'header' => "User-Agent: Struxa-SelfUpdate/1.0\r\n",
+                'header' => "User-Agent: {$ua}\r\nAccept: application/zip, application/octet-stream, */*\r\n",
             ],
             'ssl' => [
                 'verify_peer' => true,
@@ -413,7 +519,13 @@ final class CmsSelfUpdater
         ]);
         $h = @fopen($url, 'r', false, $ctx);
         if ($h === false) {
-            return null;
+            return ['body' => null, 'detail' => 'fopen URL wrapper failed (check allow_url_fopen and SSL).'];
+        }
+        $statusLine = $http_response_header[0] ?? '';
+        if (!preg_match('#\s2\d\d\s#', $statusLine)) {
+            fclose($h);
+
+            return ['body' => null, 'detail' => 'HTTP error: ' . trim((string) $statusLine)];
         }
         $data = '';
         while (!feof($h) && strlen($data) < $maxBytes) {
@@ -424,11 +536,14 @@ final class CmsSelfUpdater
             $data .= $chunk;
         }
         fclose($h);
-        if (strlen($data) >= $maxBytes || $data === '') {
-            return null;
+        if ($data === '') {
+            return ['body' => null, 'detail' => 'Download body was empty.'];
+        }
+        if (strlen($data) > $maxBytes) {
+            return ['body' => null, 'detail' => 'Download exceeds maximum allowed size.'];
         }
 
-        return $data;
+        return ['body' => $data, 'detail' => ''];
     }
 
     /**

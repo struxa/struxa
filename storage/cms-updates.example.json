@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.0.23",
-    "title": "Struxa 1.0.23",
-    "summary": "Queue theme: regenerate themes/queue/assets/css/app.min.css from app.css so login/register auth styles apply when assets_prefer_minified or STRUXA_ASSETS_PREFER_MIN is on.",
+    "latest_version": "1.0.24",
+    "title": "Struxa 1.0.24",
+    "summary": "Self-update: download ZIP with cURL first (fixes allow_url_fopen=Off), longer timeouts, HTTP status checks; clearer error detail.",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "minor"
