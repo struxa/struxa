@@ -247,7 +247,14 @@ $app->get('/', function (Request $request, Response $response) use ($twig, $view
     return $twig->render($response, 'page/home.twig', array_merge($viewData(), $seoTwig));
 })->setName('home');
 
-$app->get('/login', function (Request $request, Response $response) use ($twig, $viewData): Response {
+$app->get('/login', function (Request $request, Response $response) use ($twig, $viewData, $auth): Response {
+    if ($auth->isLogged()) {
+        $routeParser = RouteContext::fromRequest($request)->getRouteParser();
+
+        return $response
+            ->withHeader('Location', $routeParser->urlFor('home'))
+            ->withStatus(302);
+    }
     $next = $request->getQueryParams()['next'] ?? null;
     $next = is_string($next) ? $next : null;
 
@@ -474,6 +481,13 @@ $app->post('/login/two-factor', function (Request $request, Response $response) 
 })->setName('login.two_factor.submit');
 
 $app->post('/login', function (Request $request, Response $response) use ($auth, $pdo): Response {
+    $routeParser = RouteContext::fromRequest($request)->getRouteParser();
+    if ($auth->isLogged()) {
+        return $response
+            ->withHeader('Location', $routeParser->urlFor('home'))
+            ->withStatus(302);
+    }
+
     $body = $request->getParsedBody();
     $email = is_array($body)
         ? trim((string) ($body['email'] ?? $body['username'] ?? ''))
@@ -481,7 +495,6 @@ $app->post('/login', function (Request $request, Response $response) use ($auth,
     $password = is_array($body) ? (string) ($body['password'] ?? '') : '';
     $remember = is_array($body) && !empty($body['remember']) ? 1 : 0;
 
-    $routeParser = RouteContext::fromRequest($request)->getRouteParser();
     $next = is_array($body) && isset($body['next']) && is_string($body['next']) ? $body['next'] : null;
     $loginUrl = $routeParser->urlFor('login');
     if ($next !== null && $next !== '') {

@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.0.24",
-    "title": "Struxa 1.0.24",
-    "summary": "Self-update: download ZIP with cURL first (fixes allow_url_fopen=Off), longer timeouts, HTTP status checks; clearer error detail.",
+    "latest_version": "1.0.25",
+    "title": "Struxa 1.0.25",
+    "summary": "GET/POST /login: redirect to homepage when already logged in (matches 2FA + Google OAuth behaviour).",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "minor"
