@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.0.27",
-    "title": "Struxa 1.0.27",
-    "summary": "Admin updates: abort stale status poll after apply; coerce apply JSON status from applied_version; follow-up tick with fresh=1.",
+    "latest_version": "1.0.28",
+    "title": "Struxa 1.0.28",
+    "summary": "404 monitor: migration 026 hit events (IP, time, UA); Details modal + JSON API; run bin/migrate.",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "minor"

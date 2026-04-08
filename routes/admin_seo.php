@@ -41,6 +41,15 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
         return array_merge($data, ['cms_user' => $cmsUser]);
     };
 
+    $jsonResponse = static function (Response $response, array $payload, int $status = 200): Response {
+        $response->getBody()->write(json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR));
+
+        return $response
+            ->withStatus($status)
+            ->withHeader('Content-Type', 'application/json; charset=utf-8')
+            ->withHeader('Cache-Control', 'no-store');
+    };
+
     $parseRedirectBody = static function (array $body): array {
         $errors = [];
         $from = trim((string) ($body['from_path'] ?? ''));
@@ -98,7 +107,8 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
         $notFoundListPerPage,
         $paginateRedirects,
         $pdo,
-        $viewData
+        $viewData,
+        $jsonResponse
     ): void {
         $group->get('/seo/redirects', function (Request $request, Response $response) use ($twig, $adminContext, $withCmsUser, $redirects, $redirectListPerPage, $paginateRedirects): Response {
             $q = $request->getQueryParams();
@@ -209,6 +219,22 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             ])));
         })->setName('admin.seo.not_found');
 
+        $group->get('/seo/not-found/{id:[0-9]+}/hits', function (Request $request, Response $response, array $args) use ($notFound, $jsonResponse): Response {
+            $id = (int) $args['id'];
+            $row = $notFound->findById($id);
+            if ($row === null) {
+                return $jsonResponse($response, ['ok' => false, 'error' => 'Log entry not found.'], 404);
+            }
+            $hits = $notFound->listHitsForLogId($id);
+
+            return $jsonResponse($response, [
+                'ok' => true,
+                'path' => (string) ($row['path'] ?? ''),
+                'hit_count' => (int) ($row['hit_count'] ?? 0),
+                'hits' => $hits,
+            ]);
+        })->setName('admin.seo.not_found.hits');
+
         $group->post('/seo/not-found/{id:[0-9]+}/delete', function (Request $request, Response $response, array $args) use ($notFound): Response {
             $notFound->deleteById((int) $args['id']);
             Flash::set('success', '404 log entry removed.');
@@ -261,3 +287,4 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
         })->setName('admin.seo.sitemap.save');
     })->add($perm)->add($middleware);
 };
+

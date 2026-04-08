@@ -11,7 +11,7 @@
     <a class="admin-link" href="{{ url_for('admin.seo.redirects') }}">URL redirects</a>
     ·
     <a class="admin-link" href="{{ url_for('admin.seo.sitemap') }}">Sitemap</a>
-    · Sorted by hit count. Add a redirect on the <strong>Redirects</strong> screen using the path below.
+    · Sorted by hit count. <strong>Details</strong> lists client IP and time for each request (after migration <code class="admin-inline-code">026_not_found_hit_events.sql</code>). Add a redirect from the <strong>Redirects</strong> screen using the path below.
   </p>
 {% endblock %}
 
@@ -42,11 +42,23 @@
           <tbody>
             {% for row in not_found_rows %}
               <tr>
-                <td><code class="admin-inline-code">{{ row.path|e }}</code></td>
+                <td>
+                  <code class="admin-inline-code">{{ row.path|e }}</code>
+                  <p class="admin-hint" style="margin:0.35rem 0 0;font-size:0.75rem">First seen {{ row.created_at|default('—')|e }}</p>
+                </td>
                 <td>{{ row.hit_count|default(0) }}</td>
                 <td>{{ row.last_seen_at|default('')|e }}</td>
                 <td style="max-width:14rem;word-break:break-all;font-size:0.8125rem">{{ row.referer|default('—')|e }}</td>
                 <td style="white-space:nowrap">
+                  <button
+                    type="button"
+                    class="admin-link"
+                    style="background:none;border:none;padding:0;cursor:pointer;color:var(--admin-sidebar-accent-text);text-decoration:underline"
+                    data-nf-details
+                    data-hits-url="{{ url_for('admin.seo.not_found.hits', { id: row.id })|e('html_attr') }}"
+                    data-path="{{ row.path|e('html_attr') }}"
+                  >Details</button>
+                  <span class="admin-table-muted" aria-hidden="true"> · </span>
                   <a class="admin-link" href="{{ url_for('admin.seo.redirects') }}?prefill={{ row.path|url_encode }}">Redirect…</a>
                   <form method="post" action="{{ url_for('admin.seo.not_found.delete', { id: row.id }) }}" style="display:inline;margin-left:0.5rem" onsubmit="return confirm('Remove this log row?');">
                     <input type="hidden" name="return_page" value="{{ not_found_list_page|default(1) }}" />
@@ -71,4 +83,146 @@
       {% endif %}
     {% endif %}
   </section>
+
+  <div id="admin-nf-modal" class="admin-media-modal" hidden role="dialog" aria-modal="true" aria-labelledby="admin-nf-modal-title">
+    <div class="admin-media-modal-backdrop" id="admin-nf-modal-backdrop" tabindex="-1"></div>
+    <div class="admin-media-modal-panel" style="max-height:min(90vh,680px);width:min(44rem,100%)">
+      <header class="admin-media-modal-head">
+        <h2 class="admin-media-modal-title" id="admin-nf-modal-title">404 request log</h2>
+        <button type="button" class="admin-media-modal-close" id="admin-nf-modal-close" aria-label="Close">×</button>
+      </header>
+      <div class="admin-media-modal-body">
+        <p class="admin-hint" style="margin-top:0" id="admin-nf-modal-path"></p>
+        <p class="admin-form-error" id="admin-nf-modal-error" hidden></p>
+        <p class="admin-table-muted" id="admin-nf-modal-loading">Loading…</p>
+        <div id="admin-nf-modal-empty" class="admin-hint" hidden>No per-request rows yet. New 404s are logged here after migration 026.</div>
+        <div id="admin-nf-modal-table-wrap" hidden style="overflow-x:auto">
+          <table class="admin-table" style="font-size:0.875rem">
+            <thead>
+              <tr>
+                <th>Time (server)</th>
+                <th>IP</th>
+                <th>User agent</th>
+              </tr>
+            </thead>
+            <tbody id="admin-nf-modal-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      var modal = document.getElementById('admin-nf-modal');
+      var backdrop = document.getElementById('admin-nf-modal-backdrop');
+      var closeBtn = document.getElementById('admin-nf-modal-close');
+      var pathEl = document.getElementById('admin-nf-modal-path');
+      var errEl = document.getElementById('admin-nf-modal-error');
+      var loadEl = document.getElementById('admin-nf-modal-loading');
+      var emptyEl = document.getElementById('admin-nf-modal-empty');
+      var wrapEl = document.getElementById('admin-nf-modal-table-wrap');
+      var tbody = document.getElementById('admin-nf-modal-tbody');
+      if (!modal || !tbody) return;
+
+      function esc(s) {
+        if (s == null) return '';
+        var d = document.createElement('div');
+        d.textContent = String(s);
+        return d.innerHTML;
+      }
+
+      function closeModal() {
+        modal.hidden = true;
+        document.body.classList.remove('admin-media-modal-open');
+      }
+
+      function openModal() {
+        modal.hidden = false;
+        document.body.classList.add('admin-media-modal-open');
+      }
+
+      function setLoading() {
+        errEl.hidden = true;
+        errEl.textContent = '';
+        loadEl.hidden = false;
+        emptyEl.hidden = true;
+        wrapEl.hidden = true;
+        tbody.innerHTML = '';
+      }
+
+      function showError(msg) {
+        loadEl.hidden = true;
+        emptyEl.hidden = true;
+        wrapEl.hidden = true;
+        errEl.textContent = msg;
+        errEl.hidden = false;
+      }
+
+      function renderRows(hits) {
+        loadEl.hidden = true;
+        errEl.hidden = true;
+        tbody.innerHTML = '';
+        if (!hits || !hits.length) {
+          emptyEl.hidden = false;
+          wrapEl.hidden = true;
+          return;
+        }
+        emptyEl.hidden = true;
+        wrapEl.hidden = false;
+        hits.forEach(function (h) {
+          var tr = document.createElement('tr');
+          tr.innerHTML =
+            '<td><code class="admin-inline-code">' +
+            esc(h.seen_at || '') +
+            '</code></td><td><code class="admin-inline-code">' +
+            esc(h.client_ip || '') +
+            '</code></td><td style="max-width:18rem;word-break:break-word;font-size:0.8125rem">' +
+            esc(h.user_agent || '—') +
+            '</td>';
+          tbody.appendChild(tr);
+        });
+      }
+
+      document.querySelectorAll('[data-nf-details]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          var u = btn.getAttribute('data-hits-url');
+          var p = btn.getAttribute('data-path') || '';
+          if (!u) return;
+          pathEl.innerHTML = '<strong>Path</strong> <code class="admin-inline-code">' + esc(p) + '</code>';
+          setLoading();
+          openModal();
+          fetch(u, { headers: { Accept: 'application/json' }, credentials: 'same-origin' })
+            .then(function (r) {
+              return r.json().then(function (data) {
+                return { ok: r.ok, data: data };
+              });
+            })
+            .then(function (res) {
+              var data = res.data || {};
+              if (!res.ok || !data.ok) {
+                showError((data && data.error) || 'Could not load hit details.');
+                return;
+              }
+              if (data.path && data.path !== p) {
+                pathEl.innerHTML = '<strong>Path</strong> <code class="admin-inline-code">' + esc(data.path) + '</code>';
+              }
+              renderRows(data.hits);
+            })
+            .catch(function () {
+              showError('Request failed.');
+            });
+        });
+      });
+
+      function onClose() {
+        closeModal();
+      }
+      if (closeBtn) closeBtn.addEventListener('click', onClose);
+      if (backdrop) backdrop.addEventListener('click', onClose);
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && !modal.hidden) onClose();
+      });
+    })();
+  </script>
 {% endblock %}

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Middleware;
 
+use App\Http\ClientIp;
 use App\Seo\NotFoundLogRepository;
 use PDO;
 use Psr\Http\Message\ResponseInterface;
@@ -52,7 +53,9 @@ final class NotFoundLogMiddleware implements MiddlewareInterface
         try {
             $ref = $request->getHeaderLine('Referer');
             $ref = $ref !== '' ? $ref : null;
-            (new NotFoundLogRepository($this->pdo))->record($path, $ref);
+            $ua = $request->getHeaderLine('User-Agent');
+            $ua = $ua !== '' ? $ua : null;
+            (new NotFoundLogRepository($this->pdo))->record($path, $ref, ClientIp::fromRequest($request), $ua);
         } catch (\Throwable) {
         }
     }
