@@ -46,6 +46,7 @@ use App\Plugin\PluginManager;
 use App\Plugin\PluginRepository;
 use App\Plugin\PluginScanner;
 use App\Plugin\PluginValidator;
+use App\Security\IpBlockHitThrottledLogger;
 use App\Security\IpBlockRepository;
 use App\Security\TwoFactorLoginSession;
 use App\Security\TotpService;
@@ -174,7 +175,11 @@ $app->add(new NotFoundLogMiddleware($pdo));
 $app->add(new RedirectMiddleware($pdo));
 $app->add(new ThrottlingMiddleware($root));
 $app->add(new SecurityHeadersMiddleware());
-$app->add(new IpBlockMiddleware(new IpBlockRepository($pdo), $cacheManager->internal()));
+$app->add(new IpBlockMiddleware(
+    new IpBlockRepository($pdo),
+    $cacheManager->internal(),
+    IpBlockHitThrottledLogger::createDefault($pdo, $root),
+));
 
 $displayErrorDetails = in_array(
     strtolower(trim((string) ($_ENV['APP_DEBUG'] ?? ''))),

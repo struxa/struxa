@@ -7,15 +7,21 @@
 {% endblock %}
 
 {% block admin_hero_sub %}
-  <p class="admin-hint" style="margin-top:0">
+    <p class="admin-hint" style="margin-top:0">
     <a class="admin-link" href="{{ url_for('admin.seo.redirects') }}">URL redirects</a>
     ·
     <a class="admin-link" href="{{ url_for('admin.seo.sitemap') }}">Sitemap</a>
     · Sorted by hit count. <strong>Details</strong> opens a scrollable table of IP, time, and user agent (after migration <code class="admin-inline-code">026_not_found_hit_events.sql</code>). Add a redirect from <strong>Redirects</strong> using the path below.
+    {% if cms_can('manage_security') %}
+      With <strong>Manage security</strong>, each row can <strong>Block IP</strong> (whole site) and return you to this list.
+    {% endif %}
   </p>
 {% endblock %}
 
 {% block admin_content %}
+  {% set nf_return_to = not_found_list_page|default(1) > 1
+    ? url_for('admin.seo.not_found', {}, { page: not_found_list_page })
+    : url_for('admin.seo.not_found') %}
   <section class="admin-card admin-settings-card admin-role-edit-card admin-seo-nf-card">
     <span class="admin-seo-nf-queue-accent" aria-hidden="true"></span>
     <div class="admin-toolbar admin-toolbar--spread" style="margin-bottom:0.75rem;align-items:flex-start;gap:1rem;flex-wrap:wrap">
@@ -115,7 +121,18 @@
     {% endif %}
   </section>
 
-  <div id="admin-nf-modal" class="admin-media-modal" hidden role="dialog" aria-modal="true" aria-labelledby="admin-nf-modal-title">
+  <div
+    id="admin-nf-modal"
+    class="admin-media-modal"
+    hidden
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="admin-nf-modal-title"
+    data-ip-block-add-url="{{ url_for('admin.security.ip_block_add')|e('html_attr') }}"
+    data-csrf="{{ csrf_token()|e('html_attr') }}"
+    data-can-block-ip="{{ cms_can('manage_security') ? '1' : '0' }}"
+    data-return-to="{{ nf_return_to|e('html_attr') }}"
+  >
     <div class="admin-media-modal-backdrop" id="admin-nf-modal-backdrop" tabindex="-1"></div>
     <div class="admin-media-modal-panel admin-nf-modal-panel">
       <header class="admin-media-modal-head">
@@ -135,6 +152,9 @@
                 <th scope="col">Time (server)</th>
                 <th scope="col">IP</th>
                 <th scope="col">User agent</th>
+                {% if cms_can('manage_security') %}
+                  <th scope="col" class="admin-table-col-actions"><span class="admin-table-muted">Block</span></th>
+                {% endif %}
               </tr>
             </thead>
             <tbody id="admin-nf-modal-tbody"></tbody>
@@ -155,6 +175,11 @@
       var emptyEl = document.getElementById('admin-nf-modal-empty');
       var wrapEl = document.getElementById('admin-nf-modal-table-wrap');
       var tbody = document.getElementById('admin-nf-modal-tbody');
+      var canBlockIp = modal.getAttribute('data-can-block-ip') === '1';
+      var blockAddUrl = modal.getAttribute('data-ip-block-add-url') || '';
+      var blockCsrf = modal.getAttribute('data-csrf') || '';
+      var blockReturnTo = modal.getAttribute('data-return-to') || '';
+      var modalNfPath = '';
       var selectAll = document.getElementById('nf-select-all');
       var bulkBtn = document.getElementById('nf-bulk-delete');
       var bulkForm = document.getElementById('nf-bulk-form');
@@ -165,6 +190,21 @@
         var d = document.createElement('div');
         d.textContent = String(s);
         return d.innerHTML;
+      }
+
+      function escAttr(s) {
+        return String(s)
+          .replace(/&/g, '&amp;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;')
+          .replace(/</g, '&lt;');
+      }
+
+      function looksLikeClientIp(s) {
+        if (s == null || typeof s !== 'string') return false;
+        s = s.trim();
+        if (s.length < 7 || s.length > 45) return false;
+        return /^[\d.a-fA-F:]+$/.test(s);
       }
 
       function closeModal() {
@@ -207,16 +247,46 @@
         wrapEl.hidden = false;
         hits.forEach(function (h, idx) {
           var tr = document.createElement('tr');
+          var ip = h.client_ip != null ? String(h.client_ip).trim() : '';
+          var blockCol = '';
+          if (canBlockIp) {
+            if (looksLikeClientIp(ip) && blockAddUrl && blockCsrf) {
+              var note = '404 log: ' + (modalNfPath || '—');
+              if (note.length > 255) note = note.slice(0, 252) + '…';
+              blockCol =
+                '<td class="admin-table-actions" style="white-space:nowrap">' +
+                '<form method="post" action="' +
+                escAttr(blockAddUrl) +
+                '" style="display:inline" onsubmit="return confirm(&quot;Block this IP from the entire site (storefront and admin)?&quot;);">' +
+                '<input type="hidden" name="_csrf_token" value="' +
+                escAttr(blockCsrf) +
+                '" />' +
+                '<input type="hidden" name="pattern" value="' +
+                escAttr(ip) +
+                '" />' +
+                '<input type="hidden" name="note" value="' +
+                escAttr(note) +
+                '" />' +
+                '<input type="hidden" name="return_to" value="' +
+                escAttr(blockReturnTo) +
+                '" />' +
+                '<button type="submit" class="admin-btn admin-btn--ghost admin-btn--sm">Block IP</button>' +
+                '</form></td>';
+            } else {
+              blockCol = '<td class="admin-table-muted">—</td>';
+            }
+          }
           tr.innerHTML =
             '<td class="admin-table-muted">' +
             esc(String(idx + 1)) +
             '</td><td><code class="admin-inline-code">' +
             esc(h.seen_at || '') +
             '</code></td><td><code class="admin-inline-code">' +
-            esc(h.client_ip || '') +
+            esc(ip) +
             '</code></td><td style="max-width:22rem;word-break:break-word;font-size:0.8125rem;line-height:1.45">' +
             esc(h.user_agent || '—') +
-            '</td>';
+            '</td>' +
+            blockCol;
           tbody.appendChild(tr);
         });
       }
@@ -225,6 +295,7 @@
         btn.addEventListener('click', function () {
           var u = btn.getAttribute('data-hits-url');
           var p = btn.getAttribute('data-path') || '';
+          modalNfPath = p;
           if (!u) return;
           pathEl.innerHTML = '<strong>Path</strong> <code class="admin-inline-code">' + esc(p) + '</code>';
           setLoading();

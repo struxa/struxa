@@ -6,6 +6,7 @@ namespace App\Http\Middleware;
 
 use App\Cache\FileCache;
 use App\Http\ClientIp;
+use App\Security\IpBlockHitThrottledLogger;
 use App\Security\IpBlockMatcher;
 use App\Security\IpBlockRepository;
 use Psr\Http\Message\ResponseInterface;
@@ -25,6 +26,7 @@ final class IpBlockMiddleware implements MiddlewareInterface
     public function __construct(
         private readonly IpBlockRepository $repository,
         private readonly FileCache $internalCache,
+        private readonly ?IpBlockHitThrottledLogger $hitLogger = null,
     ) {
     }
 
@@ -42,6 +44,10 @@ final class IpBlockMiddleware implements MiddlewareInterface
         $ip = ClientIp::fromRequest($request);
         if (!IpBlockMatcher::isBlocked($ip, $patterns)) {
             return $handler->handle($request);
+        }
+
+        if ($this->hitLogger !== null) {
+            $this->hitLogger->recordBlockedHit($request, $ip);
         }
 
         $response = new Response(403);
