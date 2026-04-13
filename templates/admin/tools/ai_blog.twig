@@ -12,9 +12,13 @@
   {% if can_save_openai_settings %}
     <section class="admin-card" style="margin-bottom:1.25rem">
       <h2 class="admin-card-title">OpenAI connection</h2>
-      <p class="admin-hint">API calls use the server-side key only. You can set <code class="admin-inline-code">OPENAI_API_KEY</code> (or <code class="admin-inline-code">STRUXA_OPENAI_API_KEY</code>) in the environment instead of storing a key in the database.</p>
+      <p class="admin-hint">Store the API key under <a class="admin-link" href="{{ url_for('admin.system.api_keys') }}">System → API keys</a> (same key powers AI draft, AI comments, and the floating assistant). You can also set <code class="admin-inline-code">OPENAI_API_KEY</code> or <code class="admin-inline-code">STRUXA_OPENAI_API_KEY</code> in the environment.</p>
       {% if openai_key_from_env %}
-        <p class="admin-hint" style="margin-top:0.5rem">An API key is set via environment variables; the fields below apply to the model name and enable toggle.</p>
+        <p class="admin-hint" style="margin-top:0.5rem">A key is set via environment variables; the form below controls the model name, enable toggle, and rate limits.</p>
+      {% elseif openai_key_stored %}
+        <p class="admin-hint" style="margin-top:0.5rem">A key is stored in the database (managed on the API keys page).</p>
+      {% else %}
+        <p class="admin-hint" style="margin-top:0.5rem">No database key yet — add one on <a class="admin-link" href="{{ url_for('admin.system.api_keys') }}">System → API keys</a> or use an env key.</p>
       {% endif %}
       <form class="admin-form" method="post" action="{{ url_for('admin.tools.ai_blog.settings') }}">
         <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
@@ -26,17 +30,6 @@
           <input class="admin-input" id="openai_model" name="openai_model" type="text" value="{{ openai_model|e }}" autocomplete="off" />
           <p class="admin-hint">Default <code class="admin-inline-code">gpt-4o-mini</code>. Override with <code class="admin-inline-code">OPENAI_MODEL</code> or <code class="admin-inline-code">STRUXA_OPENAI_MODEL</code> if set.</p>
         </div>
-        {% if not openai_key_from_env %}
-          <div class="admin-field admin-field--full">
-            <label class="admin-label" for="openai_api_key">API key</label>
-            <input class="admin-input" id="openai_api_key" name="openai_api_key" type="password" value="" autocomplete="new-password" placeholder="{{ openai_key_stored ? 'Leave blank to keep existing key' : 'sk-…' }}" />
-          </div>
-          {% if openai_key_stored %}
-            <div class="admin-field admin-field--full">
-              <label class="admin-label"><input type="checkbox" name="openai_api_key_clear" value="1" /> Remove stored API key</label>
-            </div>
-          {% endif %}
-        {% endif %}
         <h3 class="admin-card-title" style="margin-top:1.25rem;font-size:1rem">Rate limits &amp; retention</h3>
         <p class="admin-hint">Set to <strong>0</strong> to disable that action (chat or drafts) for all editors.</p>
         <div class="admin-field admin-field--full">

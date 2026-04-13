@@ -253,7 +253,9 @@
         banner.hidden = false;
         banner.textContent =
           'OpenAI is off or no API key. ' +
-          (state.canSaveSettings ? 'Open Settings to enable it.' : 'Ask an administrator to configure AI draft in Settings.');
+          (state.canSaveSettings
+            ? 'Use System → API keys for the key and AI draft to enable the model.'
+            : 'Ask an administrator to add the key (System → API keys) and enable AI draft.');
       } else {
         banner.hidden = false;
         var rl = data.rate_limits || {};

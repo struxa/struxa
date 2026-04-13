@@ -132,6 +132,37 @@ final class ContentEntryRepository
     }
 
     /**
+     * Published entries for a type (admin tools, AI comments, etc.).
+     *
+     * @return list<array{id: int, title: string, slug: string}>
+     */
+    public function listPublishedSummariesForContentType(int $contentTypeId, int $limit = 500): array
+    {
+        if ($contentTypeId < 1) {
+            return [];
+        }
+        $limit = max(1, min(500, $limit));
+        $stmt = $this->pdo->prepare(
+            'SELECT id, title, slug FROM ' . self::TABLE
+            . ' WHERE content_type_id = ? AND status = ? ORDER BY published_at DESC, updated_at DESC LIMIT ' . $limit
+        );
+        $stmt->execute([$contentTypeId, 'published']);
+        $out = [];
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            if (!is_array($row)) {
+                continue;
+            }
+            $out[] = [
+                'id' => (int) ($row['id'] ?? 0),
+                'title' => (string) ($row['title'] ?? ''),
+                'slug' => (string) ($row['slug'] ?? ''),
+            ];
+        }
+
+        return $out;
+    }
+
+    /**
      * @param list<string> $statuses
      */
     public function countForContentTypeWithStatuses(int $contentTypeId, array $statuses): int

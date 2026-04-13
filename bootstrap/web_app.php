@@ -649,6 +649,7 @@ $app->get('/logout', function (Request $request, Response $response) use ($twig,
 (require $root . '/routes/admin_media.php')($app, $twig, $auth, $pdo, $viewData);
 (require $root . '/routes/admin_content.php')($app, $twig, $auth, $pdo, $viewData);
 (require $root . '/routes/admin_ai_blog.php')($app, $twig, $auth, $pdo, $viewData);
+(require $root . '/routes/admin_ai_comments.php')($app, $twig, $auth, $pdo, $viewData);
 (require $root . '/routes/admin_taxonomies.php')($app, $twig, $auth, $pdo, $viewData);
 (require $root . '/routes/admin_themes.php')($app, $twig, $auth, $pdo, $viewData);
 (require $root . '/routes/admin_plugins.php')($app, $twig, $auth, $pdo, $viewData);

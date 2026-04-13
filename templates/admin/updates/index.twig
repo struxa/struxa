@@ -76,6 +76,9 @@
         Feed: <code class="admin-inline-code">{{ st.feed_url|default('')|e }}</code> (static <code class="admin-inline-code">.json</code> or PHP that returns JSON) · override with <code class="admin-inline-code">STRUXA_UPDATES_JSON_URL</code>, or mirror to disk with <code class="admin-inline-code">STRUXA_UPDATES_JSON_PATH</code> if the server cannot fetch its own public URL, or use GitHub with <code class="admin-inline-code">STRUXA_UPDATES_GITHUB_REPO</code>.
       {% endif %}
     </p>
+    <p class="admin-hint">
+      Struxa default public feed (view JSON): <a class="admin-link" href="https://struxapoint.com/dist/struxa-updates-json.php" rel="noopener noreferrer" target="_blank">https://struxapoint.com/dist/struxa-updates-json.php</a>
+    </p>
 
     <div class="admin-updates-cta" id="admin-updates-cta">
       <a

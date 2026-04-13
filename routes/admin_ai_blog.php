@@ -536,7 +536,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             $runAiDraftCreation
         ): Response {
             if (!OpenAiApiKeyResolver::canGenerate()) {
-                Flash::set('error', 'Turn on OpenAI and add an API key (or set OPENAI_API_KEY in the environment).');
+                Flash::set('error', 'Turn on OpenAI here and add an API key under System → API keys (or set OPENAI_API_KEY in the environment).');
 
                 return $response
                     ->withHeader('Location', RouteContext::fromRequest($request)->getRouteParser()->urlFor('admin.tools.ai_blog'))

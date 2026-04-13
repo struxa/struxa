@@ -21,6 +21,26 @@
     {% endif %}
   </div>
 
+  {% if cms_can('create_content') or cms_can('manage_settings') or cms_can('manage_comments') %}
+    <details class="admin-nav-group" {{ nav in ['ai_blog','ai_comments'] ? 'open' : '' }}>
+      <summary class="admin-nav-group-title">AI</summary>
+      <div class="admin-nav-group-items">
+        {% if cms_can('create_content') or cms_can('manage_settings') %}
+          <a href="{{ url_for('admin.tools.ai_blog') }}" class="{{ nav == 'ai_blog' ? 'is-active' : '' }}">
+            <svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M12 3a6 6 0 0 0 6 6v3a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V9a6 6 0 0 0 6-6z"/><path d="M9 18h6v3H9z"/></svg>
+            AI draft
+          </a>
+        {% endif %}
+        {% if cms_can('manage_comments') %}
+          <a href="{{ url_for('admin.tools.ai_comments') }}" class="{{ nav == 'ai_comments' ? 'is-active' : '' }}">
+            <svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            AI comments
+          </a>
+        {% endif %}
+      </div>
+    </details>
+  {% endif %}
+
   <a href="{{ url_for('admin.updates.index') }}" class="admin-nav-pin {{ nav == 'updates' ? 'is-active' : '' }}">
     <svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
       <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
@@ -79,16 +99,10 @@
     </details>
   {% endif %}
 
-  <details class="admin-nav-group" {{ nav in ['pages','content_types','media','ai_blog'] ? 'open' : '' }}>
+  <details class="admin-nav-group" {{ nav in ['pages','content_types','media'] ? 'open' : '' }}>
     <summary class="admin-nav-group-title">Content</summary>
     <div class="admin-nav-group-items">
       {# Pages: use sidebar pin only (avoids duplicate nav) #}
-      {% if cms_can('create_content') or cms_can('manage_settings') %}
-        <a href="{{ url_for('admin.tools.ai_blog') }}" class="{{ nav == 'ai_blog' ? 'is-active' : '' }}">
-          <svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M12 3a6 6 0 0 0 6 6v3a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V9a6 6 0 0 0 6-6z"/><path d="M9 18h6v3H9z"/></svg>
-          AI draft
-        </a>
-      {% endif %}
       {% if cms_can('manage_content_types') or cms_can('create_content') or cms_can('edit_content') or cms_can('review_content') or cms_can('publish_content') %}
         <a href="{{ url_for('admin.content_types.index') }}" class="{{ nav == 'content_types' ? 'is-active' : '' }}">
           <svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>

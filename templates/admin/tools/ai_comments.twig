@@ -1,0 +1,102 @@
+{% extends 'admin/base.twig' %}
+
+{% block admin_title %}AI comments{% endblock %}
+
+{% block admin_hero_title %}<h1 class="admin-hero-title">AI comments</h1>{% endblock %}
+
+{% block admin_hero_sub %}
+  <p class="admin-hero-sub">Generate plausible reader comments on selected <strong>published</strong> articles using OpenAI. Comments are saved as <strong>approved</strong> immediately. Use only on sites you own and where synthetic engagement is appropriate.</p>
+{% endblock %}
+
+{% block admin_content %}
+  {% if ai_comment_type_options is empty %}
+    <section class="admin-card">
+      <p class="admin-hint">No public content types are configured. Add a content type with a public URL route to use this tool.</p>
+    </section>
+  {% else %}
+    <section class="admin-card" style="margin-bottom:1.25rem">
+      <h2 class="admin-card-title">OpenAI</h2>
+      {% if not ai_comment_can_generate %}
+        <p class="admin-hint">Configure your API key and enable AI under <a class="admin-link" href="{{ url_for('admin.system.api_keys') }}">System → API keys</a>, then turn on <strong>Enable AI draft generation</strong> on <a class="admin-link" href="{{ url_for('admin.tools.ai_blog') }}">AI draft</a> (model and limits are shared).</p>
+      {% else %}
+        <p class="admin-hint">Uses the same OpenAI key and model as <a class="admin-link" href="{{ url_for('admin.tools.ai_blog') }}">AI draft</a>. Key: <a class="admin-link" href="{{ url_for('admin.system.api_keys') }}">System → API keys</a>.</p>
+      {% endif %}
+    </section>
+
+    <section class="admin-card">
+      <h2 class="admin-card-title">Generate</h2>
+      <div class="admin-field admin-field--full">
+        <label class="admin-label" for="ai_comment_type">Content type</label>
+        <select class="admin-input" id="ai_comment_type" data-base="{{ url_for('admin.tools.ai_comments')|e('html_attr') }}">
+          {% for t in ai_comment_type_options %}
+            <option value="{{ t.id }}" {{ t.id == ai_comment_selected_type_id ? 'selected' : '' }}>{{ t.name|e }} ({{ t.slug|e }})</option>
+          {% endfor %}
+        </select>
+        <p class="admin-hint">Shows published entries for the selected type (often “blog”).</p>
+      </div>
+
+      {% if ai_comment_entries is empty %}
+        <p class="admin-hint" style="margin-top:1rem">No published entries for this type yet.</p>
+      {% elseif not ai_comment_can_generate %}
+        <p class="admin-hint" style="margin-top:1rem">OpenAI is not ready — fix configuration above before generating.</p>
+      {% else %}
+        <form class="admin-form" method="post" action="{{ url_for('admin.tools.ai_comments.generate') }}" style="margin-top:1rem">
+          <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+          <input type="hidden" name="content_type_id" value="{{ ai_comment_selected_type_id }}" />
+
+          <fieldset class="admin-field admin-field--full" style="border:1px solid rgba(0,0,0,.08);border-radius:8px;padding:0.75rem 1rem;margin:0">
+            <legend class="admin-label" style="padding:0 0.35rem">Articles (multi-select)</legend>
+            <div class="admin-scroll-checkboxes" style="max-height:22rem;overflow:auto;margin-top:0.35rem">
+              {% for e in ai_comment_entries %}
+                <label class="admin-label" style="display:flex;align-items:flex-start;gap:0.5rem;font-weight:400;margin:0.35rem 0">
+                  <input type="checkbox" name="entry_ids[]" value="{{ e.id }}" />
+                  <span><strong>#{{ e.id }}</strong> — {{ e.title|default('(no title)')|e }} <span class="admin-table-muted">/{{ e.slug|e }}</span></span>
+                </label>
+              {% endfor %}
+            </div>
+          </fieldset>
+
+          <div class="admin-field admin-field--full" style="margin-top:1rem">
+            <label class="admin-label" for="sentiment">Overall tone</label>
+            <select class="admin-input" id="sentiment" name="sentiment">
+              <option value="positive">Positive</option>
+              <option value="neutral">Neutral</option>
+              <option value="negative">Negative</option>
+              <option value="mixed" selected>Mixed (vary per comment)</option>
+            </select>
+          </div>
+
+          <div class="admin-field admin-field--full">
+            <label class="admin-label" for="comments_per_entry">Comments per article</label>
+            <select class="admin-input" id="comments_per_entry" name="comments_per_entry">
+              <option value="1">1</option>
+              <option value="2" selected>2</option>
+              <option value="3">3</option>
+              <option value="4">4</option>
+            </select>
+          </div>
+
+          <div class="admin-field admin-field--full">
+            <label class="admin-label"><input type="checkbox" name="imperfect_writing" value="1" /> Casual / imperfect writing on some comments only</label>
+            <p class="admin-hint">When checked, the model adds small typos, missing apostrophes, or missing full stops on roughly a third of lines — not on every comment.</p>
+          </div>
+
+          <div class="admin-form-actions">
+            <button type="submit" class="admin-btn-primary">Generate &amp; approve comments</button>
+            <a class="admin-btn-ghost" href="{{ url_for('admin.comments.index') }}?status=approved">View approved comments</a>
+          </div>
+        </form>
+      {% endif %}
+    </section>
+  {% endif %}
+
+  <script>
+    (function () {
+      var sel = document.getElementById('ai_comment_type');
+      if (!sel || !sel.dataset.base) return;
+      sel.addEventListener('change', function () {
+        window.location.href = sel.dataset.base + '?type=' + encodeURIComponent(String(sel.value));
+      });
+    })();
+  </script>
+{% endblock %}
