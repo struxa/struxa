@@ -38,6 +38,7 @@ return static function (App $app, Twig $twig, \PDO $pdo, callable $viewData): vo
             $page,
             '/p/' . $page->slug,
             false,
+            $request,
         );
     })->setName('public.page');
 };

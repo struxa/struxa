@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.0.42",
-    "title": "Struxa 1.0.42",
-    "summary": "Comments require sign-in; plain-text sanitization; nested replies; per-user likes with CSRF and rate limits.",
+    "latest_version": "1.0.43",
+    "title": "Struxa 1.0.43",
+    "summary": "Paginated public comments by thread (c_page); refreshed discussion UI; CMS_COMMENTS_ROOTS_PER_PAGE.",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "minor"

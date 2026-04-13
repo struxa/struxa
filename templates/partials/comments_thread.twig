@@ -6,13 +6,17 @@
     {% endfor %}
   </div>
 {% else %}
-  <p class="cms-comments-empty">No comments yet.{% if logged_in|default(false) %} Start the discussion.{% endif %}</p>
+  <p class="cms-comments-empty">No comments yet.{% if logged_in|default(false) %} Be the first to start a thread.{% endif %}</p>
 {% endif %}
 
 {% macro item(node, thread_key, return_to) %}
-  <article class="cms-comment" role="listitem" id="comment-{{ node.id }}">
+  {% set _d = node.depth|default(0) %}
+  {% set dclamped = _d > 4 ? 4 : _d %}
+  {% set initials = (node.author_name|default('?'))|upper|slice(0, 2) %}
+  <article class="cms-comment cms-comment--depth-{{ dclamped }}" role="listitem" id="comment-{{ node.id }}">
+    <div class="cms-comment-avatar" aria-hidden="true">{{ initials|e }}</div>
     <header class="cms-comment-head">
-      <strong class="cms-comment-author">{{ node.author_name|e }}</strong>
+      <span class="cms-comment-author">{{ node.author_name|e }}</span>
       <time class="cms-comment-time" datetime="{{ node.created_at|e('html_attr') }}">{{ node.created_at|e }}</time>
     </header>
     <div class="cms-comment-body">{{ node.body|default('')|e|nl2br }}</div>
@@ -25,11 +29,11 @@
           <input type="hidden" name="thread_key" value="{{ thread_key|e('html_attr') }}" />
           <input type="hidden" name="return_to" value="{{ return_to|e('html_attr') }}" />
           <button type="submit" class="cms-comment-like-btn" aria-pressed="{{ node.liked_by_me|default(false) ? 'true' : 'false' }}">
-            {% if node.liked_by_me|default(false) %}Unlike{% else %}Like{% endif %} · {{ _likes }}
+            {% if node.liked_by_me|default(false) %}♥ Liked{% else %}♡ Like{% endif %} · {{ _likes }}
           </button>
         </form>
       {% else %}
-        <span class="cms-comments-note" style="margin:0">{{ _likes }} like{% if _likes != 1 %}s{% endif %}</span>
+        <span class="cms-comments-note" style="margin:0;font-size:.8rem">{{ _likes }} like{% if _likes != 1 %}s{% endif %}</span>
       {% endif %}
     </div>
     {% if logged_in|default(false) %}
@@ -42,10 +46,10 @@
           <input type="hidden" name="return_to" value="{{ return_to|e('html_attr') }}" />
           <input type="text" name="website" value="" autocomplete="off" tabindex="-1" aria-hidden="true" style="position:absolute;left:-9999px;opacity:0" />
           <label>
-            <span>Reply (plain text)</span>
-            <textarea required name="body" maxlength="4000" rows="4" placeholder="Write your reply…"></textarea>
+            <span>Reply</span>
+            <textarea required name="body" maxlength="4000" rows="3" placeholder="Add to the thread…"></textarea>
           </label>
-          <button type="submit">Post reply</button>
+          <button type="submit">Send reply</button>
         </form>
       </details>
     {% endif %}

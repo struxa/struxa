@@ -1,41 +1,141 @@
 <section id="comments" class="cms-comments-wrap" aria-labelledby="comments-title">
   <style>
-    .cms-comments-wrap{margin:2.5rem 0 0;padding:1.25rem;border:1px solid rgba(148,163,184,.28);border-radius:14px;background:rgba(2,6,23,.35)}
-    .cms-comments-note{margin:.25rem 0 1rem;opacity:.85}
-    .cms-comment-form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:.65rem}
-    .cms-comment-form input,.cms-comment-form textarea{width:100%;box-sizing:border-box;padding:.65rem .75rem;border-radius:10px;border:1px solid rgba(148,163,184,.33);background:rgba(15,23,42,.45);color:inherit}
-    .cms-comment-form button,.cms-comment-like-btn{margin-top:.65rem;padding:.55rem .9rem;border-radius:10px;border:1px solid rgba(148,163,184,.35);background:rgba(51,65,85,.45);color:inherit;cursor:pointer;font:inherit}
-    .cms-comment-like-btn{margin-top:0;margin-inline-end:.5rem}
-    .cms-comments-list{display:grid;gap:.85rem;margin-top:1.2rem}
-    .cms-comment{padding:.8rem .9rem;border-radius:12px;background:rgba(15,23,42,.35);border:1px solid rgba(148,163,184,.2)}
-    .cms-comment-head{display:flex;gap:.8rem;align-items:center;justify-content:space-between;font-size:.92rem;flex-wrap:wrap}
-    .cms-comment-time{opacity:.7;font-size:.8rem}
-    .cms-comment-body{margin-top:.45rem;line-height:1.55;word-break:break-word}
-    .cms-comment-actions{display:flex;flex-wrap:wrap;align-items:center;gap:.35rem;margin-top:.5rem}
-    .cms-comment-reply{margin-top:.55rem}
-    .cms-comment-children{margin-top:.65rem;padding-left:.9rem;border-left:2px solid rgba(148,163,184,.22);display:grid;gap:.65rem}
-    .cms-comments-empty{opacity:.78}
+    .cms-comments-wrap{
+      --cms-c-accent: #8b5cf6;
+      --cms-c-accent2: #22d3ee;
+      --cms-c-surface: rgba(15, 23, 42, 0.55);
+      --cms-c-border: rgba(148, 163, 184, 0.22);
+      margin:2.75rem 0 0;
+      padding:0;
+      border-radius:20px;
+      background: linear-gradient(135deg, rgba(139, 92, 246, 0.12), rgba(34, 211, 238, 0.08));
+      border:1px solid rgba(148, 163, 184, 0.25);
+      box-shadow: 0 18px 50px -24px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.06);
+      overflow:hidden;
+    }
+    .cms-comments-inner{padding:1.35rem 1.35rem 1.5rem}
+    @media (min-width:640px){.cms-comments-inner{padding:1.6rem 1.75rem 1.75rem}}
+    .cms-comments-head{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:.75rem;margin-bottom:1rem}
+    .cms-comments-title{
+      margin:0;font-size:clamp(1.15rem, 2.5vw, 1.45rem);font-weight:700;letter-spacing:-.02em;
+      background: linear-gradient(90deg, #e2e8f0, #c4b5fd 45%, #67e8f9);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+    .cms-comments-note{margin:.35rem 0 0;font-size:.875rem;opacity:.88;line-height:1.45;max-width:52ch}
+    .cms-comment-form label span{display:block;font-size:.78rem;font-weight:600;letter-spacing:.04em;text-transform:uppercase;opacity:.75;margin-bottom:.35rem}
+    .cms-comment-form textarea,.cms-comment-form input[type="text"]{
+      width:100%;box-sizing:border-box;padding:.75rem .9rem;border-radius:12px;
+      border:1px solid var(--cms-c-border);
+      background: rgba(2, 6, 23, 0.5);
+      color: inherit;
+      font: inherit;
+      transition: border-color .15s, box-shadow .15s;
+    }
+    .cms-comment-form textarea:focus,.cms-comment-form input:focus{
+      outline:none;border-color: rgba(139, 92, 246, 0.55);
+      box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.18);
+    }
+    .cms-comment-form button,.cms-comment-like-btn{
+      margin-top:.85rem;padding:.6rem 1.1rem;border-radius:999px;border:none;
+      font: inherit; font-weight: 600; font-size: .88rem; cursor: pointer;
+      background: linear-gradient(120deg, var(--cms-c-accent), #6366f1);
+      color: #f8fafc;
+      box-shadow: 0 4px 14px -4px rgba(99, 102, 241, 0.55);
+      transition: transform .12s, filter .12s;
+    }
+    .cms-comment-form button:hover,.cms-comment-like-btn:hover{filter:brightness(1.08);transform:translateY(-1px)}
+    .cms-comment-like-btn{
+      margin-top:0;margin-inline-end:.5rem;padding:.45rem .95rem;font-size:.8rem;
+      background: linear-gradient(120deg, rgba(51,65,85,.9), rgba(71,85,105,.95));
+      box-shadow:none;
+    }
+    .cms-comment-like-btn[aria-pressed="true"]{
+      background: linear-gradient(120deg, #7c3aed, var(--cms-c-accent2));
+      box-shadow: 0 4px 14px -4px rgba(34, 211, 238, 0.35);
+    }
+    .cms-comments-list{display:grid;gap:1rem;margin-top:1.25rem}
+    .cms-comment{
+      position:relative;
+      padding:1rem 1rem 1rem 3.35rem;
+      border-radius:16px;
+      background: var(--cms-c-surface);
+      border:1px solid var(--cms-c-border);
+      backdrop-filter: blur(8px);
+    }
+    @media (prefers-reduced-motion: no-preference){
+      .cms-comment{animation: cms-c-fade .45s ease both}
+      .cms-comment:nth-child(2){animation-delay:.04s}
+      .cms-comment:nth-child(3){animation-delay:.08s}
+      .cms-comment:nth-child(4){animation-delay:.12s}
+      .cms-comment:nth-child(5){animation-delay:.16s}
+    }
+    @keyframes cms-c-fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+    .cms-comment--depth-1{margin-left:.5rem;border-left:2px solid rgba(139, 92, 246, 0.35)}
+    .cms-comment--depth-2{margin-left:1rem;border-left:2px solid rgba(34, 211, 238, 0.3)}
+    .cms-comment--depth-3{margin-left:1.5rem;border-left:2px solid rgba(148, 163, 184, 0.35)}
+    .cms-comment--depth-4{margin-left:2rem}
+    .cms-comment-avatar{
+      position:absolute;left:.85rem;top:.95rem;width:2.1rem;height:2.1rem;border-radius:12px;
+      display:flex;align-items:center;justify-content:center;font-size:.68rem;font-weight:800;letter-spacing:.02em;
+      background: linear-gradient(145deg, var(--cms-c-accent), var(--cms-c-accent2));
+      color: #0f172a;
+      flex-shrink:0;
+    }
+    .cms-comment-head{display:flex;gap:.65rem;align-items:baseline;justify-content:space-between;flex-wrap:wrap}
+    .cms-comment-author{font-weight:700;font-size:.95rem}
+    .cms-comment-time{font-size:.78rem;opacity:.72}
+    .cms-comment-body{margin-top:.55rem;line-height:1.6;font-size:.94rem;word-break:break-word;color:rgba(248,250,252,.92)}
+    .cms-comment-actions{display:flex;flex-wrap:wrap;align-items:center;gap:.35rem;margin-top:.65rem}
+    .cms-comment-reply{margin-top:.65rem}
+    .cms-comment-reply > summary{
+      cursor:pointer;font-size:.82rem;font-weight:600;opacity:.85;list-style:none;
+    }
+    .cms-comment-reply > summary::-webkit-details-marker{display:none}
+    .cms-comment-children{margin-top:.75rem;padding-left:.25rem;display:grid;gap:.85rem}
+    .cms-comments-empty{opacity:.8;font-size:.95rem}
+    .cms-comments-pager{
+      margin-top:1.35rem;padding-top:1.1rem;border-top:1px solid var(--cms-c-border);
+    }
+    .cms-comments-pager-meta{font-size:.82rem;opacity:.82;margin:0 0 .65rem}
+    .cms-comments-pager-meta--solo{margin:1rem 0 0;padding-top:.75rem;border-top:1px solid var(--cms-c-border)}
+    .cms-comments-pager-row{display:flex;flex-wrap:wrap;gap:.5rem}
+    .cms-comments-pager-btn{
+      display:inline-flex;align-items:center;justify-content:center;min-height:2.35rem;padding:0 1rem;border-radius:999px;
+      font-size:.84rem;font-weight:600;text-decoration:none;
+      background: rgba(30, 41, 59, 0.75);
+      border:1px solid var(--cms-c-border);
+      color: inherit;
+    }
+    .cms-comments-pager-btn:hover{border-color: rgba(139, 92, 246, 0.45);color:#f1f5f9}
+    .cms-comments-pager-btn--disabled{opacity:.38;pointer-events:none}
   </style>
-  <h2 id="comments-title">Discussion</h2>
-  <p class="cms-comments-note">Signed-in members only. Plain text — no HTML. Replies nest up to a few levels; likes help surface helpful notes.</p>
+  <div class="cms-comments-inner">
+    <div class="cms-comments-head">
+      <h2 id="comments-title" class="cms-comments-title">Discussion</h2>
+    </div>
+    <p class="cms-comments-note">Signed-in members post and like. Plain text only — no HTML. Threads are grouped by conversation; flip pages to see older starter posts.</p>
 
-  {% if logged_in|default(false) %}
-    <form method="post" action="{{ url_for('public.comments.post') }}" class="cms-comment-form">
-      <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
-      <input type="hidden" name="thread_key" value="{{ comments_thread_key|e('html_attr') }}" />
-      <input type="hidden" name="return_to" value="{{ comments_return_to|e('html_attr') }}" />
-      <input type="text" name="website" value="" autocomplete="off" tabindex="-1" aria-hidden="true" style="position:absolute;left:-9999px;opacity:0" />
-      <label>
-        <span>Comment (plain text)</span>
-        <textarea required name="body" maxlength="4000" rows="5" placeholder="Share your thoughts…"></textarea>
-      </label>
-      <button type="submit">Post comment</button>
-    </form>
-  {% else %}
-    <p class="cms-comments-note">
-      <a href="{{ url_for('login') }}?next={{ comments_return_to|url_encode }}">Sign in</a> to read the thread with your account and post comments.
-    </p>
-  {% endif %}
+    {% if logged_in|default(false) %}
+      <form method="post" action="{{ url_for('public.comments.post') }}" class="cms-comment-form">
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+        <input type="hidden" name="thread_key" value="{{ comments_thread_key|e('html_attr') }}" />
+        <input type="hidden" name="return_to" value="{{ comments_return_to|e('html_attr') }}" />
+        <input type="text" name="website" value="" autocomplete="off" tabindex="-1" aria-hidden="true" style="position:absolute;left:-9999px;opacity:0" />
+        <label>
+          <span>Your comment</span>
+          <textarea required name="body" maxlength="4000" rows="4" placeholder="Ideas, questions, or reactions…"></textarea>
+        </label>
+        <button type="submit">Post comment</button>
+      </form>
+    {% else %}
+      <p class="cms-comments-note">
+        <a href="{{ url_for('login') }}?next={{ comments_return_to|url_encode }}" style="color:#a5b4fc;font-weight:600">Sign in</a> to join the discussion.
+      </p>
+    {% endif %}
 
-  {% include 'partials/comments_thread.twig' %}
+    {% include 'partials/comments_thread.twig' %}
+    {% include 'partials/comments_pager.twig' %}
+  </div>
 </section>
