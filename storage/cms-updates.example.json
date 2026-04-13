@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.0.40",
-    "title": "Struxa 1.0.40",
-    "summary": "AI nav section, AI comments generator for published articles, updates page feed link, AI draft points to System API keys.",
+    "latest_version": "1.0.41",
+    "title": "Struxa 1.0.41",
+    "summary": "Theme blog and generic content show templates include the public comments widget (matches CMS pages).",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "minor"
