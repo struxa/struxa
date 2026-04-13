@@ -7,6 +7,7 @@ use App\Ai\AiSyntheticCommentsGenerator;
 use App\Ai\OpenAiApiKeyResolver;
 use App\Ai\OpenAiException;
 use App\Comment\CommentRepository;
+use App\Comment\CommentValidator;
 use App\Content\ContentEntryRepository;
 use App\Content\ContentTypeRepository;
 use App\Flash;
@@ -241,9 +242,12 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             try {
                 foreach ($planned as $row) {
                     $eid = (int) ($row['entry_id'] ?? 0);
-                    $name = trim((string) ($row['author_name'] ?? ''));
-                    $text = trim((string) ($row['body'] ?? ''));
-                    if ($eid < 1 || $name === '' || $text === '') {
+                    $name = CommentValidator::sanitizeAuthorLabel((string) ($row['author_name'] ?? ''));
+                    if ($name === '') {
+                        $name = 'reader';
+                    }
+                    $text = CommentValidator::sanitizeStoredBody((string) ($row['body'] ?? ''));
+                    if ($eid < 1 || $text === '') {
                         continue;
                     }
                     $uniq = bin2hex(random_bytes(8));
@@ -252,7 +256,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                     if (strlen($returnTo) > 512) {
                         continue;
                     }
-                    $bodyHtml = nl2br(htmlspecialchars($text, ENT_QUOTES, 'UTF-8'), false);
+                    $bodyHtml = htmlspecialchars($text, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
                     $clean = [
                         'thread_key' => 'entry:' . $eid,
                         'parent_id' => null,

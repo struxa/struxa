@@ -215,6 +215,7 @@ $viewData = static function (array $extra = []) use ($auth, $pdo, $googleSso): a
 
     return array_merge([
         'logged_in' => $auth->isLogged(),
+        'phpauth_user_id' => $auth->isLogged() ? (int) $auth->getCurrentUID() : 0,
         'user_email' => $userEmail,
         'user_username' => $userUsername,
         'flash_error' => Flash::pull('error'),
@@ -629,7 +630,7 @@ $app->get('/logout', function (Request $request, Response $response) use ($twig,
 (require $root . '/routes/public_seo.php')($app, $pdo, $viewData);
 
 (require $root . '/routes/public_api.php')($app, $twig, $pdo, $viewData);
-(require $root . '/routes/public_comments.php')($app, $pdo, $root);
+(require $root . '/routes/public_comments.php')($app, $pdo, $root, $auth);
 
 (require $root . '/routes/admin.php')($app, $twig, $auth, $pdo, $viewData);
 (require $root . '/routes/admin_users.php')($app, $twig, $auth, $pdo, $viewData);

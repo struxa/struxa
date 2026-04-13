@@ -41,13 +41,18 @@ final class CommentRepository
         $status = $requireApproval ? 'pending' : 'approved';
         $approvedAt = $status === 'approved' ? date('Y-m-d H:i:s') : null;
 
+        $userId = isset($clean['user_id']) && is_int($clean['user_id']) && $clean['user_id'] > 0
+            ? $clean['user_id']
+            : null;
+
         $st = $this->pdo->prepare(
             'INSERT INTO cms_comments
-            (thread_key, parent_id, depth, status, author_name, author_email_hash, body, body_html, client_ip, user_agent, approved_at)
-            VALUES (:thread_key, :parent_id, :depth, :status, :author_name, :author_email_hash, :body, :body_html, :client_ip, :user_agent, :approved_at)'
+            (thread_key, user_id, parent_id, depth, status, author_name, author_email_hash, body, body_html, client_ip, user_agent, approved_at)
+            VALUES (:thread_key, :user_id, :parent_id, :depth, :status, :author_name, :author_email_hash, :body, :body_html, :client_ip, :user_agent, :approved_at)'
         );
         $st->execute([
             ':thread_key' => $clean['thread_key'],
+            ':user_id' => $userId,
             ':parent_id' => $parentId,
             ':depth' => $depth,
             ':status' => $status,
@@ -63,19 +68,49 @@ final class CommentRepository
         return (int) $this->pdo->lastInsertId();
     }
 
-    public function listApprovedForThread(string $threadKey, int $limit = 400): array
+    /**
+     * @return list<array<string, mixed>>
+     */
+    public function listApprovedForThread(string $threadKey, int $limit = 400, ?int $viewerUserId = null): array
     {
         $limit = max(1, min(1000, $limit));
-        $st = $this->pdo->prepare(
-            'SELECT id, thread_key, parent_id, depth, author_name, author_email_hash, body_html, created_at
-             FROM cms_comments
-             WHERE thread_key = :thread_key AND status = :status
-             ORDER BY created_at ASC
-             LIMIT ' . (int) $limit
-        );
+        $likeSub = '(SELECT COUNT(*) FROM cms_comment_likes l WHERE l.comment_id = c.id)';
+        if ($viewerUserId !== null && $viewerUserId > 0) {
+            $likedSub = 'EXISTS(SELECT 1 FROM cms_comment_likes l2 WHERE l2.comment_id = c.id AND l2.user_id = ' . (int) $viewerUserId . ')';
+        } else {
+            $likedSub = '0';
+        }
+        $sql = 'SELECT c.id, c.thread_key, c.parent_id, c.depth, c.author_name, c.author_email_hash, c.body, c.created_at, '
+            . $likeSub . ' AS like_count, ' . $likedSub . ' AS liked_by_me
+             FROM cms_comments c
+             WHERE c.thread_key = :thread_key AND c.status = :status
+             ORDER BY c.created_at ASC
+             LIMIT ' . (int) $limit;
+        $st = $this->pdo->prepare($sql);
         $st->execute([':thread_key' => $threadKey, ':status' => 'approved']);
 
-        return $st->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        $rows = $st->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        foreach ($rows as &$row) {
+            $row['like_count'] = (int) ($row['like_count'] ?? 0);
+            $row['liked_by_me'] = ((int) ($row['liked_by_me'] ?? 0)) === 1;
+        }
+        unset($row);
+
+        return $rows;
+    }
+
+    public function findApprovedInThread(int $commentId, string $threadKey): ?array
+    {
+        if ($commentId < 1) {
+            return null;
+        }
+        $st = $this->pdo->prepare(
+            'SELECT * FROM cms_comments WHERE id = :id AND thread_key = :tk AND status = :st LIMIT 1'
+        );
+        $st->execute([':id' => $commentId, ':tk' => $threadKey, ':st' => 'approved']);
+        $row = $st->fetch(PDO::FETCH_ASSOC);
+
+        return is_array($row) ? $row : null;
     }
 
     public function listForAdmin(string $status, int $limit = 300): array
@@ -86,7 +121,7 @@ final class CommentRepository
         }
         $limit = max(1, min(1000, $limit));
         $st = $this->pdo->prepare(
-            'SELECT id, thread_key, parent_id, depth, status, author_name, body_html, client_ip, created_at
+            'SELECT id, thread_key, parent_id, depth, status, author_name, body, body_html, client_ip, created_at
              FROM cms_comments
              WHERE status = :status
              ORDER BY created_at DESC

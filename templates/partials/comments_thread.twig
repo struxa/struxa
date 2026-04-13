@@ -1,12 +1,12 @@
+{% import _self as thread with context %}
 {% if comments_thread is defined and comments_thread is not empty %}
-  {% import _self as thread %}
   <div class="cms-comments-list" role="list">
     {% for node in comments_thread %}
       {{ thread.item(node, comments_thread_key, comments_return_to) }}
     {% endfor %}
   </div>
 {% else %}
-  <p class="cms-comments-empty">No comments yet. Start the discussion.</p>
+  <p class="cms-comments-empty">No comments yet.{% if logged_in|default(false) %} Start the discussion.{% endif %}</p>
 {% endif %}
 
 {% macro item(node, thread_key, return_to) %}
@@ -15,26 +15,43 @@
       <strong class="cms-comment-author">{{ node.author_name|e }}</strong>
       <time class="cms-comment-time" datetime="{{ node.created_at|e('html_attr') }}">{{ node.created_at|e }}</time>
     </header>
-    <div class="cms-comment-body">{{ node.body_html|raw }}</div>
-    <details class="cms-comment-reply">
-      <summary>Reply</summary>
-      <form method="post" action="{{ url_for('public.comments.post') }}" class="cms-comment-form cms-comment-form--reply">
-        <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
-        <input type="hidden" name="thread_key" value="{{ thread_key|e('html_attr') }}" />
-        <input type="hidden" name="parent_id" value="{{ node.id }}" />
-        <input type="hidden" name="return_to" value="{{ return_to|e('html_attr') }}" />
-        <input type="text" name="website" value="" autocomplete="off" tabindex="-1" aria-hidden="true" style="position:absolute;left:-9999px;opacity:0" />
-        <div class="cms-comment-form-grid">
-          <input required name="author_name" maxlength="120" placeholder="Your name" />
-          <input required type="email" name="author_email" maxlength="190" placeholder="Email (never shown)" />
-        </div>
-        <textarea required name="body" maxlength="4000" rows="4" placeholder="Write your reply..."></textarea>
-        <button type="submit">Post reply</button>
-      </form>
-    </details>
+    <div class="cms-comment-body">{{ node.body|default('')|e|nl2br }}</div>
+    <div class="cms-comment-actions">
+      {% set _likes = node.like_count|default(0) %}
+      {% if logged_in|default(false) %}
+        <form method="post" action="{{ url_for('public.comments.like') }}" class="cms-comment-like-form" style="display:inline">
+          <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+          <input type="hidden" name="comment_id" value="{{ node.id }}" />
+          <input type="hidden" name="thread_key" value="{{ thread_key|e('html_attr') }}" />
+          <input type="hidden" name="return_to" value="{{ return_to|e('html_attr') }}" />
+          <button type="submit" class="cms-comment-like-btn" aria-pressed="{{ node.liked_by_me|default(false) ? 'true' : 'false' }}">
+            {% if node.liked_by_me|default(false) %}Unlike{% else %}Like{% endif %} · {{ _likes }}
+          </button>
+        </form>
+      {% else %}
+        <span class="cms-comments-note" style="margin:0">{{ _likes }} like{% if _likes != 1 %}s{% endif %}</span>
+      {% endif %}
+    </div>
+    {% if logged_in|default(false) %}
+      <details class="cms-comment-reply">
+        <summary>Reply</summary>
+        <form method="post" action="{{ url_for('public.comments.post') }}" class="cms-comment-form cms-comment-form--reply">
+          <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+          <input type="hidden" name="thread_key" value="{{ thread_key|e('html_attr') }}" />
+          <input type="hidden" name="parent_id" value="{{ node.id }}" />
+          <input type="hidden" name="return_to" value="{{ return_to|e('html_attr') }}" />
+          <input type="text" name="website" value="" autocomplete="off" tabindex="-1" aria-hidden="true" style="position:absolute;left:-9999px;opacity:0" />
+          <label>
+            <span>Reply (plain text)</span>
+            <textarea required name="body" maxlength="4000" rows="4" placeholder="Write your reply…"></textarea>
+          </label>
+          <button type="submit">Post reply</button>
+        </form>
+      </details>
+    {% endif %}
     {% if node.children is defined and node.children is not empty %}
       <div class="cms-comment-children">
-        {% import _self as thread %}
+        {% import _self as thread with context %}
         {% for child in node.children %}
           {{ thread.item(child, thread_key, return_to) }}
         {% endfor %}

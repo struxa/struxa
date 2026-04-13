@@ -67,7 +67,7 @@ final class CsrfProtectionMiddleware implements MiddlewareInterface
         if ($path === '/content-stream') {
             return true;
         }
-        if ($path === '/comments/post') {
+        if ($path === '/comments/post' || $path === '/comments/like') {
             return true;
         }
 
@@ -137,7 +137,7 @@ final class CsrfProtectionMiddleware implements MiddlewareInterface
             $reqPath = '/';
         }
         if (str_starts_with($reqPath, '/admin')
-            || in_array($reqPath, ['/login', '/login/two-factor', '/register', '/logout', '/content-stream', '/comments/post'], true)) {
+            || in_array($reqPath, ['/login', '/login/two-factor', '/register', '/logout', '/content-stream', '/comments/post', '/comments/like'], true)) {
             return $reqPath;
         }
 
@@ -167,7 +167,8 @@ final class CsrfProtectionMiddleware implements MiddlewareInterface
             || $path === '/register'
             || $path === '/logout'
             || $path === '/content-stream'
-            || $path === '/comments/post';
+            || $path === '/comments/post'
+            || $path === '/comments/like';
         if (!$allowed) {
             return null;
         }

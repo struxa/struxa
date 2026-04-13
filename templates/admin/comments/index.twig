@@ -46,7 +46,7 @@
                 <td><code class="admin-inline-code">{{ row.created_at|e }}</code></td>
                 <td><code class="admin-inline-code">{{ row.thread_key|e }}</code></td>
                 <td>{{ row.author_name|e }}</td>
-                <td style="max-width:28rem">{{ row.body_html|raw }}</td>
+                <td style="max-width:28rem">{{ row.body|default('')|e|nl2br }}</td>
                 <td><code class="admin-inline-code">{{ row.client_ip|e }}</code></td>
                 <td style="white-space:nowrap">
                   <form method="post" action="{{ url_for('admin.comments.status', { id: row.id }) }}" style="display:inline">

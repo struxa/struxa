@@ -59,9 +59,13 @@ final class PublicCmsPageRenderer
         $bodyHtml = ExternalLinkPolicy::maybeNofollowExternalAnchorsInHtml($page->content);
         $pageForView = $bodyHtml === $page->content ? $page : $page->withContent($bodyHtml);
         $threadKey = 'page:' . $page->id;
-        $commentTree = CommentThreadBuilder::toTree((new CommentRepository($pdo))->listApprovedForThread($threadKey));
+        $vd = $viewData();
+        $viewerUid = isset($vd['phpauth_user_id']) && is_int($vd['phpauth_user_id']) ? $vd['phpauth_user_id'] : 0;
+        $commentTree = CommentThreadBuilder::toTree(
+            (new CommentRepository($pdo))->listApprovedForThread($threadKey, 400, $viewerUid > 0 ? $viewerUid : null)
+        );
 
-        return $twig->render($response, 'page/show.twig', array_merge($viewData(), $seoTwig, [
+        return $twig->render($response, 'page/show.twig', array_merge($vd, $seoTwig, [
             'cms_page' => $pageForView,
             'cms_page_has_sections' => $rows !== [],
             'cms_page_sections_html' => $sectionsHtml,

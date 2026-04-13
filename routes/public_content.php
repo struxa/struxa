@@ -105,10 +105,12 @@ return static function (App $app, Twig $twig, \PDO $pdo, callable $viewData): vo
 
         $tpl = ContentViewTemplates::resolve($twig->getEnvironment(), ContentViewTemplates::contentShow($type->slug));
         $threadKey = 'entry:' . $entry->id;
-        $commentRows = $comments->listApprovedForThread($threadKey);
+        $vd = $viewData();
+        $viewerUid = isset($vd['phpauth_user_id']) && is_int($vd['phpauth_user_id']) ? $vd['phpauth_user_id'] : 0;
+        $commentRows = $comments->listApprovedForThread($threadKey, 400, $viewerUid > 0 ? $viewerUid : null);
         $commentTree = CommentThreadBuilder::toTree($commentRows);
 
-        return $twig->render($response, $tpl, array_merge($viewData(), $seoTwig, [
+        return $twig->render($response, $tpl, array_merge($vd, $seoTwig, [
             'content_type' => $type,
             'content_entry' => $entry,
             'content_field_rows' => $fieldRows,

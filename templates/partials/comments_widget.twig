@@ -4,40 +4,38 @@
     .cms-comments-note{margin:.25rem 0 1rem;opacity:.85}
     .cms-comment-form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:.65rem}
     .cms-comment-form input,.cms-comment-form textarea{width:100%;box-sizing:border-box;padding:.65rem .75rem;border-radius:10px;border:1px solid rgba(148,163,184,.33);background:rgba(15,23,42,.45);color:inherit}
-    .cms-comment-form button{margin-top:.65rem;padding:.55rem .9rem;border-radius:10px;border:1px solid rgba(148,163,184,.35);background:rgba(51,65,85,.45);color:inherit;cursor:pointer}
+    .cms-comment-form button,.cms-comment-like-btn{margin-top:.65rem;padding:.55rem .9rem;border-radius:10px;border:1px solid rgba(148,163,184,.35);background:rgba(51,65,85,.45);color:inherit;cursor:pointer;font:inherit}
+    .cms-comment-like-btn{margin-top:0;margin-inline-end:.5rem}
     .cms-comments-list{display:grid;gap:.85rem;margin-top:1.2rem}
     .cms-comment{padding:.8rem .9rem;border-radius:12px;background:rgba(15,23,42,.35);border:1px solid rgba(148,163,184,.2)}
-    .cms-comment-head{display:flex;gap:.8rem;align-items:center;justify-content:space-between;font-size:.92rem}
+    .cms-comment-head{display:flex;gap:.8rem;align-items:center;justify-content:space-between;font-size:.92rem;flex-wrap:wrap}
     .cms-comment-time{opacity:.7;font-size:.8rem}
-    .cms-comment-body{margin-top:.45rem;line-height:1.55}
+    .cms-comment-body{margin-top:.45rem;line-height:1.55;word-break:break-word}
+    .cms-comment-actions{display:flex;flex-wrap:wrap;align-items:center;gap:.35rem;margin-top:.5rem}
     .cms-comment-reply{margin-top:.55rem}
     .cms-comment-children{margin-top:.65rem;padding-left:.9rem;border-left:2px solid rgba(148,163,184,.22);display:grid;gap:.65rem}
     .cms-comments-empty{opacity:.78}
   </style>
   <h2 id="comments-title">Discussion</h2>
-  <p class="cms-comments-note">Disqus-style threaded comments with moderation and anti-spam protections.</p>
+  <p class="cms-comments-note">Signed-in members only. Plain text — no HTML. Replies nest up to a few levels; likes help surface helpful notes.</p>
 
-  <form method="post" action="{{ url_for('public.comments.post') }}" class="cms-comment-form">
-    <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
-    <input type="hidden" name="thread_key" value="{{ comments_thread_key|e('html_attr') }}" />
-    <input type="hidden" name="return_to" value="{{ comments_return_to|e('html_attr') }}" />
-    <input type="text" name="website" value="" autocomplete="off" tabindex="-1" aria-hidden="true" style="position:absolute;left:-9999px;opacity:0" />
-    <div class="cms-comment-form-grid">
+  {% if logged_in|default(false) %}
+    <form method="post" action="{{ url_for('public.comments.post') }}" class="cms-comment-form">
+      <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+      <input type="hidden" name="thread_key" value="{{ comments_thread_key|e('html_attr') }}" />
+      <input type="hidden" name="return_to" value="{{ comments_return_to|e('html_attr') }}" />
+      <input type="text" name="website" value="" autocomplete="off" tabindex="-1" aria-hidden="true" style="position:absolute;left:-9999px;opacity:0" />
       <label>
-        <span>Name</span>
-        <input required name="author_name" maxlength="120" placeholder="Your name" />
+        <span>Comment (plain text)</span>
+        <textarea required name="body" maxlength="4000" rows="5" placeholder="Share your thoughts…"></textarea>
       </label>
-      <label>
-        <span>Email (private)</span>
-        <input required type="email" name="author_email" maxlength="190" placeholder="you@example.com" />
-      </label>
-    </div>
-    <label>
-      <span>Comment</span>
-      <textarea required name="body" maxlength="4000" rows="5" placeholder="Share your thoughts..."></textarea>
-    </label>
-    <button type="submit">Post comment</button>
-  </form>
+      <button type="submit">Post comment</button>
+    </form>
+  {% else %}
+    <p class="cms-comments-note">
+      <a href="{{ url_for('login') }}?next={{ comments_return_to|url_encode }}">Sign in</a> to read the thread with your account and post comments.
+    </p>
+  {% endif %}
 
   {% include 'partials/comments_thread.twig' %}
 </section>
