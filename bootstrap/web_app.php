@@ -643,6 +643,7 @@ $app->get('/logout', function (Request $request, Response $response) use ($twig,
 (require $root . '/routes/admin_seo.php')($app, $twig, $auth, $pdo, $viewData);
 (require $root . '/routes/admin_security.php')($app, $twig, $auth, $pdo, $viewData);
 (require $root . '/routes/admin_comments.php')($app, $twig, $auth, $pdo, $viewData);
+(require $root . '/routes/admin_system_api_keys.php')($app, $twig, $auth, $pdo, $viewData);
 (require $root . '/routes/admin_account.php')($app, $twig, $auth, $pdo, $viewData);
 (require $root . '/routes/admin_menus.php')($app, $twig, $auth, $pdo, $viewData);
 (require $root . '/routes/admin_media.php')($app, $twig, $auth, $pdo, $viewData);

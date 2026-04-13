@@ -41,8 +41,8 @@
     </details>
   {% endif %}
 
-  {% if cms_can('manage_users') or cms_can('manage_roles') or cms_can('view_activity') or cms_can('manage_comments') %}
-    <details class="admin-nav-group" {{ nav in ['users','roles','activity','comments'] ? 'open' : '' }}>
+  {% if cms_can('manage_users') or cms_can('manage_roles') or cms_can('view_activity') or cms_can('manage_comments') or cms_can('manage_settings') %}
+    <details class="admin-nav-group" {{ nav in ['users','roles','activity','comments','system_api_keys'] ? 'open' : '' }}>
       <summary class="admin-nav-group-title">System</summary>
       <div class="admin-nav-group-items">
         {% if cms_can('manage_users') %}
@@ -67,6 +67,12 @@
           <a href="{{ url_for('admin.comments.index') }}" class="{{ nav == 'comments' ? 'is-active' : '' }}">
             <svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
             Comments
+          </a>
+        {% endif %}
+        {% if cms_can('manage_settings') %}
+          <a href="{{ url_for('admin.system.api_keys') }}" class="{{ nav == 'system_api_keys' ? 'is-active' : '' }}">
+            <svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M21 10h-7M10 14h11M3 10h3m-3 4h7"/><circle cx="8" cy="10" r="2"/><circle cx="14" cy="14" r="2"/></svg>
+            API keys
           </a>
         {% endif %}
       </div>

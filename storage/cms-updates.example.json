@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.0.38",
-    "title": "Struxa 1.0.38",
-    "summary": "Adds secure threaded comments with moderation, anti-spam throttling, and admin comment queues.",
+    "latest_version": "1.0.39",
+    "title": "Struxa 1.0.39",
+    "summary": "Adds System API keys with OpenAI and custom key management, masked display, and on-demand reveal.",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "minor"
