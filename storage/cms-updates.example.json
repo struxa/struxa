@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.0.45",
-    "title": "Struxa 1.0.45",
-    "summary": "Comments: schema probe merged into CommentRepository (no extra PHP file for FTP); SELECT-based detection; safe thread load wrapper logs failures instead of 500.",
+    "latest_version": "1.0.46",
+    "title": "Struxa 1.0.46",
+    "summary": "Fix Twig 3: invalid `import _self … with context` in comments_thread.twig; pass is_logged_in into comment macro.",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "minor"

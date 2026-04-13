@@ -1,15 +1,15 @@
-{% import _self as thread with context %}
+{% import _self as thread %}
 {% if comments_thread is defined and comments_thread is not empty %}
   <div class="cms-comments-list" role="list">
     {% for node in comments_thread %}
-      {{ thread.item(node, comments_thread_key, comments_return_to) }}
+      {{ thread.item(node, comments_thread_key, comments_return_to, logged_in|default(false)) }}
     {% endfor %}
   </div>
 {% else %}
   <p class="cms-comments-empty">No comments yet.{% if logged_in|default(false) %} Be the first to start a thread.{% endif %}</p>
 {% endif %}
 
-{% macro item(node, thread_key, return_to) %}
+{% macro item(node, thread_key, return_to, is_logged_in) %}
   {% set _d = node.depth|default(0) %}
   {% set dclamped = _d > 4 ? 4 : _d %}
   {% set initials = (node.author_name|default('?'))|upper|slice(0, 2) %}
@@ -22,7 +22,7 @@
     <div class="cms-comment-body">{{ node.body|default('')|e|nl2br }}</div>
     <div class="cms-comment-actions">
       {% set _likes = node.like_count|default(0) %}
-      {% if logged_in|default(false) %}
+      {% if is_logged_in %}
         <form method="post" action="{{ url_for('public.comments.like') }}" class="cms-comment-like-form" style="display:inline">
           <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
           <input type="hidden" name="comment_id" value="{{ node.id }}" />
@@ -36,7 +36,7 @@
         <span class="cms-comments-note" style="margin:0;font-size:.8rem">{{ _likes }} like{% if _likes != 1 %}s{% endif %}</span>
       {% endif %}
     </div>
-    {% if logged_in|default(false) %}
+    {% if is_logged_in %}
       <details class="cms-comment-reply">
         <summary>Reply</summary>
         <form method="post" action="{{ url_for('public.comments.post') }}" class="cms-comment-form cms-comment-form--reply">
@@ -55,9 +55,9 @@
     {% endif %}
     {% if node.children is defined and node.children is not empty %}
       <div class="cms-comment-children">
-        {% import _self as thread with context %}
+        {% import _self as thread %}
         {% for child in node.children %}
-          {{ thread.item(child, thread_key, return_to) }}
+          {{ thread.item(child, thread_key, return_to, is_logged_in) }}
         {% endfor %}
       </div>
     {% endif %}
