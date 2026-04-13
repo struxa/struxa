@@ -15,7 +15,7 @@ final class CommentLikeRepository
 
     public function countForComment(int $commentId): int
     {
-        if ($commentId < 1) {
+        if ($commentId < 1 || !CommentSchemaProbe::forPdo($this->pdo)->likesTable()) {
             return 0;
         }
         $st = $this->pdo->prepare('SELECT COUNT(*) FROM cms_comment_likes WHERE comment_id = :id');
@@ -29,7 +29,7 @@ final class CommentLikeRepository
      */
     public function toggle(int $commentId, int $userId): array
     {
-        if ($commentId < 1 || $userId < 1) {
+        if ($commentId < 1 || $userId < 1 || !CommentSchemaProbe::forPdo($this->pdo)->likesTable()) {
             return ['liked' => false, 'count' => 0];
         }
         $st = $this->pdo->prepare(

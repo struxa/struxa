@@ -45,25 +45,47 @@ final class CommentRepository
             ? $clean['user_id']
             : null;
 
-        $st = $this->pdo->prepare(
-            'INSERT INTO cms_comments
+        $schema = CommentSchemaProbe::forPdo($this->pdo);
+        if ($schema->commentsUserIdColumn()) {
+            $st = $this->pdo->prepare(
+                'INSERT INTO cms_comments
             (thread_key, user_id, parent_id, depth, status, author_name, author_email_hash, body, body_html, client_ip, user_agent, approved_at)
             VALUES (:thread_key, :user_id, :parent_id, :depth, :status, :author_name, :author_email_hash, :body, :body_html, :client_ip, :user_agent, :approved_at)'
-        );
-        $st->execute([
-            ':thread_key' => $clean['thread_key'],
-            ':user_id' => $userId,
-            ':parent_id' => $parentId,
-            ':depth' => $depth,
-            ':status' => $status,
-            ':author_name' => $clean['author_name'],
-            ':author_email_hash' => $clean['author_email_hash'],
-            ':body' => $clean['body'],
-            ':body_html' => $clean['body_html'],
-            ':client_ip' => $clientIp,
-            ':user_agent' => $userAgent !== '' ? substr($userAgent, 0, 255) : null,
-            ':approved_at' => $approvedAt,
-        ]);
+            );
+            $st->execute([
+                ':thread_key' => $clean['thread_key'],
+                ':user_id' => $userId,
+                ':parent_id' => $parentId,
+                ':depth' => $depth,
+                ':status' => $status,
+                ':author_name' => $clean['author_name'],
+                ':author_email_hash' => $clean['author_email_hash'],
+                ':body' => $clean['body'],
+                ':body_html' => $clean['body_html'],
+                ':client_ip' => $clientIp,
+                ':user_agent' => $userAgent !== '' ? substr($userAgent, 0, 255) : null,
+                ':approved_at' => $approvedAt,
+            ]);
+        } else {
+            $st = $this->pdo->prepare(
+                'INSERT INTO cms_comments
+            (thread_key, parent_id, depth, status, author_name, author_email_hash, body, body_html, client_ip, user_agent, approved_at)
+            VALUES (:thread_key, :parent_id, :depth, :status, :author_name, :author_email_hash, :body, :body_html, :client_ip, :user_agent, :approved_at)'
+            );
+            $st->execute([
+                ':thread_key' => $clean['thread_key'],
+                ':parent_id' => $parentId,
+                ':depth' => $depth,
+                ':status' => $status,
+                ':author_name' => $clean['author_name'],
+                ':author_email_hash' => $clean['author_email_hash'],
+                ':body' => $clean['body'],
+                ':body_html' => $clean['body_html'],
+                ':client_ip' => $clientIp,
+                ':user_agent' => $userAgent !== '' ? substr($userAgent, 0, 255) : null,
+                ':approved_at' => $approvedAt,
+            ]);
+        }
 
         return (int) $this->pdo->lastInsertId();
     }
@@ -74,12 +96,7 @@ final class CommentRepository
     public function listApprovedForThread(string $threadKey, int $limit = 400, ?int $viewerUserId = null): array
     {
         $limit = max(1, min(1000, $limit));
-        $likeSub = '(SELECT COUNT(*) FROM cms_comment_likes l WHERE l.comment_id = c.id)';
-        if ($viewerUserId !== null && $viewerUserId > 0) {
-            $likedSub = 'EXISTS(SELECT 1 FROM cms_comment_likes l2 WHERE l2.comment_id = c.id AND l2.user_id = ' . (int) $viewerUserId . ')';
-        } else {
-            $likedSub = '0';
-        }
+        [$likeSub, $likedSub] = $this->likeSelectSqlFragments($viewerUserId);
         $sql = 'SELECT c.id, c.thread_key, c.parent_id, c.depth, c.author_name, c.author_email_hash, c.body, c.created_at, '
             . $likeSub . ' AS like_count, ' . $likedSub . ' AS liked_by_me
              FROM cms_comments c
@@ -226,12 +243,7 @@ final class CommentRepository
         if ($ids === []) {
             return [];
         }
-        $likeSub = '(SELECT COUNT(*) FROM cms_comment_likes l WHERE l.comment_id = c.id)';
-        if ($viewerUserId !== null && $viewerUserId > 0) {
-            $likedSub = 'EXISTS(SELECT 1 FROM cms_comment_likes l2 WHERE l2.comment_id = c.id AND l2.user_id = ' . (int) $viewerUserId . ')';
-        } else {
-            $likedSub = '0';
-        }
+        [$likeSub, $likedSub] = $this->likeSelectSqlFragments($viewerUserId);
         $placeholders = implode(',', array_fill(0, count($ids), '?'));
         $sql = 'SELECT c.id, c.thread_key, c.parent_id, c.depth, c.author_name, c.author_email_hash, c.body, c.created_at, '
             . $likeSub . ' AS like_count, ' . $likedSub . ' AS liked_by_me
@@ -338,5 +350,23 @@ final class CommentRepository
         } catch (PDOException) {
             return false;
         }
+    }
+
+    /**
+     * @return array{0: string, 1: string} SQL fragments (not aliases) for like_count and liked_by_me
+     */
+    private function likeSelectSqlFragments(?int $viewerUserId): array
+    {
+        if (!CommentSchemaProbe::forPdo($this->pdo)->likesTable()) {
+            return ['0', '0'];
+        }
+        $likeSub = '(SELECT COUNT(*) FROM cms_comment_likes l WHERE l.comment_id = c.id)';
+        if ($viewerUserId !== null && $viewerUserId > 0) {
+            $likedSub = 'EXISTS(SELECT 1 FROM cms_comment_likes l2 WHERE l2.comment_id = c.id AND l2.user_id = ' . (int) $viewerUserId . ')';
+        } else {
+            $likedSub = '0';
+        }
+
+        return [$likeSub, $likedSub];
     }
 }
