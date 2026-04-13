@@ -9,9 +9,85 @@ use PDOException;
 
 final class CommentRepository
 {
+    /** @var array<int, bool> spl_object_id(PDO) => likes table readable */
+    private static array $pdoHasLikesTable = [];
+
+    /** @var array<int, bool> spl_object_id(PDO) => cms_comments.user_id exists */
+    private static array $pdoHasCommentsUserId = [];
+
     public function __construct(
         private readonly PDO $pdo,
     ) {
+    }
+
+    /**
+     * True when the cms_comment_likes table exists and is readable (migration 032). Probed once per PDO via a trivial SELECT.
+     */
+    public static function pdoHasCommentLikesTable(PDO $pdo): bool
+    {
+        $id = spl_object_id($pdo);
+        if (!array_key_exists($id, self::$pdoHasLikesTable)) {
+            try {
+                $pdo->query('SELECT 1 FROM `cms_comment_likes` LIMIT 1');
+                self::$pdoHasLikesTable[$id] = true;
+            } catch (PDOException) {
+                self::$pdoHasLikesTable[$id] = false;
+            }
+        }
+
+        return self::$pdoHasLikesTable[$id];
+    }
+
+    /**
+     * True when cms_comments has a user_id column (migration 032). Probed once per PDO.
+     */
+    public static function pdoHasCommentsUserIdColumn(PDO $pdo): bool
+    {
+        $id = spl_object_id($pdo);
+        if (!array_key_exists($id, self::$pdoHasCommentsUserId)) {
+            try {
+                $pdo->query('SELECT `user_id` FROM `cms_comments` LIMIT 1');
+                self::$pdoHasCommentsUserId[$id] = true;
+            } catch (PDOException) {
+                self::$pdoHasCommentsUserId[$id] = false;
+            }
+        }
+
+        return self::$pdoHasCommentsUserId[$id];
+    }
+
+    /**
+     * Loads a paginated comment thread; on any failure returns an empty pack so storefront pages do not 500.
+     *
+     * @return array{
+     *   rows: list<array<string, mixed>>,
+     *   total_roots: int,
+     *   page: int,
+     *   per_page: int,
+     *   total_pages: int
+     * }
+     */
+    public static function loadThreadPagePackSafe(
+        PDO $pdo,
+        string $threadKey,
+        int $page,
+        int $rootsPerPage,
+        ?int $viewerUserId,
+    ): array {
+        try {
+            return (new self($pdo))->listApprovedThreadPage($threadKey, $page, $rootsPerPage, $viewerUserId);
+        } catch (\Throwable $e) {
+            error_log('[Struxa] comment thread load failed: ' . $e->getMessage() . ' @ ' . $e->getFile() . ':' . $e->getLine());
+            $per = max(3, min(30, $rootsPerPage));
+
+            return [
+                'rows' => [],
+                'total_roots' => 0,
+                'page' => 1,
+                'per_page' => $per,
+                'total_pages' => 1,
+            ];
+        }
     }
 
     public function findById(int $id): ?array
@@ -45,8 +121,7 @@ final class CommentRepository
             ? $clean['user_id']
             : null;
 
-        $schema = CommentSchemaProbe::forPdo($this->pdo);
-        if ($schema->commentsUserIdColumn()) {
+        if (self::pdoHasCommentsUserIdColumn($this->pdo)) {
             $st = $this->pdo->prepare(
                 'INSERT INTO cms_comments
             (thread_key, user_id, parent_id, depth, status, author_name, author_email_hash, body, body_html, client_ip, user_agent, approved_at)
@@ -357,7 +432,7 @@ final class CommentRepository
      */
     private function likeSelectSqlFragments(?int $viewerUserId): array
     {
-        if (!CommentSchemaProbe::forPdo($this->pdo)->likesTable()) {
+        if (!self::pdoHasCommentLikesTable($this->pdo)) {
             return ['0', '0'];
         }
         $likeSub = '(SELECT COUNT(*) FROM cms_comment_likes l WHERE l.comment_id = c.id)';

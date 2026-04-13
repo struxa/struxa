@@ -30,18 +30,17 @@ return static function (App $app, Twig $twig, \PDO $pdo, callable $viewData): vo
     $values = new ContentEntryValueRepository($pdo);
     $mediaUrls = new MediaUrlHelper($pdo);
     $entryTaxonomies = new ContentEntryTaxonomyRepository($pdo);
-    $comments = new CommentRepository($pdo);
 
     $app->get('/{typeSlug}/{entrySlug}', function (Request $request, Response $response, array $args) use (
         $twig,
         $viewData,
+        $pdo,
         $types,
         $fields,
         $entries,
         $values,
         $mediaUrls,
-        $entryTaxonomies,
-        $comments
+        $entryTaxonomies
     ): Response {
         $typeSlug = (string) ($args['typeSlug'] ?? '');
         $entrySlug = (string) ($args['entrySlug'] ?? '');
@@ -111,7 +110,7 @@ return static function (App $app, Twig $twig, \PDO $pdo, callable $viewData): vo
         $q = $request->getQueryParams();
         $cPage = isset($q['c_page']) && is_string($q['c_page']) && ctype_digit($q['c_page']) ? max(1, (int) $q['c_page']) : 1;
         $perRoots = max(3, min(30, (int) ($_ENV['CMS_COMMENTS_ROOTS_PER_PAGE'] ?? 10)));
-        $pack = $comments->listApprovedThreadPage($threadKey, $cPage, $perRoots, $viewer);
+        $pack = CommentRepository::loadThreadPagePackSafe($pdo, $threadKey, $cPage, $perRoots, $viewer);
         $commentTree = CommentThreadBuilder::toTree($pack['rows']);
         $basePath = '/' . $typeSlug . '/' . $entrySlug;
         $returnTo = $basePath . ($pack['page'] > 1 ? ('?c_page=' . $pack['page']) : '');

@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.0.44",
-    "title": "Struxa 1.0.44",
-    "summary": "Comments: tolerate missing migration 032 (no cms_comment_likes / user_id) so public pages do not 500; run migrate for full likes + account linkage.",
+    "latest_version": "1.0.45",
+    "title": "Struxa 1.0.45",
+    "summary": "Comments: schema probe merged into CommentRepository (no extra PHP file for FTP); SELECT-based detection; safe thread load wrapper logs failures instead of 500.",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "minor"

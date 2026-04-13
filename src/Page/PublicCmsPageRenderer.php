@@ -64,10 +64,9 @@ final class PublicCmsPageRenderer
         $vd = $viewData();
         $viewerUid = isset($vd['phpauth_user_id']) && is_int($vd['phpauth_user_id']) ? $vd['phpauth_user_id'] : 0;
         $viewer = $viewerUid > 0 ? $viewerUid : null;
-        $repo = new CommentRepository($pdo);
         $cPage = self::commentsPageFromRequest($request);
         $perRoots = self::commentsRootsPerPage();
-        $pack = $repo->listApprovedThreadPage($threadKey, $cPage, $perRoots, $viewer);
+        $pack = CommentRepository::loadThreadPagePackSafe($pdo, $threadKey, $cPage, $perRoots, $viewer);
         $commentTree = CommentThreadBuilder::toTree($pack['rows']);
         $basePath = $servedAtSiteRoot ? '/' : '/p/' . $page->slug;
         $returnTo = $basePath . ($pack['page'] > 1 ? ('?c_page=' . $pack['page']) : '');
