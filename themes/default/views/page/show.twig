@@ -74,6 +74,7 @@
     {% if cms_page.content|trim != '' %}
       <div class="theme-cms-page-body theme-cms-body cms-prose">{{ cms_page.content|raw }}</div>
     {% endif %}
+    {% include 'partials/comments_widget.twig' %}
   </article>
 </main>
 {% endblock %}

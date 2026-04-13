@@ -1,0 +1,77 @@
+{% extends 'admin/base.twig' %}
+
+{% block admin_title %}Comments moderation{% endblock %}
+
+{% block admin_hero_title %}
+  <h1 class="admin-hero-title">Comments moderation</h1>
+{% endblock %}
+
+{% block admin_hero_sub %}
+  <p class="admin-hero-sub">Review public comments, approve trusted posts, and mark spam quickly.</p>
+{% endblock %}
+
+{% block admin_content %}
+  <section class="admin-card">
+    <div class="admin-toolbar admin-toolbar--spread" style="margin-bottom:0.75rem;flex-wrap:wrap;gap:0.5rem">
+      <div class="admin-hint">
+        Pending {{ comment_pending_count }} · Approved {{ comment_approved_count }} · Rejected {{ comment_rejected_count }} · Spam {{ comment_spam_count }}
+      </div>
+      <div style="display:flex;gap:0.4rem;flex-wrap:wrap">
+        {% set _status = comment_status|default('pending') %}
+        <a class="admin-btn {{ _status == 'pending' ? 'admin-btn--primary' : 'admin-btn--ghost' }}" href="{{ url_for('admin.comments.index', {}, { status: 'pending' }) }}">Pending</a>
+        <a class="admin-btn {{ _status == 'approved' ? 'admin-btn--primary' : 'admin-btn--ghost' }}" href="{{ url_for('admin.comments.index', {}, { status: 'approved' }) }}">Approved</a>
+        <a class="admin-btn {{ _status == 'rejected' ? 'admin-btn--primary' : 'admin-btn--ghost' }}" href="{{ url_for('admin.comments.index', {}, { status: 'rejected' }) }}">Rejected</a>
+        <a class="admin-btn {{ _status == 'spam' ? 'admin-btn--primary' : 'admin-btn--ghost' }}" href="{{ url_for('admin.comments.index', {}, { status: 'spam' }) }}">Spam</a>
+      </div>
+    </div>
+
+    {% if comment_rows is empty %}
+      <p class="admin-hint">No comments in this queue.</p>
+    {% else %}
+      <div class="admin-table-wrap">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>When</th>
+              <th>Thread</th>
+              <th>Author</th>
+              <th>Comment</th>
+              <th>IP</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in comment_rows %}
+              <tr>
+                <td><code class="admin-inline-code">{{ row.created_at|e }}</code></td>
+                <td><code class="admin-inline-code">{{ row.thread_key|e }}</code></td>
+                <td>{{ row.author_name|e }}</td>
+                <td style="max-width:28rem">{{ row.body_html|raw }}</td>
+                <td><code class="admin-inline-code">{{ row.client_ip|e }}</code></td>
+                <td style="white-space:nowrap">
+                  <form method="post" action="{{ url_for('admin.comments.status', { id: row.id }) }}" style="display:inline">
+                    <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+                    <input type="hidden" name="from_status" value="{{ _status|e('html_attr') }}" />
+                    <input type="hidden" name="status" value="approved" />
+                    <button class="admin-btn admin-btn--ghost admin-btn--sm" type="submit">Approve</button>
+                  </form>
+                  <form method="post" action="{{ url_for('admin.comments.status', { id: row.id }) }}" style="display:inline">
+                    <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+                    <input type="hidden" name="from_status" value="{{ _status|e('html_attr') }}" />
+                    <input type="hidden" name="status" value="spam" />
+                    <button class="admin-btn admin-btn--ghost admin-btn--sm" type="submit">Spam</button>
+                  </form>
+                  <form method="post" action="{{ url_for('admin.comments.delete', { id: row.id }) }}" style="display:inline" onsubmit="return confirm('Delete this comment?')">
+                    <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+                    <input type="hidden" name="from_status" value="{{ _status|e('html_attr') }}" />
+                    <button class="admin-btn admin-btn--ghost admin-btn--sm" type="submit">Delete</button>
+                  </form>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% endif %}
+  </section>
+{% endblock %}

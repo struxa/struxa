@@ -1,0 +1,44 @@
+{% if comments_thread is defined and comments_thread is not empty %}
+  {% import _self as thread %}
+  <div class="cms-comments-list" role="list">
+    {% for node in comments_thread %}
+      {{ thread.item(node, comments_thread_key, comments_return_to) }}
+    {% endfor %}
+  </div>
+{% else %}
+  <p class="cms-comments-empty">No comments yet. Start the discussion.</p>
+{% endif %}
+
+{% macro item(node, thread_key, return_to) %}
+  <article class="cms-comment" role="listitem" id="comment-{{ node.id }}">
+    <header class="cms-comment-head">
+      <strong class="cms-comment-author">{{ node.author_name|e }}</strong>
+      <time class="cms-comment-time" datetime="{{ node.created_at|e('html_attr') }}">{{ node.created_at|e }}</time>
+    </header>
+    <div class="cms-comment-body">{{ node.body_html|raw }}</div>
+    <details class="cms-comment-reply">
+      <summary>Reply</summary>
+      <form method="post" action="{{ url_for('public.comments.post') }}" class="cms-comment-form cms-comment-form--reply">
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+        <input type="hidden" name="thread_key" value="{{ thread_key|e('html_attr') }}" />
+        <input type="hidden" name="parent_id" value="{{ node.id }}" />
+        <input type="hidden" name="return_to" value="{{ return_to|e('html_attr') }}" />
+        <input type="text" name="website" value="" autocomplete="off" tabindex="-1" aria-hidden="true" style="position:absolute;left:-9999px;opacity:0" />
+        <div class="cms-comment-form-grid">
+          <input required name="author_name" maxlength="120" placeholder="Your name" />
+          <input required type="email" name="author_email" maxlength="190" placeholder="Email (never shown)" />
+        </div>
+        <textarea required name="body" maxlength="4000" rows="4" placeholder="Write your reply..."></textarea>
+        <button type="submit">Post reply</button>
+      </form>
+    </details>
+    {% if node.children is defined and node.children is not empty %}
+      <div class="cms-comment-children">
+        {% import _self as thread %}
+        {% for child in node.children %}
+          {{ thread.item(child, thread_key, return_to) }}
+        {% endfor %}
+      </div>
+    {% endif %}
+  </article>
+{% endmacro %}

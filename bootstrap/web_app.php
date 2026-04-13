@@ -629,6 +629,7 @@ $app->get('/logout', function (Request $request, Response $response) use ($twig,
 (require $root . '/routes/public_seo.php')($app, $pdo, $viewData);
 
 (require $root . '/routes/public_api.php')($app, $twig, $pdo, $viewData);
+(require $root . '/routes/public_comments.php')($app, $pdo, $root);
 
 (require $root . '/routes/admin.php')($app, $twig, $auth, $pdo, $viewData);
 (require $root . '/routes/admin_users.php')($app, $twig, $auth, $pdo, $viewData);
@@ -641,6 +642,7 @@ $app->get('/logout', function (Request $request, Response $response) use ($twig,
 (require $root . '/routes/admin_cache.php')($app, $twig, $auth, $pdo, $viewData);
 (require $root . '/routes/admin_seo.php')($app, $twig, $auth, $pdo, $viewData);
 (require $root . '/routes/admin_security.php')($app, $twig, $auth, $pdo, $viewData);
+(require $root . '/routes/admin_comments.php')($app, $twig, $auth, $pdo, $viewData);
 (require $root . '/routes/admin_account.php')($app, $twig, $auth, $pdo, $viewData);
 (require $root . '/routes/admin_menus.php')($app, $twig, $auth, $pdo, $viewData);
 (require $root . '/routes/admin_media.php')($app, $twig, $auth, $pdo, $viewData);

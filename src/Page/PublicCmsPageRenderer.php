@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Page;
 
+use App\Comment\CommentRepository;
+use App\Comment\CommentThreadBuilder;
 use App\Media\MediaUrlHelper;
 use App\Seo\ExternalLinkPolicy;
 use App\Section\PageSectionRepository;
@@ -56,6 +58,8 @@ final class PublicCmsPageRenderer
 
         $bodyHtml = ExternalLinkPolicy::maybeNofollowExternalAnchorsInHtml($page->content);
         $pageForView = $bodyHtml === $page->content ? $page : $page->withContent($bodyHtml);
+        $threadKey = 'page:' . $page->id;
+        $commentTree = CommentThreadBuilder::toTree((new CommentRepository($pdo))->listApprovedForThread($threadKey));
 
         return $twig->render($response, 'page/show.twig', array_merge($viewData(), $seoTwig, [
             'cms_page' => $pageForView,
@@ -63,6 +67,9 @@ final class PublicCmsPageRenderer
             'cms_page_sections_html' => $sectionsHtml,
             'cms_page_featured_url' => $featuredUrl,
             'cms_page_public_home' => $servedAtSiteRoot,
+            'comments_thread_key' => $threadKey,
+            'comments_return_to' => $servedAtSiteRoot ? '/' : '/p/' . $page->slug,
+            'comments_thread' => $commentTree,
         ]));
     }
 }

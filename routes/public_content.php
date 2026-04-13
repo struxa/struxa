@@ -9,6 +9,8 @@ use App\Content\ContentEntryViewPresenter;
 use App\Content\ContentFieldRepository;
 use App\Content\ContentTypeRepository;
 use App\Content\ContentViewTemplates;
+use App\Comment\CommentRepository;
+use App\Comment\CommentThreadBuilder;
 use App\Content\ReservedContentSlugs;
 use App\Media\MediaUrlHelper;
 use App\Seo\MetaTagBuilder;
@@ -28,6 +30,7 @@ return static function (App $app, Twig $twig, \PDO $pdo, callable $viewData): vo
     $values = new ContentEntryValueRepository($pdo);
     $mediaUrls = new MediaUrlHelper($pdo);
     $entryTaxonomies = new ContentEntryTaxonomyRepository($pdo);
+    $comments = new CommentRepository($pdo);
 
     $app->get('/{typeSlug}/{entrySlug}', function (Request $request, Response $response, array $args) use (
         $twig,
@@ -37,7 +40,8 @@ return static function (App $app, Twig $twig, \PDO $pdo, callable $viewData): vo
         $entries,
         $values,
         $mediaUrls,
-        $entryTaxonomies
+        $entryTaxonomies,
+        $comments
     ): Response {
         $typeSlug = (string) ($args['typeSlug'] ?? '');
         $entrySlug = (string) ($args['entrySlug'] ?? '');
@@ -100,6 +104,9 @@ return static function (App $app, Twig $twig, \PDO $pdo, callable $viewData): vo
         ));
 
         $tpl = ContentViewTemplates::resolve($twig->getEnvironment(), ContentViewTemplates::contentShow($type->slug));
+        $threadKey = 'entry:' . $entry->id;
+        $commentRows = $comments->listApprovedForThread($threadKey);
+        $commentTree = CommentThreadBuilder::toTree($commentRows);
 
         return $twig->render($response, $tpl, array_merge($viewData(), $seoTwig, [
             'content_type' => $type,
@@ -109,6 +116,9 @@ return static function (App $app, Twig $twig, \PDO $pdo, callable $viewData): vo
             'content_page_title' => $pageTitle,
             'content_meta_description' => $metaDesc,
             'entry_taxonomy_groups' => $entryTaxonomies->termsGroupedForEntry($entry->id),
+            'comments_thread_key' => $threadKey,
+            'comments_return_to' => '/' . $typeSlug . '/' . $entrySlug,
+            'comments_thread' => $commentTree,
         ]));
     })->setName('public.content_entry');
 };
