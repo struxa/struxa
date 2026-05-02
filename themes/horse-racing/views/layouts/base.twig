@@ -12,9 +12,10 @@
       font_url: '',
       theme_stylesheets: ['css/app.css'],
     } only %}
+    {# json_encode preserves & in query strings; e('css') can mangle URLs inside url(...). #}
     <style>
       :root {
-        --hr-hero-img: url("{{ _hero_url|e('css') }}");
+        --hr-hero-img: url({{ _hero_url|json_encode(constant('JSON_UNESCAPED_SLASHES'))|raw }});
       }
     </style>
     <title>

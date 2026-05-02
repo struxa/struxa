@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.0.51",
-    "title": "Struxa 1.0.51",
-    "summary": "Horse-racing theme: blocking Inter font load, demo header nav when menu empty, #results teaser, VIEW TODAY'S TIPS label, why-panel heading setting.",
+    "latest_version": "1.0.52",
+    "title": "Struxa 1.0.52",
+    "summary": "Horse-racing theme: reliable hero background URL (JSON), rename layout container to hr-container, sticky header fix, footer CSS cleanup.",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "minor"

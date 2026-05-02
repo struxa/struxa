@@ -1,7 +1,7 @@
 {
   "name": "Race Edge Tipster",
   "slug": "horse-racing",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "author": "Struxa",
   "description": "Horse racing tipster storefront: green & gold palette, hero, stats strip, tips table demo, tipping record panel. Integrates CMS menus, auth, and pages.",
   "homepage": "https://example.com/themes/horse-racing",
@@ -9,7 +9,7 @@
   "category": "sports",
   "tags": ["horse-racing", "tips", "betting", "light"],
   "min_cms_version": "1.0.0",
-  "tested_up_to": "1.0.51",
+  "tested_up_to": "1.0.52",
   "screenshot": "assets/screenshot.png",
   "parents": ["default"],
   "settings": {

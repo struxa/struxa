@@ -82,7 +82,7 @@ body.theme-horse-racing .hr-skip:focus {
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.container {
+.hr-container {
   width: min(1200px, calc(100% - 40px));
   margin: 0 auto;
 }
@@ -521,6 +521,10 @@ body.theme-horse-racing .hr-results-teaser__text {
   cursor: pointer;
 }
 
+.view-all a {
+  color: inherit;
+}
+
 .record-body {
   padding: 24px;
 }
@@ -627,6 +631,34 @@ body.theme-horse-racing .hr-results-teaser__text {
 
 .mobile-toggle {
   display: none;
+}
+
+.hr-footer {
+  background: var(--green-950);
+  color: rgba(255, 255, 255, 0.82);
+  padding: 2rem 0;
+  margin-top: 2rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.hr-footer__inner {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.hr-footer__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.hr-footer__links a {
+  color: var(--gold-light);
 }
 
 /* CMS page / preview (horse-racing page/show) */
@@ -788,12 +820,8 @@ body.theme-horse-racing .theme-main .theme-content-entry h1 {
   }
 }
 
-.site-header {
-  position: relative;
-}
-
 @media (max-width: 650px) {
-  .container {
+  .hr-container {
     width: min(100% - 24px, 1200px);
   }
 

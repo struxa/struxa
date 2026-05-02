@@ -1,7 +1,7 @@
 {% set _rp = request_path|default('/') %}
 {% set _subtitle = theme_settings.brand_subtitle|default('TIPSTER') %}
 <header class="site-header">
-  <div class="container nav">
+  <div class="hr-container nav">
     <a class="brand" href="{{ url_for('home') }}"{% if _rp == '/' %} aria-current="page"{% endif %}>
       <div class="logo-mark" aria-hidden="true">♞</div>
       <div>
