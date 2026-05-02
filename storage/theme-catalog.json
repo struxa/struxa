@@ -24,6 +24,14 @@
       "description": "Reward-dashboard style UI: sidebar, offers, surveys — extends Midnight Pulse.",
       "author": "Struxa",
       "download_url": "https://struxapoint.com/struxa-dist/zips/cashback.zip"
+    },
+    {
+      "slug": "horse-racing",
+      "name": "Race Edge Tipster",
+      "version": "1.0.0",
+      "description": "Horse racing tipster storefront: green & gold palette, hero, stats strip, demo tips table. Extends Midnight Pulse for content templates.",
+      "author": "Struxa",
+      "download_url": "https://struxapoint.com/struxa-dist/zips/horse-racing.zip"
     }
   ]
 }

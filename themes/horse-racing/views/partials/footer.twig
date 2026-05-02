@@ -1,0 +1,18 @@
+<footer class="site-footer" style="background:var(--green-950);color:rgba(255,255,255,.82);padding:2rem 0;margin-top:2rem;border-top:1px solid rgba(255,255,255,.1)">
+  <div class="container" style="display:flex;flex-wrap:wrap;gap:1rem;justify-content:space-between;align-items:center;font-size:13px;font-weight:600">
+    <span>
+      {% if settings.footer_text|default('')|trim != '' %}
+        {{ settings.footer_text|e }}
+      {% else %}
+        © {{ "now"|date("Y") }} {{ settings.site_name|e }}. Gamble responsibly 18+.
+      {% endif %}
+    </span>
+    {% if footer_menu is not empty %}
+      <div style="display:flex;flex-wrap:wrap;gap:1rem">
+        {% for item in footer_menu %}
+          <a href="{{ item.href|e('html_attr') }}" style="color:var(--gold-light)" {% if item.target == '_blank' %}target="_blank"{% endif %}{% if item.anchor_rel|default('')|trim != '' %} rel="{{ item.anchor_rel|e('html_attr') }}"{% endif %}>{{ item.label|e }}</a>
+        {% endfor %}
+      </div>
+    {% endif %}
+  </div>
+</footer>
