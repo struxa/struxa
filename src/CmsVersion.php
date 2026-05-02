@@ -12,5 +12,5 @@ namespace App;
  */
 final class CmsVersion
 {
-    public const CURRENT = '1.0.49';
+    public const CURRENT = '1.0.50';
 }

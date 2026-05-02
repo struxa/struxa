@@ -628,7 +628,6 @@ final class CmsUpdateChecker
         $data = curl_exec($ch);
         $errno = curl_errno($ch);
         $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
         if ($errno !== 0 || !is_string($data)) {
             return null;
         }
