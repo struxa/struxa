@@ -1,0 +1,29 @@
+{% extends 'admin/base.twig' %}
+
+{% block admin_title %}Analytics snippet{% endblock %}
+
+{% block admin_hero_title %}
+  <h1 class="admin-hero-title">Analytics snippet</h1>
+{% endblock %}
+
+{% block admin_hero_sub %}
+  <p class="admin-hero-sub">Paste vendor scripts in your theme’s <code>layouts/base.twig</code> using the <code>head_extra</code> and <code>scripts_extra</code> blocks — keeps tracking out of the database.</p>
+{% endblock %}
+
+{% block admin_content %}
+  <section class="admin-section">
+    <article class="admin-card admin-card--featured">
+      <div class="admin-card-body">
+        <p class="admin-card-kicker">Example (GA4)</p>
+        <pre class="admin-code-block" style="margin:0;white-space:pre-wrap;font-size:0.8125rem;line-height:1.5;color:var(--admin-muted);background:rgba(0,0,0,0.35);padding:1rem;border-radius:var(--admin-radius-sm);border:1px solid var(--admin-border);">&lt;script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"&gt;&lt;/script&gt;
+&lt;script&gt;
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-XXXXXXXXXX');
+&lt;/script&gt;</pre>
+        <p class="admin-card-desc" style="margin-top:1rem">Replace the measurement ID. For cookie consent, wrap loading in your own policy check in the theme.</p>
+      </div>
+    </article>
+  </section>
+{% endblock %}

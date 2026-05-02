@@ -1,0 +1,69 @@
+{% extends 'admin/base.twig' %}
+{% import 'admin/_ui_macros.twig' as ui %}
+
+{% block admin_title %}Taxonomies — {{ content_type.name|e }}{% endblock %}
+
+{% block admin_hero_title %}
+  <h1 class="admin-hero-title">Taxonomies</h1>
+{% endblock %}
+
+{% block admin_hero_sub %}
+  <p class="admin-hero-sub">
+    <a class="admin-link" href="{{ url_for('admin.content_types.entries.index', { id: content_type.id }) }}">{{ content_type.name|e }}</a>
+    — categories, tags, and custom groupings for entries and public archives.
+  </p>
+{% endblock %}
+
+{% block admin_content %}
+  <div class="admin-toolbar admin-toolbar--spread">
+    <a class="admin-btn-primary" href="{{ url_for('admin.content_types.taxonomies.new', { id: content_type.id }) }}">New taxonomy</a>
+    <a class="admin-btn-ghost" href="{{ url_for('admin.content_types.entries.index', { id: content_type.id }) }}">Manage entries</a>
+    <a class="admin-btn-ghost" href="{{ url_for('admin.content_types.fields.index', { id: content_type.id }) }}">Manage fields</a>
+  </div>
+
+  {% if taxonomies is empty %}
+    {{ ui.empty_state(
+      'No taxonomies',
+      'Add a taxonomy to classify entries and power archive URLs on the public site.',
+      url_for('admin.content_types.taxonomies.new', { id: content_type.id }),
+      'Create taxonomy',
+      '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>'
+    ) }}
+  {% else %}
+    <div class="admin-table-wrap">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th scope="col">Name</th>
+            <th scope="col">Slug</th>
+            <th scope="col">Type</th>
+            <th scope="col">Structure</th>
+            <th class="admin-table-col-actions" scope="col"><span class="admin-table-muted">Actions</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for x in taxonomies %}
+            <tr>
+              <td><strong>{{ x.name|e }}</strong></td>
+              <td><code class="admin-inline-code">{{ x.slug|e }}</code></td>
+              <td><span class="admin-pill">{{ x.taxonomyType|e }}</span></td>
+              <td class="admin-table-muted">{{ x.isHierarchical ? 'Hierarchical' : 'Flat' }}</td>
+              <td class="admin-table-actions">
+                <details class="admin-actions-menu">
+                  <summary class="admin-actions-menu-trigger" aria-label="Actions for {{ x.name|e('html_attr') }}">⋯</summary>
+                  <div class="admin-actions-menu-panel">
+                    <a href="{{ url_for('admin.content_types.taxonomies.terms.index', { id: content_type.id, taxId: x.id }) }}">Terms</a>
+                    <a href="{{ url_for('admin.content_types.taxonomies.edit', { id: content_type.id, taxId: x.id }) }}">Edit</a>
+                    <form method="post" action="{{ url_for('admin.content_types.taxonomies.delete', { id: content_type.id, taxId: x.id }) }}" onsubmit="return confirm('Delete this taxonomy and all its terms?');">
+                      <button type="submit" class="admin-actions-danger">Delete</button>
+                    </form>
+                  </div>
+                </details>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% endif %}
+{% endblock %}

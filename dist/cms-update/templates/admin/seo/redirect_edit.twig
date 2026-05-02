@@ -1,0 +1,42 @@
+{% extends 'admin/base.twig' %}
+
+{% block admin_title %}Edit redirect{% endblock %}
+
+{% block admin_hero_title %}
+  <h1 class="admin-hero-title">Edit redirect</h1>
+{% endblock %}
+
+{% block admin_hero_sub %}
+  <p class="admin-hint" style="margin-top:0"><a class="admin-link" href="{{ url_for('admin.seo.redirects') }}">← All redirects</a></p>
+{% endblock %}
+
+{% block admin_content %}
+  <section class="admin-card">
+    <form class="admin-form" method="post" action="{{ url_for('admin.seo.redirects.update', { id: redirect_row.id }) }}">
+      <div class="admin-form-grid">
+        <div class="admin-field {{ form_errors.from_path is defined ? 'admin-field--error' : '' }}">
+          <label class="admin-label" for="r-from">From path</label>
+          <input class="admin-input" id="r-from" name="from_path" type="text" value="{{ redirect_row.from_path|e }}" required />
+          {% if form_errors.from_path is defined %}<p class="admin-field-error">{{ form_errors.from_path|e }}</p>{% endif %}
+        </div>
+        <div class="admin-field admin-field--full {{ form_errors.to_url is defined ? 'admin-field--error' : '' }}">
+          <label class="admin-label" for="r-to">To (URL or path)</label>
+          <input class="admin-input" id="r-to" name="to_url" type="text" value="{{ redirect_row.to_url|e }}" required />
+          {% if form_errors.to_url is defined %}<p class="admin-field-error">{{ form_errors.to_url|e }}</p>{% endif %}
+        </div>
+        <div class="admin-field">
+          <label class="admin-label" for="r-code">Status</label>
+          <select class="admin-select" id="r-code" name="status_code">
+            {% for c in ['301','302','307','308'] %}
+              <option value="{{ c }}" {{ (redirect_row.status_code ~ '') == c ? 'selected' : '' }}>{{ c }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+      <div class="admin-form-actions">
+        <button type="submit" class="admin-btn-primary">Update</button>
+        <a class="admin-btn-ghost" href="{{ url_for('admin.seo.redirects') }}">Cancel</a>
+      </div>
+    </form>
+  </section>
+{% endblock %}

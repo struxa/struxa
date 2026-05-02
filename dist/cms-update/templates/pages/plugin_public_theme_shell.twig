@@ -1,0 +1,7 @@
+{# Bridge for plugin public pages that should match the active storefront theme (header, CSS, footer).
+   Plugins may not extend theme_layout() directly (Twig layout contract); they extend this instead. #}
+{% extends theme_layout() %}
+
+{% block body %}
+  {% block plugin_public_body %}{% endblock %}
+{% endblock %}

@@ -1,0 +1,23 @@
+<section class="strux-section strux-hero strux-bg--{{ options.background|default('default')|e('html_attr') }}" data-section="hero">
+  <div class="strux-section-inner strux-section-inner--{{ options.padding|default('comfortable')|e('html_attr') }} strux-hero__layout{% if section.image_media_id %} strux-hero__layout--split{% endif %}">
+    <div class="strux-hero__copy">
+      <h1 class="strux-hero__title">{{ section.headline|default('')|e }}</h1>
+      {% if section.subheadline|default('')|trim != '' %}
+        <p class="strux-hero__sub">{{ section.subheadline|e }}</p>
+      {% endif %}
+      <div class="strux-hero__actions">
+        {% if section.cta_label|default('')|trim != '' and section.cta_url|default('')|trim != '' %}
+          <a class="strux-btn strux-btn--primary" href="{{ section.cta_url|e('html_attr') }}">{{ section.cta_label|e }}</a>
+        {% endif %}
+        {% if section.secondary_cta_label|default('')|trim != '' and section.secondary_cta_url|default('')|trim != '' %}
+          <a class="strux-btn strux-btn--ghost" href="{{ section.secondary_cta_url|e('html_attr') }}">{{ section.secondary_cta_label|e }}</a>
+        {% endif %}
+      </div>
+    </div>
+    {% if section.image_media_id %}
+      <div class="strux-hero__media{% if section.overlay_dark|default(false) %} strux-hero__media--dark{% endif %}">
+        <img src="{{ media_url(section.image_media_id) }}" alt="" class="strux-hero__img" loading="lazy" decoding="async" width="1200" height="800" />
+      </div>
+    {% endif %}
+  </div>
+</section>

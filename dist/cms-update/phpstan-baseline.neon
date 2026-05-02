@@ -1,0 +1,373 @@
+parameters:
+	ignoreErrors:
+		-
+			message: '#^Call to function is_string\(\) with string will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: src/Api/PublicApiKeyRepository.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between non\-empty\-string and false will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
+			count: 1
+			path: src/Api/PublicApiKeyRepository.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between mixed and null will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 1
+			path: src/Api/PublicContentApi.php
+
+		-
+			message: '#^Dead catch \- PDOException is never thrown in the try block\.$#'
+			identifier: catch.neverThrown
+			count: 1
+			path: src/Blueprint/BlueprintManager.php
+
+		-
+			message: '#^Match arm comparison between ''gif'' and ''gif'' is always true\.$#'
+			identifier: match.alwaysTrue
+			count: 1
+			path: src/Blueprint/BlueprintManager.php
+
+		-
+			message: '#^Parameter &\$applied by\-ref type of method App\\Blueprint\\BlueprintManager\:\:importTaxonomies\(\) expects list\<string\>, array given\.$#'
+			identifier: parameterByRef.type
+			count: 1
+			path: src/Blueprint/BlueprintManager.php
+
+		-
+			message: '#^Parameter &\$applied by\-ref type of method App\\Blueprint\\BlueprintManager\:\:importTaxonomies\(\) expects list\<string\>, non\-empty\-array given\.$#'
+			identifier: parameterByRef.type
+			count: 1
+			path: src/Blueprint/BlueprintManager.php
+
+		-
+			message: '#^Parameter &\$warnings by\-ref type of method App\\Blueprint\\BlueprintManager\:\:importTaxonomies\(\) expects list\<string\>, array given\.$#'
+			identifier: parameterByRef.type
+			count: 1
+			path: src/Blueprint/BlueprintManager.php
+
+		-
+			message: '#^Parameter &\$warnings by\-ref type of method App\\Blueprint\\BlueprintManager\:\:importTaxonomies\(\) expects list\<string\>, non\-empty\-array given\.$#'
+			identifier: parameterByRef.type
+			count: 1
+			path: src/Blueprint/BlueprintManager.php
+
+		-
+			message: '#^Property App\\Blueprint\\BlueprintManager\:\:\$profile is never read, only written\.$#'
+			identifier: property.onlyWritten
+			count: 1
+			path: src/Blueprint/BlueprintManager.php
+
+		-
+			message: '#^Right side of && is always true\.$#'
+			identifier: booleanAnd.rightAlwaysTrue
+			count: 1
+			path: src/Blueprint/BlueprintManager.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between mixed and null will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 1
+			path: src/Blueprint/BlueprintSchemaValidator.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between mixed and null will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 3
+			path: src/Blueprint/StructureCollector.php
+
+		-
+			message: '#^Call to function is_array\(\) with array\<string, list\<string\>\> will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: src/Cache/CacheFileInspector.php
+
+		-
+			message: '#^Call to function is_array\(\) with list\<string\> will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: src/Cache/CacheFileInspector.php
+
+		-
+			message: '#^Call to function is_string\(\) with string will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: src/Cache/CacheFileInspector.php
+
+		-
+			message: '#^Offset ''body'' on array\{status\: int, headers\: array\<string, list\<string\>\>, body\: string\} on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: src/Cache/CacheFileInspector.php
+
+		-
+			message: '#^Offset ''headers'' on array\{status\: int, headers\: array\<string, list\<string\>\>, body\: string\} on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: src/Cache/CacheFileInspector.php
+
+		-
+			message: '#^Offset ''status'' on array\{status\: int, headers\: array\<string, list\<string\>\>, body\: string\} on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: src/Cache/CacheFileInspector.php
+
+		-
+			message: '#^Offset 1 on non\-empty\-list\<string\> on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: src/Cache/CacheFileInspector.php
+
+		-
+			message: '#^Offset 2 on non\-empty\-list\<string\> on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: src/Cache/CacheFileInspector.php
+
+		-
+			message: '#^Offset 3 on non\-empty\-list\<string\> on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: src/Cache/CacheFileInspector.php
+
+		-
+			message: '#^Right side of && is always true\.$#'
+			identifier: booleanAnd.rightAlwaysTrue
+			count: 2
+			path: src/Cache/CacheFileInspector.php
+
+		-
+			message: '#^Call to function array_key_exists\(\) with ''v'' and array\{exp\: int\|null, v\: mixed\} will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: src/Cache/FileCache.php
+
+		-
+			message: '#^Call to function is_int\(\) with int will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: src/Cache/FileCache.php
+
+		-
+			message: '#^Call to function is_array\(\) with list\<string\> will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: src/Cache/PublicResponseCacheMiddleware.php
+
+		-
+			message: '#^Call to function is_string\(\) with string will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 2
+			path: src/Cache/PublicResponseCacheMiddleware.php
+
+		-
+			message: '#^Offset ''headers'' on array\{status\: int, headers\: array\<string, list\<string\>\>, body\: string\} on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: src/Cache/PublicResponseCacheMiddleware.php
+
+		-
+			message: '#^Result of \|\| is always false\.$#'
+			identifier: booleanOr.alwaysFalse
+			count: 1
+			path: src/Cache/PublicResponseCacheMiddleware.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between non\-empty\-string and '''' will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 1
+			path: src/Content/RichtextTabsShortcode.php
+
+		-
+			message: '#^Parameter &\$out by\-ref type of method App\\Dev\\TwigLayoutContractLinter\:\:walkTwig\(\) expects array\<string, string\>, array\<string\> given\.$#'
+			identifier: parameterByRef.type
+			count: 1
+			path: src/Dev/TwigLayoutContractLinter.php
+
+		-
+			message: '#^Right side of && is always true\.$#'
+			identifier: booleanAnd.rightAlwaysTrue
+			count: 2
+			path: src/Http/Middleware/CsrfProtectionMiddleware.php
+
+		-
+			message: '#^Offset ''is_active'' on array\{id\: int, phpauth_user_id\: int, email\: string, display_name\: string, role\: string, is_active\: int, username\: string\|null\} on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: src/Http/Middleware/RequireCmsStaff.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between mixed and null will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
+			count: 2
+			path: src/Http/Middleware/SecurityHeadersMiddleware.php
+
+		-
+			message: '#^Negated boolean expression is always false\.$#'
+			identifier: booleanNot.alwaysFalse
+			count: 2
+			path: src/Http/Middleware/ThrottlingMiddleware.php
+
+		-
+			message: '#^Offset ''m'' on array\{m\: array\<string, mixed\>, s\: array\<string, string\>\} in isset\(\) always exists and is not nullable\.$#'
+			identifier: isset.offset
+			count: 1
+			path: src/Http/Middleware/TwigCmsGlobals.php
+
+		-
+			message: '#^Offset ''s'' on array\{m\: array\<string, mixed\>, s\: array\<string, string\>\} in isset\(\) always exists and is not nullable\.$#'
+			identifier: isset.offset
+			count: 1
+			path: src/Http/Middleware/TwigCmsGlobals.php
+
+		-
+			message: '#^Right side of && is always true\.$#'
+			identifier: booleanAnd.rightAlwaysTrue
+			count: 3
+			path: src/Http/Middleware/TwigCmsGlobals.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between mixed and null will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 3
+			path: src/Media/Media.php
+
+		-
+			message: '#^If condition is always false\.$#'
+			identifier: if.alwaysFalse
+			count: 1
+			path: src/Media/MediaUploadService.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between mixed and null will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 1
+			path: src/Menu/MenuItemValidator.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between mixed and null will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 2
+			path: src/Page/Page.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>id" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: src/Page/PagePreviewFactory.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>slug" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 2
+			path: src/Page/PagePreviewFactory.php
+
+		-
+			message: '#^Parameter \#1 \$array \(non\-empty\-list\<string\>\) of array_values is already a list, call has no effect\.$#'
+			identifier: arrayValues.list
+			count: 1
+			path: src/Page/PageTagParser.php
+
+		-
+			message: '#^Property App\\Plugin\\PluginManager\:\:\$validator is never read, only written\.$#'
+			identifier: property.onlyWritten
+			count: 1
+			path: src/Plugin/PluginManager.php
+
+		-
+			message: '#^PHPDoc tag @param references unknown parameter\: \$autoload$#'
+			identifier: parameter.notFound
+			count: 1
+			path: src/Plugin/PluginManifest.php
+
+		-
+			message: '#^Right side of && is always false\.$#'
+			identifier: booleanAnd.rightAlwaysFalse
+			count: 1
+			path: src/Plugin/PluginValidator.php
+
+		-
+			message: '#^Parameter &\$errors by\-ref type of method App\\Section\\SectionSchemaValidator\:\:normalizeJsonField\(\) expects list\<string\>, array given\.$#'
+			identifier: parameterByRef.type
+			count: 9
+			path: src/Section/SectionSchemaValidator.php
+
+		-
+			message: '#^Method App\\Security\\FileRateLimiter\:\:hit\(\) should return true but returns false\.$#'
+			identifier: return.type
+			count: 1
+			path: src/Security/FileRateLimiter.php
+
+		-
+			message: '#^Offset ''updated_at'' on array\{id\: int, title\: string, slug\: string, updated_at\: string\} on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 2
+			path: src/Seo/SitemapService.php
+
+		-
+			message: '#^Offset ''updated_at'' on array\{type_slug\: string, slug\: string, updated_at\: string\} on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: src/Seo/SitemapService.php
+
+		-
+			message: '#^Call to function is_string\(\) with string will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: src/Settings.php
+
+		-
+			message: '#^Ternary operator condition is always true\.$#'
+			identifier: ternary.alwaysTrue
+			count: 1
+			path: src/SiteProfile/SiteProfileRepository.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between mixed and null will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 1
+			path: src/Taxonomy/EntryTaxonomyValidator.php
+
+		-
+			message: '#^Expression on left side of \?\? is not nullable\.$#'
+			identifier: nullCoalesce.expr
+			count: 1
+			path: src/Theme/ThemeCatalogLoader.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between string\|null and false will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
+			count: 1
+			path: src/Theme/ThemeCatalogLoader.php
+
+		-
+			message: '#^PHPDoc tag @return with type list\<App\\Theme\\ThemeManifest\> is incompatible with native type void\.$#'
+			identifier: return.phpDocType
+			count: 1
+			path: src/Theme/ThemeManager.php
+
+		-
+			message: '#^Call to an undefined method SplFileInfo\:\:getSubPathname\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: src/Theme/ThemeRemoteInstaller.php
+
+		-
+			message: '#^Expression on left side of \?\? is not nullable\.$#'
+			identifier: nullCoalesce.expr
+			count: 1
+			path: src/Theme/ThemeRemoteInstaller.php
+
+		-
+			message: '#^If condition is always true\.$#'
+			identifier: if.alwaysTrue
+			count: 1
+			path: src/Theme/ThemeRemoteInstaller.php
+
+		-
+			message: '#^Call to function is_string\(\) with string will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: src/Theme/ThemeSettingsResolver.php

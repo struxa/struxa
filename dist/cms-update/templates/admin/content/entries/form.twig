@@ -1,0 +1,278 @@
+{% extends 'admin/base.twig' %}
+
+{% set is_edit = entry is not null %}
+{% set o = old ?? {} %}
+{% set tit = o.title|default(entry ? entry.title : '') %}
+{% set sl = o.slug|default(entry ? entry.slug : '') %}
+{% set st = o.status|default(entry ? entry.status : 'draft') %}
+{% set fi = o.featured_image_id|default(entry and entry.featuredImageId ? entry.featuredImageId : '') %}
+{# Preview URL: server may omit entry_edit_featured_url for legacy paths; resolve from media id. #}
+{% set _feat_src = entry_edit_featured_url|default('')|trim %}
+{% if _feat_src == '' and (fi ~ '')|trim != '' %}
+  {% set _feat_src = fi|media_url %}
+{% endif %}
+{% set seot = o.seo_title|default(entry ? (entry.seoTitle ?? '') : '') %}
+{% set seod = o.seo_description|default(entry ? (entry.seoDescription ?? '') : '') %}
+{% set pub_raw = o.published_at|default(entry ? (entry.publishedAt ?? '') : '') %}
+{% set pub_dt = pub_raw ? pub_raw|replace({' ': 'T'})|slice(0, 16) : '' %}
+{% set wf = workflow_statuses|default(['draft', 'in_review', 'approved', 'published', 'archived']) %}
+{% set seo_ctx = {
+  canonical_url: o.canonical_url|default(entry ? (entry.canonicalUrl|default('')) : ''),
+  seo_noindex: o.seo_noindex|default(entry ? entry.seoNoindex : false),
+  og_title: o.og_title|default(entry ? (entry.ogTitle|default('')) : ''),
+  og_description: o.og_description|default(entry ? (entry.ogDescription|default('')) : ''),
+  og_image_id: o.og_image_id|default(entry and entry.ogImageId ? entry.ogImageId : ''),
+  twitter_title: o.twitter_title|default(entry ? (entry.twitterTitle|default('')) : ''),
+  twitter_description: o.twitter_description|default(entry ? (entry.twitterDescription|default('')) : ''),
+  twitter_image_id: o.twitter_image_id|default(entry and entry.twitterImageId ? entry.twitterImageId : ''),
+  schema_json: o.schema_json|default(entry ? (entry.schemaJson|default('')) : '')
+} %}
+{% set seo_errors_open = errors.seo_title is defined or errors.seo_description is defined or errors.canonical_url is defined or errors.seo_noindex is defined or errors.og_title is defined or errors.og_description is defined or errors.og_image_id is defined or errors.twitter_title is defined or errors.twitter_description is defined or errors.twitter_image_id is defined or errors.schema_json is defined %}
+{% set seo_extended_errors_open = errors.canonical_url is defined or errors.seo_noindex is defined or errors.og_title is defined or errors.og_description is defined or errors.og_image_id is defined or errors.twitter_title is defined or errors.twitter_description is defined or errors.twitter_image_id is defined or errors.schema_json is defined %}
+
+{% block admin_title %}{{ is_edit ? 'Edit entry' : 'New entry' }} — {{ content_type.name|e }}{% endblock %}
+
+{% block admin_hero_title %}
+  <h1 class="admin-hero-title">{{ is_edit ? 'Edit entry' : 'New entry' }}</h1>
+{% endblock %}
+
+{% block admin_hero_sub %}
+  <p class="admin-hero-sub">
+    {% if is_edit %}
+      <a class="admin-link" href="{{ url_for('admin.content_types.entries.revisions', { id: content_type.id, entryId: entry.id }) }}">Revision history</a>
+    {% endif %}
+  </p>
+{% endblock %}
+
+{% block admin_breadcrumbs %}
+  {% set _entry_label = is_edit ? (tit|default('Entry')|length > 48 ? tit|slice(0, 45) ~ '…' : tit) : 'New entry' %}
+  {% include 'admin/partials/_breadcrumbs.twig' with {
+    breadcrumbs: [
+      { label: 'Content types', url: url_for('admin.content_types.index') },
+      { label: content_type.name, url: url_for('admin.content_types.entries.index', { id: content_type.id }) },
+      { label: 'Entries', url: url_for('admin.content_types.entries.index', { id: content_type.id }) },
+      { label: _entry_label },
+    ],
+  } %}
+{% endblock %}
+
+{% block admin_content %}
+  <div class="admin-page-edit-layout">
+    <div class="admin-page-edit-main admin-page-edit-main--composed">
+      <form id="entry-edit-form" class="admin-form admin-form--wide admin-form--page-aside-inner admin-page-edit-form--composed" method="post" action="{{ is_edit ? url_for('admin.content_types.entries.update', { id: content_type.id, entryId: entry.id }) : url_for('admin.content_types.entries.store', { id: content_type.id }) }}">
+        <input type="hidden" name="taxonomy_terms_submitted" value="1" />
+
+        <div class="admin-page-edit-title-slug admin-page-edit--order-title">
+          <div class="admin-field admin-field--full {{ errors.title is defined ? 'admin-field--error' : '' }}">
+            <label class="admin-label" for="ent-title">Title <span class="admin-req">*</span></label>
+            <input class="admin-input" id="ent-title" name="title" type="text" maxlength="255" value="{{ tit|e }}" required />
+            {% if errors.title is defined %}<p class="admin-field-error">{{ errors.title|e }}</p>{% endif %}
+          </div>
+          <div class="admin-field admin-field--full {{ errors.slug is defined ? 'admin-field--error' : '' }}">
+            <label class="admin-label" for="ent-slug">Slug</label>
+            <input class="admin-input" id="ent-slug" name="slug" type="text" value="{{ sl|e }}" placeholder="auto from title" autocomplete="off" />
+            <p class="admin-hint">Unique within this type. Leave blank to generate from title.</p>
+            {% if errors.slug is defined %}<p class="admin-field-error">{{ errors.slug|e }}</p>{% endif %}
+          </div>
+        </div>
+
+        {% if fields is not empty %}
+          <div class="admin-entry-fields-stack admin-page-edit--order-editor">
+            {% include 'admin/content/entries/_custom_fields.twig' with { media_picker_enabled: media_picker_enabled|default(false) } %}
+          </div>
+        {% endif %}
+
+        {% if taxonomies is defined and taxonomies is not empty %}
+          <details class="admin-card admin-seo-suite-panel admin-page-edit-entry-taxonomies">
+            <summary class="admin-seo-suite-summary">
+              <span class="admin-card-title" style="margin:0;display:inline">Taxonomies</span>
+              <span class="admin-hint" style="margin-left:0.5rem;font-weight:400">Categories and tags</span>
+            </summary>
+            <div class="admin-seo-suite-body" style="margin-top:1rem">
+              <p class="admin-hint" style="margin-top:0">Manage vocabularies under <a class="admin-link" href="{{ url_for('admin.content_types.taxonomies.index', { id: content_type.id }) }}">Taxonomies</a>.</p>
+              <div class="admin-form-grid" style="margin-top:0.75rem">
+                {% include 'admin/content/entries/_taxonomy_fields.twig' %}
+              </div>
+            </div>
+          </details>
+        {% endif %}
+
+        {% if content_type.supportsSeo %}
+          <details class="admin-card admin-seo-suite-panel admin-page-edit-seo admin-page-edit--order-seo"{% if seo_errors_open %} open{% endif %} aria-labelledby="entry-seo-heading">
+            <summary class="admin-seo-suite-summary">
+              <span class="admin-card-title" id="entry-seo-heading" style="margin:0;display:inline">SEO &amp; social</span>
+              <span class="admin-hint" style="margin-left:0.5rem;font-weight:400">Title, snippet, and extended metadata</span>
+            </summary>
+            <div class="admin-seo-suite-body" style="margin-top:1rem">
+              <p class="admin-hint" style="margin-top:0">Optional. Empty fields fall back to the entry title and excerpt-style content where available.</p>
+              <div class="admin-form-grid" style="margin-top: 1rem">
+                <div class="admin-field admin-field--full {{ errors.seo_title is defined ? 'admin-field--error' : '' }}">
+                  <label class="admin-label" for="ent-seo-title">SEO title</label>
+                  <input class="admin-input" id="ent-seo-title" name="seo_title" type="text" maxlength="255" value="{{ seot|e }}" placeholder="Override &lt;title&gt; (optional)" />
+                  {% if errors.seo_title is defined %}<p class="admin-field-error">{{ errors.seo_title|e }}</p>{% endif %}
+                </div>
+                <div class="admin-field admin-field--full {{ errors.seo_description is defined ? 'admin-field--error' : '' }}">
+                  <label class="admin-label" for="ent-seo-desc">SEO description</label>
+                  <textarea class="admin-textarea" id="ent-seo-desc" name="seo_description" rows="2" maxlength="500" placeholder="Search snippet (optional)">{{ seod|e }}</textarea>
+                  {% if errors.seo_description is defined %}<p class="admin-field-error">{{ errors.seo_description|e }}</p>{% endif %}
+                </div>
+              </div>
+              {% include 'admin/seo/_extended_panel.twig' with { seo_ctx: seo_ctx, errors: errors, media_images: seo_media_select|default(media_picker_images|default([])), include_basic_seo: false, panel_open: seo_extended_errors_open } %}
+            </div>
+          </details>
+        {% endif %}
+      </form>
+    </div>
+
+    <aside class="admin-page-edit-aside" aria-label="Entry details">
+      <div class="admin-card admin-page-edit-aside-card">
+        <h2 class="admin-card-title" style="margin-bottom: 1rem; font-size: 0.8125rem">Entry details</h2>
+
+        {% if content_type.supportsFeaturedImage %}
+          {% if media_picker_enabled|default(false) %}
+            <div class="admin-page-featured {{ errors.featured_image_id is defined ? 'admin-field--error' : '' }}">
+              <label class="admin-label admin-page-featured-label" for="entry-featured-picker-trigger">Featured image</label>
+              <input type="hidden" form="entry-edit-form" name="featured_image_id" id="entry-featured-image-id" value="{{ (fi ~ '')|e('html_attr') }}" autocomplete="off" />
+              <button type="button" class="admin-page-featured-hit" id="entry-featured-picker-trigger" title="Open media library to upload or choose an image" aria-label="Choose featured image from media library">
+                <span class="admin-page-featured-placeholder" id="entry-featured-placeholder"{% if _feat_src != '' %} hidden{% endif %}>
+                  <span class="admin-page-featured-placeholder-art" aria-hidden="true"></span>
+                  <span class="admin-page-featured-placeholder-title">No featured image</span>
+                  <span class="admin-page-featured-placeholder-sub">Click to upload or choose from library</span>
+                </span>
+                <img id="entry-featured-preview" class="admin-page-featured-preview" {% if _feat_src != '' %}src="{{ _feat_src|e('html_attr') }}" {% endif %}alt="" width="640" height="360"{% if _feat_src != '' %} loading="lazy" decoding="async"{% endif %}{% if _feat_src == '' %} hidden{% endif %} />
+              </button>
+              <button type="button" class="admin-link admin-page-featured-clear" id="entry-featured-clear">Remove image</button>
+              {% if errors.featured_image_id is defined %}<p class="admin-field-error">{{ errors.featured_image_id|e }}</p>{% endif %}
+            </div>
+          {% else %}
+            <div class="admin-field admin-field--full {{ errors.featured_image_id is defined ? 'admin-field--error' : '' }}">
+              <label class="admin-label" for="ent-featured">Featured image</label>
+              <select class="admin-select" id="ent-featured" name="featured_image_id" form="entry-edit-form">
+                <option value="">— None —</option>
+                {% for im in media_picker_images|default([]) %}
+                  <option value="{{ im.id }}" {{ (fi ~ '') == (im.id ~ '') ? 'selected' : '' }}>#{{ im.id }} — {{ im.original_name|e }}</option>
+                {% endfor %}
+              </select>
+              <p class="admin-hint">Assign <strong>Manage media</strong> for the visual library and inline image picker.</p>
+              {% if errors.featured_image_id is defined %}<p class="admin-field-error">{{ errors.featured_image_id|e }}</p>{% endif %}
+            </div>
+          {% endif %}
+        {% endif %}
+
+        <div class="admin-field {{ errors.status is defined ? 'admin-field--error' : '' }}">
+          <label class="admin-label" for="ent-status">Status <span class="admin-req">*</span></label>
+          <select class="admin-select" id="ent-status" name="status" form="entry-edit-form" required>
+            {% for s in wf %}
+              <option value="{{ s|e }}" {{ st == s ? 'selected' : '' }}>{{ s|replace({'_': ' '})|title }}</option>
+            {% endfor %}
+          </select>
+          {% if errors.status is defined %}<p class="admin-field-error">{{ errors.status|e }}</p>{% endif %}
+        </div>
+
+        <div class="admin-field admin-field--full {{ errors.published_at is defined ? 'admin-field--error' : '' }}">
+          <label class="admin-label" for="ent-published">Published at</label>
+          <input class="admin-input" id="ent-published" name="published_at" type="datetime-local" value="{{ pub_dt|e('html_attr') }}" form="entry-edit-form" />
+          <p class="admin-hint">Optional. If empty and status is published, the current time is used.</p>
+          {% if errors.published_at is defined %}<p class="admin-field-error">{{ errors.published_at|e }}</p>{% endif %}
+        </div>
+
+        <div class="admin-page-edit-aside-actions">
+          <button class="admin-btn-primary" type="submit" form="entry-edit-form" data-admin-save-primary name="after_save" value="stay">{{ is_edit ? 'Save entry' : 'Create entry' }}</button>
+          <button class="admin-btn-ghost" type="submit" form="entry-edit-form" name="after_save" value="view">Save &amp; view</button>
+          <a class="admin-btn-ghost admin-page-edit-aside-cancel" href="{{ url_for('admin.content_types.entries.index', { id: content_type.id }) }}">Back to list</a>
+        </div>
+      </div>
+
+      {% if is_edit %}
+        <div class="admin-card admin-page-edit-aside-card admin-page-edit-revisions-card">
+          <h2 class="admin-card-title admin-page-edit-revisions-title">Recent revisions</h2>
+          {% set rev_preview = entry_revision_rows|default([])|slice(0, 3) %}
+          {% if rev_preview is empty %}
+            <p class="admin-hint admin-page-edit-revisions-empty">No revisions stored yet. Saving creates a snapshot you can compare or restore.</p>
+          {% else %}
+            <ul class="admin-page-edit-revisions-list">
+              {% for row in rev_preview %}
+                <li class="admin-page-edit-revisions-item">
+                  <div class="admin-page-edit-revisions-meta">
+                    <span class="admin-page-edit-revisions-when">{{ row.created_at|e }}</span>
+                  </div>
+                  <div class="admin-page-edit-revisions-by">{{ row.author_email|default('—')|e }}</div>
+                  <a class="admin-link admin-page-edit-revisions-compare" href="{{ url_for('admin.content_types.entries.revision_compare', { id: content_type.id, entryId: entry.id, revId: row.id }) }}">Compare</a>
+                </li>
+              {% endfor %}
+            </ul>
+          {% endif %}
+          {% if (entry_revision_rows|default([])|length) > 3 %}
+            <a class="admin-btn-ghost admin-page-edit-revisions-more" href="{{ url_for('admin.content_types.entries.revisions', { id: content_type.id, entryId: entry.id }) }}">Show more revisions</a>
+          {% elseif rev_preview is not empty %}
+            <a class="admin-link admin-page-edit-revisions-all" href="{{ url_for('admin.content_types.entries.revisions', { id: content_type.id, entryId: entry.id }) }}">View all revisions</a>
+          {% endif %}
+        </div>
+      {% endif %}
+    </aside>
+
+    <div class="admin-sticky-save-bar" role="region" aria-label="Save entry">
+      <div class="admin-sticky-save-inner">
+        <button type="submit" form="entry-edit-form" class="admin-btn-primary" data-admin-save-primary name="after_save" value="stay">{{ is_edit ? 'Save entry' : 'Create entry' }}</button>
+        <button type="submit" form="entry-edit-form" class="admin-btn-ghost admin-sticky-save-view" name="after_save" value="view" title="Save and open the public page (when published with a public route)">Save &amp; view</button>
+      </div>
+    </div>
+  </div>
+
+  {% if is_edit %}
+    <form class="admin-form" method="post" action="{{ url_for('admin.content_types.entries.delete', { id: content_type.id, entryId: entry.id }) }}" style="margin-top:0.75rem" onsubmit="return confirm('Delete this entry permanently?');">
+      <button type="submit" class="admin-btn-ghost" style="color:var(--accent-rose)">Delete entry</button>
+    </form>
+  {% endif %}
+
+  {% if media_picker_enabled|default(false) %}
+    <script type="application/json" id="admin-page-media-picker-config">{{ {
+      enabled: true,
+      csrfToken: csrf_token(),
+      listUrl: url_for('admin.media.api.images'),
+      uploadUrl: url_for('admin.media.api.upload'),
+      maxMb: media_picker_max_mb|default(5),
+      textareaId: entry_primary_richtext_textarea_id|default(''),
+      initialImages: media_picker_initial|default([]),
+      featuredImage: {
+        inputId: 'entry-featured-image-id',
+        previewId: 'entry-featured-preview',
+        placeholderId: 'entry-featured-placeholder',
+        triggerId: 'entry-featured-picker-trigger',
+        clearId: 'entry-featured-clear'
+      }
+    }|json_encode|raw }}</script>
+
+    <div id="admin-page-media-modal" class="admin-media-modal" hidden role="dialog" aria-modal="true" aria-labelledby="admin-page-media-title">
+      <div class="admin-media-modal-backdrop" id="admin-page-media-backdrop"></div>
+      <div class="admin-media-modal-panel">
+        <header class="admin-media-modal-head">
+          <h2 class="admin-media-modal-title" id="admin-page-media-title">Media library</h2>
+          <button type="button" class="admin-media-modal-close" id="admin-page-media-close" aria-label="Close">×</button>
+        </header>
+        <div class="admin-media-modal-body">
+          <div class="admin-media-modal-drop" id="admin-page-media-drop" tabindex="0" role="button" aria-label="Drop an image here or click to upload">
+            <input type="file" id="admin-page-media-file" class="admin-media-modal-file" accept="image/jpeg,image/png,image/webp,image/gif" hidden />
+            <p class="admin-media-modal-drop-title">Drop image here</p>
+            <p class="admin-media-modal-drop-hint">or click to browse · JPG, PNG, WebP, GIF · max {{ media_picker_max_mb|default(5) }} MB</p>
+          </div>
+          <p class="admin-media-modal-status" id="admin-page-media-status" role="status"></p>
+          <div class="admin-media-modal-toolbar">
+            <button type="button" class="admin-btn-ghost admin-btn-ghost--sm" id="admin-page-media-refresh">Refresh list</button>
+          </div>
+          <div class="admin-media-modal-grid" id="admin-page-media-grid"></div>
+        </div>
+      </div>
+    </div>
+  {% endif %}
+{% endblock %}
+
+{% block admin_scripts %}
+  {% if fields|filter(f => f.fieldType == 'richtext') is not empty %}
+    <script src="https://cdn.jsdelivr.net/npm/tinymce@7.9.2/tinymce.min.js" referrerpolicy="origin"></script>
+    <script src="/js/admin-rich-text-blocks.js"></script>
+  {% endif %}
+  {% if media_picker_enabled|default(false) %}
+    <script src="/js/admin-page-media-picker.js" defer></script>
+  {% endif %}
+{% endblock %}

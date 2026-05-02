@@ -1,0 +1,32 @@
+{% extends theme_layout() %}
+
+{% block title %}Two-factor authentication — {{ settings.site_name|default('Your Studio')|e }}{% endblock %}
+
+{% block body %}
+<main id="main-content" class="{% if active_theme|default('') == 'queue' %}theme-fq-editorial theme-fq-editorial--narrow{% endif %}">
+  <section class="section section-auth" aria-labelledby="auth-2fa-heading">
+    <div class="auth-card glass-panel">
+      <p class="eyebrow reveal" data-reveal><span class="eyebrow-pulse"></span> Security</p>
+      <h1 class="auth-title" id="auth-2fa-heading">Authenticator code</h1>
+      <p class="auth-lede">Enter the 6-digit code from your authenticator app to finish signing in.</p>
+
+      {% if flash_error %}
+        <p class="auth-flash auth-flash--error" role="alert">{{ flash_error }}</p>
+      {% endif %}
+
+      <form id="login-two-factor-form" class="auth-form" method="post" action="{{ url_for('login.two_factor.submit') }}" autocomplete="one-time-code" novalidate>
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+        {% if login_next %}
+          <input type="hidden" name="next" value="{{ login_next }}" />
+        {% endif %}
+        <label class="auth-label" for="login-totp-code">
+          <span>Code</span>
+          <input class="auth-input" id="login-totp-code" type="text" name="code" inputmode="numeric" pattern="[0-9]*" autocomplete="one-time-code" maxlength="12" required autofocus />
+        </label>
+        <button class="btn btn-primary btn-lg auth-submit" type="submit">Continue</button>
+      </form>
+      <p class="auth-lede" style="margin-top:1.25rem;font-size:0.9rem"><a href="{{ url_for('login') }}">Back to log in</a></p>
+    </div>
+  </section>
+</main>
+{% endblock %}

@@ -1,0 +1,85 @@
+{% extends 'admin/base.twig' %}
+{% import 'admin/_ui_macros.twig' as ui %}
+
+{% block admin_title %}Users{% endblock %}
+
+{% block admin_hero_title %}<h1 class="admin-hero-title">Users</h1>{% endblock %}
+
+{% block admin_hero_sub %}
+  <p class="admin-hero-sub admin-hero-sub--tight">CMS staff and members linked to login. Access is driven by <a class="admin-link" href="{{ url_for('admin.roles.index') }}">roles</a>.</p>
+{% endblock %}
+
+{% block admin_content %}
+  <div class="admin-toolbar admin-toolbar--spread">
+    <p class="admin-hint" style="margin:0">
+      {% if users_total > 0 %}
+        {{ users_total }} user{% if users_total != 1 %}s{% endif %}{% if users_total_pages > 1 %} · Page {{ users_page }} of {{ users_total_pages }}{% endif %}
+      {% else %}
+        No users yet
+      {% endif %}
+    </p>
+    <a class="admin-btn-primary" href="{{ url_for('admin.users.new') }}">New user</a>
+  </div>
+
+  {% if users is empty %}
+    {{ ui.empty_state(
+      'No CMS users',
+      'Create an account to grant admin or content access.',
+      url_for('admin.users.new'),
+      'New user',
+      '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>'
+    ) }}
+  {% else %}
+    <div class="admin-table-wrap">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th scope="col">Email</th>
+            <th scope="col">Username</th>
+            <th scope="col">Display</th>
+            <th scope="col">CMS</th>
+            <th scope="col">Login</th>
+            <th class="admin-table-col-actions" scope="col"><span class="admin-table-muted">Actions</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for u in users %}
+            <tr>
+              <td><strong>{{ u.email|e }}</strong></td>
+              <td class="admin-table-muted">{% if u.username|default('')|trim != '' %}{{ u.username|e }}{% else %}—{% endif %}</td>
+              <td>{{ u.display_name|e }}</td>
+              <td>
+                {% if u.is_active %}
+                  <span class="admin-badge admin-badge--ok">Active</span>
+                {% else %}
+                  <span class="admin-badge admin-badge--muted">Inactive</span>
+                {% endif %}
+              </td>
+              <td class="admin-table-muted">{{ (u.phpauth_isactive ?? 1) ? 'Enabled' : 'Disabled' }}</td>
+              <td class="admin-table-actions">
+                <details class="admin-actions-menu">
+                  <summary class="admin-actions-menu-trigger" aria-label="Actions for {{ u.email|e('html_attr') }}">⋯</summary>
+                  <div class="admin-actions-menu-panel">
+                    <a href="{{ url_for('admin.users.edit', { id: u.id }) }}">Edit</a>
+                  </div>
+                </details>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {% if users_total_pages > 1 %}
+      <nav class="admin-pagination" aria-label="User list pages">
+        {% if users_page > 1 %}
+          <a class="admin-pagination-btn" href="{{ url_for('admin.users.index', {}, { page: users_page - 1 }) }}">Previous</a>
+        {% endif %}
+        <span class="admin-pagination-status">Page {{ users_page }} / {{ users_total_pages }}</span>
+        {% if users_page < users_total_pages %}
+          <a class="admin-pagination-btn" href="{{ url_for('admin.users.index', {}, { page: users_page + 1 }) }}">Next</a>
+        {% endif %}
+      </nav>
+    {% endif %}
+  {% endif %}
+{% endblock %}

@@ -1,0 +1,64 @@
+{% extends 'admin/base.twig' %}
+{% import 'admin/_ui_macros.twig' as ui %}
+
+{% block admin_title %}Browse theme catalog{% endblock %}
+
+{% block admin_hero_title %}
+  <h1 class="admin-hero-title">Browse theme catalog</h1>
+{% endblock %}
+
+{% block admin_hero_sub %}
+  <p class="admin-hero-sub admin-hero-sub--tight">
+    <a class="admin-link" href="{{ url_for('admin.themes.index') }}">← Installed themes</a>
+    · Install from a JSON catalog (local file or remote URL).
+  </p>
+{% endblock %}
+
+{% block admin_content %}
+  {% if not catalog_ok %}
+    <div class="admin-card admin-settings-card" style="margin-bottom:1.25rem;border-color:rgba(251,191,36,0.35)">
+      <h2 class="admin-settings-card-title">Catalog unavailable</h2>
+      <p class="admin-settings-card-desc" style="margin-bottom:0">{{ catalog_error|e }}</p>
+    </div>
+    <p class="admin-hint">Host your catalog JSON on HTTPS (e.g. GitHub raw) and set <code class="admin-inline-code">STRUXA_THEME_CATALOG_URL</code>, or edit <code class="admin-inline-code">storage/theme-catalog.json</code>. See <code class="admin-inline-code">storage/theme-catalog.example.json</code> for the format.</p>
+  {% elseif catalog_themes is empty %}
+    {{ ui.empty_state(
+      'No themes listed',
+      'Add entries to your catalog JSON (slug, download_url, and metadata). ZIPs must contain a valid theme (theme.json, views/, assets/).',
+      url_for('admin.themes.index'),
+      'Back to installed themes',
+      '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><path d="M3.27 6.96L12 12.01l8.73-5.05M12 22.08V12"/></svg>'
+    ) }}
+  {% else %}
+    <p class="admin-hint" style="margin:0 0 1.25rem">Catalog loads from <code class="admin-inline-code">STRUXA_THEME_CATALOG_URL</code> if set, otherwise <code class="admin-inline-code">https://struxapoint.com/struxa-dist/repo.json</code> (then <code class="admin-inline-code">storage/theme-catalog.json</code> as fallback). ZIP hosts: GitHub + struxapoint.com by default; extend with <code class="admin-inline-code">STRUXA_THEME_DOWNLOAD_HOSTS</code>.</p>
+    <div class="admin-theme-grid admin-theme-grid--browse">
+      {% for t in catalog_themes %}
+        <article class="admin-card admin-theme-card admin-theme-card--browse">
+          <div class="admin-theme-card-body">
+            <h2 class="admin-card-title" style="margin-top:0">{{ t.name|e }}</h2>
+            <p class="admin-hint" style="margin:0 0 0.5rem">
+              <code class="admin-inline-code">{{ t.slug|e }}</code>
+              {% if t.version %}· v{{ t.version|e }}{% endif %}
+              {% if t.author %}· {{ t.author|e }}{% endif %}
+            </p>
+            {% if t.description %}
+              <p class="admin-theme-desc">{{ t.description|e }}</p>
+            {% endif %}
+            <p class="admin-hint" style="margin-top:0.75rem;word-break:break-all;font-size:0.72rem">Package: {{ t.downloadUrl|e }}</p>
+            <div class="admin-theme-card-actions">
+              {% if installed_theme_slugs[t.slug] is defined %}
+                <span class="admin-badge admin-badge--ok">Installed</span>
+                <a class="admin-link" href="{{ url_for('admin.themes.index') }}">Open themes list</a>
+              {% else %}
+                <form method="post" action="{{ url_for('admin.themes.install_from_catalog') }}" class="admin-theme-activate-form" onsubmit="return confirm('Install theme {{ t.slug|e('js') }} from the catalog?');">
+                  <input type="hidden" name="theme_slug" value="{{ t.slug|e('html_attr') }}" />
+                  <button type="submit" class="admin-btn-primary">Install</button>
+                </form>
+              {% endif %}
+            </div>
+          </div>
+        </article>
+      {% endfor %}
+    </div>
+  {% endif %}
+{% endblock %}

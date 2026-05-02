@@ -1,0 +1,44 @@
+{% extends 'admin/base.twig' %}
+
+{% block admin_title %}New entry{% endblock %}
+
+{% block admin_hero_title %}
+  <h1 class="admin-hero-title">New entry</h1>
+{% endblock %}
+
+{% block admin_hero_sub %}
+  <p class="admin-hero-sub">Choose a content type to open the editor.</p>
+{% endblock %}
+
+{% block admin_breadcrumbs %}
+  {% include 'admin/partials/_breadcrumbs.twig' with {
+    breadcrumbs: [
+      { label: 'Content types', url: url_for('admin.content_types.index') },
+      { label: 'New entry' },
+    ],
+  } %}
+{% endblock %}
+
+{% block admin_content %}
+  {% if content_types is empty %}
+    <p class="admin-hint">No content types yet. <a class="admin-link" href="{{ url_for('admin.content_types.new') }}">Create a content type</a> first.</p>
+  {% else %}
+    <ul class="admin-new-entry-type-grid" role="list">
+      {% for t in content_types %}
+        <li class="admin-new-entry-type-card">
+          <a class="admin-new-entry-type-link" href="{{ url_for('admin.content_types.entries.new', { id: t.id }) }}">
+            <span class="admin-new-entry-type-name">{{ t.name|e }}</span>
+            {% if t.description|default('')|trim != '' %}
+              <span class="admin-new-entry-type-desc">{{ t.description|e }}</span>
+            {% else %}
+              <span class="admin-new-entry-type-desc admin-hint">Slug: {{ t.slug|e }}</span>
+            {% endif %}
+          </a>
+        </li>
+      {% endfor %}
+    </ul>
+    <p class="admin-hint" style="margin-top:1.25rem">
+      <a class="admin-link" href="{{ url_for('admin.content_types.index') }}">Manage content types</a>
+    </p>
+  {% endif %}
+{% endblock %}

@@ -1,0 +1,11 @@
+{
+  "name": "stripe-store-plugin/stripe-store-plugin",
+  "description": "Local deps for Stripe store plugin",
+  "require": {
+    "php": ">=8.1",
+    "stripe/stripe-php": "^16.0"
+  },
+  "config": {
+    "sort-packages": true
+  }
+}

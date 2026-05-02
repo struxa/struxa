@@ -1,0 +1,30 @@
+{% extends 'admin/base.twig' %}
+
+{% block admin_title %}Upload media{% endblock %}
+
+{% block admin_hero_title %}
+  <h1 class="admin-hero-title">Upload media</h1>
+{% endblock %}
+
+{% block admin_hero_sub %}
+  <p class="admin-hero-sub"><a class="admin-link" href="{{ url_for('admin.media.index') }}">← Media library</a> · JPG, PNG, WebP, or GIF · max <strong>{{ max_mb }} MB</strong></p>
+{% endblock %}
+
+{% block admin_content %}
+  <div class="admin-card admin-card--media-upload">
+    {% if upload_error %}
+      <div class="admin-flash admin-flash--error" role="alert">{{ upload_error|e }}</div>
+    {% endif %}
+
+    <form class="admin-form" method="post" action="{{ url_for('admin.media.store') }}" enctype="multipart/form-data">
+      <div class="admin-field admin-field--full">
+        <label class="admin-label" for="file">Image file <span class="admin-req">*</span></label>
+        <input class="admin-input admin-file-input" type="file" id="file" name="file" accept="image/jpeg,image/png,image/webp,image/gif" required />
+        <p class="admin-hint">Files are checked by type, size, and image structure. SVG is not accepted yet.</p>
+      </div>
+      <div class="admin-form-actions">
+        <button type="submit" class="admin-btn-primary">Upload</button>
+      </div>
+    </form>
+  </div>
+{% endblock %}

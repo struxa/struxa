@@ -1,0 +1,43 @@
+{% extends 'layouts/base.twig' %}
+
+{% block title %}{{ taxonomy_term.name|e }} — Reviews — {{ settings.site_name|default('Site')|e }}{% endblock %}
+{% block meta_description %}{{ taxonomy_meta_description|default('')|e }}{% endblock %}
+
+{% block body %}
+<main class="theme-review-taxonomy">
+  <header class="theme-review-taxonomy-header">
+    <p class="eyebrow">Category · <a href="{{ url_for('public.content_type_index', { typeSlug: content_type.slug }) }}">All reviews</a></p>
+    <h1>{{ taxonomy_term.name|e }}</h1>
+    {% if taxonomy_term.description %}
+      <p class="theme-muted">{{ taxonomy_term.description|e }}</p>
+    {% endif %}
+  </header>
+
+  {% if archive_entries is empty %}
+    <p class="theme-muted">No reviews in this category.</p>
+  {% else %}
+    <ul class="theme-review-taxonomy-list">
+      {% for row in archive_entries %}
+        <li>
+          <a href="{{ site_url }}/{{ content_type.slug|e }}/{{ row.slug|e }}">{{ row.title|e }}</a>
+          {% if row.published_at %}
+            <span class="theme-muted">{{ row.published_at|e }}</span>
+          {% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+
+    {% if archive_total_pages > 1 %}
+      <nav class="theme-pager" aria-label="Pagination">
+        {% if archive_page > 1 %}
+          <a href="{{ url_for('public.taxonomy_archive', { typeSlug: content_type.slug, taxonomySlug: taxonomy.slug, termSlug: taxonomy_term.slug }) }}?page={{ archive_page - 1 }}">Newer</a>
+        {% endif %}
+        <span class="theme-muted">Page {{ archive_page }} of {{ archive_total_pages }}</span>
+        {% if archive_page < archive_total_pages %}
+          <a href="{{ url_for('public.taxonomy_archive', { typeSlug: content_type.slug, taxonomySlug: taxonomy.slug, termSlug: taxonomy_term.slug }) }}?page={{ archive_page + 1 }}">Older</a>
+        {% endif %}
+      </nav>
+    {% endif %}
+  {% endif %}
+</main>
+{% endblock %}

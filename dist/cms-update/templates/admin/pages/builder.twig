@@ -1,0 +1,43 @@
+{% extends 'admin/base.twig' %}
+
+{% block admin_title %}Page builder — {{ page.title|e }}{% endblock %}
+
+{% block admin_hero_title %}
+  <h1 class="admin-hero-title">Visual builder</h1>
+{% endblock %}
+
+{% block admin_hero_sub %}
+  <p class="admin-hero-sub">
+    {% if page.status == 'published' %}
+      <a class="admin-link" href="{{ url_for('public.page', { slug: page.slug }) }}" target="_blank" rel="noopener">View live</a>
+    {% endif %}
+  </p>
+{% endblock %}
+
+{% block admin_breadcrumbs %}
+  {% set _pt = page.title|length > 40 ? page.title|slice(0, 37) ~ '…' : page.title %}
+  {% include 'admin/partials/_breadcrumbs.twig' with {
+    breadcrumbs: [
+      { label: 'Pages', url: url_for('admin.pages.index') },
+      { label: _pt, url: url_for('admin.pages.edit', { id: page.id }) },
+      { label: 'Visual builder' },
+    ],
+  } %}
+{% endblock %}
+
+{% block admin_content %}
+  <style>
+    .admin-page-builder-card.is-dragging { opacity: 0.55; }
+  </style>
+  {% include 'admin/pages/_builder_panel.twig' with {
+    page: page,
+    section_rows: section_rows,
+    section_palette: section_palette,
+    section_labels: section_labels,
+    builder_panel_standalone: builder_panel_standalone|default(true),
+  } %}
+{% endblock %}
+
+{% block admin_scripts %}
+  <script src="/js/admin-page-builder.js" defer></script>
+{% endblock %}

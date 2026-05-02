@@ -1,0 +1,44 @@
+/vendor/
+# Plugin deps: run `composer plugin-deps` or `php bin/plugin-deps.php` (do not commit vendor)
+plugins/**/vendor/
+dist/*.zip
+
+# Secrets & local env (never commit real credentials)
+.env
+.env.*
+!.env.example
+
+# Composer HTTP basic auth (can contain tokens)
+/auth.json
+
+# Database dumps / local DB files (schema lives under database/migrations/)
+*.sql.gz
+dump*.sql
+*.sqlite
+*.sqlite3
+/data/mysql/
+/mysql-data/
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Logs
+*.log
+logs/
+
+storage/installed.lock
+storage/composer-home/
+storage/cache/*
+!storage/cache/.gitkeep
+# Optional: composer render-marketing-preview
+public/marketing-preview.html
+public/uploads/*
+!public/uploads/.gitkeep
+
+# Local cache from scripts/struxa-updates-json.php (vendor site generator)
+scripts/.struxa-updates-cache.json

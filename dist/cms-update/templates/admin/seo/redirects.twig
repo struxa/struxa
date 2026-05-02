@@ -1,0 +1,104 @@
+{% extends 'admin/base.twig' %}
+
+{% block admin_title %}Redirects{% endblock %}
+
+{% block admin_hero_title %}
+  <h1 class="admin-hero-title">URL redirects</h1>
+{% endblock %}
+
+{% block admin_hero_sub %}
+  <p class="admin-hint" style="margin-top:0">
+    <a class="admin-link" href="{{ url_for('admin.seo.not_found') }}">404 monitor</a>
+    ·
+    <a class="admin-link" href="{{ url_for('admin.seo.sitemap') }}">Sitemap</a>
+    · Match is on the URL path (e.g. <code class="admin-inline-code">/old-page</code>). Destination can be a full URL or a site path.
+  </p>
+{% endblock %}
+
+{% block admin_content %}
+  <section class="admin-card admin-settings-card admin-role-edit-card" style="margin-bottom:1.25rem">
+    <h2 class="admin-settings-card-title">Add or replace redirect</h2>
+    <p class="admin-settings-card-desc">If the path already exists, its destination is updated.</p>
+    <form class="admin-form" method="post" action="{{ url_for('admin.seo.redirects.store') }}">
+      <input type="hidden" name="list_page" value="{{ redirect_list_page|default(1) }}" />
+      <div class="admin-form-grid">
+        <div class="admin-field {{ form_errors.from_path is defined ? 'admin-field--error' : '' }}">
+          <label class="admin-label" for="r-from">From path</label>
+          <input class="admin-input" id="r-from" name="from_path" type="text" value="{{ form_old.from_path|default('')|e }}" placeholder="/old-path" required />
+          {% if form_errors.from_path is defined %}<p class="admin-field-error">{{ form_errors.from_path|e }}</p>{% endif %}
+        </div>
+        <div class="admin-field admin-field--full {{ form_errors.to_url is defined ? 'admin-field--error' : '' }}">
+          <label class="admin-label" for="r-to">To (URL or path)</label>
+          <input class="admin-input" id="r-to" name="to_url" type="text" value="{{ form_old.to_url|default('')|e }}" placeholder="https://… or /new-path" required />
+          {% if form_errors.to_url is defined %}<p class="admin-field-error">{{ form_errors.to_url|e }}</p>{% endif %}
+        </div>
+        <div class="admin-field">
+          <label class="admin-label" for="r-code">Status</label>
+          <select class="admin-select" id="r-code" name="status_code">
+            {% for c in ['301','302','307','308'] %}
+              <option value="{{ c }}" {{ (form_old.status_code|default('301') ~ '') == c ? 'selected' : '' }}>{{ c }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+      <div class="admin-form-actions">
+        <button type="submit" class="admin-btn-primary">Save redirect</button>
+      </div>
+    </form>
+  </section>
+
+  <section class="admin-card admin-settings-card admin-role-edit-card">
+    <div class="admin-toolbar admin-toolbar--spread" style="margin-bottom:0.75rem">
+      <h2 class="admin-settings-card-title" style="margin:0">Existing redirects</h2>
+      {% if redirect_total|default(0) > 0 %}
+        <p class="admin-hint" style="margin:0">
+          {{ redirect_total }} total{% if redirect_total_pages|default(1) > 1 %} · Page {{ redirect_list_page }} of {{ redirect_total_pages }}{% endif %}
+        </p>
+      {% endif %}
+    </div>
+    {% if redirect_rows is empty %}
+      <p class="admin-hint" style="margin-top:0">No redirects yet.</p>
+    {% else %}
+      <div class="admin-table-wrap" style="overflow-x:auto">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th scope="col">From</th>
+              <th scope="col">To</th>
+              <th scope="col">Code</th>
+              <th scope="col">Hits</th>
+              <th class="admin-table-col-actions" scope="col"><span class="admin-table-muted">Actions</span></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for r in redirect_rows %}
+              <tr>
+                <td><code class="admin-inline-code">{{ r.from_path|e }}</code></td>
+                <td style="max-width:18rem;word-break:break-all">{{ r.to_url|e }}</td>
+                <td>{{ r.status_code }}</td>
+                <td>{{ r.hit_count|default(0) }}</td>
+                <td class="admin-table-actions" style="white-space:nowrap">
+                  <a class="admin-link" href="{{ url_for('admin.seo.redirects.edit', { id: r.id }) }}">Edit</a>
+                  <form method="post" action="{{ url_for('admin.seo.redirects.delete', { id: r.id }) }}" style="display:inline;margin-left:0.5rem" onsubmit="return confirm('Delete this redirect?');">
+                    <button type="submit" class="admin-link" style="background:none;border:none;padding:0;cursor:pointer;color:inherit;font:inherit">Delete</button>
+                  </form>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% if redirect_total_pages|default(1) > 1 %}
+        <nav class="admin-pagination" aria-label="Redirect list pages" style="margin-top:1rem">
+          {% if redirect_list_page > 1 %}
+            <a class="admin-pagination-btn" href="{{ url_for('admin.seo.redirects', {}, { page: redirect_list_page - 1 }) }}">Previous</a>
+          {% endif %}
+          <span class="admin-pagination-status">Page {{ redirect_list_page }} / {{ redirect_total_pages }}</span>
+          {% if redirect_list_page < redirect_total_pages %}
+            <a class="admin-pagination-btn" href="{{ url_for('admin.seo.redirects', {}, { page: redirect_list_page + 1 }) }}">Next</a>
+          {% endif %}
+        </nav>
+      {% endif %}
+    {% endif %}
+  </section>
+{% endblock %}

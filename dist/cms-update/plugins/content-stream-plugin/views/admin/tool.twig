@@ -1,0 +1,249 @@
+{% extends 'admin/base.twig' %}
+
+{% block admin_title %}Content Stream · domain tool{% endblock %}
+
+{% block admin_hero_title %}
+  <h1 class="admin-hero-title">Content Stream</h1>
+{% endblock %}
+
+{% block admin_hero_sub %}
+  <p class="admin-hero-sub">Domain → structured analysis → keyword metrics → monthly blog plan. Staff URL: <code class="admin-inline-code">/content-stream</code></p>
+{% endblock %}
+
+{% block admin_content %}
+  <section class="admin-section">
+    <p class="admin-prose" style="margin-top:0">
+      <a class="admin-link" href="{{ url_for('plugin.content_stream_plugin.admin') }}">← API settings</a>
+      ·
+      <a class="admin-link" href="{{ site_url|default('')|e }}/content-stream" target="_blank" rel="noopener">Open storefront URL</a>
+    </p>
+  </section>
+
+  {% if not content_stream_table_ok|default(false) %}
+    <section class="admin-section">
+      <div class="admin-callout" role="alert">
+        <p class="admin-prose">Run the plugin SQL migration (see Content Stream → API settings), then refresh.</p>
+      </div>
+    </section>
+  {% else %}
+    {% set cs_has_result = content_stream_error|default('')|trim == '' and content_stream_brief|default('')|trim != '' %}
+
+    {% include '@plugin_content_stream_plugin/partials/content_stream_analysis_styles.twig' %}
+
+    <div id="cs-error-wrap" class="admin-callout" role="alert"{% if content_stream_error|default('')|trim == '' %} hidden{% endif %}>
+      <p class="admin-prose" style="margin:0;" id="cs-error-text">{{ content_stream_error|e }}</p>
+    </div>
+
+    <div class="cs-wizard-canvas">
+    <div class="cs-wizard-shell">
+      <div class="cs-wizard-track cs-wizard-track--four" id="cs-wizard-track" role="navigation" aria-label="Wizard progress">
+        <span id="cs-wizard-crumb-1" class="cs-wizard-crumb{% if not cs_has_result %} is-active{% else %} is-done{% endif %}">
+          <span class="cs-wizard-crumb-num" aria-hidden="true">1</span>
+          <span class="cs-wizard-crumb-label">Domain</span>
+        </span>
+        <span class="cs-wizard-track-line" aria-hidden="true"></span>
+        <span id="cs-wizard-crumb-2" class="cs-wizard-crumb{% if cs_has_result %} is-active{% endif %}">
+          <span class="cs-wizard-crumb-num" aria-hidden="true">2</span>
+          <span class="cs-wizard-crumb-label">Analysis</span>
+        </span>
+        <span class="cs-wizard-track-line" aria-hidden="true"></span>
+        <span id="cs-wizard-crumb-3" class="cs-wizard-crumb">
+          <span class="cs-wizard-crumb-num" aria-hidden="true">3</span>
+          <span class="cs-wizard-crumb-label">Metrics</span>
+        </span>
+        <span class="cs-wizard-track-line" aria-hidden="true"></span>
+        <span id="cs-wizard-crumb-4" class="cs-wizard-crumb">
+          <span class="cs-wizard-crumb-num" aria-hidden="true">4</span>
+          <span class="cs-wizard-crumb-label">Plan</span>
+        </span>
+      </div>
+
+      <div class="cs-wizard-step-heading" id="cs-wizard-step-label" aria-live="polite">
+        {% if cs_has_result %}
+          <span class="cs-wizard-step-kicker">Step 2 of 4</span>
+          <span class="cs-wizard-step-title">Review the analysis</span>
+        {% else %}
+          <span class="cs-wizard-step-kicker">Step 1 of 4</span>
+          <span class="cs-wizard-step-title">Enter the company domain</span>
+        {% endif %}
+      </div>
+    </div>
+
+    {# CSRF must stay outside #cs-wizard-step1: when step 1 is hidden, browsers omit nested fields from FormData(). #}
+    <form id="cs-brief-form" class="admin-form" method="post" action="{{ content_stream_form_action|e('html_attr') }}">
+      <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+      <div id="cs-wizard-step1"{% if cs_has_result %} hidden{% endif %}>
+        <div id="cs-progress" class="admin-updates-apply-progress" hidden aria-live="polite">
+          <p class="admin-updates-apply-progress-title">Analysing domain…</p>
+          <div class="admin-updates-apply-progress-track" role="presentation">
+            <div class="admin-updates-apply-progress-fill"></div>
+          </div>
+          <p class="admin-updates-apply-progress-hint">Calling OpenAI — this can take up to a minute.</p>
+        </div>
+
+        <section class="admin-section cs-wizard-panel cs-wizard-panel--domain">
+          <div class="cs-wizard-panel-head">
+            <h2 class="admin-section-title cs-wizard-panel-title">Domain</h2>
+            <p class="cs-wizard-panel-lead">We’ll fetch the site and ask the model for a structured brief (business summary, audience, topics, and seed keywords).</p>
+          </div>
+          <div class="admin-field admin-field--full cs-wizard-field-highlight">
+            <label class="admin-label" for="cs_domain">Hostname</label>
+            <input class="admin-input" type="text" id="cs_domain" name="domain" value="{{ content_stream_domain|default('')|e('html_attr') }}" placeholder="example.com" autocomplete="off" required />
+          </div>
+          <div class="admin-form-actions cs-wizard-actions">
+            <button type="submit" class="admin-btn-primary" id="cs-brief-submit">Run analysis</button>
+          </div>
+          {% if not content_stream_api_configured|default(false) %}
+            <p class="admin-field-hint cs-wizard-hint-below">Configure an OpenAI API key under <a class="admin-link" href="{{ url_for('plugin.content_stream_plugin.admin') }}">API settings</a> (Manage site settings).</p>
+          {% endif %}
+        </section>
+      </div>
+    </form>
+
+    <div id="cs-wizard-step2"{% if not cs_has_result %} hidden{% endif %}>
+      <section class="admin-section cs-wizard-panel">
+        <div class="cs-wizard-panel-head">
+          <h2 class="admin-section-title cs-wizard-panel-title">Analysis</h2>
+          <p class="cs-wizard-domain-chip"><span class="cs-wizard-domain-chip-label">Domain</span> <span id="cs-result-domain" class="cs-wizard-domain-chip-value">{{ content_stream_domain|e }}</span></p>
+          <p class="cs-wizard-panel-lead">Cards below are generated from the model. Expand <strong>Technical</strong> if you need raw JSON.</p>
+        </div>
+
+        <div id="cs-analysis-cards" class="cs-analysis-cards" aria-live="polite"></div>
+        <textarea id="cs-analysis-raw" autocomplete="off" readonly aria-hidden="true">{{ content_stream_brief|default('')|e }}</textarea>
+
+        <details class="cs-analysis-raw-wrap">
+          <summary>Technical · raw JSON</summary>
+          <pre class="admin-code-block" id="cs-analysis-json-fallback" style="white-space:pre-wrap;font-family:ui-monospace,monospace;line-height:1.5"></pre>
+        </details>
+
+        <div class="admin-form-actions cs-wizard-actions cs-wizard-actions--footer" style="margin-top:1.5rem">
+          <button type="button" class="admin-btn-primary" id="cs-wizard-to-metrics">Next: Keyword metrics</button>
+          <button type="button" class="admin-btn-ghost" id="cs-wizard-back-step1">Back to domain</button>
+          <button type="button" class="admin-btn-ghost cs-wizard-restart" id="cs-wizard-restart">Analyse another domain</button>
+        </div>
+      </section>
+    </div>
+
+    <div id="cs-wizard-step3" hidden>
+      <section class="admin-section cs-wizard-panel cs-wizard-panel--metrics">
+        <div class="cs-wizard-panel-head">
+          <h2 class="admin-section-title cs-wizard-panel-title">Keyword metrics</h2>
+          <p class="cs-wizard-domain-chip"><span class="cs-wizard-domain-chip-label">Domain</span> <span id="cs-result-domain-metrics" class="cs-wizard-domain-chip-value">{{ content_stream_domain|e }}</span></p>
+          <p class="cs-wizard-panel-lead">Phrases are derived from your analysis, then enriched with DataForSEO (volume, CPC, competition, difficulty, variations). Optional — skip to the plan step if you only need the calendar.</p>
+        </div>
+
+        <div class="admin-form-actions cs-wizard-actions">
+          <button type="button" class="admin-btn-primary" id="cs-fetch-keyword-metrics"
+            data-metrics-url="{{ content_stream_keyword_metrics_url|default('')|e('html_attr') }}"
+            data-csrf="{{ csrf_token()|e('html_attr') }}"
+            {% if not content_stream_dataforseo_configured|default(false) %} disabled{% endif %}>Fetch live keyword metrics</button>
+        </div>
+        {% if not content_stream_dataforseo_configured|default(false) %}
+          <p class="admin-field-hint cs-wizard-hint-below">Add DataForSEO credentials under <a class="admin-link" href="{{ url_for('plugin.content_stream_plugin.admin') }}">API settings</a> and run <code class="admin-inline-code">002_content_stream_dataforseo.sql</code> if needed.</p>
+        {% endif %}
+
+        <div id="cs-keyword-progress" class="admin-updates-apply-progress" hidden aria-live="polite" style="margin-top:1rem">
+          <p class="admin-updates-apply-progress-title">Fetching keyword data…</p>
+          <div class="admin-updates-apply-progress-track" role="presentation">
+            <div class="admin-updates-apply-progress-fill"></div>
+          </div>
+          <p class="admin-updates-apply-progress-hint">OpenAI keyword pass, then DataForSEO (several API calls — can take ~30–90 seconds).</p>
+        </div>
+
+        <div id="cs-keyword-error-wrap" class="admin-callout" role="alert" hidden style="margin-top:1rem">
+          <p class="admin-prose" style="margin:0;" id="cs-keyword-error-text"></p>
+        </div>
+
+        <div class="admin-table-wrap" id="cs-keyword-table-wrap" hidden style="margin-top:1rem">
+          <table class="admin-table" id="cs-keyword-table">
+            <thead>
+              <tr>
+                <th scope="col">Keyword</th>
+                <th scope="col">Search volume</th>
+                <th scope="col">CPC (USD)</th>
+                <th scope="col">Competition</th>
+                <th scope="col">Difficulty</th>
+                <th scope="col">Variations</th>
+              </tr>
+            </thead>
+            <tbody id="cs-keyword-tbody"></tbody>
+          </table>
+        </div>
+
+        <div class="admin-form-actions cs-wizard-actions cs-wizard-actions--footer" style="margin-top:1.5rem">
+          <button type="button" class="admin-btn-primary" id="cs-wizard-to-engine">Next: Monthly plan</button>
+          <button type="button" class="admin-btn-ghost" id="cs-wizard-back-step2">Back to analysis</button>
+          <button type="button" class="admin-btn-ghost cs-wizard-restart" id="cs-wizard-restart-from-metrics">Analyse another domain</button>
+        </div>
+      </section>
+    </div>
+
+    <div id="cs-wizard-step4" hidden>
+        <section id="cs-wizard-step4-section" class="admin-section cs-wizard-panel">
+        <div class="cs-wizard-panel-head">
+          <h2 class="admin-section-title cs-wizard-panel-title">Keyword engine</h2>
+          <p class="cs-wizard-panel-lead">Build a <strong>one post per day</strong> editorial calendar for the month. Plans stay in the database until you remove the plugin.</p>
+        </div>
+        <p class="admin-prose cs-engine-plan-meta" id="cs-engine-plan-meta" hidden></p>
+
+        {% if not content_stream_keyword_plan_ready|default(false) %}
+          <div class="admin-callout" role="alert" style="margin-top:1rem">
+            <p class="admin-prose" style="margin:0">Run <code class="admin-inline-code">003_keyword_engine.sql</code> or deactivate and activate the plugin so Keyword Engine tables exist.</p>
+          </div>
+        {% endif %}
+
+        <div class="admin-field admin-field--full" style="margin-top:1rem">
+          <label class="admin-label" for="cs-engine-month">Calendar month</label>
+          <input class="admin-input" type="month" id="cs-engine-month" value="{{ content_stream_keyword_plan_default_month|e('html_attr') }}" {% if not content_stream_keyword_plan_ready|default(false) %} disabled{% endif %} />
+        </div>
+        <div class="admin-field admin-field--full">
+          <label class="admin-label" for="cs-engine-label">Label (optional)</label>
+          <input class="admin-input" type="text" id="cs-engine-label" maxlength="255" placeholder="Campaign or client name" {% if not content_stream_keyword_plan_ready|default(false) %} disabled{% endif %} />
+        </div>
+        <div class="admin-form-actions cs-wizard-actions">
+          <button type="button" class="admin-btn-primary" id="cs-engine-generate"
+            data-generate-url="{{ content_stream_keyword_plan_generate_url|default('')|e('html_attr') }}"
+            data-csrf="{{ csrf_token()|e('html_attr') }}"
+            {% if not content_stream_keyword_plan_ready|default(false) %} disabled{% endif %}>Generate monthly plan</button>
+          <button type="button" class="admin-btn-ghost" id="cs-wizard-back-step3">Back to metrics</button>
+        </div>
+
+        <div id="cs-engine-progress" class="admin-updates-apply-progress" hidden aria-live="polite" style="margin-top:1rem">
+          <p class="admin-updates-apply-progress-title">Building editorial calendar…</p>
+          <div class="admin-updates-apply-progress-track" role="presentation">
+            <div class="admin-updates-apply-progress-fill"></div>
+          </div>
+          <p class="admin-updates-apply-progress-hint">OpenAI is drafting one post idea per day — often 1–3 minutes.</p>
+        </div>
+
+        <div id="cs-engine-error-wrap" class="admin-callout" role="alert" hidden style="margin-top:1rem">
+          <p class="admin-prose" style="margin:0;" id="cs-engine-error-text"></p>
+        </div>
+
+        <div id="cs-engine-html-result" class="cs-engine-html-mount cs-wizard-engine-mount" hidden></div>
+
+        <div class="admin-table-wrap" id="cs-engine-table-wrap" hidden style="margin-top:1rem">
+          <table class="admin-table" id="cs-engine-table">
+            <thead>
+              <tr>
+                <th scope="col">Day</th>
+                <th scope="col">Keyword</th>
+                <th scope="col">Intent</th>
+                <th scope="col">Score</th>
+                <th scope="col">Title &amp; outline</th>
+              </tr>
+            </thead>
+            <tbody id="cs-engine-tbody"></tbody>
+          </table>
+        </div>
+
+        <div class="admin-form-actions cs-wizard-actions" style="margin-top:1.25rem">
+          <button type="button" class="admin-btn-ghost cs-wizard-restart" id="cs-wizard-restart-from-step4">Analyse another domain</button>
+        </div>
+        </section>
+    </div>
+    </div>
+
+    {% include '@plugin_content_stream_plugin/partials/content_stream_wizard_admin_script.twig' %}
+  {% endif %}
+{% endblock %}

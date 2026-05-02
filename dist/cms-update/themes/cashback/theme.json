@@ -1,0 +1,24 @@
+{
+  "name": "Cashback",
+  "slug": "cashback",
+  "version": "1.0.0",
+  "author": "Studio CMS",
+  "description": "CashMint reward dashboard UI: sidebar, top bar, offers carousel, surveys — extends Midnight Pulse for content fallbacks.",
+  "homepage": "https://example.com/themes/cashback",
+  "repository_url": "",
+  "license": "MIT",
+  "support_url": "",
+  "category": "marketing",
+  "tags": ["dark", "blog"],
+  "min_cms_version": "1.0.0",
+  "tested_up_to": "1.0.0",
+  "screenshot": "assets/screenshot.png",
+  "settings": {
+    "accent": {
+      "type": "string",
+      "label": "Accent color (hex)",
+      "default": "#21d07a"
+    }
+  },
+  "parents": ["default"]
+}

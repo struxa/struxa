@@ -1,0 +1,50 @@
+{% extends 'admin/base.twig' %}
+
+{% block admin_title %}Roles{% endblock %}
+
+{% block admin_hero_title %}<h1 class="admin-hero-title">Roles</h1>{% endblock %}
+
+{% block admin_hero_sub %}
+  <p class="admin-hero-sub">Permissions are grouped by role. System roles cannot be deleted.</p>
+{% endblock %}
+
+{% block admin_content %}
+  <div class="admin-toolbar admin-toolbar--spread">
+    <a class="admin-btn-primary" href="{{ url_for('admin.roles.new') }}">New custom role</a>
+  </div>
+
+  <div class="admin-table-wrap">
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th scope="col">Name</th>
+          <th scope="col">Slug</th>
+          <th scope="col">Type</th>
+          <th class="admin-table-col-actions" scope="col"><span class="admin-table-muted">Actions</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in role_rows %}
+          <tr>
+            <td><strong>{{ r.name|e }}</strong></td>
+            <td><code class="admin-inline-code">{{ r.slug|e }}</code></td>
+            <td><span class="admin-pill {{ r.is_system ? '' : 'admin-pill--accent' }}">{{ r.is_system ? 'System' : 'Custom' }}</span></td>
+            <td class="admin-table-actions">
+              <details class="admin-actions-menu">
+                <summary class="admin-actions-menu-trigger" aria-label="Actions for {{ r.name|e('html_attr') }}">⋯</summary>
+                <div class="admin-actions-menu-panel">
+                  <a href="{{ url_for('admin.roles.edit', { id: r.id }) }}">Edit</a>
+                  {% if not r.is_system %}
+                    <form method="post" action="{{ url_for('admin.roles.delete', { id: r.id }) }}" onsubmit="return confirm('Delete this role?');">
+                      <button type="submit" class="admin-actions-danger">Delete</button>
+                    </form>
+                  {% endif %}
+                </div>
+              </details>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endblock %}

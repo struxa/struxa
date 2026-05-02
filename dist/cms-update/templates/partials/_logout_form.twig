@@ -1,0 +1,7 @@
+{# POST + CSRF sign-out. Pass button_class (and optional label, role, wrapper_class). #}
+<form method="post" action="{{ url_for('logout') }}" class="{{ wrapper_class|default('logout-form-inline') }}" style="display:inline;margin:0;padding:0;vertical-align:baseline">
+  <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+  <button type="submit" class="{{ button_class|default('') }}" {% if button_role %}role="{{ button_role|e('html_attr') }}"{% endif %} style="background:none;border:none;font:inherit;cursor:pointer;color:inherit;padding:0;text-align:inherit">
+    {{ (label|default('Log out'))|e }}
+  </button>
+</form>

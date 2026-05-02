@@ -1,0 +1,63 @@
+{% extends 'layouts/base.twig' %}
+
+{% block title %}Team — {{ settings.site_name|default('Site')|e }}{% endblock %}
+{% block meta_description %}{{ content_index_description|default(settings.default_meta_description|default(''))|e }}{% endblock %}
+
+{% block body %}
+<main class="theme-team-index">
+  <header class="theme-team-index-header">
+    <p class="eyebrow">People</p>
+    <h1>{{ content_type.name|e }}</h1>
+    {% if content_index_description %}
+      <p class="theme-team-index-lead">{{ content_index_description|e }}</p>
+    {% endif %}
+  </header>
+
+  {% if index_entries is empty %}
+    <p class="theme-muted">No team profiles yet.</p>
+  {% else %}
+    <div class="theme-team-grid">
+      {% for item in index_entries %}
+        {% set row = item.row %}
+        <article class="theme-team-card">
+          {% if item.featured_media_id|default(null) %}
+            {% set _mid = item.featured_media_id %}
+            <a class="theme-team-avatar" href="{{ site_url }}/{{ content_type.slug|e }}/{{ row.slug|e }}">
+              <img
+                src="{{ media_resize_url(_mid, 480) }}"
+                srcset="{{ media_resize_url(_mid, 320) }} 320w, {{ media_resize_url(_mid, 480) }} 480w, {{ media_resize_url(_mid, 640) }} 640w"
+                sizes="(max-width: 640px) 40vw, 160px"
+                alt=""
+                loading="lazy"
+                decoding="async"
+                width="320"
+                height="320"
+              />
+            </a>
+          {% elseif item.featured_url %}
+            <a class="theme-team-avatar" href="{{ site_url }}/{{ content_type.slug|e }}/{{ row.slug|e }}">
+              <img src="{{ item.featured_url|e('html_attr') }}" alt="" loading="lazy" decoding="async" />
+            </a>
+          {% endif %}
+          <h2><a href="{{ site_url }}/{{ content_type.slug|e }}/{{ row.slug|e }}">{{ row.title|e }}</a></h2>
+          {% if item.excerpt_plain %}
+            <p class="theme-team-card-role">{{ item.excerpt_plain|e }}</p>
+          {% endif %}
+        </article>
+      {% endfor %}
+    </div>
+
+    {% if index_total_pages > 1 %}
+      <nav class="theme-pager" aria-label="Pagination">
+        {% if index_page > 1 %}
+          <a href="{{ url_for('public.content_type_index', { typeSlug: content_type.slug }) }}?page={{ index_page - 1 }}">Newer</a>
+        {% endif %}
+        <span class="theme-muted">Page {{ index_page }} of {{ index_total_pages }}</span>
+        {% if index_page < index_total_pages %}
+          <a href="{{ url_for('public.content_type_index', { typeSlug: content_type.slug }) }}?page={{ index_page + 1 }}">Older</a>
+        {% endif %}
+      </nav>
+    {% endif %}
+  {% endif %}
+</main>
+{% endblock %}

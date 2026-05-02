@@ -1,0 +1,173 @@
+{% extends 'admin/base.twig' %}
+
+{% set is_edit = form_mode == 'edit' %}
+{% set o = old ?? {} %}
+{% set dn = o.display_name|default(edit_user ? edit_user.display_name : '') %}
+{% set em = o.email|default(edit_user ? edit_user.email : '') %}
+{% set un = o.username|default(edit_user ? (edit_user.username|default('')) : '') %}
+{% set totp = edit_user_totp|default(null) %}
+
+{% block admin_title %}{{ is_edit ? 'Edit user' : 'New user' }}{% endblock %}
+
+{% block admin_hero_title %}
+  <h1 class="admin-hero-title">{{ is_edit ? 'Edit user' : 'New user' }}</h1>
+{% endblock %}
+
+{% block admin_hero_sub %}
+  <p class="admin-hero-sub admin-hero-sub--tight">
+    <a class="admin-link" href="{{ url_for('admin.users.index') }}">← Users</a>
+    {% if is_edit %}<span class="admin-hero-sub-dot" aria-hidden="true">·</span><span class="admin-table-muted">{{ edit_user.email|e }}</span>{% endif %}
+  </p>
+{% endblock %}
+
+{% block admin_content %}
+  <form class="admin-form admin-user-edit-form" method="post" action="{{ is_edit ? url_for('admin.users.update', { id: edit_user.id }) : url_for('admin.users.store') }}">
+    <div class="admin-user-edit-stack">
+      {% if not is_edit %}
+        <section class="admin-card admin-settings-card admin-user-edit-card">
+          <h2 class="admin-settings-card-title">Login</h2>
+          <p class="admin-settings-card-desc">Email and password create the PHPAuth account and CMS row.</p>
+          <div class="admin-form-grid">
+            <div class="admin-field admin-field--full {{ errors.email is defined ? 'admin-field--error' : '' }}">
+              <label class="admin-label" for="u-email">Email <span class="admin-req">*</span></label>
+              <input class="admin-input" id="u-email" name="email" type="email" value="{{ em|e }}" required autocomplete="email" />
+              {% if errors.email is defined %}<p class="admin-field-error">{{ errors.email|e }}</p>{% endif %}
+            </div>
+            <div class="admin-field {{ errors.password is defined ? 'admin-field--error' : '' }}">
+              <label class="admin-label" for="u-pass">Password <span class="admin-req">*</span></label>
+              <input class="admin-input" id="u-pass" name="password" type="password" autocomplete="new-password" />
+              {% if errors.password is defined %}<p class="admin-field-error">{{ errors.password|e }}</p>{% endif %}
+            </div>
+            <div class="admin-field {{ errors.password_confirm is defined ? 'admin-field--error' : '' }}">
+              <label class="admin-label" for="u-pass2">Confirm password</label>
+              <input class="admin-input" id="u-pass2" name="password_confirm" type="password" autocomplete="new-password" />
+              {% if errors.password_confirm is defined %}<p class="admin-field-error">{{ errors.password_confirm|e }}</p>{% endif %}
+            </div>
+          </div>
+        </section>
+      {% else %}
+        <section class="admin-card admin-settings-card admin-user-edit-card">
+          <h2 class="admin-settings-card-title">Account &amp; email</h2>
+          <p class="admin-settings-card-desc">Login identifier. Changing email updates both the CMS record and the auth account.</p>
+          <div class="admin-form-grid">
+            <div class="admin-field admin-field--full {{ errors.email is defined ? 'admin-field--error' : '' }}">
+              <label class="admin-label" for="u-email-edit">Email <span class="admin-req">*</span></label>
+              <input class="admin-input" id="u-email-edit" name="email" type="email" value="{{ em|e }}" required autocomplete="email" />
+              {% if errors.email is defined %}<p class="admin-field-error">{{ errors.email|e }}</p>{% endif %}
+            </div>
+            <div class="admin-user-edit-meta">
+              <span class="admin-user-edit-meta-k">CMS user ID</span>
+              <span class="admin-user-edit-meta-v">{{ edit_user.id }}</span>
+              <span class="admin-user-edit-meta-k">Auth user ID</span>
+              <span class="admin-user-edit-meta-v">{{ edit_user.phpauth_user_id }}</span>
+              {% if edit_user.created_at is defined %}
+                <span class="admin-user-edit-meta-k">Created</span>
+                <span class="admin-user-edit-meta-v">{{ edit_user.created_at|slice(0, 16)|replace({'T': ' '}) }}</span>
+              {% endif %}
+              {% if edit_user.updated_at is defined %}
+                <span class="admin-user-edit-meta-k">Updated</span>
+                <span class="admin-user-edit-meta-v">{{ edit_user.updated_at|slice(0, 16)|replace({'T': ' '}) }}</span>
+              {% endif %}
+            </div>
+          </div>
+        </section>
+
+        <section class="admin-card admin-settings-card admin-user-edit-card">
+          <h2 class="admin-settings-card-title">Password</h2>
+          <p class="admin-settings-card-desc">Leave blank to keep the current password. Minimum 8 characters when set.</p>
+          <div class="admin-form-grid admin-form-grid--2col-tight">
+            <div class="admin-field {{ errors.new_password is defined ? 'admin-field--error' : '' }}">
+              <label class="admin-label" for="u-newpass">New password</label>
+              <input class="admin-input" id="u-newpass" name="new_password" type="password" autocomplete="new-password" value="" />
+              {% if errors.new_password is defined %}<p class="admin-field-error">{{ errors.new_password|e }}</p>{% endif %}
+            </div>
+            <div class="admin-field {{ errors.new_password_confirm is defined ? 'admin-field--error' : '' }}">
+              <label class="admin-label" for="u-newpass2">Confirm new password</label>
+              <input class="admin-input" id="u-newpass2" name="new_password_confirm" type="password" autocomplete="new-password" value="" />
+              {% if errors.new_password_confirm is defined %}<p class="admin-field-error">{{ errors.new_password_confirm|e }}</p>{% endif %}
+            </div>
+          </div>
+        </section>
+
+        <section class="admin-card admin-settings-card admin-user-edit-card">
+          <h2 class="admin-settings-card-title">Two-factor authentication</h2>
+          <p class="admin-settings-card-desc">TOTP state for this user. They manage their own authenticator from <strong>Account → Two-factor</strong> when signed in.</p>
+          {% if totp %}
+            <p class="admin-user-edit-totp-state">
+              {% if (totp.totp_enabled ?? 0) == 1 %}
+                <span class="admin-badge admin-badge--ok">TOTP enabled</span>
+              {% else %}
+                <span class="admin-badge admin-badge--muted">TOTP not enabled</span>
+              {% endif %}
+            </p>
+          {% else %}
+            <p class="admin-hint" style="margin:0">Two-factor columns unavailable (older database).</p>
+          {% endif %}
+        </section>
+      {% endif %}
+
+      <section class="admin-card admin-settings-card admin-user-edit-card">
+        <h2 class="admin-settings-card-title">Profile</h2>
+        <p class="admin-settings-card-desc">Shown in the admin shell and attribution where the CMS uses a display name.</p>
+        <div class="admin-form-grid">
+          <div class="admin-field admin-field--full {{ errors.username is defined ? 'admin-field--error' : '' }}">
+            <label class="admin-label" for="u-un">Username</label>
+            <input class="admin-input" id="u-un" name="username" type="text" value="{{ un|e }}" maxlength="32" autocomplete="username" placeholder="Optional · 3–32 chars, letters, numbers, _ -" />
+            {% if errors.username is defined %}<p class="admin-field-error">{{ errors.username|e }}</p>{% endif %}
+            <p class="admin-hint">Leave blank to clear. Must be unique when set.</p>
+          </div>
+          <div class="admin-field admin-field--full {{ errors.display_name is defined ? 'admin-field--error' : '' }}">
+            <label class="admin-label" for="u-dn">Display name <span class="admin-req">*</span></label>
+            <input class="admin-input" id="u-dn" name="display_name" type="text" value="{{ dn|e }}" required autocomplete="name" />
+            {% if errors.display_name is defined %}<p class="admin-field-error">{{ errors.display_name|e }}</p>{% endif %}
+          </div>
+          {% if is_edit %}
+            <div class="admin-field admin-field--full">
+              <span class="admin-label">Legacy role column</span>
+              <p class="admin-hint" style="margin:0"><code class="admin-inline-code">{{ edit_user.role|default('—')|e }}</code> — informational; permissions come from <strong>Roles</strong> below.</p>
+            </div>
+          {% endif %}
+        </div>
+      </section>
+
+      {% if is_edit %}
+        <section class="admin-card admin-settings-card admin-user-edit-card">
+          <h2 class="admin-settings-card-title">Access</h2>
+          <p class="admin-settings-card-desc">Inactive users cannot sign in or use the admin panel.</p>
+          <div class="admin-field admin-field--full">
+            <input type="hidden" name="is_active" value="0" />
+            <label class="admin-label admin-settings-check-label">
+              <input type="checkbox" name="is_active" value="1" {{ (o.is_active is defined ? o.is_active : edit_user.is_active) ? 'checked' : '' }} />
+              CMS &amp; login active
+            </label>
+          </div>
+        </section>
+      {% endif %}
+
+      <section class="admin-card admin-settings-card admin-user-edit-card">
+        <h2 class="admin-settings-card-title">Roles</h2>
+        <p class="admin-settings-card-desc">Role assignments control permissions (content, settings, themes, etc.).</p>
+        <ul class="admin-user-role-checklist">
+          {% for r in all_roles %}
+            <li>
+              <label class="admin-user-role-check">
+                <input type="checkbox" name="role_ids[]" value="{{ r.id }}" {{ r.id in selected_role_ids ? 'checked' : '' }} />
+                <span class="admin-user-role-check-text">
+                  <span class="admin-user-role-name">{{ r.name|e }}</span>
+                  <code class="admin-inline-code admin-user-role-slug">{{ r.slug|e }}</code>
+                </span>
+              </label>
+            </li>
+          {% endfor %}
+        </ul>
+      </section>
+    </div>
+
+    <div class="admin-form-sticky-bar admin-user-edit-sticky">
+      <div class="admin-form-sticky-inner">
+        <button class="admin-btn-primary" type="submit">{{ is_edit ? 'Save changes' : 'Create user' }}</button>
+        <a class="admin-btn-ghost" href="{{ url_for('admin.users.index') }}">Cancel</a>
+      </div>
+    </div>
+  </form>
+{% endblock %}

@@ -1,0 +1,109 @@
+{% extends 'admin/base.twig' %}
+{% import 'admin/_ui_macros.twig' as ui %}
+
+{% block admin_title %}Plugins{% endblock %}
+
+{% block admin_hero_title %}
+  <h1 class="admin-hero-title">Plugins</h1>
+{% endblock %}
+
+{% block admin_hero_sub %}
+  <p class="admin-hero-sub">Filesystem packages under <code class="admin-inline-code">/plugins</code>. Activate to load routes, views, and migrations.</p>
+{% endblock %}
+
+{% block admin_content %}
+  {% if plugin_orphans is not empty %}
+    <div class="admin-flash admin-flash--error" role="alert" style="margin-bottom:1.25rem">
+      <strong>Database only:</strong> these slugs have no matching folder under <code class="admin-inline-code">plugins/</code> —
+      {% for o in plugin_orphans %}
+        <code class="admin-inline-code">{{ o.slug|e }}</code>{% if not loop.last %}, {% endif %}
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  {% if plugin_rows is empty %}
+    {{ ui.empty_state(
+      'No plugins detected',
+      'Add a folder with plugin.json and src/. Activate to register admin routes and run migrations.',
+      '',
+      '',
+      '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>'
+    ) }}
+  {% else %}
+    <div class="admin-table-wrap">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th scope="col">Plugin</th>
+            <th scope="col">Slug</th>
+            <th scope="col">Version</th>
+            <th scope="col">Status</th>
+            <th class="admin-table-col-actions" scope="col"><span class="admin-table-muted">Actions</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in plugin_rows %}
+            {% set m = row.discovered.manifest %}
+            <tr>
+              <td>
+                <strong>{{ m.name|e }}</strong>
+                {% if m.description %}
+                  <div class="admin-hint" style="margin-top:0.25rem;max-width:32rem">{{ m.description|e }}</div>
+                {% endif %}
+                {% if m.author %}
+                  <div class="admin-hint" style="margin-top:0.15rem">by {{ m.author|e }}</div>
+                {% endif %}
+                {% if m.homepage or m.repositoryUrl or m.license or m.category or m.tags is not empty %}
+                  <div class="admin-hint" style="margin-top:0.5rem;line-height:1.5">
+                    {% if m.category %}<span class="admin-pill">{{ m.category|e }}</span>{% endif %}
+                    {% if m.license %}<span class="admin-pill">License: {{ m.license|e }}</span>{% endif %}
+                    {% if m.testedUpTo %}<span class="admin-pill">Tested: {{ m.testedUpTo|e }}</span>{% endif %}
+                    {% if m.homepage %}<a class="admin-link" href="{{ m.homepage|e('html_attr') }}" target="_blank" rel="noopener">Homepage</a>{% endif %}
+                    {% if m.repositoryUrl %} · <a class="admin-link" href="{{ m.repositoryUrl|e('html_attr') }}" target="_blank" rel="noopener">Repo</a>{% endif %}
+                    {% if m.supportUrl %} · <a class="admin-link" href="{{ m.supportUrl|e('html_attr') }}" target="_blank" rel="noopener">Support</a>{% endif %}
+                    {% if m.tags is not empty %}<div style="margin-top:0.35rem">{{ m.tags|join(', ')|e }}</div>{% endif %}
+                  </div>
+                {% endif %}
+              </td>
+              <td><code class="admin-inline-code">{{ m.slug|e }}</code></td>
+              <td class="admin-table-muted">{{ m.version|e }}</td>
+              <td>
+                {% if row.is_active %}
+                  <span class="admin-badge admin-badge--ok">Active</span>
+                {% else %}
+                  <span class="admin-badge admin-badge--muted">Inactive</span>
+                {% endif %}
+              </td>
+              <td class="admin-table-actions">
+                <details class="admin-actions-menu">
+                  <summary class="admin-actions-menu-trigger" aria-label="Actions for {{ m.name|e('html_attr') }}">⋯</summary>
+                  <div class="admin-actions-menu-panel">
+                    {% if row.is_active %}
+                      <form method="post" action="{{ url_for('admin.extensions.plugins.deactivate') }}" onsubmit="return confirm('Deactivate {{ m.slug|e('js') }}? You can turn it on again later.');">
+                        <input type="hidden" name="slug" value="{{ m.slug|e('html_attr') }}" />
+                        <button type="submit">Deactivate</button>
+                      </form>
+                    {% else %}
+                      <form method="post" action="{{ url_for('admin.extensions.plugins.activate') }}">
+                        <input type="hidden" name="slug" value="{{ m.slug|e('html_attr') }}" />
+                        <button type="submit">Activate</button>
+                      </form>
+                    {% endif %}
+                    <form
+                      method="post"
+                      action="{{ url_for('admin.extensions.plugins.remove') }}"
+                      onsubmit="return confirm('Remove plugin {{ m.slug|e('js') }} permanently?\n\nThe plugins/{{ m.slug|e('js') }}/ folder will be deleted and its database row removed. This cannot be undone.');"
+                    >
+                      <input type="hidden" name="slug" value="{{ m.slug|e('html_attr') }}" />
+                      <button type="submit" class="admin-actions-danger">Remove from disk…</button>
+                    </form>
+                  </div>
+                </details>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% endif %}
+{% endblock %}

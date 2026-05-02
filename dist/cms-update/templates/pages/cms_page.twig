@@ -1,0 +1,41 @@
+{% extends 'base.twig' %}
+
+{% set _site = settings.site_name|default('Your Studio') %}
+{% set _og_title = cms_page.seoTitle|default('')|trim != '' ? cms_page.seoTitle : cms_page.title %}
+
+{% block title %}{{ cms_page.metaTitle(_site)|e }}{% endblock %}
+
+{% block meta_description %}{{ cms_page.metaDescription()|e }}{% endblock %}
+
+{% block meta_extra %}
+  {% if cms_page.tags is not empty %}
+    <meta name="keywords" content="{{ cms_page.tags|join(', ')|e('html_attr') }}" />
+  {% endif %}
+{% endblock %}
+
+{% block canonical_href %}{{ site_url }}/p/{{ cms_page.slug }}{% endblock %}
+
+{% block og_title %}{{ _og_title|e }}{% endblock %}
+{% block og_description %}{{ cms_page.metaDescription()|e }}{% endblock %}
+{% block twitter_title %}{{ _og_title|e }}{% endblock %}
+{% block twitter_description %}{{ cms_page.metaDescription()|e }}{% endblock %}
+
+{% block body %}
+<main class="cms-page">
+  <article class="cms-page-inner">
+    <header class="cms-page-header">
+      <p class="cms-page-eyebrow">Page</p>
+      <h1 class="cms-page-title">{{ cms_page.title|e }}</h1>
+      {% if cms_page.tags is not empty %}
+        <ul class="cms-page-tags" aria-label="Tags">
+          {% for tag in cms_page.tags %}
+            <li><span class="cms-page-tag">{{ tag|replace({'-': ' '})|title|e }}</span></li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+    </header>
+    <div class="cms-page-body cms-prose">{{ cms_page.content|raw }}</div>
+  </article>
+</main>
+{% include 'partials/_footer.twig' %}
+{% endblock %}

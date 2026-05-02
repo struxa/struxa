@@ -1,0 +1,33 @@
+{% extends 'public/root.twig' %}
+
+{% block title %}Page not found — {{ settings.site_name|default('Site')|e }}{% endblock %}
+
+{% block meta_extra %}
+  {{ parent() }}
+  <meta name="robots" content="noindex, nofollow" />
+{% endblock %}
+
+{% block canonical_href %}{{ site_url }}/{% endblock %}
+
+{% block body %}
+<main>
+  <section class="section section-auth" aria-labelledby="not-found-heading">
+    <div class="auth-card glass-panel">
+      <p class="eyebrow reveal" data-reveal><span class="eyebrow-pulse"></span> {{ settings.site_name|default('Studio')|e }}</p>
+      <h1 class="auth-title" id="not-found-heading">Page not found</h1>
+      <p class="auth-lede">
+        We couldn’t find that page. It may have been removed or the link might be wrong.
+      </p>
+      <p class="auth-lede">
+        <a class="btn btn-primary btn-lg auth-submit" href="{{ url_for('home') }}" style="display: inline-block; text-decoration: none; text-align: center">Back to home</a>
+      </p>
+      {% if not_found_debug and not_found_debug_detail %}
+        <details class="auth-lede" style="margin-top: 1.5rem; font-size: 0.85rem; opacity: 0.85">
+          <summary>Technical details (APP_DEBUG)</summary>
+          <pre style="white-space: pre-wrap; margin-top: 0.75rem; font-size: 0.75rem">{{ not_found_debug_detail|e }}</pre>
+        </details>
+      {% endif %}
+    </div>
+  </section>
+</main>
+{% endblock %}

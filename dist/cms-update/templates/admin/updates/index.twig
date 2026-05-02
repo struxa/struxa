@@ -1,0 +1,376 @@
+{% extends 'admin/base.twig' %}
+
+{% block admin_title %}CMS updates{% endblock %}
+
+{% block admin_hero_title %}
+  <h1 class="admin-hero-title">CMS updates</h1>
+{% endblock %}
+
+{% block admin_hero_sub %}
+  <p class="admin-hero-sub">Compare your install to the public feed. This page refreshes status on a timer; use <strong>Check now</strong> to bypass the cache.</p>
+{% endblock %}
+
+{% block admin_content %}
+  {% set st = cms_update_page_status|default({}) %}
+  <div
+    class="admin-card admin-updates-card"
+    id="admin-updates-root"
+    data-poll-url="{{ cms_update_poll_url|e('html_attr') }}"
+    data-apply-url="{{ cms_update_apply_url|default('')|e('html_attr') }}"
+    data-auto-allowed="{{ cms_auto_update_allowed|default(false) ? '1' : '0' }}"
+    data-csrf="{{ csrf_token()|e('html_attr') }}"
+  >
+    <h2 class="admin-card-title">Version</h2>
+    <dl class="admin-updates-dl">
+      <div class="admin-updates-dl-row">
+        <dt>Installed</dt>
+        <dd><code class="admin-inline-code">{{ st.current_version|default(cms_version)|e }}</code></dd>
+      </div>
+      <div class="admin-updates-dl-row">
+        <dt>Latest (remote)</dt>
+        <dd id="admin-updates-latest">
+          {% if st.ok|default(false) and st.latest_version|default('') != '' %}
+            <code class="admin-inline-code">{{ st.latest_version|e }}</code>
+          {% elseif st.ok|default(false) %}
+            <span class="admin-table-muted">—</span>
+          {% else %}
+            <span class="admin-table-muted">Unavailable</span>
+          {% endif %}
+        </dd>
+      </div>
+      <div class="admin-updates-dl-row">
+        <dt>Status</dt>
+        <dd id="admin-updates-status-line">
+          {% if st.update_available|default(false) %}
+            <span class="admin-pill admin-pill--warn">Update available</span>
+          {% elseif st.ok|default(false) %}
+            <span class="admin-pill admin-pill--ok">Up to date</span>
+          {% else %}
+            <span class="admin-pill admin-pill--muted">Check failed</span>
+          {% endif %}
+        </dd>
+      </div>
+    </dl>
+
+    {% if st.title|default('') != '' %}
+      <h3 class="admin-updates-subtitle">{{ st.title|e }}</h3>
+    {% endif %}
+    <div class="admin-updates-summary" id="admin-updates-summary">
+      {% if st.summary|default('') != '' %}
+        <p class="admin-updates-summary-text">{{ st.summary|e }}</p>
+      {% endif %}
+      {% if st.release_url|default('') != '' %}
+        <p class="admin-updates-links" id="admin-updates-release-wrap">
+          <a class="admin-link" href="{{ st.release_url|e('html_attr') }}" rel="noopener noreferrer" target="_blank">Release notes →</a>
+        </p>
+      {% endif %}
+      {% if st.error|default('') != '' %}
+        <p class="admin-form-error admin-updates-error" id="admin-updates-error">{{ st.error|e }}</p>
+      {% endif %}
+    </div>
+
+    <p class="admin-hint admin-updates-feed-hint">
+      {% if st.source|default('feed') == 'github' %}
+        GitHub updates: <code class="admin-inline-code">{{ st.feed_url|default('')|e }}</code> · set in <code class="admin-inline-code">.env</code>: <code class="admin-inline-code">STRUXA_UPDATES_GITHUB_REPO=owner/repo</code> (optional <code class="admin-inline-code">STRUXA_UPDATES_GITHUB_REF=main</code> when the repo has no Releases yet).
+      {% else %}
+        Feed: <code class="admin-inline-code">{{ st.feed_url|default('')|e }}</code> (static <code class="admin-inline-code">.json</code> or PHP that returns JSON) · override with <code class="admin-inline-code">STRUXA_UPDATES_JSON_URL</code>, or mirror to disk with <code class="admin-inline-code">STRUXA_UPDATES_JSON_PATH</code> if the server cannot fetch its own public URL, or use GitHub with <code class="admin-inline-code">STRUXA_UPDATES_GITHUB_REPO</code>.
+      {% endif %}
+    </p>
+
+    <div class="admin-updates-cta" id="admin-updates-cta">
+      <a
+        id="admin-updates-download-btn"
+        class="admin-btn-primary{% if st.download_url|default('') == '' %} admin-updates-cta--hidden{% endif %}"
+        href="{{ (st.download_url|default('') != '' ? st.download_url : '#')|e('html_attr') }}"
+        rel="noopener noreferrer"
+        target="_blank"
+      >Download update (ZIP)</a>
+      {% if cms_auto_update_allowed|default(false) %}
+        <button
+          type="button"
+          class="admin-btn-primary"
+          id="admin-updates-apply-btn"
+          {% if not st.update_available|default(false) or st.download_url|default('') == '' %}disabled{% endif %}
+        >Update automatically</button>
+      {% endif %}
+    </div>
+    {% if cms_auto_update_allowed|default(false) %}
+      <p class="admin-hint admin-updates-apply-disabled-hint" id="admin-updates-apply-disabled-hint" hidden></p>
+    {% endif %}
+    {% if not cms_auto_update_allowed|default(false) %}
+      <p class="admin-hint admin-updates-auto-hint">To enable in-place updates, set <code class="admin-inline-code">STRUXA_ALLOW_AUTO_UPDATE=1</code> in <code class="admin-inline-code">.env</code> (staff only; backs up nothing—have your own backups).</p>
+    {% else %}
+      <p class="admin-hint admin-updates-auto-hint">Automatic update merges the ZIP from the feed (same hosts as theme downloads), keeps <code class="admin-inline-code">.env</code>, <code class="admin-inline-code">storage/</code>, <code class="admin-inline-code">public/uploads/</code>, and plugin <code class="admin-inline-code">vendor/</code>, then runs Composer, migrations, and plugin dependencies.</p>
+    {% endif %}
+    <div
+      id="admin-updates-apply-progress"
+      class="admin-updates-apply-progress"
+      hidden
+      aria-live="polite"
+    >
+      <p class="admin-updates-apply-progress-title">Updating CMS…</p>
+      <div class="admin-updates-apply-progress-track" role="progressbar" aria-valuetext="Working">
+        <div class="admin-updates-apply-progress-fill" aria-hidden="true"></div>
+      </div>
+      <p class="admin-updates-apply-progress-hint">
+        Downloading the package, merging files, then Composer, migrations, and plugin installs. This may take several minutes — keep this tab open.
+      </p>
+    </div>
+    <div id="admin-updates-apply-panel" class="admin-updates-apply-panel" hidden role="region" aria-label="Update result"></div>
+
+    <div class="admin-updates-actions">
+      <a class="admin-btn-ghost" href="{{ url_for('admin.updates.index', {}, { fresh: 1 }) }}">Check now</a>
+      <span class="admin-table-muted admin-updates-poll-hint" id="admin-updates-poll-hint">Auto-refresh every 3 minutes while this tab is open.</span>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      var root = document.getElementById('admin-updates-root');
+      if (!root) return;
+      var url = root.getAttribute('data-poll-url');
+      if (!url) return;
+      var pollMs = 180000;
+      var latestEl = document.getElementById('admin-updates-latest');
+      var statusEl = document.getElementById('admin-updates-status-line');
+      var summaryEl = document.getElementById('admin-updates-summary');
+      var hintEl = document.getElementById('admin-updates-poll-hint');
+      var autoAllowed = root.getAttribute('data-auto-allowed') === '1';
+      var applyUrl = root.getAttribute('data-apply-url');
+      var csrf = root.getAttribute('data-csrf') || '';
+      var downloadBtn = document.getElementById('admin-updates-download-btn');
+      var applyBtn = document.getElementById('admin-updates-apply-btn');
+      var applyProgress = document.getElementById('admin-updates-apply-progress');
+      var applyPanel = document.getElementById('admin-updates-apply-panel');
+      var applyDisabledHint = document.getElementById('admin-updates-apply-disabled-hint');
+
+      function esc(s) {
+        if (!s) return '';
+        var d = document.createElement('div');
+        d.textContent = s;
+        return d.innerHTML;
+      }
+
+      function renderApplyPanel(data) {
+        var ok = !!(data && data.ok);
+        var parts = [];
+        if (ok) {
+          var ver = data.applied_version ? String(data.applied_version) : '';
+          parts.push('<div class="admin-updates-apply-banner admin-updates-apply-banner--success">');
+          parts.push(
+            '<p class="admin-updates-apply-banner-title">Update complete' +
+              (ver ? ' — Struxa ' + esc(ver) : '') +
+              '</p>'
+          );
+          parts.push(
+            '<p class="admin-updates-apply-banner-text">New files are in place. Reload this page so the admin shows the current version. If the site acts strangely, restart PHP-FPM or clear OPcache.</p>'
+          );
+          parts.push('</div>');
+          if (data.steps && data.steps.length) {
+            parts.push('<ol class="admin-updates-apply-steps">');
+            data.steps.forEach(function (s) {
+              var st = s.status === 'warn' || s.status === 'error' ? s.status : 'ok';
+              parts.push('<li class="admin-updates-apply-step admin-updates-apply-step--' + st + '">');
+              parts.push('<span class="admin-updates-apply-step-marker" aria-hidden="true"></span>');
+              parts.push('<div class="admin-updates-apply-step-main">');
+              parts.push('<span class="admin-updates-apply-step-label">' + esc(s.label || '') + '</span>');
+              if (s.detail) {
+                parts.push('<pre class="admin-updates-apply-step-detail">' + esc(s.detail) + '</pre>');
+              }
+              parts.push('</div></li>');
+            });
+            parts.push('</ol>');
+          }
+          var hasWarn =
+            data.steps &&
+            data.steps.some(function (x) {
+              return x.status === 'warn' || x.status === 'error';
+            });
+          if (hasWarn) {
+            parts.push('<div class="admin-updates-apply-followup">');
+            parts.push('<p class="admin-updates-apply-followup-title">Action needed on the server</p>');
+            parts.push(
+              '<p class="admin-updates-apply-followup-text">Fix the warning steps over SSH (or your host panel), then refresh this page. Typical fixes: set <code class="admin-inline-code">STRUXA_PHP_CLI_PATH</code> to CLI PHP (e.g. <code class="admin-inline-code">/usr/local/bin/php</code>) under PHP-FPM; set <code class="admin-inline-code">STRUXA_COMPOSER_PATH</code> to Composer’s full path (e.g. <code class="admin-inline-code">/home/you/bin/composer</code> — recent Struxa infers <code class="admin-inline-code">HOME</code> from that). If Composer still complains about <code class="admin-inline-code">HOME</code>, set <code class="admin-inline-code">STRUXA_WEB_HOME</code> or <code class="admin-inline-code">STRUXA_COMPOSER_HOME</code> in <code class="admin-inline-code">.env</code>. Then run <code class="admin-inline-code">php bin/migrate.php</code> and <code class="admin-inline-code">php bin/plugin-deps.php --no-dev</code> if needed.</p>'
+            );
+            parts.push('</div>');
+          }
+        } else {
+          parts.push('<div class="admin-updates-apply-banner admin-updates-apply-banner--error">');
+          parts.push('<p class="admin-updates-apply-banner-title">Update did not complete</p>');
+          parts.push(
+            '<p class="admin-updates-apply-banner-text">' + esc((data && data.message) || 'Something went wrong.') + '</p>'
+          );
+          parts.push('</div>');
+          if (data && data.warnings && data.warnings.length) {
+            parts.push('<ul class="admin-updates-apply-warnings">');
+            data.warnings.forEach(function (w) {
+              parts.push('<li>' + esc(w) + '</li>');
+            });
+            parts.push('</ul>');
+          }
+        }
+        return parts.join('');
+      }
+
+      function apply(data) {
+        if (!data || typeof data !== 'object') return;
+        if (latestEl) {
+          if (data.ok && data.latest_version) {
+            latestEl.innerHTML = '<code class="admin-inline-code">' + esc(String(data.latest_version)) + '</code>';
+          } else if (data.ok) {
+            latestEl.innerHTML = '<span class="admin-table-muted">—</span>';
+          } else {
+            latestEl.innerHTML = '<span class="admin-table-muted">Unavailable</span>';
+          }
+        }
+        if (statusEl) {
+          if (data.update_available) {
+            statusEl.innerHTML = '<span class="admin-pill admin-pill--warn">Update available</span>';
+          } else if (data.ok) {
+            statusEl.innerHTML = '<span class="admin-pill admin-pill--ok">Up to date</span>';
+          } else {
+            statusEl.innerHTML = '<span class="admin-pill admin-pill--muted">Check failed</span>';
+          }
+        }
+        if (summaryEl) {
+          var parts = [];
+          if (data.title) parts.push('<h3 class="admin-updates-subtitle">' + esc(data.title) + '</h3>');
+          if (data.summary) parts.push('<p class="admin-updates-summary-text">' + esc(data.summary) + '</p>');
+          if (data.release_url) {
+            parts.push(
+              '<p class="admin-updates-links"><a class="admin-link" href="' +
+                esc(data.release_url) +
+                '" rel="noopener noreferrer" target="_blank">Release notes →</a></p>'
+            );
+          }
+          if (data.error) {
+            parts.push('<p class="admin-form-error admin-updates-error">' + esc(data.error) + '</p>');
+          }
+          summaryEl.innerHTML = parts.join('') || summaryEl.innerHTML;
+        }
+        if (downloadBtn) {
+          if (data.download_url) {
+            downloadBtn.href = data.download_url;
+            downloadBtn.classList.remove('admin-updates-cta--hidden');
+          } else {
+            downloadBtn.classList.add('admin-updates-cta--hidden');
+          }
+        }
+        if (applyBtn) {
+          var canApply = autoAllowed && data.ok && data.update_available && data.download_url;
+          applyBtn.disabled = !canApply;
+        }
+        if (applyDisabledHint && autoAllowed) {
+          if (applyBtn && !applyBtn.disabled) {
+            applyDisabledHint.hidden = true;
+            applyDisabledHint.textContent = '';
+          } else {
+            applyDisabledHint.hidden = false;
+            if (!data.ok) {
+              applyDisabledHint.textContent =
+                'Update automatically needs a working feed (see errors above). When the feed reports a newer version and a ZIP URL, this button enables.';
+            } else if (!data.download_url) {
+              applyDisabledHint.innerHTML =
+                '<strong>Update automatically</strong> needs <code class="admin-inline-code">download_url</code> in the feed. Ensure your updates JSON/PHP includes it, or use <strong>Download update (ZIP)</strong> manually.';
+            } else if (!data.update_available) {
+              applyDisabledHint.textContent =
+                'No newer version reported by the feed — Update automatically only runs when remote version is greater than installed.';
+            } else {
+              applyDisabledHint.textContent = '';
+              applyDisabledHint.hidden = true;
+            }
+          }
+        }
+        if (hintEl && document.hidden) {
+          hintEl.textContent = 'Paused while tab in background; will resume when visible.';
+        } else if (hintEl) {
+          hintEl.textContent = 'Auto-refresh every 3 minutes while this tab is open.';
+        }
+      }
+
+      function tick() {
+        if (document.hidden) return;
+        fetch(url, { headers: { Accept: 'application/json' }, credentials: 'same-origin' })
+          .then(function (r) {
+            return r.json();
+          })
+          .then(apply)
+          .catch(function () {});
+      }
+
+      tick();
+      if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        setInterval(tick, pollMs);
+      }
+      document.addEventListener('visibilitychange', function () {
+        if (!document.hidden) tick();
+      });
+
+      if (applyBtn && applyUrl) {
+        applyBtn.addEventListener('click', function () {
+          if (applyBtn.disabled) return;
+          if (
+            !confirm(
+              'Apply this update now? CMS files will be overwritten from the ZIP (except .env, storage/, public/uploads/, and plugins/*/vendor/). Continue?'
+            )
+          ) {
+            return;
+          }
+          applyBtn.disabled = true;
+          if (applyPanel) {
+            applyPanel.hidden = true;
+            applyPanel.innerHTML = '';
+          }
+          if (applyProgress) {
+            applyProgress.hidden = false;
+            applyProgress.setAttribute('aria-busy', 'true');
+          }
+          var body = '_csrf_token=' + encodeURIComponent(csrf);
+          fetch(applyUrl, {
+            method: 'POST',
+            headers: {
+              Accept: 'application/json',
+              'Content-Type': 'application/x-www-form-urlencoded',
+              'X-CSRF-Token': csrf,
+            },
+            credentials: 'same-origin',
+            body: body,
+          })
+            .then(function (r) {
+              return r.json().then(function (data) {
+                return { ok: r.ok, data: data };
+              });
+            })
+            .then(function (res) {
+              var data = res.data || {};
+              if (applyProgress) {
+                applyProgress.hidden = true;
+                applyProgress.setAttribute('aria-busy', 'false');
+              }
+              if (applyPanel) {
+                applyPanel.innerHTML = renderApplyPanel(data);
+                applyPanel.hidden = false;
+              }
+              if (!data.ok) {
+                applyBtn.disabled = false;
+              }
+            })
+            .catch(function () {
+              if (applyProgress) {
+                applyProgress.hidden = true;
+                applyProgress.setAttribute('aria-busy', 'false');
+              }
+              if (applyPanel) {
+                applyPanel.innerHTML = renderApplyPanel({
+                  ok: false,
+                  message: 'Request failed (network or timeout). Check the site and PHP error logs.',
+                });
+                applyPanel.hidden = false;
+              }
+              applyBtn.disabled = false;
+            });
+        });
+      }
+    })();
+  </script>
+{% endblock %}

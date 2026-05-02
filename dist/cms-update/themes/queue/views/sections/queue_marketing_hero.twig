@@ -1,0 +1,107 @@
+{# Builder Queue — matches themes/queue/views/page/home.twig marketing hero #}
+<div class="theme-home-fq theme-home-fq--section strux-section" data-section="queue_marketing_hero">
+  <div class="theme-home-fq__glow" aria-hidden="true"></div>
+  <div class="theme-home-fq__grid" aria-hidden="true"></div>
+
+  <div class="theme-home-fq__inner">
+    <div class="theme-home-fq__layout">
+      <div class="theme-home-fq__copy">
+        <p class="theme-home-fq__kicker">
+          {% if section.kicker|default('')|trim != '' %}
+            {{ section.kicker|e }}
+          {% elseif settings.site_tagline|default('')|trim != '' %}
+            {{ settings.site_tagline|e }}
+          {% else %}
+            {{ section.kicker_fallback|default('')|e }}
+          {% endif %}
+        </p>
+
+        <h1 class="theme-home-fq__title">
+          <span class="theme-home-fq__title-line">{{ section.title_line_1|default('')|e }}</span>
+          <span class="theme-home-fq__title-line theme-home-fq__title-line--emph">
+            {{ section.title_line_2_before|default('')|e -}}
+            {% if section.highlight_word|default('')|trim != '' %}
+              <span class="theme-home-fq__highlight">{{ section.highlight_word|e }}</span>
+            {% endif %}
+            {{- section.title_line_2_after|default('')|e }}
+          </span>
+          {% if section.badges_json|default([]) is not empty %}
+            <span class="theme-home-fq__title-badges">
+              {% for b in section.badges_json %}
+                <span class="theme-home-fq__badge">{{ b|e }}</span>
+              {% endfor %}
+            </span>
+          {% endif %}
+        </h1>
+
+        {% if section.lead_use_branded_opening|default(true) %}
+          <p class="theme-home-fq__lead">
+            <strong class="theme-home-fq__brand">{{ settings.site_name|default('Site')|e }}</strong>
+            {{ section.lead_branded_rest|default('')|e }}
+          </p>
+        {% else %}
+          <div class="theme-home-fq__lead theme-home-fq__lead--html cms-prose">{{ section.lead_html|default('')|raw }}</div>
+        {% endif %}
+
+        {% if section.chips_json|default([]) is not empty %}
+          <ul class="theme-home-fq__chips">
+            {% for chip in section.chips_json %}
+              <li>{{ chip|e }}</li>
+            {% endfor %}
+          </ul>
+        {% endif %}
+
+        <div class="theme-home-fq__actions">
+          {% if section.primary_cta_label|default('')|trim != '' and section.primary_cta_url|default('')|trim != '' %}
+            <a class="theme-home-fq__btn theme-home-fq__btn--primary" href="{{ section.primary_cta_url|e('html_attr') }}">{{ section.primary_cta_label|e }}</a>
+          {% endif %}
+          {% if section.secondary_cta_label|default('')|trim != '' and section.secondary_cta_url|default('')|trim != '' %}
+            <a class="theme-home-fq__btn theme-home-fq__btn--ghost" href="{{ section.secondary_cta_url|e('html_attr') }}">{{ section.secondary_cta_label|e }}</a>
+          {% endif %}
+        </div>
+      </div>
+
+      {% if section.show_cms_mock|default(true) %}
+        <aside class="theme-home-fq__visual" aria-hidden="true">
+          <div class="theme-cms-mock">
+            <div class="theme-cms-mock__chrome">
+              <span class="theme-cms-mock__dot"></span>
+              <span class="theme-cms-mock__dot theme-cms-mock__dot--amber"></span>
+              <span class="theme-cms-mock__dot theme-cms-mock__dot--green"></span>
+              <div class="theme-cms-mock__url"><span class="theme-cms-mock__url-lock"></span> {{ settings.site_name|default('Site')|e }} · Visual editor</div>
+            </div>
+            <div class="theme-cms-mock__body">
+              <div class="theme-cms-mock__sidebar">
+                <div class="theme-cms-mock__tool theme-cms-mock__tool--active"></div>
+                <div class="theme-cms-mock__tool"></div>
+                <div class="theme-cms-mock__tool"></div>
+                <div class="theme-cms-mock__sidebar-gap"></div>
+                <div class="theme-cms-mock__add">+</div>
+              </div>
+              <div class="theme-cms-mock__canvas">
+                <div class="theme-cms-mock__block theme-cms-mock__block--hero">
+                  <div class="theme-cms-mock__hero-bar"></div>
+                  <div class="theme-cms-mock__hero-glow"></div>
+                </div>
+                <div class="theme-cms-mock__block theme-cms-mock__block--rich">
+                  <div class="theme-cms-mock__line"></div>
+                  <div class="theme-cms-mock__line theme-cms-mock__line--mid"></div>
+                  <div class="theme-cms-mock__line theme-cms-mock__line--short"></div>
+                </div>
+                <div class="theme-cms-mock__block theme-cms-mock__block--cards">
+                  <span class="theme-cms-mock__card"></span>
+                  <span class="theme-cms-mock__card"></span>
+                  <span class="theme-cms-mock__card theme-cms-mock__card--accent"></span>
+                </div>
+              </div>
+            </div>
+            <div class="theme-cms-mock__toast">
+              <span class="theme-cms-mock__toast-dot"></span>
+              Live preview synced
+            </div>
+          </div>
+        </aside>
+      {% endif %}
+    </div>
+  </div>
+</div>

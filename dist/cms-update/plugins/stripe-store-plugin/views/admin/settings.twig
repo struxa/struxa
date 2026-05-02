@@ -1,0 +1,99 @@
+{% extends 'admin/base.twig' %}
+
+{% block admin_title %}Stripe store{% endblock %}
+
+{% block admin_hero_title %}
+  <h1 class="admin-hero-title">Stripe store</h1>
+{% endblock %}
+
+{% block admin_hero_sub %}
+  <p class="admin-hero-sub">Checkout for content entries (e.g. products). Core CMS is unchanged — this plugin adds routes under <code>/stripe-store/</code>.</p>
+{% endblock %}
+
+{% block admin_content %}
+  {% if stripe_store_saved|default(false) %}
+    <div class="admin-callout admin-callout--success" role="status">
+      <p class="admin-prose" style="margin:0;">Settings saved.</p>
+    </div>
+  {% endif %}
+
+  {% if stripe_store_error|default('')|trim != '' %}
+    <div class="admin-callout" role="alert">
+      <p class="admin-prose" style="margin:0;">{{ stripe_store_error|e }}</p>
+    </div>
+  {% endif %}
+
+  {% if not stripe_store_table_ok|default(false) %}
+    <section class="admin-section">
+      <div class="admin-callout">
+        <p class="admin-prose"><strong>Database</strong> — create the plugin table first:</p>
+        <pre class="admin-code-block" style="margin-top:0.75rem;overflow:auto;">mysql -u … -p … &lt; plugins/stripe-store-plugin/migrations/001_stripe_store_settings.sql</pre>
+        <p class="admin-prose">Then run <code>composer install</code> inside <code>plugins/stripe-store-plugin/</code> so the Stripe SDK is available.</p>
+      </div>
+    </section>
+  {% else %}
+    <section class="admin-section">
+      <form class="admin-form" method="post" action="{{ url_for('plugin.stripe_store_plugin.admin') }}">
+        <div class="admin-field admin-field--full">
+          <label class="admin-label" for="publishable_key">Publishable key</label>
+          <input class="admin-input" type="text" id="publishable_key" name="publishable_key" value="{{ stripe_store_settings.publishable_key|e('html_attr') }}" autocomplete="off" />
+          <p class="admin-field-hint">Stripe Dashboard → Developers → API keys (starts with <code>pk_</code>).</p>
+        </div>
+
+        <div class="admin-field admin-field--full">
+          <label class="admin-label" for="secret_key">Secret key (optional if using env)</label>
+          <input class="admin-input" type="password" id="secret_key" name="secret_key" value="" autocomplete="new-password" placeholder="Leave blank to keep current; use .env STRIPE_SECRET_KEY in production" />
+          <p class="admin-field-hint">Prefer <code>STRIPE_SECRET_KEY</code> in <code>.env</code> on production. <code>sk_</code>…</p>
+        </div>
+
+        <div class="admin-field admin-field--full">
+          <label class="admin-label" for="webhook_secret">Webhook signing secret (optional if using env)</label>
+          <input class="admin-input" type="password" id="webhook_secret" name="webhook_secret" value="" autocomplete="new-password" placeholder="whsec_… or STRIPE_WEBHOOK_SECRET in .env" />
+          <p class="admin-field-hint">Endpoint URL: <code>{{ site_url|default('')|e }}/stripe-store/webhook</code></p>
+        </div>
+
+        <div class="admin-field admin-field--full">
+          <label class="admin-label" for="allowed_type_slugs">Purchasable content type slugs</label>
+          <input class="admin-input" type="text" id="allowed_type_slugs" name="allowed_type_slugs" value="{{ stripe_store_settings.allowed_type_slugs|e('html_attr') }}" />
+          <p class="admin-field-hint">Comma or space separated (default <code>products</code>). Only these types can start checkout.</p>
+        </div>
+
+        <div class="admin-field">
+          <label class="admin-label" for="currency">Default currency</label>
+          <input class="admin-input" type="text" id="currency" name="currency" maxlength="12" value="{{ stripe_store_settings.currency|e('html_attr') }}" />
+        </div>
+
+        <div class="admin-field admin-field--full">
+          <label class="admin-label" for="button_label">Buy button label</label>
+          <input class="admin-input" type="text" id="button_label" name="button_label" maxlength="80" value="{{ stripe_store_settings.button_label|e('html_attr') }}" />
+        </div>
+
+        <div class="admin-field admin-field--full">
+          <label class="admin-label" style="display:flex;align-items:center;gap:0.5rem;font-weight:500;">
+            <input type="hidden" name="embed_enabled" value="0" />
+            <input type="checkbox" name="embed_enabled" value="1" {% if stripe_store_settings.embed_enabled %}checked{% endif %} />
+            Inject buy button via <code>/stripe-store/embed.js</code>
+          </label>
+        </div>
+
+        <div class="admin-form-actions">
+          <button type="submit" class="admin-btn admin-btn--primary">Save</button>
+        </div>
+      </form>
+    </section>
+
+    <section class="admin-section">
+      <h2 class="admin-section-title">Content fields</h2>
+      <div class="admin-callout">
+        <p class="admin-prose">On each purchasable type, add either:</p>
+        <ul class="admin-prose">
+          <li><code>stripe_price_id</code> (text) — Stripe Price ID <code>price_…</code></li>
+          <li>or <code>stripe_amount_cents</code> (text/number) — integer cents for one-off checkout</li>
+          <li>optional <code>stripe_currency</code> (text) — 3-letter code per product</li>
+        </ul>
+        <p class="admin-prose">Add the script tag once on your public layout (theme), before <code>&lt;/body&gt;:</p>
+        <pre class="admin-code-block" style="overflow:auto;">&lt;script src="{{ site_url|default('')|e }}/stripe-store/embed.js" defer&gt;&lt;/script&gt;</pre>
+      </div>
+    </section>
+  {% endif %}
+{% endblock %}

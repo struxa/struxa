@@ -1,0 +1,95 @@
+{# Expects: fields, value_map, old (nullable array), errors #}
+{% for f in fields %}
+  {% set err_key = 'field_' ~ f.id %}
+  {% set custom = old ? (old.custom_fields ?? {}) : {} %}
+  {% set from_post = custom[f.id] ?? custom[f.id ~ ''] ?? null %}
+  {% set cv = from_post is not null ? from_post : (value_map[f.id] ?? f.defaultValue ?? '') %}
+  {% set cv_str = cv is iterable ? '' : (cv ~ '') %}
+
+  <div class="admin-field admin-field--full {{ errors[err_key] is defined ? 'admin-field--error' : '' }}">
+    <label class="admin-label" for="cf-{{ f.id }}">
+      {{ f.label|e }}{% if f.isRequired %} <span class="admin-req">*</span>{% endif %}
+      <span class="admin-hint" style="font-weight:400">({{ f.fieldType|e }})</span>
+    </label>
+    {% if f.helpText|default('')|trim != '' %}
+      <p class="admin-hint" style="margin:0 0 0.5rem">{{ f.helpText|e }}</p>
+    {% endif %}
+
+    {% if f.fieldType == 'text' %}
+      <input class="admin-input" id="cf-{{ f.id }}" name="custom_fields[{{ f.id }}]" type="text" value="{{ cv_str|e }}" placeholder="{{ f.placeholder|default('')|e('html_attr') }}" {{ f.isRequired ? 'required' : '' }} />
+    {% elseif f.fieldType == 'url' %}
+      <input class="admin-input" id="cf-{{ f.id }}" name="custom_fields[{{ f.id }}]" type="url" value="{{ cv_str|e }}" placeholder="{{ f.placeholder|default('https://')|e('html_attr') }}" {{ f.isRequired ? 'required' : '' }} />
+    {% elseif f.fieldType == 'number' %}
+      <input class="admin-input" id="cf-{{ f.id }}" name="custom_fields[{{ f.id }}]" type="text" inputmode="decimal" value="{{ cv_str|e }}" placeholder="{{ f.placeholder|default('')|e('html_attr') }}" {{ f.isRequired ? 'required' : '' }} />
+    {% elseif f.fieldType == 'date' %}
+      <input class="admin-input" id="cf-{{ f.id }}" name="custom_fields[{{ f.id }}]" type="date" value="{{ cv_str|e }}" {{ f.isRequired ? 'required' : '' }} />
+    {% elseif f.fieldType == 'textarea' %}
+      <textarea class="admin-textarea" id="cf-{{ f.id }}" name="custom_fields[{{ f.id }}]" rows="4" placeholder="{{ f.placeholder|default('')|e('html_attr') }}" {{ f.isRequired ? 'required' : '' }}>{{ cv_str|e }}</textarea>
+    {% elseif f.fieldType == 'richtext' %}
+      <div
+        class="admin-page-editor"
+        data-admin-rich-text
+        data-textarea-id="cf-{{ f.id }}"
+        data-autosave-prefix="cms-entry-{{ entry ? entry.id : 'new' }}-f{{ f.id }}-"
+      >
+        <p class="admin-hint admin-editor-hint-visual" style="margin-top:0">{% if not f.isRequired %}Optional — leave empty if you do not need HTML in this field. {% endif %}Tip: select text for the floating bar. Use <strong>Formats → Paragraph styles</strong> for lead and callout blocks. Video: <em>Insert → Media</em> and paste a YouTube or Vimeo URL.</p>
+        <p class="admin-hint admin-editor-hint-html" style="margin-top:0;display:none" hidden>Raw HTML — switches back to <strong>Rich text</strong> to use the visual toolbar. Save works in either mode.</p>
+        <div class="admin-editor-mode-bar">
+          <span class="admin-editor-mode-label" id="entry-rte-label-{{ f.id }}">{{ f.label|e }}</span>
+          <div class="admin-editor-mode-toggle" role="tablist" aria-labelledby="entry-rte-label-{{ f.id }}">
+            <button type="button" class="admin-editor-mode-btn is-active" role="tab" aria-selected="true" aria-controls="entry-rte-surface-{{ f.id }}" data-editor-mode="visual">Rich text</button>
+            <button type="button" class="admin-editor-mode-btn" role="tab" aria-selected="false" aria-controls="entry-rte-surface-{{ f.id }}" data-editor-mode="html">HTML source</button>
+          </div>
+          {% if media_picker_enabled|default(false) %}
+            <button type="button" class="admin-btn-ghost admin-editor-media-btn" data-admin-media-insert-for="cf-{{ f.id }}" title="Upload or choose from library">
+              <svg class="admin-editor-media-btn-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                <circle cx="8.5" cy="8.5" r="1.5" />
+                <path d="M21 15l-5-5L5 21" />
+              </svg>
+              Media library
+            </button>
+          {% endif %}
+        </div>
+        <div class="admin-page-editor-surface" id="entry-rte-surface-{{ f.id }}">
+          <textarea
+            class="admin-textarea admin-textarea--rte"
+            id="cf-{{ f.id }}"
+            name="custom_fields[{{ f.id }}]"
+            rows="14"
+            placeholder="{{ f.placeholder|default('')|e('html_attr') }}"
+            {{ f.isRequired ? 'required' : '' }}
+          >{{ cv_str|e }}</textarea>
+        </div>
+      </div>
+    {% elseif f.fieldType == 'boolean' %}
+      <label class="admin-check">
+        <input type="checkbox" name="custom_fields[{{ f.id }}]" value="1" {{ cv_str == '1' ? 'checked' : '' }} />
+        <span>Yes</span>
+      </label>
+    {% elseif f.fieldType == 'select' %}
+      <select class="admin-select" id="cf-{{ f.id }}" name="custom_fields[{{ f.id }}]" {{ f.isRequired ? 'required' : '' }}>
+        {% if not f.isRequired %}<option value="">—</option>{% endif %}
+        {% for opt in f.selectOptions %}
+          <option value="{{ opt.value|e('html_attr') }}" {{ cv_str == opt.value ? 'selected' : '' }}>{{ opt.label|e }}</option>
+        {% endfor %}
+      </select>
+    {% elseif f.fieldType == 'image' %}
+      <select class="admin-select" id="cf-{{ f.id }}" name="custom_fields[{{ f.id }}]" {{ f.isRequired ? 'required' : '' }}>
+        {% if not f.isRequired %}<option value="">— None —</option>{% endif %}
+        {% for im in media_picker_images|default([]) %}
+          <option value="{{ im.id }}" {{ (cv_str ~ '') == (im.id ~ '') ? 'selected' : '' }}>#{{ im.id }} — {{ im.original_name|e }}</option>
+        {% endfor %}
+      </select>
+    {% else %}
+      <textarea class="admin-textarea" id="cf-{{ f.id }}" name="custom_fields[{{ f.id }}]" rows="3">{{ cv_str|e }}</textarea>
+    {% endif %}
+
+    {% if f.helpText %}
+      <p class="admin-hint">{{ f.helpText|e }}</p>
+    {% endif %}
+    {% if errors[err_key] is defined %}
+      <p class="admin-field-error">{{ errors[err_key]|e }}</p>
+    {% endif %}
+  </div>
+{% endfor %}
