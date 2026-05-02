@@ -17,7 +17,7 @@
       <p>{{ lead|e }}</p>
       <div class="hero-buttons">
         <a class="btn btn-gold btn-hero" href="{{ url_for('register') }}">♛ <span>JOIN NOW<small>Start winning today</small></span></a>
-        <a class="btn btn-outline btn-hero" href="#tips">▤ <span>TODAY'S TIPS<small>See our top selections</small></span></a>
+        <a class="btn btn-outline btn-hero" href="#tips">▤ <span>VIEW TODAY'S TIPS<small>See our top selections</small></span></a>
       </div>
     </div>
   </div>
@@ -50,6 +50,13 @@
         </div>
       </div>
     </div>
+  </div>
+</section>
+
+<section id="results" class="hr-results-teaser" aria-labelledby="hr-results-heading">
+  <div class="container">
+    <h2 id="hr-results-heading" class="hr-results-teaser__title">Latest results</h2>
+    <p class="hr-results-teaser__text">Full results, SPs and write-ups are posted after the last race of the day — see the tipping record for rolling performance.</p>
   </div>
 </section>
 
@@ -112,7 +119,7 @@
 
         <section class="panel features" id="about">
           <div class="panel-header">
-            <div class="panel-title">WHY CHOOSE {{ settings.site_name|upper|e }}?</div>
+            <div class="panel-title">{{ theme_settings.why_panel_heading|default('WHY CHOOSE RACE EDGE?')|e }}</div>
           </div>
           <div class="feature-grid">
             <div class="feature"><div class="feature-icon">📋</div><strong>Proven Tips</strong><p>Researched and form-backed selections.</p></div>
@@ -133,8 +140,4 @@
     </section>
   </div>
 </main>
-
-<style>
-  .sr-only { position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0; }
-</style>
 {% endblock %}

@@ -6,8 +6,10 @@
     {% set _hero_img = theme_settings.hero_image_url|default('')|trim %}
     {% set _hero_fallback = 'https://images.unsplash.com/photo-1596457221755-863b18580503?auto=format&fit=crop&w=1800&q=80' %}
     {% set _hero_url = (_hero_img != '' and (_hero_img starts with 'https://' or _hero_img starts with 'http://')) ? _hero_img : _hero_fallback %}
+    {# Blocking stylesheet matches storefront mockup (async font preload can look “broken” before paint). #}
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;display=swap" />
     {% include 'partials/_deferred_theme_css.twig' with {
-      font_url: 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap',
+      font_url: '',
       theme_stylesheets: ['css/app.css'],
     } only %}
     <style>

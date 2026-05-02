@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.0.50",
-    "title": "Struxa 1.0.50",
-    "summary": "Drop redundant curl_close() calls for PHP 8.5 compatibility (handles release automatically).",
+    "latest_version": "1.0.51",
+    "title": "Struxa 1.0.51",
+    "summary": "Horse-racing theme: blocking Inter font load, demo header nav when menu empty, #results teaser, VIEW TODAY'S TIPS label, why-panel heading setting.",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "minor"

@@ -11,15 +11,26 @@
     </a>
 
     <nav class="nav-links" id="hrNavLinks" aria-label="Primary">
-      {% for item in header_menu %}
-        <a
-          href="{{ item.href|e('html_attr') }}"
-          class="{% if item.is_active|default(false) %}active{% endif %}"
-          {% if item.target == '_blank' %}target="_blank"{% endif %}
-          {% if item.anchor_rel|default('')|trim != '' %}rel="{{ item.anchor_rel|e('html_attr') }}"{% endif %}
-          {% if item.is_active|default(false) %}aria-current="page"{% endif %}
-        >{{ item.label|upper|e }}</a>
-      {% endfor %}
+      {% if header_menu is empty %}
+        {# Demo rail when no Header menu is configured (matches bundled HTML mockup). #}
+        <a href="{{ url_for('home') }}" class="{% if _rp == '/' %}active{% endif %}" {% if _rp == '/' %}aria-current="page"{% endif %}>HOME</a>
+        <a href="{{ url_for('home') }}#tips">TODAY'S TIPS</a>
+        <a href="{{ url_for('home') }}#results">RESULTS</a>
+        <a href="{{ url_for('home') }}#record">TIPPING RECORD</a>
+        <a href="{{ url_for('home') }}#membership">MEMBERSHIP</a>
+        <a href="/blog">BLOG</a>
+        <a href="{{ url_for('home') }}#about">ABOUT</a>
+      {% else %}
+        {% for item in header_menu %}
+          <a
+            href="{{ item.href|e('html_attr') }}"
+            class="{% if item.is_active|default(false) %}active{% endif %}"
+            {% if item.target == '_blank' %}target="_blank"{% endif %}
+            {% if item.anchor_rel|default('')|trim != '' %}rel="{{ item.anchor_rel|e('html_attr') }}"{% endif %}
+            {% if item.is_active|default(false) %}aria-current="page"{% endif %}
+          >{{ item.label|upper|e }}</a>
+        {% endfor %}
+      {% endif %}
       {% if logged_in %}
         {% set _uname = user_username|default('')|trim %}
         {% set _nav_label = _uname != '' ? _uname : (user_email|default('Account')|split('@')|first) %}
