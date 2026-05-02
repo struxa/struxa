@@ -1,7 +1,7 @@
 {
     "name": "struxa/cms",
     "description": "Struxa — Slim/Twig content CMS",
-    "version": "1.0.47",
+    "version": "1.0.48",
     "require": {
         "php": ">=8.2",
         "slim/slim": "^4.12",
@@ -33,6 +33,7 @@
         "plugin-deps": "php bin/plugin-deps.php",
         "plugin-deps:prod": "php bin/plugin-deps.php --no-dev",
         "check:plugin-deps": "php bin/plugin-dependency-health.php",
-        "cache:clear": "php bin/cache-clear.php"
+        "cache:clear": "php bin/cache-clear.php",
+        "serve": "php -S localhost:8080 -t public public/router.php"
     }
 }
