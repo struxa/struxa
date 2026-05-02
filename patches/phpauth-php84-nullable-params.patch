@@ -1,0 +1,88 @@
+diff --git a/sources/Config.php b/sources/Config.php
+--- a/sources/Config.php
++++ b/sources/Config.php
+@@ -339,7 +339,7 @@
+      * @param string|null $table
+      * @return bool
+      */
+-    protected function checkTableExists(string $table = null):bool
++    protected function checkTableExists(?string $table = null):bool
+     {
+         if (empty($table)) {
+             return false;
+@@ -390,7 +390,7 @@
+     /* ==== Set custom handlers ==== */
+     /* ============================= */
+ 
+-    public function setEMailValidator(callable $handler = null):Config
++    public function setEMailValidator(?callable $handler = null):Config
+     {
+         if (is_callable($handler)) {
+             $this->emailValidator = $handler;
+@@ -399,7 +399,7 @@
+         return $this;
+     }
+ 
+-    public function setPasswordValidator(callable $handler = null):Config
++    public function setPasswordValidator(?callable $handler = null):Config
+     {
+         if (is_callable($handler)) {
+             $this->passwordValidator = $handler;
+@@ -414,7 +414,7 @@
+      * @param callable|null $handler
+      * @return $this
+      */
+-    public function setCustomMailer(callable $handler = null):Config
++    public function setCustomMailer(?callable $handler = null):Config
+     {
+         if (is_callable($handler)) {
+             $this->customMailer = $handler;
+@@ -430,7 +430,7 @@
+      * @param array $captcha_config
+      * @return $this
+      */
+-    public function setCaptchaValidator(callable $handler = null, array $captcha_config = []):Config
++    public function setCaptchaValidator(?callable $handler = null, array $captcha_config = []):Config
+     {
+         if (is_callable($handler)) {
+             $this->captchaHandler = $handler;
+
+diff --git a/sources/ConfigInterface.php b/sources/ConfigInterface.php
+--- a/sources/ConfigInterface.php
++++ b/sources/ConfigInterface.php
+@@ -47,7 +47,7 @@
+      * @return Config
+      * @todo: change return type to self at PHP 7.4
+      */
+-    public function setEMailValidator(callable $handler = null):Config;
++    public function setEMailValidator(?callable $handler = null):Config;
+ 
+     /**
+      * Add custom password validator
+@@ -56,7 +56,7 @@
+      * @return Config
+      * @todo: change return type to self at PHP 7.4
+      */
+-    public function setPasswordValidator(callable $handler = null):Config;
++    public function setPasswordValidator(?callable $handler = null):Config;
+ 
+     /**
+      * Update localization dictionary from PHP Array (result of `phpauth/phpauth.l10n` package)
+@@ -74,7 +74,7 @@
+      * @return $this
+      * @todo: change return type to self at PHP 7.4
+      */
+-    public function setCustomMailer(callable $handler = null):Config;
++    public function setCustomMailer(?callable $handler = null):Config;
+ 
+     /**
+      * set Captcha Validator
+@@ -83,7 +83,7 @@
+      * @return $this
+      * @todo: change return type to self at PHP 7.4
+      */
+-    public function setCaptchaValidator(callable $handler = null):Config;
++    public function setCaptchaValidator(?callable $handler = null):Config;
+ 
+ 
+ 
