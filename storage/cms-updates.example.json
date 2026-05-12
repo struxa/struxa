@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.0.57",
-    "title": "Struxa 1.0.57",
-    "summary": "Bundle is now Midnight Pulse only — Race Edge Tipster, Cashback and Builder Queue themes have been removed from the public repo and are gitignored so they will not be uploaded again. Existing installs that activated one of those themes will fall back to the default theme.",
+    "latest_version": "1.0.58",
+    "title": "Struxa 1.0.58",
+    "summary": "Security hardening: close an open-redirect bypass on the post-login ?next= parameter (rejects backslash/CRLF/scheme smuggling and /.. traversal); raise the default PHPAuth password floor from 3 to 8 characters; add per-IP throttling for POST /register (10/hour by default, override with CMS_REGISTER_MAX_ATTEMPTS_PER_HOUR).",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "minor"

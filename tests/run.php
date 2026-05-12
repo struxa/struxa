@@ -15,6 +15,7 @@ use App\Content\PublicContentIndexPager;
 use App\Content\RichtextTabsShortcode;
 use App\Analytics\ExternalLinkClickRepository;
 use App\Content\ReservedContentSlugs;
+use App\Http\SafeRedirectPath;
 use App\Search\ContentSearchService;
 use App\Seo\ExternalLinkPolicy;
 use App\Seo\MetaTagBuilder;
@@ -197,6 +198,34 @@ if (!$cidrNorm['ok'] || $cidrNorm['pattern'] !== '192.0.2.0/24') {
 
 if (!ReservedContentSlugs::isReserved('search')) {
     $fail('ReservedContentSlugs should treat "search" as reserved.');
+}
+
+if (SafeRedirectPath::afterLogin('/admin', '/home') !== '/admin') {
+    $fail('SafeRedirectPath should allow a simple absolute same-origin path.');
+}
+if (SafeRedirectPath::afterLogin(null, '/x') !== '/x') {
+    $fail('SafeRedirectPath should return fallback for null input.');
+}
+if (SafeRedirectPath::afterLogin('//evil.com/x', '/x') !== '/x') {
+    $fail('SafeRedirectPath should reject protocol-relative URLs.');
+}
+if (SafeRedirectPath::afterLogin('/\\evil.com', '/x') !== '/x') {
+    $fail('SafeRedirectPath should reject paths that begin with a backslash-bypass.');
+}
+if (SafeRedirectPath::afterLogin("/admin\r\nLocation: //evil.com", '/x') !== '/x') {
+    $fail('SafeRedirectPath should reject CR/LF for header-injection.');
+}
+if (SafeRedirectPath::afterLogin("/admin\tfoo", '/x') !== '/x') {
+    $fail('SafeRedirectPath should reject tab characters.');
+}
+if (SafeRedirectPath::afterLogin('/javascript://evil.com', '/x') !== '/x') {
+    $fail('SafeRedirectPath should reject scheme smuggling like /javascript://...');
+}
+if (SafeRedirectPath::afterLogin('/../etc/passwd', '/x') !== '/x') {
+    $fail('SafeRedirectPath should reject /.. parent traversal.');
+}
+if (SafeRedirectPath::afterLogin('/admin/users?q=1', '/x') !== '/admin/users?q=1') {
+    $fail('SafeRedirectPath should preserve same-origin paths with query strings.');
 }
 
 if (ContentSearchService::sanitizeQuery(" \t\n  ") !== '') {

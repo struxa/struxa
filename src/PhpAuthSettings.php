@@ -75,7 +75,9 @@ final class PhpAuthSettings
             'table_translations' => '',
             'verify_email_max_length' => '100',
             'verify_email_min_length' => '5',
-            'verify_password_min_length' => '3',
+            // Storefront registrations: refuse extremely short passwords. PHPAuth's check is a
+            // hard floor; the admin installer still enforces its own 10-char minimum on top.
+            'verify_password_min_length' => '8',
             'request_key_expiration' => '+10 minutes',
             'translation_source' => 'php',
             'custom_datetime_format' => 'Y-m-d H:i',
