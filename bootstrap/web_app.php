@@ -29,6 +29,7 @@ use App\Http\Middleware\SecurityHeadersMiddleware;
 use App\Http\Middleware\ThrottlingMiddleware;
 use App\Http\Middleware\TwigCmsGlobals;
 use App\Twig\CoreAssetTwigExtension;
+use App\Http\PostLoginRedirect;
 use App\Http\SafeRedirectPath;
 use App\Http\MediaDerivativeHandler;
 use App\Http\ThemePublicAssetsHandler;
@@ -257,29 +258,31 @@ $app->get('/', function (Request $request, Response $response) use ($twig, $view
     return $twig->render($response, 'page/home.twig', array_merge($viewData(), $seoTwig));
 })->setName('home');
 
-$app->get('/login', function (Request $request, Response $response) use ($twig, $viewData, $auth): Response {
+$app->get('/login', function (Request $request, Response $response) use ($twig, $viewData, $auth, $pdo): Response {
+    $next = $request->getQueryParams()['next'] ?? null;
+    $next = is_string($next) ? $next : null;
     if ($auth->isLogged()) {
         $routeParser = RouteContext::fromRequest($request)->getRouteParser();
 
         return $response
-            ->withHeader('Location', $routeParser->urlFor('home'))
+            ->withHeader('Location', PostLoginRedirect::forCurrentUser($auth, $routeParser, $pdo, $next))
             ->withStatus(302);
     }
-    $next = $request->getQueryParams()['next'] ?? null;
-    $next = is_string($next) ? $next : null;
 
     return $twig->render($response, 'pages/login.twig', $viewData(['login_next' => $next]));
 })->setName('login');
 
-$app->get('/auth/google/start', function (Request $request, Response $response) use ($googleSso, $auth): Response {
+$app->get('/auth/google/start', function (Request $request, Response $response) use ($googleSso, $auth, $pdo): Response {
     if ($googleSso === null) {
         throw new HttpNotFoundException($request);
     }
     if ($auth->isLogged()) {
         $routeParser = RouteContext::fromRequest($request)->getRouteParser();
+        $q = $request->getQueryParams();
+        $alreadyNext = isset($q['next']) && is_string($q['next']) ? $q['next'] : null;
 
         return $response
-            ->withHeader('Location', $routeParser->urlFor('home'))
+            ->withHeader('Location', PostLoginRedirect::forCurrentUser($auth, $routeParser, $pdo, $alreadyNext))
             ->withStatus(302);
     }
 
@@ -323,7 +326,7 @@ $app->get('/auth/google/callback', function (Request $request, Response $respons
 
     if ($auth->isLogged()) {
         return $response
-            ->withHeader('Location', $routeParser->urlFor('home'))
+            ->withHeader('Location', PostLoginRedirect::forCurrentUser($auth, $routeParser, $pdo))
             ->withStatus(302);
     }
 
@@ -415,17 +418,17 @@ $app->get('/auth/google/callback', function (Request $request, Response $respons
     }
 
     Events::dispatch(new UserLoggedInEvent($email));
-    $target = SafeRedirectPath::afterLogin($next, $routeParser->urlFor('home'));
+    $target = PostLoginRedirect::target($next, $uid, $routeParser, $pdo);
 
     return $response->withHeader('Location', $target)->withStatus(302);
 })->setName('auth.google.callback');
 
-$app->get('/login/two-factor', function (Request $request, Response $response) use ($twig, $viewData, $auth): Response {
+$app->get('/login/two-factor', function (Request $request, Response $response) use ($twig, $viewData, $auth, $pdo): Response {
     if ($auth->isLogged()) {
         $routeParser = RouteContext::fromRequest($request)->getRouteParser();
 
         return $response
-            ->withHeader('Location', $routeParser->urlFor('home'))
+            ->withHeader('Location', PostLoginRedirect::forCurrentUser($auth, $routeParser, $pdo))
             ->withStatus(302);
     }
     if (TwoFactorLoginSession::get() === null) {
@@ -485,7 +488,7 @@ $app->post('/login/two-factor', function (Request $request, Response $response) 
         Events::dispatch(new UserLoggedInEvent($email));
     }
 
-    $target = SafeRedirectPath::afterLogin($next, $routeParser->urlFor('home'));
+    $target = PostLoginRedirect::target($next, (int) $pending['phpauth_uid'], $routeParser, $pdo);
 
     return $response->withHeader('Location', $target)->withStatus(302);
 })->setName('login.two_factor.submit');
@@ -494,7 +497,7 @@ $app->post('/login', function (Request $request, Response $response) use ($auth,
     $routeParser = RouteContext::fromRequest($request)->getRouteParser();
     if ($auth->isLogged()) {
         return $response
-            ->withHeader('Location', $routeParser->urlFor('home'))
+            ->withHeader('Location', PostLoginRedirect::forCurrentUser($auth, $routeParser, $pdo))
             ->withStatus(302);
     }
 
@@ -543,17 +546,17 @@ $app->post('/login', function (Request $request, Response $response) use ($auth,
     }
 
     Events::dispatch(new UserLoggedInEvent($email));
-    $target = SafeRedirectPath::afterLogin($next, $routeParser->urlFor('home'));
+    $target = PostLoginRedirect::target($next, $uid, $routeParser, $pdo);
 
     return $response->withHeader('Location', $target)->withStatus(302);
 });
 
-$app->get('/register', function (Request $request, Response $response) use ($twig, $viewData, $auth): Response {
+$app->get('/register', function (Request $request, Response $response) use ($twig, $viewData, $auth, $pdo): Response {
     if ($auth->isLogged()) {
         $routeParser = RouteContext::fromRequest($request)->getRouteParser();
 
         return $response
-            ->withHeader('Location', $routeParser->urlFor('home'))
+            ->withHeader('Location', PostLoginRedirect::forCurrentUser($auth, $routeParser, $pdo))
             ->withStatus(302);
     }
 
@@ -566,7 +569,7 @@ $app->post('/register', function (Request $request, Response $response) use ($au
     $routeParser = RouteContext::fromRequest($request)->getRouteParser();
     if ($auth->isLogged()) {
         return $response
-            ->withHeader('Location', $routeParser->urlFor('home'))
+            ->withHeader('Location', PostLoginRedirect::forCurrentUser($auth, $routeParser, $pdo))
             ->withStatus(302);
     }
 
