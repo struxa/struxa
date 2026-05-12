@@ -54,6 +54,7 @@
     {% block body %}{% endblock %}
     {% include 'partials/footer.twig' %}
     <script src="{{ theme_asset('js/main.js') }}" defer></script>
+    {% include 'partials/_struxa_tracking.twig' %}
     {% block scripts_extra %}{% endblock %}
   </body>
 </html>

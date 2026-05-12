@@ -59,7 +59,7 @@ final class PostLoginRedirect
     private static function userCanAccessAdmin(PDO $pdo, int $phpAuthUid): bool
     {
         $cmsUser = CmsUserRepository::findByPhpAuthId($pdo, $phpAuthUid);
-        if (!is_array($cmsUser) || !isset($cmsUser['id'])) {
+        if (!is_array($cmsUser)) {
             return false;
         }
 

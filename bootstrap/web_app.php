@@ -635,8 +635,10 @@ $app->get('/logout', function (Request $request, Response $response) use ($twig,
 
 (require $root . '/routes/public_api.php')($app, $twig, $pdo, $viewData);
 (require $root . '/routes/public_comments.php')($app, $pdo, $root, $auth);
+(require $root . '/routes/public_external_link_tracking.php')($app, $pdo, $root, $auth);
 
 (require $root . '/routes/admin.php')($app, $twig, $auth, $pdo, $viewData);
+(require $root . '/routes/admin_analytics.php')($app, $twig, $auth, $pdo, $viewData);
 (require $root . '/routes/admin_users.php')($app, $twig, $auth, $pdo, $viewData);
 (require $root . '/routes/admin_roles.php')($app, $twig, $auth, $pdo, $viewData);
 (require $root . '/routes/admin_activity.php')($app, $twig, $auth, $pdo, $viewData);
@@ -644,6 +646,7 @@ $app->get('/logout', function (Request $request, Response $response) use ($twig,
 (require $root . '/routes/admin_tools.php')($app, $twig, $auth, $pdo, $viewData);
 (require $root . '/routes/admin_pages.php')($app, $twig, $auth, $pdo, $viewData);
 (require $root . '/routes/admin_settings.php')($app, $twig, $auth, $pdo, $viewData);
+(require $root . '/routes/admin_search.php')($app, $twig, $auth, $pdo, $viewData);
 (require $root . '/routes/admin_cache.php')($app, $twig, $auth, $pdo, $viewData);
 (require $root . '/routes/admin_seo.php')($app, $twig, $auth, $pdo, $viewData);
 (require $root . '/routes/admin_security.php')($app, $twig, $auth, $pdo, $viewData);
@@ -663,6 +666,7 @@ $pluginRepo = new PluginRepository($pdo);
 $pluginManager = new PluginManager($root, $pluginRepo, new PluginScanner($root), new PluginValidator());
 $pluginContexts = $pluginManager->registerActivePublicRoutes($app, $twig, $auth, $pdo, $viewData, $eventDispatcher);
 
+(require $root . '/routes/public_search.php')($app, $twig, $pdo, $root, $viewData);
 (require $root . '/routes/public_pages.php')($app, $twig, $pdo, $viewData);
 // Before public_taxonomy_archive: FastRoute errors if plugin admin adds /admin/.../... after /{a}/{b}/{c}.
 $pluginManager->registerActiveAdminRoutes($app, $pluginContexts);

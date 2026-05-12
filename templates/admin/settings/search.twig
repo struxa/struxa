@@ -1,0 +1,78 @@
+{% extends 'admin/base.twig' %}
+
+{% block admin_title %}Storefront search{% endblock %}
+
+{% block admin_hero_title %}
+  <h1 class="admin-hero-title">Storefront search</h1>
+{% endblock %}
+
+{% block admin_hero_sub %}
+  <p class="admin-hint" style="margin-top:0">
+    Lets visitors search published content from your storefront at <code class="admin-inline-code">/search</code>. Off by default —
+    pick exactly which content types are searchable. Only <strong>published</strong> entries on those types
+    are ever returned, and queries are length-capped, rate-limited, and use prepared statements with escaped <code class="admin-inline-code">LIKE</code> wildcards.
+  </p>
+{% endblock %}
+
+{% block admin_content %}
+  <form method="post" action="{{ url_for('admin.settings.search.save') }}" class="admin-form admin-form--stack">
+    <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+
+    <section class="admin-card admin-settings-card" style="margin-bottom:1.5rem">
+      <div>
+        <h2 class="admin-settings-card-title" style="margin:0 0 0.35rem">General</h2>
+        <p class="admin-settings-card-desc" style="margin:0 0 1rem">Enable the public search page and set how many results to show per page.</p>
+      </div>
+      <label class="admin-form-row" style="display:flex;align-items:center;gap:0.6rem;margin-bottom:0.85rem">
+        <input type="checkbox" name="enabled" value="1" {% if search_enabled %}checked{% endif %} />
+        <span>Enable storefront search at <code class="admin-inline-code">/search</code></span>
+      </label>
+      <label class="admin-form-row" style="display:flex;align-items:center;gap:0.6rem;margin-bottom:0.85rem">
+        <input type="checkbox" name="include_fields" value="1" {% if search_include_fields %}checked{% endif %} />
+        <span>Also match inside text, textarea and rich-text custom field values</span>
+      </label>
+      <label class="admin-form-row" style="display:block">
+        <span class="admin-form-label">Results per page</span>
+        <input
+          type="number"
+          name="per_page"
+          min="{{ search_min_per_page }}"
+          max="{{ search_max_per_page }}"
+          value="{{ search_per_page }}"
+          class="admin-input"
+          style="max-width:8rem"
+        />
+      </label>
+    </section>
+
+    <section class="admin-card admin-settings-card" style="margin-bottom:1.5rem">
+      <div>
+        <h2 class="admin-settings-card-title" style="margin:0 0 0.35rem">Searchable content types</h2>
+        <p class="admin-settings-card-desc" style="margin:0 0 1rem">
+          Pick which publicly routed content types appear in search results. Anything not listed here is invisible to search.
+        </p>
+      </div>
+
+      {% if search_type_rows is empty %}
+        <p class="admin-hint" style="margin:0">No content types have public routes yet. Enable a content type's public route under Content → Content types.</p>
+      {% else %}
+        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(16rem, 1fr));gap:0.65rem">
+          {% for t in search_type_rows %}
+            <label style="display:flex;align-items:center;gap:0.55rem;padding:0.6rem 0.75rem;border:1px solid rgba(255,255,255,0.08);border-radius:0.5rem">
+              <input type="checkbox" name="type_ids[]" value="{{ t.id }}" {% if t.enabled %}checked{% endif %} />
+              <span>
+                <strong>{{ t.name|e }}</strong>
+                <br><span class="admin-hint" style="font-size:0.78rem">/{{ t.slug|e }}</span>
+              </span>
+            </label>
+          {% endfor %}
+        </div>
+      {% endif %}
+    </section>
+
+    <div class="admin-form-actions">
+      <button type="submit" class="admin-btn-primary">Save settings</button>
+      <a href="{{ url_for('public.search') }}" class="admin-link" target="_blank" rel="noopener">Open /search ↗</a>
+    </div>
+  </form>
+{% endblock %}

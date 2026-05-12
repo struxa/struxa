@@ -38,6 +38,11 @@ final class CsrfProtectionMiddleware implements MiddlewareInterface
             return $handler->handle($request);
         }
 
+        // External-link click tracker beacon: fire-and-forget, no session-tied state.
+        if ($path === '/track/external-link') {
+            return $handler->handle($request);
+        }
+
         if (!$this->pathRequiresCsrf($path)) {
             return $handler->handle($request);
         }

@@ -13,6 +13,9 @@ use App\Cache\PublicPageCacheKey;
 use App\Cache\PublicResponseCacheEnvelope;
 use App\Content\PublicContentIndexPager;
 use App\Content\RichtextTabsShortcode;
+use App\Analytics\ExternalLinkClickRepository;
+use App\Content\ReservedContentSlugs;
+use App\Search\ContentSearchService;
 use App\Seo\ExternalLinkPolicy;
 use App\Seo\MetaTagBuilder;
 use App\Seo\SeoFormParser;
@@ -190,6 +193,49 @@ if (IpBlockMatcher::isBlocked('192.0.3.1', ['192.0.2.0/24'])) {
 $cidrNorm = IpBlockPatternValidator::normalize('192.0.2.5/24');
 if (!$cidrNorm['ok'] || $cidrNorm['pattern'] !== '192.0.2.0/24') {
     $fail('IpBlockPatternValidator should normalize IPv4 CIDR to network base.');
+}
+
+if (!ReservedContentSlugs::isReserved('search')) {
+    $fail('ReservedContentSlugs should treat "search" as reserved.');
+}
+
+if (ContentSearchService::sanitizeQuery(" \t\n  ") !== '') {
+    $fail('ContentSearchService::sanitizeQuery should return "" for whitespace-only input.');
+}
+if (ContentSearchService::sanitizeQuery('a') !== '') {
+    $fail('ContentSearchService::sanitizeQuery should reject single-char input.');
+}
+$sanLong = str_repeat('x', 200);
+$out = ContentSearchService::sanitizeQuery($sanLong);
+if (strlen($out) !== ContentSearchService::MAX_QUERY_LENGTH) {
+    $fail('ContentSearchService::sanitizeQuery should cap at MAX_QUERY_LENGTH.');
+}
+if (ContentSearchService::sanitizeQuery("hello\x00\x07world") !== 'hello world') {
+    $fail('ContentSearchService::sanitizeQuery should strip control characters.');
+}
+if (ContentSearchService::escapeLike('100% _safe \\path') !== '100\\% \\_safe \\\\path') {
+    $fail('ContentSearchService::escapeLike should escape backslash, percent, and underscore.');
+}
+$snippet = ContentSearchService::extractSnippet(
+    'The quick brown fox jumps over the lazy dog and runs across the meadow many times today.',
+    'lazy',
+    40
+);
+if (strpos($snippet, 'lazy') === false) {
+    $fail('ContentSearchService::extractSnippet should include the matched term.');
+}
+if (ContentSearchService::plainText('<script>alert(1)</script><p>Hello <b>world</b>!</p>') !== 'Hello world!') {
+    $fail('ContentSearchService::plainText should strip script blocks and HTML tags.');
+}
+
+$hashA = ExternalLinkClickRepository::destinationHash('https://EXAMPLE.com/path');
+$hashB = ExternalLinkClickRepository::destinationHash('  https://example.com/path  ');
+if ($hashA !== $hashB) {
+    $fail('ExternalLinkClickRepository::destinationHash should be case-insensitive and trim whitespace.');
+}
+$hashC = ExternalLinkClickRepository::destinationHash('https://example.com/other');
+if ($hashA === $hashC) {
+    $fail('ExternalLinkClickRepository::destinationHash should differ for different URLs.');
 }
 
 echo "All tests passed.\n";

@@ -1,0 +1,72 @@
+{% extends 'public/root.twig' %}
+
+{% block body %}
+  <main id="main-content" class="container" style="padding-top:2.5rem;padding-bottom:3rem">
+    <header style="margin-bottom:1.5rem">
+      <h1 style="margin:0 0 0.5rem;font-size:clamp(1.6rem, 3vw, 2.2rem);">Search</h1>
+      <p style="margin:0;color:rgba(255,255,255,0.7);max-width:42rem">Find articles and entries published on this site.</p>
+    </header>
+
+    <form action="{{ url_for('public.search') }}" method="get" role="search" style="display:flex;gap:0.6rem;align-items:center;margin-bottom:2rem;flex-wrap:wrap">
+      <label for="search-q" class="sr-only">Search</label>
+      <input
+        type="search"
+        name="q"
+        id="search-q"
+        value="{{ search_query_raw|e('html_attr') }}"
+        autocomplete="off"
+        spellcheck="false"
+        autofocus
+        minlength="{{ search_min_length }}"
+        maxlength="{{ search_max_length }}"
+        placeholder="Search…"
+        style="flex:1;min-width:14rem;padding:0.75rem 1rem;border-radius:0.6rem;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.04);color:#fff;font-size:1rem"
+      />
+      <button type="submit" style="padding:0.75rem 1.25rem;border-radius:0.6rem;border:1px solid rgba(124,92,255,0.45);background:#7c5cff;color:#fff;cursor:pointer;font-weight:600;font-size:1rem">Search</button>
+    </form>
+
+    {% if search_too_short %}
+      <p style="margin:0 0 1.5rem;color:rgba(255,255,255,0.7)">Enter at least {{ search_min_length }} characters.</p>
+    {% endif %}
+
+    {% if search_query != '' %}
+      <p style="margin:0 0 1.25rem;color:rgba(255,255,255,0.65);font-size:0.95rem">
+        {% if search_result.total == 0 %}
+          No results for <strong>{{ search_query|e }}</strong>.
+        {% else %}
+          {{ search_result.total }} result{{ search_result.total == 1 ? '' : 's' }} for <strong>{{ search_query|e }}</strong>{% if search_result.total_pages > 1 %} · Page {{ search_result.page }} of {{ search_result.total_pages }}{% endif %}
+        {% endif %}
+      </p>
+    {% endif %}
+
+    {% if search_result.hits is not empty %}
+      <ol style="list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:1.25rem">
+        {% for hit in search_result.hits %}
+          <li style="padding:1.1rem 1.25rem;border:1px solid rgba(255,255,255,0.08);border-radius:0.75rem;background:rgba(255,255,255,0.025)">
+            <div style="display:flex;align-items:baseline;justify-content:space-between;gap:0.5rem;flex-wrap:wrap">
+              <h2 style="margin:0 0 0.25rem;font-size:1.15rem">
+                <a href="{{ hit.url|e('html_attr') }}" style="color:#cbb5ff;text-decoration:none">{{ hit.title|e }}</a>
+              </h2>
+              <span style="font-size:0.78rem;letter-spacing:0.04em;text-transform:uppercase;color:rgba(255,255,255,0.55)">{{ hit.type_name|e }}</span>
+            </div>
+            {% if hit.snippet != '' %}
+              <p style="margin:0.25rem 0 0;color:rgba(255,255,255,0.72);line-height:1.55">{{ hit.snippet|e }}</p>
+            {% endif %}
+            <a href="{{ hit.url|e('html_attr') }}" style="display:inline-block;margin-top:0.45rem;color:rgba(124,92,255,0.85);font-size:0.85rem">{{ hit.url|e }}</a>
+          </li>
+        {% endfor %}
+      </ol>
+
+      {% if search_result.total_pages > 1 %}
+        <nav aria-label="Pagination" style="margin-top:2rem;display:flex;gap:0.5rem;flex-wrap:wrap">
+          {% if search_result.page > 1 %}
+            <a href="?q={{ search_query|url_encode }}&page={{ search_result.page - 1 }}" style="padding:0.5rem 0.9rem;border-radius:0.5rem;border:1px solid rgba(255,255,255,0.12);color:#fff;text-decoration:none">← Previous</a>
+          {% endif %}
+          {% if search_result.page < search_result.total_pages %}
+            <a href="?q={{ search_query|url_encode }}&page={{ search_result.page + 1 }}" style="padding:0.5rem 0.9rem;border-radius:0.5rem;border:1px solid rgba(255,255,255,0.12);color:#fff;text-decoration:none">Next →</a>
+          {% endif %}
+        </nav>
+      {% endif %}
+    {% endif %}
+  </main>
+{% endblock %}
