@@ -28,6 +28,11 @@ final class PhpAuthSettings
         $base['cookie_secure'] = ($_ENV['PHPAUTH_COOKIE_SECURE'] ?? '0') === '1';
         $base['cookie_samesite'] = $_ENV['PHPAUTH_COOKIE_SAMESITE'] ?? 'Lax';
 
+        $remember = isset($_ENV['PHPAUTH_COOKIE_REMEMBER']) ? trim((string) $_ENV['PHPAUTH_COOKIE_REMEMBER']) : '';
+        if ($remember !== '' && strtotime($remember) !== false) {
+            $base['cookie_remember'] = $remember;
+        }
+
         return $base;
     }
 
@@ -43,7 +48,7 @@ final class PhpAuthSettings
             'cookie_http' => true,
             'cookie_name' => 'phpauth_session_cookie',
             'cookie_path' => '/',
-            'cookie_remember' => '+1 month',
+            'cookie_remember' => '+1 year',
             'cookie_renew' => '+5 minutes',
             'allow_concurrent_sessions' => false,
             'emailmessage_suppress_activation' => '0',

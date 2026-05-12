@@ -142,9 +142,13 @@
 }
 
 @media (min-width: 961px) {
-  /* Collapsible in-flow sidebar: narrow first track when closed, full width when open */
+  /* Collapsible in-flow sidebar: narrow first track when closed, full width when open. */
+  /* Single row must be bounded (minmax 0 / 1fr) so .admin-sidebar height: 100% resolves to the
+     viewport-minus-topbar instead of growing to nav content, which previously clipped the last
+     items and the “View site” footer when many groups were expanded. */
   .admin-shell {
     grid-template-columns: 0 minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
     transition: grid-template-columns 0.28s var(--admin-ease);
     overflow-x: clip;
   }

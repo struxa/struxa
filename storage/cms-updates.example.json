@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.0.52",
-    "title": "Struxa 1.0.52",
-    "summary": "Horse-racing theme: reliable hero background URL (JSON), rename layout container to hr-container, sticky header fix, footer CSS cleanup.",
+    "latest_version": "1.0.53",
+    "title": "Struxa 1.0.53",
+    "summary": "Admin sidebar scrolls within viewport when groups expand; Remember-me cookie persists (default +1 year, configurable via PHPAUTH_COOKIE_REMEMBER) and no longer downgrades on auto-renew.",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "minor"
