@@ -42,3 +42,8 @@ public/uploads/*
 
 # Local cache from scripts/struxa-updates-json.php (vendor site generator)
 scripts/.struxa-updates-cache.json
+
+# Private themes — bundled locally for the source project but must never ship publicly
+themes/horse-racing/
+themes/cashback/
+themes/queue/

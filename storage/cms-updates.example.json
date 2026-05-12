@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.0.56",
-    "title": "Struxa 1.0.56",
-    "summary": "Storefront search (opt-in): admins pick which publicly routed content types are searchable in Admin → Site → Search; queries at /search are sanitized, length-capped, rate-limited and use prepared, wildcard-escaped LIKE against published entries only. Also: external-link click tracking with a storefront beacon and Admin → Site → External links report (top destinations, top source pages, recent clicks, retention controls).",
+    "latest_version": "1.0.57",
+    "title": "Struxa 1.0.57",
+    "summary": "Bundle is now Midnight Pulse only — Race Edge Tipster, Cashback and Builder Queue themes have been removed from the public repo and are gitignored so they will not be uploaded again. Existing installs that activated one of those themes will fall back to the default theme.",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "minor"

@@ -8,30 +8,6 @@
       "description": "Dark SaaS-style layout with gradient accents, header, footer, and content-focused typography.",
       "author": "Struxa",
       "download_url": "https://struxapoint.com/struxa-dist/zips/default.zip"
-    },
-    {
-      "slug": "queue",
-      "name": "Builder Queue",
-      "version": "1.0.0",
-      "description": "Storefront skin tuned to public CSS tokens (ink, pink, cyan). Extends Midnight Pulse.",
-      "author": "Struxa",
-      "download_url": "https://struxapoint.com/struxa-dist/zips/queue.zip"
-    },
-    {
-      "slug": "cashback",
-      "name": "Cashback",
-      "version": "1.0.0",
-      "description": "Reward-dashboard style UI: sidebar, offers, surveys — extends Midnight Pulse.",
-      "author": "Struxa",
-      "download_url": "https://struxapoint.com/struxa-dist/zips/cashback.zip"
-    },
-    {
-      "slug": "horse-racing",
-      "name": "Race Edge Tipster",
-      "version": "1.0.0",
-      "description": "Horse racing tipster storefront: green & gold palette, hero, stats strip, demo tips table. Extends Midnight Pulse for content templates.",
-      "author": "Struxa",
-      "download_url": "https://struxapoint.com/struxa-dist/zips/horse-racing.zip"
     }
   ]
 }
