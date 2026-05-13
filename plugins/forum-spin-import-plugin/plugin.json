@@ -1,0 +1,19 @@
+{
+  "name": "Forum spin import",
+  "slug": "forum-spin-import-plugin",
+  "version": "1.0.1",
+  "author": "Avios Studio",
+  "description": "Stage scraped forum TSV exports, then replay threads into a target forum with OpenAI paraphrasing (same meaning and tone, not a verbatim copy), synthetic users, and back-dated timestamps. Chunked admin AJAX with pause/stop/resume. Requires the Forum plugin and an OpenAI key under System → API keys.",
+  "requires_cms_version": "1.0.0",
+  "requires_php": "8.2",
+  "category": "content",
+  "tags": ["forum", "import", "openai", "migration"],
+  "main_class": "ForumSpinImportPlugin\\ForumSpinImportServiceProvider",
+  "enabled_by_default": false,
+  "nested_admin_nav": true,
+  "autoload": {
+    "psr4": {
+      "ForumSpinImportPlugin\\": "src/"
+    }
+  }
+}
