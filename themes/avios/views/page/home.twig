@@ -1,0 +1,352 @@
+{% extends 'layouts/base.twig' %}
+
+{# --- HERO (dynamic, sourced from content types) --------------------------- #}
+{% set _hero_pack = content_entries('homepage_hero', 1) %}
+{% set _h = _hero_pack.entries|first|default(null) %}
+{% set _hf = _h ? _h.fields : {} %}
+
+{# Today's Top Deal: prefer a random fare from the How Many Avios plugin (live, editable),
+   else fall back to the `deals` content type entry. The plugin pushes a `hma_deal` global
+   so we can branch without calling its Twig function (keeps the template safe even when
+   the plugin is deactivated). #}
+{% set _hma_deal = hma_deal|default(null) %}
+{% set _deal_pack = content_entries('deals', 1) %}
+{% set _d = _deal_pack.entries|first|default(null) %}
+{% set _df = _d ? _d.fields : {} %}
+
+{% set _hero_line1   = _hf.heading_line_1|default('Smarter Avios.') %}
+{% set _hero_line2   = _hf.heading_line_2|default('Better journeys.') %}
+{% set _hero_subtitle= _hf.subtitle|default('Expert guides, powerful tools and real-time deals to help you earn more Avios and travel the world for less.') %}
+{% set _cta1_label   = _hf.cta_primary_label|default('Explore Tools & Calculators →') %}
+{% set _cta1_url     = _hf.cta_primary_url|default('#') %}
+{% set _cta2_label   = _hf.cta_secondary_label|default('Browse Latest Deals') %}
+{% set _cta2_url     = _hf.cta_secondary_url|default('#') %}
+{% set _trust_text   = _hf.trust_text|default('Trusted by 20,000+ UK travellers') %}
+{% set _rating_stars = max(0, min(5, (_hf.rating_stars|default(5)|trim ?: 5)|round)) %}
+{% set _rating_text  = _hf.rating_text|default('4.8/5 based on 2,400+ reviews') %}
+{% set _rating_brand = _hf.rating_brand|default('★ Trustpilot') %}
+{% set _bg_url       = _hf.bg_image_url|default('https://images.unsplash.com/photo-1436491865332-7a61a109cc05?q=80&w=1800&auto=format&fit=crop') %}
+
+{# Deal: prefer plugin random fare, then content-type entry. #}
+{% set _deal_eyebrow = "🔥 TOP DEAL" %}
+{% if _hma_deal %}
+  {% set _deal_title   = _hma_deal.route_label %}
+  {% set _deal_excerpt = _hma_deal.season_label %}
+  {# Published destination content (same IATA) → deep link the guide; else calculator anchor. #}
+  {% set _dest_href = _hma_deal.destination_href|default('')|trim %}
+  {% set _deal_url = _dest_href != '' ? _dest_href : '#hma-form' %}
+  {% set _deal_image   = '' %}
+{% else %}
+  {% set _deal_title   = _d ? _d.row.title : 'New York Business Class from 57,500 Avios' %}
+  {% set _deal_excerpt = _df.excerpt|default('') %}
+  {% set _deal_url     = _df.cta_url|default('#') %}
+  {% set _deal_image   = _d and _d.featured_url|default('')|trim != '' ? _d.featured_url : (_df.thumbnail_url|default('')) %}
+{% endif %}
+
+{% block body %}
+<section class="hero" style="background:
+  linear-gradient(90deg, #fff 0%, #fff 36%, rgba(255,255,255,.7) 51%, rgba(255,255,255,0) 70%),
+  url('{{ _bg_url|e('html_attr') }}') center right / cover no-repeat;">
+  <div class="container">
+    <div class="hero-content">
+      {# Hero title with split-flap "airport board" reveal. Each character is its own
+         cell that cycles through random letters on load before settling to its final
+         glyph. The `aria-label` carries the plain reading text so screen readers /
+         search bots are unaffected by the scramble. Honours `prefers-reduced-motion`
+         via the JS below. #}
+      <h2 class="hero-title" aria-label="{{ (_hero_line1 ~ ' ' ~ _hero_line2)|e('html_attr') }}">
+        <span class="hero-title__line">
+          {% for c in _hero_line1|split('') %}<span class="hero-flap" data-flap-target="{{ c|e('html_attr') }}">{{ c == ' ' ? '&nbsp;'|raw : c|e }}</span>{% endfor %}
+        </span>
+        <span class="hero-title__line hero-title__line--accent">
+          {% for c in _hero_line2|split('') %}<span class="hero-flap" data-flap-target="{{ c|e('html_attr') }}">{{ c == ' ' ? '&nbsp;'|raw : c|e }}</span>{% endfor %}
+        </span>
+      </h2>
+      <p>{{ _hero_subtitle|e }}</p>
+      <div class="hero-actions">
+        {% if _cta1_label|trim != '' %}<a class="btn btn-primary" href="{{ _cta1_url|e('html_attr') }}">{{ _cta1_label|e }}</a>{% endif %}
+        {% if _cta2_label|trim != '' %}<a class="btn" href="{{ _cta2_url|e('html_attr') }}">{{ _cta2_label|e }}</a>{% endif %}
+      </div>
+      {# Trust strip — two glass-style chips. The audience chip is a single
+         flex row (icon + claim). The rating chip parses `rating_text` into a
+         leading score token (e.g. `4.8/5`) and a remainder (`based on 2,400+
+         reviews`) so we can render the score prominently and the rest as
+         meta. Falls back gracefully if any field is empty. #}
+      {% set _rt_parts = (_rating_text|trim)|split(' ', 2) %}
+      {% set _rt_score = _rt_parts[0]|default('') %}
+      {% set _rt_meta  = _rt_parts[1]|default('') %}
+      <div class="trust">
+        {% if _trust_text|trim != '' %}
+          <div class="trust__chip">
+            <i class="fa-solid fa-users trust__chip-icon" aria-hidden="true"></i>
+            <span class="trust__chip-label">{{ _trust_text|e }}</span>
+          </div>
+        {% endif %}
+        {% if _rating_stars > 0 or _rt_score != '' or _rating_brand|trim != '' %}
+          <div class="trust__chip trust__chip--rating">
+            {% if _rating_stars > 0 %}
+              <span class="trust__stars" aria-label="{{ _rating_text|e('html_attr') }}">
+                {% for _ in 1.._rating_stars %}<i>★</i>{% endfor %}
+              </span>
+            {% endif %}
+            {% if _rt_score != '' or _rt_meta != '' %}
+              <span class="trust__rating-text">
+                {% if _rt_score != '' %}<strong class="trust__rating-score">{{ _rt_score|e }}</strong>{% endif %}
+                {% if _rt_meta != '' %}<span class="trust__rating-meta">{{ _rt_meta|e }}</span>{% endif %}
+              </span>
+            {% endif %}
+            {% if _rating_brand|trim != '' %}
+              <span class="trust__brand">{{ _rating_brand|e }}</span>
+            {% endif %}
+          </div>
+        {% endif %}
+      </div>
+    </div>
+    {% if _hma_deal %}
+      {# Rich plugin-driven deal card. Component-style layout with route, big price stat,
+         and a real CTA button (deep-links to the calculator via data-hma-prefill). #}
+      {% set _season_slug = _hma_deal.season == 'Peak' ? 'peak' : 'offpeak' %}
+      <aside class="top-deal-card top-deal-card--rich" aria-labelledby="top-deal-title">
+        <div class="top-deal-card__head">
+          <span class="top-deal-card__eyebrow"><span class="top-deal-card__flame" aria-hidden="true">🔥</span> TOP DEAL</span>
+          <span class="top-deal-card__season top-deal-card__season--{{ _season_slug }}">{{ _hma_deal.season|e }}</span>
+        </div>
+
+        <div class="top-deal-card__route" aria-label="London Heathrow to {{ _hma_deal.destination|e('html_attr') }}">
+          <span class="top-deal-card__iata">LHR</span>
+          <span class="top-deal-card__plane" aria-hidden="true"><i class="fa-solid fa-plane"></i></span>
+          <span class="top-deal-card__iata">{{ _hma_deal.iata|e }}</span>
+        </div>
+
+        <h3 class="top-deal-card__dest" id="top-deal-title">{{ _hma_deal.destination|e }}</h3>
+        <p class="top-deal-card__cabin">{{ _hma_deal.cabin|e }} Class</p>
+
+        <div class="top-deal-card__price">
+          <span class="top-deal-card__price-label">From</span>
+          <strong class="top-deal-card__price-amount">{{ _hma_deal.avios_amount|number_format }}</strong>
+          <span class="top-deal-card__price-currency">Avios</span>
+        </div>
+
+        <a class="top-deal-card__cta" href="{{ _deal_url|e('html_attr') }}"
+           {% if _dest_href == '' %}
+           data-hma-prefill="1"
+           data-hma-iata="{{ _hma_deal.iata|e('html_attr') }}"
+           data-hma-cabin="{{ _hma_deal.cabin|e('html_attr') }}"
+           data-hma-season="{{ _hma_deal.season|e('html_attr') }}"
+           data-hma-destination="{{ _hma_deal.destination|e('html_attr') }}"
+           {% endif %}>
+          <span>View deal</span>
+          <span class="top-deal-card__cta-arrow" aria-hidden="true">→</span>
+        </a>
+      </aside>
+    {% elseif _d %}
+      <aside class="top-deal-card"{% if _deal_image %} style="background:
+          linear-gradient(rgba(7,22,45,.78), rgba(7,22,45,.85)),
+          url('{{ _deal_image|e('html_attr') }}') center/cover no-repeat;"{% endif %}>
+        {% if _deal_eyebrow|trim != '' %}<small>{{ _deal_eyebrow|e }}</small>{% endif %}
+        <h3>{{ _deal_title|e }}</h3>
+        {% if _deal_excerpt|trim != '' %}
+          <p style="margin:0 0 14px;color:rgba(255,255,255,.72);font-size:14px;">{{ _deal_excerpt|e }}</p>
+        {% endif %}
+        <a href="{{ _deal_url|e('html_attr') }}">View deal →</a>
+      </aside>
+    {% endif %}
+  </div>
+</section>
+
+<main class="container" id="main-content">
+  {# --- Homepage feature strip (dynamic, sourced from `home_features` content type) --- #}
+  {% set _features_pack = content_entries('home_features', 24) %}
+  {% set _feature_colors = ['blue', 'purple', 'green', 'orange'] %}
+  {# Sort by the sort_order custom field (lower = earlier). Falls back to 999 if missing. #}
+  {% set _features = _features_pack.entries|sort((a, b) =>
+    ((a.fields.sort_order|default('999'))|trim ?: '999')|number_format(0, '', '')
+    <=> ((b.fields.sort_order|default('999'))|trim ?: '999')|number_format(0, '', '')) %}
+
+  {% if _features|length > 0 %}
+  <section class="feature-strip">
+    <div class="feature-card feature-card--n{{ _features|length }}">
+      {% for f in _features %}
+        {% set _color = f.fields.icon_color|default('blue')|trim|lower %}
+        {% if _color not in _feature_colors %}{% set _color = 'blue' %}{% endif %}
+        {% set _icon  = f.fields.icon|default('fa-solid fa-star')|trim %}
+        {% set _label = f.fields.cta_label|default('')|trim %}
+        {% set _url   = f.fields.cta_url|default('')|trim %}
+        <div class="feature-item">
+          <div class="icon {{ _color != 'blue' ? _color : '' }}">
+            <i class="{{ _icon|e('html_attr') }}" aria-hidden="true"></i>
+          </div>
+          <div>
+            <h3>{{ f.row.title|e }}</h3>
+            <p>{{ f.fields.subtitle|default('')|e }}</p>
+            {% if _label != '' %}
+              {# Strip a trailing arrow from the label so we can animate a real arrow element on hover. #}
+              {% set _label_clean = _label|replace({'→': '', '->': '', '➔': '', '➜': ''})|trim %}
+              <a class="feature-cta feature-cta--{{ _color }}" href="{{ (_url != '' ? _url : '#')|e('html_attr') }}">
+                <span>{{ _label_clean|e }}</span>
+                <span class="feature-cta__arrow" aria-hidden="true">→</span>
+              </a>
+            {% endif %}
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  <div class="ticker">
+    <strong>🔥 LIVE DEAL ALERTS</strong>
+    <div class="ticker-track">
+      <span><b class="dot">•</b>New York from 57,500 Avios + £180</span>
+      <span><b class="dot">•</b>Maldives from 55,000 Avios</span>
+      <span><b class="dot">•</b>Boston from 60,000 Avios</span>
+    </div>
+    <a class="link" style="padding-right:20px" href="#">View all deals →</a>
+  </div>
+
+  <section class="grid-main">
+    {# How Many Avios plugin widget — replaces the old static calculator card.
+       `ignore missing` keeps the homepage rendering if the plugin is later disabled. #}
+    {% include '@plugin_how_many_avios_plugin/widgets/calculator.twig' ignore missing %}
+
+    {# "Best Avios Redemptions" — driven by the Avios Destination Review plugin.
+       `adr_best_redemptions_top` is an eager-loaded global of the 5 most recent published
+       destination reviews, each enriched with the cheapest premium-cabin fare from
+       hma_fares. The `|default([])` guard keeps the homepage rendering if the plugin is
+       ever disabled (global becomes undefined). #}
+    {% set _redemptions = adr_best_redemptions_top|default([]) %}
+    {% if _redemptions|length > 0 %}
+      <section class="card">
+        <div class="card-head">
+          <h3>Best Avios Redemptions</h3>
+          <a class="link" href="/destinations">View all →</a>
+        </div>
+        <div class="route-list">
+          {% for r in _redemptions %}
+            <a class="route route-link" href="{{ r.href|e('html_attr') }}">
+              {% if r.image_url %}
+                <img src="{{ r.image_url|e('html_attr') }}" alt="" loading="lazy">
+              {% else %}
+                <div class="route-img-placeholder" aria-hidden="true">
+                  <i class="fa-solid fa-plane-departure"></i>
+                </div>
+              {% endif %}
+              <div>
+                <h4>London – {{ r.destination|e }} ({{ r.iata|e }})</h4>
+              </div>
+              {% if r.avios > 0 %}
+                <span class="tag tag-avios">
+                  <span class="tag-avios__from">From</span>
+                  <span class="tag-avios__amount">{{ r.avios|number_format }}</span>
+                  <span class="tag-avios__unit">Avios</span>
+                </span>
+              {% else %}
+                <span class="tag">VIEW</span>
+              {% endif %}
+            </a>
+          {% endfor %}
+        </div>
+      </section>
+    {% endif %}
+
+    {# Avios Credit Cards plugin widget — replaces the old static "Top Credit Card Offers" card.
+       `ignore missing` keeps the page rendering if the plugin is later disabled. #}
+    {% include '@plugin_avios_credit_cards_plugin/widgets/top_cards.twig' ignore missing %}
+  </section>
+
+  {# Popular Tools — promoted to its own full-width row so the six
+     tool tiles can breathe across the entire container. The internal
+     grid uses `auto-fit` (see .tools-row in app.css) so the tiles
+     reflow into 6/4/3/2 columns as the viewport narrows, without
+     needing any media queries. #}
+  <section class="tools-strip">
+    <div class="card">
+      <div class="card-head"><h3>Popular Tools</h3><a class="link" href="#">View all tools →</a></div>
+      <div class="tools-row">
+        <div class="tool"><div class="icon">▦</div><strong>Avios Value Calculator</strong><p>See how much your Avios are worth</p></div>
+        <div class="tool"><div class="icon orange">⌕</div><strong>Reward Seat Finder</strong><p>Search live reward availability</p></div>
+        <div class="tool"><div class="icon">✈</div><strong>Upgrade Calculator</strong><p>Check upgrade costs &amp; availability</p></div>
+        <div class="tool"><div class="icon purple">♣</div><strong>Companion Voucher Optimiser</strong><p>Find the best way to use your voucher</p></div>
+        <div class="tool"><div class="icon green">⌖</div><strong>Route Mapper</strong><p>Explore routes and Avios sweet spots</p></div>
+        <div class="tool"><div class="icon">▣</div><strong>Lounge Finder</strong><p>Find lounges at your destination</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="below-grid">
+    <div class="card">
+      <div class="card-head">
+        <h3>Latest Guides &amp; Articles</h3>
+        <a class="link" href="/guides">View all articles →</a>
+      </div>
+
+      {# Live data from the Guides Importer plugin. `guides_latest_top` is an
+         eager-loaded Twig global (registered by GuidesServiceProvider) holding
+         the 6 most recently published guides. We render all six here so the
+         card fills the full grid row alongside the stacked sidebar widgets
+         (Hot Topics + Avios↔Nectar) on its right, in two rows of three. If
+         the plugin is disabled or the corpus is empty, the global stays
+         undefined and we hide the section so the homepage doesn't show an
+         empty card. #}
+      {% set _guides = guides_latest_top|default([])|slice(0, 6) %}
+
+      {% if _guides|length > 0 %}
+        <div class="articles">
+          {% for g in _guides %}
+            <a class="article article--link" href="{{ g.href|e('html_attr') }}" aria-label="Read {{ g.title|e('html_attr') }}">
+              <div class="article-media">
+                {% if g.image_url %}
+                  <img src="{{ g.image_url|e('html_attr') }}" alt="" loading="lazy">
+                {% else %}
+                  {# No featured image attached yet — fall back to the brand-aware
+                     placeholder. Admins can generate one on /admin/guides. #}
+                  <img class="article-img--placeholder" src="{{ theme_asset('images/guide-placeholder.svg') }}" alt="" loading="lazy">
+                {% endif %}
+              </div>
+              <div class="article-body">
+                <h4 class="article-title">{{ g.title|e }}</h4>
+                {% if g.excerpt %}
+                  <p class="article-excerpt">{{ g.excerpt|e }}</p>
+                {% endif %}
+                <div class="article-meta">
+                  {% if g.published_at %}
+                    <span class="article-date">
+                      <i class="fa-regular fa-calendar" aria-hidden="true"></i>{{ g.published_at|date('j M Y') }}
+                    </span>
+                  {% else %}
+                    <span></span>
+                  {% endif %}
+                  <span class="article-arrow" aria-hidden="true">
+                    Read <i class="fa-solid fa-arrow-right"></i>
+                  </span>
+                </div>
+              </div>
+            </a>
+          {% endfor %}
+        </div>
+      {% else %}
+        <p class="card-empty">
+          No guides published yet. Head to <a class="link" href="/admin/guides">/admin/guides</a> to import the archive.
+        </p>
+      {% endif %}
+    </div>
+    {# Sidebar column — both interactive widgets (Hot Topics + the
+       Avios↔Nectar converter) stacked vertically so the homepage
+       keeps a single tidy two-column row instead of orphaning a
+       widget after Popular Tools was promoted to a full-width strip.
+       `ignore missing` keeps the page rendering when either plugin
+       is disabled. #}
+    <div class="home-sidebar-stack">
+      {% include '@plugin_forum_plugin/widgets/hot-topics.twig' ignore missing %}
+      {% include '@plugin_avios_to_nectar_plugin/widgets/converter.twig' ignore missing %}
+    </div>
+  </section>
+
+  <section class="benefits">
+    <div class="benefit"><div class="icon">♢</div><div><strong>Independent &amp; Trusted</strong><p>Unbiased advice to help you make the best decisions.</p></div></div>
+    <div class="benefit"><div class="icon">£</div><div><strong>Save Thousands</strong><p>Our strategies help travellers save thousands every year.</p></div></div>
+    <div class="benefit"><div class="icon">☷</div><div><strong>Expert Community</strong><p>Join 20,000+ like-minded travellers.</p></div></div>
+    <div class="benefit"><div class="icon">🎁</div><div><strong>Always Free</strong><p>All our tools, guides and deal alerts are 100% free.</p></div></div>
+  </section>
+</main>
+{% endblock %}
