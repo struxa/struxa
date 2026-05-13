@@ -1,0 +1,3046 @@
+:root {
+  --navy: #071d3a;
+  --navy-2: #09264d;
+  --blue: #1557e8;
+  --blue-2: #0b48cf;
+  --text: #071b3d;
+  --muted: #60708d;
+  --soft: #f5f8fd;
+  --border: #dfe7f3;
+  --green: #14a86b;
+  --red: #ef4444;
+  --orange: #f59e0b;
+  --shadow: 0 14px 35px rgba(7, 29, 58, .08);
+  --radius: 18px;
+}
+
+* { box-sizing: border-box; }
+
+body.theme-avios {
+  margin: 0;
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: var(--text);
+  background: #fff;
+}
+
+body.theme-avios a { color: inherit; text-decoration: none; }
+/* Buttons disguised as <a> must keep their button colour. The plain `body.theme-avios a`
+   rule above wins on specificity vs `.btn-primary`, which would otherwise leave the
+   hero CTA with dark inherited text on a blue background. */
+body.theme-avios a.btn { color: var(--text); }
+body.theme-avios a.btn-primary { color: #fff; }
+
+.av-skip {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  background: var(--blue);
+  color: #fff;
+  padding: 8px 14px;
+  border-radius: 6px;
+  z-index: 100;
+}
+.av-skip:focus { left: 12px; top: 12px; }
+
+.container {
+  width: min(1180px, calc(100% - 40px));
+  margin: 0 auto;
+}
+
+.topbar {
+  background: linear-gradient(90deg, #06172f, #08254d);
+  color: #fff;
+  font-size: 14px;
+}
+
+.topbar .container {
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.deal-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+}
+
+.deal-pill span {
+  background: #3ee78b;
+  color: #062817;
+  padding: 5px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+}
+
+.top-links {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  color: rgba(255, 255, 255, .9);
+}
+
+/* ---- Logged-in user chip in the topbar ---- */
+.top-user {
+  position: relative;
+}
+.top-user-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px 4px 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #fff;
+  font: inherit;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 140ms ease, border-color 140ms ease, transform 140ms ease;
+}
+.top-user-trigger:hover,
+.top-user[data-open="true"] .top-user-trigger {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.22);
+}
+.top-user-avatar {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: 800;
+  color: #fff;
+  background: linear-gradient(135deg, #6366f1, #2dd4bf);
+  letter-spacing: -0.02em;
+}
+.top-user-name {
+  max-width: 14ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.top-user-caret {
+  font-size: 10px;
+  opacity: 0.7;
+  transition: transform 200ms ease;
+}
+.top-user[data-open="true"] .top-user-caret { transform: rotate(180deg); }
+
+/* Dropdown — anchored to the trigger; hidden by default. */
+.top-user-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 200px;
+  padding: 6px;
+  background: #fff;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 12px;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.6) inset,
+    0 16px 40px -16px rgba(15, 23, 42, 0.35),
+    0 4px 10px -4px rgba(15, 23, 42, 0.12);
+  opacity: 0;
+  transform: translateY(-4px);
+  pointer-events: none;
+  transition: opacity 160ms ease, transform 160ms ease;
+  z-index: 60;
+}
+.top-user[data-open="true"] .top-user-menu {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+.top-user-menu::before {
+  /* Subtle caret pointing to the trigger. */
+  content: "";
+  position: absolute;
+  top: -5px;
+  right: 16px;
+  width: 10px;
+  height: 10px;
+  background: #fff;
+  border-left: 1px solid rgba(15, 23, 42, 0.08);
+  border-top: 1px solid rgba(15, 23, 42, 0.08);
+  transform: rotate(45deg);
+}
+/* `body.theme-avios a { color: inherit }` from line ~26 has higher
+   specificity than a single-class rule, so qualify every selector
+   here with `.top-user-menu` to win. */
+.top-user-menu .top-user-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: 8px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #0f172a;
+  text-decoration: none;
+  transition: background 120ms ease, color 120ms ease;
+}
+.top-user-menu .top-user-menu-item i { width: 14px; color: #94a3b8; transition: color 120ms ease; }
+.top-user-menu .top-user-menu-item:hover {
+  background: #f1f5f9;
+  color: #1557e8;
+}
+.top-user-menu .top-user-menu-item:hover i { color: #1557e8; }
+.top-user-menu .top-user-menu-item--quiet { color: #475569; }
+.top-user-menu .top-user-menu-item--quiet:hover { color: #b91c1c; background: #fef2f2; }
+.top-user-menu .top-user-menu-item--quiet:hover i { color: #b91c1c; }
+/* Staff-only shortcut into /admin. Subtle blue tint so it's obvious
+   without being shouty for normal account actions. */
+.top-user-menu .top-user-menu-item--admin {
+  color: #1d4ed8;
+  background: #eff6ff;
+}
+.top-user-menu .top-user-menu-item--admin i { color: #1d4ed8; }
+.top-user-menu .top-user-menu-item--admin:hover {
+  background: #dbeafe;
+  color: #1e3a8a;
+}
+.top-user-menu .top-user-menu-item--admin:hover i { color: #1e3a8a; }
+.top-user-menu-sep {
+  display: block;
+  height: 1px;
+  margin: 4px 6px;
+  background: rgba(15, 23, 42, 0.06);
+}
+
+.navbar {
+  background: rgba(255, 255, 255, .92);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  backdrop-filter: blur(14px);
+}
+
+.nav-inner {
+  height: 92px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 30px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 260px;
+}
+
+.logo {
+  width: 56px;
+  height: 56px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  filter: drop-shadow(0 6px 14px rgba(21, 87, 232, 0.18));
+}
+.logo img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+/* On the dark footer the white card behind the shield is fine — the logo
+   was designed against either background — so we just dial the drop
+   shadow down a touch. */
+.logo--footer {
+  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.4));
+}
+
+.brand h1 {
+  margin: 0;
+  font-size: 26px;
+  line-height: 1;
+  letter-spacing: -0.04em;
+}
+
+.brand p {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.nav-menu {
+  display: flex;
+  align-items: center;
+  gap: 30px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.nav-menu a.active {
+  color: var(--blue);
+  position: relative;
+}
+
+.nav-menu a.active::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -14px;
+  height: 3px;
+  background: var(--blue);
+  border-radius: 4px;
+}
+
+/* ── Nav dropdowns ──────────────────────────────────────────────────────
+   Top-level items whose label has at least one child (via the css_class
+   `submenu-of-<parent-slug>` convention) render as a hover/focus dropdown.
+   Built around `.nav-item--has-menu > .nav-submenu`. The dropdown stays
+   open while the cursor / focus is anywhere inside the wrapper, so the
+   gap between the parent link and the panel doesn't kill the hover. */
+.nav-item {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+.nav-item--has-menu > .nav-link { display: inline-flex; align-items: center; gap: 4px; }
+.nav-caret {
+  font-size: 10px;
+  color: var(--muted);
+  transition: transform .15s ease;
+}
+.nav-item--has-menu:hover .nav-caret,
+.nav-item--has-menu:focus-within .nav-caret { transform: translateY(1px); color: var(--blue); }
+
+.nav-submenu {
+  position: absolute;
+  top: 100%;
+  left: -16px;
+  margin-top: 14px;
+  min-width: 220px;
+  padding: 6px;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 18px 38px rgba(7, 22, 45, .12);
+  display: grid;
+  gap: 2px;
+  z-index: 50;
+
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-6px);
+  transition: opacity .14s ease, transform .14s ease, visibility 0s linear .14s;
+}
+/* Invisible bridge between parent link and panel — keeps hover continuous. */
+.nav-submenu::before {
+  content: "";
+  position: absolute;
+  top: -14px; left: 0; right: 0; height: 14px;
+}
+.nav-item--has-menu:hover > .nav-submenu,
+.nav-item--has-menu:focus-within > .nav-submenu {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+  transition: opacity .14s ease, transform .14s ease, visibility 0s;
+}
+
+.nav-submenu__item {
+  display: block;
+  padding: 9px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  text-decoration: none;
+  transition: background .12s, color .12s;
+}
+.nav-submenu__item:hover,
+.nav-submenu__item:focus-visible {
+  background: var(--soft, #f3f6fc);
+  color: var(--blue);
+  outline: 0;
+}
+
+.nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+/* Header search trigger — subtle pill with a clean Font Awesome glass
+   icon. Hovering nudges the icon to give a sense of "open the search"
+   without screaming for attention. The ring lights up in brand blue on
+   focus for keyboard users. */
+.search {
+  position: relative;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #475569;
+  background: #fff;
+  cursor: pointer;
+  font-size: 15px;
+  transition: color .18s ease, border-color .18s ease,
+              background-color .18s ease, transform .18s ease,
+              box-shadow .18s ease;
+}
+.search i { transition: transform .25s ease; }
+.search:hover {
+  color: var(--brand, #1557e8);
+  border-color: rgba(21, 87, 232, .35);
+  background: #f5f9ff;
+  box-shadow: 0 6px 14px -8px rgba(21, 87, 232, .45);
+}
+.search:hover i { transform: scale(1.08); }
+.search:focus-visible {
+  outline: none;
+  border-color: var(--brand, #1557e8);
+  box-shadow: 0 0 0 3px rgba(21, 87, 232, .22);
+}
+.search:active { transform: translateY(1px); }
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 22px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  font-weight: 800;
+  font-size: 14px;
+  cursor: pointer;
+  background: #fff;
+  color: var(--text);
+}
+
+.btn-primary {
+  background: linear-gradient(180deg, #1d62f0, #0b4cdb);
+  color: #fff;
+  border-color: transparent;
+  box-shadow: 0 12px 24px rgba(21, 87, 232, .18);
+}
+
+/* "Join free" header CTA — distinct, premium feel:
+   - deeper, two-stop brand gradient with a top inner highlight so it
+     reads as raised rather than flat,
+   - tighter padding than .btn (the header bar should feel compact),
+   - icon + label with a clear gap,
+   - hover lifts the button and brightens the gradient,
+   - active presses down so it feels physical. */
+.btn-join {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 18px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  font-weight: 800;
+  font-size: 13.5px;
+  letter-spacing: .01em;
+  color: #fff !important;
+  text-decoration: none;
+  cursor: pointer;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, .18), rgba(255, 255, 255, 0)) padding-box,
+    linear-gradient(180deg, #2a72ff 0%, #1557e8 55%, #0b40c6 100%) padding-box;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .35),
+    0 8px 18px -6px rgba(21, 87, 232, .55),
+    0 2px 4px rgba(11, 64, 198, .25);
+  transition: transform .18s ease, box-shadow .22s ease, filter .18s ease;
+}
+.btn-join i {
+  font-size: 12px;
+  opacity: .95;
+  transition: transform .25s ease;
+}
+.btn-join:hover {
+  filter: brightness(1.06);
+  transform: translateY(-1px);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .45),
+    0 12px 22px -6px rgba(21, 87, 232, .65),
+    0 3px 6px rgba(11, 64, 198, .3);
+}
+.btn-join:hover i { transform: translateX(1px) rotate(-4deg); }
+.btn-join:focus-visible {
+  outline: none;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .45),
+    0 0 0 3px rgba(21, 87, 232, .28),
+    0 8px 18px -6px rgba(21, 87, 232, .55);
+}
+.btn-join:active {
+  transform: translateY(0);
+  filter: brightness(.98);
+  box-shadow:
+    inset 0 2px 4px rgba(0, 0, 0, .12),
+    0 4px 10px -4px rgba(21, 87, 232, .4);
+}
+
+.hero {
+  position: relative;
+  overflow: hidden;
+  background:
+    linear-gradient(90deg, #fff 0%, #fff 36%, rgba(255, 255, 255, .7) 51%, rgba(255, 255, 255, 0) 70%),
+    url('https://images.unsplash.com/photo-1436491865332-7a61a109cc05?q=80&w=1800&auto=format&fit=crop') center right / cover no-repeat;
+  min-height: 380px;
+  border-bottom: 1px solid var(--border);
+}
+
+.hero-content {
+  width: min(540px, 100%);
+  padding: 56px 0 54px;
+}
+
+.hero h2 {
+  margin: 0;
+  font-size: clamp(44px, 6vw, 62px);
+  line-height: .98;
+  letter-spacing: -0.065em;
+}
+
+.hero h2 span { color: var(--blue); }
+
+/* --- Hero split-flap reveal --------------------------------------------------
+   The hero title is composed of per-character cells so JS can scramble each
+   glyph on load (Solari-board feel). The cells render inline so layout matches
+   plain text; the `perspective` on the container gives the rotateX flip depth.
+
+   When a cell is mid-flap we paint it as a tiny dark "flap" (cream text on
+   slate) — a hat-tip to airport boards — then it settles back to the parent
+   colour once the scramble finishes. */
+.hero-title {
+  margin: 0;
+  font-size: clamp(44px, 6vw, 62px);
+  line-height: .98;
+  letter-spacing: -0.065em;
+  perspective: 600px;
+}
+.hero-title__line {
+  display: block;
+}
+.hero-title__line--accent { color: var(--blue); }
+
+.hero-flap {
+  display: inline-block;
+  /* Pivot at centre — matches Solari boards where the flap hinge sits along
+     the horizontal split line bisecting the character. The actual flip is
+     animated per-flap via the Web Animations API in main.js (not via a CSS
+     keyframe loop), which keeps each rotation visibly discrete and synced
+     with the corresponding text swap. */
+  transform-origin: 50% 50%;
+  transition: color .18s ease, background-color .18s ease,
+              box-shadow .18s ease, padding .18s ease;
+  will-change: transform;
+}
+.hero-flap.is-flapping {
+  /* Mid-flap chars get the Solari-board treatment: cream caps on a slate cell
+     with an inset split line. Critically, we do NOT change font-family,
+     letter-spacing, font-weight, padding, or overflow here — those would all
+     alter the cell's layout box vs. its settled state and either grow the
+     title horizontally (font/spacing/padding) or shift the inline-block
+     baseline vertically (overflow:hidden moves the baseline to the bottom
+     margin edge per CSS 2.1 §10.8.1, which would push the whole hero line
+     up or down). The cells' widths are additionally locked by JS (see
+     main.js) so the title's overall footprint stays exactly the same whether
+     scrambling or resolved. */
+  color: #f8f5dc;
+  border-radius: 4px;
+  /* Inset border draws the bevel; the gradient below paints the canonical
+     mid-cell split line that gives a flap board its mechanical identity. */
+  box-shadow:
+    inset 0 0 0 1px rgba(0, 0, 0, .55),
+    inset 0 -1px 0 rgba(255, 255, 255, .08);
+  background-image: linear-gradient(
+    to bottom,
+    #1a2a44 0%,
+    #1a2a44 calc(50% - 1px),
+    rgba(0, 0, 0, .55) calc(50% - 1px),
+    rgba(0, 0, 0, .55) 50%,
+    #15233a calc(50% + 0.5px),
+    #15233a 100%
+  );
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-flap.is-flapping {
+    animation: none;
+    background: transparent;
+    color: inherit;
+    box-shadow: none;
+  }
+}
+
+.hero p {
+  margin: 18px 0 28px;
+  color: var(--muted);
+  font-size: 18px;
+  line-height: 1.65;
+  max-width: 510px;
+}
+
+.hero-actions { display: flex; gap: 16px; flex-wrap: wrap; }
+
+/* --- Hero trust strip -------------------------------------------------------
+   Two "trust chips" — a soft, slightly translucent pill each — that group the
+   audience claim and the Trustpilot rating into distinct, scannable units.
+   Each chip sits on a tinted white background with a thin border and a hint
+   of shadow so they read as floating UI elements over the hero photo without
+   pulling the eye away from the headline + CTAs. */
+.trust {
+  margin-top: 28px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.trust__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 14px;
+  background: rgba(255, 255, 255, .82);
+  border: 1px solid rgba(11, 27, 53, .08);
+  border-radius: 14px;
+  box-shadow: 0 1px 2px rgba(7, 22, 45, .04);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.trust__chip-icon {
+  color: var(--blue);
+  font-size: 15px;
+  flex: none;
+}
+
+.trust__chip-label {
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.trust__stars {
+  display: inline-flex;
+  gap: 2px;
+  color: #fff;
+  flex: none;
+}
+.trust__stars i {
+  background: #00b67a;
+  width: 18px;
+  height: 18px;
+  display: grid;
+  place-items: center;
+  font-style: normal;
+  font-size: 11px;
+  border-radius: 3px;
+}
+
+.trust__rating-text {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  flex-wrap: wrap;
+  line-height: 1.2;
+}
+.trust__rating-score {
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: -.01em;
+}
+.trust__rating-meta {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* The Trustpilot brand sits to the right of the score, separated by a thin
+   green hairline. Matches the green Trustpilot livery without going as far as
+   a full logo (we don't have rights to that — the text mark + star is fine
+   for editorial use). */
+.trust__brand {
+  display: inline-flex;
+  align-items: center;
+  font-size: 12px;
+  font-weight: 800;
+  color: #00b67a;
+  letter-spacing: .02em;
+  padding-left: 10px;
+  border-left: 1px solid rgba(0, 182, 122, .25);
+  white-space: nowrap;
+}
+
+.top-deal-card {
+  position: absolute;
+  right: max(40px, calc((100vw - 1180px) / 2));
+  bottom: 28px;
+  width: 300px;
+  border-radius: 18px;
+  padding: 22px;
+  color: #fff;
+  background:
+    radial-gradient(circle at 100% 0%, rgba(21, 87, 232, .35) 0%, transparent 60%),
+    linear-gradient(155deg, rgba(7, 22, 45, .92) 0%, rgba(11, 31, 68, .88) 60%, rgba(20, 55, 135, .88) 100%);
+  backdrop-filter: blur(18px) saturate(140%);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  border: 1px solid rgba(255, 255, 255, .12);
+  box-shadow:
+    0 24px 60px rgba(0, 0, 0, .35),
+    inset 0 1px 0 rgba(255, 255, 255, .14);
+}
+
+/* Legacy fallback (content-type deal entry, no plugin data). */
+.top-deal-card small {
+  display: block;
+  color: rgba(255, 255, 255, .72);
+  font-weight: 800;
+  margin-bottom: 12px;
+}
+.top-deal-card h3 {
+  margin: 0 0 12px;
+  font-size: 20px;
+  line-height: 1.35;
+}
+.top-deal-card a { color: #75a7ff; font-weight: 800; font-size: 14px; }
+
+/* === Rich plugin-driven layout === */
+.top-deal-card--rich { padding: 20px 22px 22px; }
+.top-deal-card--rich h3,
+.top-deal-card--rich p { margin: 0; }
+.top-deal-card--rich a { color: inherit; }
+
+.top-deal-card__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 14px;
+}
+.top-deal-card__eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: linear-gradient(135deg, #f97316, #ea580c);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .14em;
+  padding: 4px 10px;
+  border-radius: 999px;
+  box-shadow: 0 4px 10px rgba(249, 115, 22, .35);
+}
+.top-deal-card__flame { filter: drop-shadow(0 1px 1px rgba(0, 0, 0, .25)); font-size: 12px; }
+
+.top-deal-card__season {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+}
+.top-deal-card__season--offpeak { color: #6ee7b7; background: rgba(110, 231, 183, .12); }
+.top-deal-card__season--peak    { color: #fbbf24; background: rgba(251, 191, 36, .12); }
+
+.top-deal-card__route {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 0 12px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: .14em;
+  color: rgba(255, 255, 255, .78);
+}
+.top-deal-card__iata {
+  background: rgba(255, 255, 255, .08);
+  border: 1px solid rgba(255, 255, 255, .15);
+  padding: 5px 10px;
+  border-radius: 6px;
+  color: #fff;
+}
+.top-deal-card__plane {
+  flex: 1;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, .9);
+  font-size: 12px;
+}
+.top-deal-card__plane::before,
+.top-deal-card__plane::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .35), transparent);
+}
+.top-deal-card__plane i { margin: 0 8px; transform: rotate(0deg); }
+
+.top-deal-card__dest {
+  font-size: 26px !important;
+  line-height: 1.1 !important;
+  letter-spacing: -0.025em;
+  font-weight: 800;
+  margin: 0 0 2px !important;
+  color: #fff;
+}
+.top-deal-card__cabin {
+  margin: 0 0 14px !important;
+  color: rgba(255, 255, 255, .65);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.top-deal-card__price {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, .10), rgba(255, 255, 255, .04));
+  border: 1px solid rgba(255, 255, 255, .12);
+  margin: 0 0 16px;
+}
+.top-deal-card__price-label {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, .55);
+}
+.top-deal-card__price-amount {
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  color: #fff;
+  line-height: 1;
+}
+.top-deal-card__price-currency {
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .12em;
+  color: rgba(255, 255, 255, .75);
+}
+
+.top-deal-card__cta,
+.top-deal-card__cta:link,
+.top-deal-card__cta:visited,
+.top-deal-card__cta:hover,
+.top-deal-card__cta:focus,
+.top-deal-card__cta:active {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 11px 18px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #ffffff 0%, #f1f5ff 100%);
+  color: #0b1f44;
+  font-size: 14px;
+  font-weight: 800;
+  text-decoration: none;
+  letter-spacing: .01em;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, .25);
+  transition: transform .15s, box-shadow .18s, filter .15s;
+}
+.top-deal-card__cta:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.02);
+  box-shadow: 0 12px 26px rgba(0, 0, 0, .35);
+}
+.top-deal-card__cta:focus-visible {
+  outline: 3px solid rgba(255, 255, 255, .55);
+  outline-offset: 2px;
+}
+.top-deal-card__cta-arrow { transition: transform .15s; display: inline-block; }
+.top-deal-card__cta:hover .top-deal-card__cta-arrow { transform: translateX(3px); }
+
+.feature-strip { margin-top: 26px; }
+
+.feature-card {
+  background: #fff;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  border-radius: 12px;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  overflow: hidden;
+  margin-top: -1px;
+}
+
+.feature-card--n2 { grid-template-columns: repeat(2, 1fr); }
+.feature-card--n3 { grid-template-columns: repeat(3, 1fr); }
+.feature-card--n4 { grid-template-columns: repeat(4, 1fr); }
+.feature-card--n5 { grid-template-columns: repeat(5, 1fr); }
+.feature-card--n6 { grid-template-columns: repeat(6, 1fr); }
+
+.feature-item {
+  padding: 28px 24px;
+  display: flex;
+  gap: 18px;
+  border-right: 1px solid var(--border);
+}
+
+.feature-item:last-child { border-right: 0; }
+
+.icon {
+  width: 52px;
+  height: 52px;
+  flex: 0 0 52px;
+  border-radius: 16px;
+  display: grid;
+  place-items: center;
+  font-size: 24px;
+  background: #eaf1ff;
+  color: var(--blue);
+}
+
+.icon.purple { background: #f2eaff; color: #8b5cf6; }
+.icon.green { background: #e9faf1; color: #0f9d65; }
+.icon.orange { background: #fff4dd; color: #f59e0b; }
+
+/* Font Awesome glyph centred inside an .icon tile, inheriting tile color. */
+.icon > i,
+.icon > .fa,
+.icon > .fa-solid,
+.icon > .fa-regular,
+.icon > .fa-brands {
+  font-size: 24px;
+  line-height: 1;
+  color: inherit;
+}
+
+.feature-item h3, .card h3 {
+  margin: 0 0 8px;
+  font-size: 17px;
+  letter-spacing: -0.02em;
+}
+
+.feature-item p {
+  margin: 0 0 14px;
+  color: var(--muted);
+  line-height: 1.55;
+  font-size: 14px;
+}
+
+.link { color: var(--blue); font-weight: 800; font-size: 14px; cursor: pointer; }
+
+/* Pill CTA used on feature cards. Picks colour via .feature-cta--{blue,purple,green,orange}. */
+.feature-cta {
+  --cta-bg: #eaf1ff;
+  --cta-fg: var(--blue);
+  --cta-bg-hover: var(--blue);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: var(--cta-bg);
+  color: var(--cta-fg);
+  font-weight: 700;
+  font-size: 13px;
+  line-height: 1;
+  letter-spacing: -0.005em;
+  text-decoration: none;
+  white-space: nowrap;
+  transition:
+    background-color .2s ease,
+    color .2s ease,
+    box-shadow .2s ease,
+    transform .15s ease;
+}
+
+.feature-cta:hover,
+.feature-cta:focus-visible {
+  background: var(--cta-bg-hover);
+  color: #fff;
+  box-shadow: 0 8px 18px rgba(7, 29, 58, .14);
+  transform: translateY(-1px);
+}
+
+.feature-cta:focus-visible {
+  outline: 2px solid var(--cta-fg);
+  outline-offset: 2px;
+}
+
+.feature-cta__arrow {
+  display: inline-block;
+  transition: transform .2s ease;
+}
+
+.feature-cta:hover .feature-cta__arrow,
+.feature-cta:focus-visible .feature-cta__arrow {
+  transform: translateX(3px);
+}
+
+.feature-cta--purple { --cta-bg: #f2eaff; --cta-fg: #8b5cf6; --cta-bg-hover: #8b5cf6; }
+.feature-cta--green  { --cta-bg: #e9faf1; --cta-fg: #0f9d65; --cta-bg-hover: #0f9d65; }
+.feature-cta--orange { --cta-bg: #fff4dd; --cta-fg: #c97800; --cta-bg-hover: #f59e0b; }
+
+.ticker {
+  margin: 26px 0;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--soft);
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  font-size: 14px;
+}
+
+.ticker strong {
+  padding: 18px 22px;
+  border-right: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.ticker-track {
+  flex: 1;
+  display: flex;
+  gap: 34px;
+  padding: 0 22px;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.dot { color: var(--green); margin-right: 8px; }
+
+.grid-main {
+  display: grid;
+  grid-template-columns: 1fr 1.45fr 1.25fr;
+  gap: 18px;
+  /* `align-items: stretch` (grid's default) lets the three widgets
+     match the height of the tallest one. The previous `start` value
+     left each card free-standing and produced a ragged bottom edge
+     across the row. All three widgets render `<aside|section class="card">`
+     as their root, so they're direct grid items and stretch naturally. */
+}
+
+.card {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 10px 25px rgba(7, 29, 58, .04);
+  padding: 22px;
+}
+
+.card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.field { margin-bottom: 14px; }
+
+.field label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 13px;
+  color: var(--text);
+  font-weight: 600;
+}
+
+.theme-avios select,
+.theme-avios input {
+  width: 100%;
+  height: 46px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--muted);
+  padding: 0 14px;
+  background: #fff;
+  font: inherit;
+}
+
+.balance {
+  margin-top: 18px;
+  background: var(--soft);
+  border-radius: 14px;
+  padding: 18px;
+  display: flex;
+  gap: 14px;
+  align-items: center;
+}
+
+.balance strong { display: block; font-size: 22px; }
+
+.route-list, .offer-list { display: grid; gap: 9px; }
+
+.route, .offer {
+  display: grid;
+  grid-template-columns: 96px 1fr auto;
+  gap: 16px;
+  align-items: center;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.route:last-child, .offer:last-child { border-bottom: 0; padding-bottom: 0; }
+
+.route img, .article img {
+  width: 96px;
+  height: 86px;
+  border-radius: 10px;
+  object-fit: cover;
+}
+
+.route h4, .offer h4, .article h4 {
+  margin: 0 0 5px;
+  font-size: 15px;
+  line-height: 1.35;
+}
+
+.route p, .offer p, .article p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.route strong { display: block; margin-top: 9px; font-size: 17px; }
+
+.tag {
+  padding: 6px 9px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 800;
+  background: #e6faee;
+  color: #0b8b55;
+  white-space: nowrap;
+}
+
+.tag.orange { background: #fff4dd; color: #c97800; }
+
+/* Clickable redemption rows — keep the look of `.route` but get rid of underline + body
+   colour inheritance from `a`, and add a subtle hover lift. */
+.route-link {
+  text-decoration: none;
+  color: inherit;
+  transition: transform .18s ease, box-shadow .18s ease, background-color .18s ease;
+  border-radius: 12px;
+  padding: 4px;
+  margin: -4px;
+}
+.route-link:hover {
+  background: var(--soft);
+  transform: translateY(-1px);
+}
+.route-link:hover h4 { color: var(--brand, #1c64f2); }
+
+/* Placeholder shown when a destination review hasn't had its hero image generated yet. */
+.route-img-placeholder {
+  width: 96px;
+  height: 86px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #eef4ff 0%, #dfe8ff 100%);
+  color: #4f6dba;
+  display: grid;
+  place-items: center;
+  font-size: 28px;
+}
+
+/* "From / 16,500 / Avios" pill replaces the old BEST VALUE / POPULAR labels.
+   The amount sits on its own line so big numbers (e.g. 121,000) still look balanced. */
+.tag-avios {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1.05;
+  padding: 8px 12px;
+  background: #e6faee;
+  color: #0b8b55;
+  border-radius: 10px;
+  min-width: 86px;
+}
+.tag-avios__from {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  opacity: .8;
+}
+.tag-avios__amount {
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: -.01em;
+  margin: 2px 0 1px;
+}
+.tag-avios__unit {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  opacity: .8;
+}
+
+.offer { grid-template-columns: 92px 1fr auto; }
+
+.offer img {
+  width: 92px;
+  height: 58px;
+  object-fit: contain;
+  border-radius: 8px;
+  background: var(--soft);
+  padding: 4px;
+}
+
+.bonus {
+  display: inline-block;
+  margin: 4px 0 8px;
+  color: #ef3361;
+  background: #fff1f5;
+  padding: 5px 8px;
+  border-radius: 7px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.below-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 18px;
+  margin-top: 18px;
+}
+
+/* Tools row — auto-fit grid so the 6 tiles flow naturally into 6/4/3/2
+   columns as the container narrows. No media queries needed; the
+   `minmax(150px, 1fr)` keeps each tile readable while letting the
+   browser pack as many as will fit. Used in the full-width
+   `.tools-strip` row on the homepage. */
+.tools-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 14px;
+}
+
+.tools-strip {
+  margin-top: 18px;
+}
+
+/* Sidebar column on the homepage — stacks the two interactive widgets
+   (Hot Topics + Avios↔Nectar converter) vertically so the second
+   `.below-grid` row keeps a clean 2fr / 1fr split. */
+.home-sidebar-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.tool {
+  text-align: center;
+  padding: 12px 6px;
+}
+
+.tool .icon {
+  margin: 0 auto 12px;
+  width: 58px;
+  height: 58px;
+}
+
+.tool strong { display: block; font-size: 14px; margin-bottom: 6px; }
+.tool p { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.35; }
+
+.market table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.market td {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.market td:nth-child(2) { text-align: right; font-weight: 800; }
+.market td:nth-child(3) { text-align: right; color: var(--red); }
+.market .up { color: var(--green); }
+
+.spark {
+  margin-top: 14px;
+  height: 46px;
+  background: linear-gradient(135deg,
+    transparent 0 8%, rgba(21, 87, 232, .12) 8% 10%,
+    transparent 10% 18%, rgba(21, 87, 232, .18) 18% 20%,
+    transparent 20% 30%, rgba(21, 87, 232, .15) 30% 32%,
+    transparent 32% 46%, rgba(21, 87, 232, .18) 46% 48%,
+    transparent 48% 56%, rgba(21, 87, 232, .16) 56% 58%,
+    transparent 58% 70%, rgba(21, 87, 232, .2) 70% 72%,
+    transparent 72%);
+  border-bottom: 3px solid var(--blue);
+  border-radius: 8px;
+  opacity: .85;
+}
+
+/* ---------- Hot Topics widget (homepage) ---------- */
+.hot-topics {
+  position: relative;
+  overflow: hidden;
+  /* Subtle warm radial glow on a near-white base so the card feels
+     "hot" without screaming. Tint deepens at the top-right corner. */
+  background:
+    radial-gradient(120% 80% at 100% 0%, rgba(245, 158, 11, 0.10), transparent 60%),
+    radial-gradient(140% 100% at 0% 100%, rgba(239, 68, 68, 0.06), transparent 55%),
+    #fff;
+  border-color: rgba(245, 158, 11, 0.18);
+}
+.hot-topics::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 3px;
+  background: linear-gradient(90deg, #f59e0b, #f97316 35%, #ef4444 70%, #d946ef);
+}
+.hot-topics-head h3 {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 16px;
+  letter-spacing: -0.01em;
+}
+.hot-topics-flame {
+  font-size: 18px;
+  filter: drop-shadow(0 1px 0 rgba(245, 158, 11, 0.35));
+  animation: hot-flicker 2.4s ease-in-out infinite;
+}
+@keyframes hot-flicker {
+  0%, 100% { transform: rotate(-2deg) scale(1); }
+  50%      { transform: rotate(2deg) scale(1.08); }
+}
+.hot-topics-window {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(245, 158, 11, 0.14);
+  color: #b45309;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.hot-topics-list {
+  list-style: none;
+  margin: 14px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  counter-reset: hot-rank;
+}
+.hot-topic {
+  position: relative;
+  border-radius: 12px;
+  background: #fff;
+  border: 1px solid rgba(15, 23, 42, 0.06);
+  overflow: hidden;
+  transition: transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease;
+}
+.hot-topic::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  border-radius: 12px 0 0 12px;
+}
+.hot-topic--warm::before { background: linear-gradient(180deg, #fbbf24, #f59e0b); }
+.hot-topic--hot::before  { background: linear-gradient(180deg, #f97316, #ef4444); }
+.hot-topic--lava::before { background: linear-gradient(180deg, #ef4444, #db2777); }
+.hot-topic:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px -12px rgba(239, 68, 68, 0.25);
+  border-color: rgba(245, 158, 11, 0.4);
+}
+.hot-topic-link {
+  display: grid;
+  grid-template-columns: 28px 1fr auto;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 12px 10px 16px;
+  text-decoration: none;
+  color: inherit;
+}
+.hot-topic-rank {
+  font-size: 18px;
+  font-weight: 800;
+  color: rgba(15, 23, 42, 0.25);
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+.hot-topic--hot  .hot-topic-rank { color: #f97316; }
+.hot-topic--lava .hot-topic-rank { color: #ef4444; }
+.hot-topic-body { min-width: 0; }
+.hot-topic-forum {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #94a3b8;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.hot-topic-forum i { color: #cbd5e1; }
+.hot-topic-title {
+  margin: 2px 0 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.hot-topic-link:hover .hot-topic-title { color: var(--blue, #1557e8); }
+.hot-topic-meta {
+  margin: 4px 0 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11.5px;
+  color: #64748b;
+}
+.hot-topic-meta strong { color: #334155; font-weight: 600; }
+.hot-topic-avatar {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 1.5px solid #fff;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.1);
+}
+.hot-topic-dot { color: #cbd5e1; }
+.hot-topic-stats {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.hot-topic-stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.04);
+  font-size: 12px;
+  font-weight: 700;
+  color: #475569;
+}
+.hot-topic-stat strong { font-weight: 800; font-variant-numeric: tabular-nums; }
+.hot-topic-stat--posts {
+  background: linear-gradient(135deg, rgba(249, 115, 22, 0.14), rgba(239, 68, 68, 0.14));
+  color: #c2410c;
+}
+.hot-topic--lava .hot-topic-stat--posts {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(217, 70, 239, 0.16));
+  color: #be123c;
+}
+.hot-topic-stat--likes {
+  background: rgba(244, 63, 94, 0.10);
+  color: #be123c;
+}
+.hot-topic-stat--new {
+  background: rgba(16, 185, 129, 0.14);
+  color: #047857;
+  letter-spacing: 0.05em;
+  font-size: 10.5px;
+}
+
+.hot-topics-empty {
+  margin: 16px 0 0;
+  padding: 14px 16px;
+  background: rgba(245, 158, 11, 0.06);
+  border-radius: 10px;
+  border: 1px dashed rgba(245, 158, 11, 0.3);
+  font-size: 13px;
+  color: #475569;
+}
+.hot-topics-empty a { color: var(--blue, #1557e8); font-weight: 700; }
+
+.hot-topics-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 14px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--blue, #1557e8);
+  text-decoration: none;
+}
+.hot-topics-cta:hover { text-decoration: underline; }
+
+/* Homepage "Latest Guides & Articles" cards — editorial grid of
+   image-led cards with a clear hierarchy (image → title → excerpt →
+   meta strip). Hover zooms the image and slides the "Read →" arrow
+   so the card reads as interactive without shouting. */
+.articles {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
+}
+
+.article {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 1px 2px rgba(7, 29, 58, .03);
+}
+
+/* Media — fixed aspect ratio so all six tiles in the 2×3 grid have
+   the same image height regardless of source dimensions. */
+.article-media {
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
+  position: relative;
+  background: var(--soft);
+}
+.article-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform .45s cubic-bezier(.2, .6, .2, 1);
+}
+
+/* SVG placeholder uses `object-fit: contain` so the logo wordmark
+   stays in frame; the navy→blue gradient fills any letterboxed area. */
+.article-media img.article-img--placeholder {
+  object-fit: contain;
+  background: linear-gradient(135deg, #06172f, var(--blue));
+  padding: 14%;
+}
+
+/* Body — flex column so the meta strip can pin to the bottom even
+   when titles wrap to different line counts across the row. */
+.article-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px 16px 14px;
+  flex: 1;
+}
+
+/* Doubled-class selector (`.article .article-title`) gives 0,2,0
+   specificity, which beats the legacy combined selector
+   `.route h4, .offer h4, .article h4` (0,1,1) used elsewhere on the
+   site. Same trick for the excerpt below. */
+.article .article-title {
+  margin: 0;
+  font-size: 15.5px;
+  font-weight: 700;
+  line-height: 1.32;
+  letter-spacing: -.012em;
+  color: var(--text);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.article .article-excerpt {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--muted);
+  display: -webkit-box;
+  /* 6 lines pairs with the 360-char excerpt cap in GuidesTwigExtension
+     so cards have enough vertical weight to match the sidebar stack
+     (Hot Topics + Avios↔Nectar) and we don't leave a gap below the
+     "Latest Guides" card. */
+  -webkit-line-clamp: 6;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Meta strip — pinned to the bottom via `margin-top: auto` so cards
+   in the same row line up at their footers even when titles or
+   excerpts have different lengths. */
+.article-meta {
+  margin-top: auto;
+  padding-top: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--muted);
+  border-top: 1px dashed #e5edf7;
+}
+.article-date i {
+  color: var(--blue);
+  font-size: 11px;
+  margin-right: 6px;
+}
+.article-arrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--blue);
+  font-weight: 800;
+  letter-spacing: .02em;
+  text-transform: uppercase;
+  font-size: 11px;
+}
+.article-arrow i {
+  font-size: 10px;
+  transition: transform .15s ease;
+}
+
+/* Whole-card link variant used by the homepage strip. Hover lifts the
+   tile, brightens the border, zooms the image and slides the arrow. */
+.article--link {
+  color: inherit;
+  text-decoration: none;
+  transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+}
+.article--link:hover,
+.article--link:focus-visible {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 30px -16px rgba(7, 29, 58, .18);
+  border-color: #c7d2fe;
+}
+.article--link:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}
+.article--link:hover .article-title { color: var(--blue); }
+.article--link:hover .article-media img { transform: scale(1.04); }
+.article--link:hover .article-arrow i { transform: translateX(3px); }
+
+/* Empty-state copy when the guides plugin returns zero rows. Lives in the
+   same .card container so it inherits the card's padding. */
+.card-empty {
+  color: var(--muted, #475569);
+  font-size: 14px;
+  margin: 4px 0 0;
+}
+
+.signup p { color: var(--muted); line-height: 1.5; margin-bottom: 20px; }
+.signup .btn { width: 100%; margin-top: 12px; }
+
+.benefits {
+  margin: 26px 0;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--soft);
+  overflow: hidden;
+}
+
+.benefit {
+  display: flex;
+  gap: 14px;
+  padding: 22px;
+  align-items: center;
+}
+
+.benefit strong { display: block; margin-bottom: 4px; }
+.benefit p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.4; }
+
+footer {
+  background: linear-gradient(90deg, #06172f, #08264e);
+  color: #fff;
+  padding: 34px 0;
+}
+
+.footer-grid {
+  display: grid;
+  grid-template-columns: 2fr repeat(4, 1fr);
+  gap: 34px;
+}
+
+footer h4 { margin: 0 0 12px; }
+footer a, footer p { display: block; margin: 8px 0; color: rgba(255, 255, 255, .78); font-size: 14px; }
+
+@media (max-width: 1000px) {
+  .nav-menu { display: none; }
+  .top-deal-card { display: none; }
+  .feature-card { grid-template-columns: repeat(2, 1fr); }
+  .grid-main, .below-grid { grid-template-columns: 1fr; }
+  /* .tools-row no longer needs an override — auto-fit handles it. */
+  .benefits { grid-template-columns: repeat(2, 1fr); }
+  .footer-grid { grid-template-columns: 1fr 1fr; }
+}
+
+@media (max-width: 640px) {
+  .container { width: min(100% - 24px, 1180px); }
+  .top-links, .search { display: none; }
+  .nav-inner { height: 78px; }
+  .brand h1 { font-size: 21px; }
+  .brand p { display: none; }
+  .logo { width: 44px; height: 44px; }
+  .hero {
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, .92), rgba(255, 255, 255, .86)),
+      url('https://images.unsplash.com/photo-1436491865332-7a61a109cc05?q=80&w=1200&auto=format&fit=crop') center / cover no-repeat;
+  }
+  .hero h2 { font-size: 42px; }
+  .hero-title { font-size: 42px; }
+  .feature-card, .articles, .benefits, .footer-grid { grid-template-columns: 1fr; }
+  .feature-item { border-right: 0; border-bottom: 1px solid var(--border); }
+  .ticker-track { overflow-x: auto; }
+  .route, .offer { grid-template-columns: 76px 1fr; }
+  .route .tag { display: none; }
+  .route img { width: 76px; height: 70px; }
+  /* .tools-row stays auto-fit at this breakpoint too. */
+}
+
+/* =============================================================
+   Auth pages — Login / Register / 2FA challenge.
+   ============================================================= */
+
+/* When the auth page is active, hide the site-wide chrome (topbar,
+   navbar and footer) so the login experience is focused and full-
+   bleed. We rely on :has(), which is now baseline-supported in all
+   evergreen browsers. The auth card still includes its own brand
+   link back to the homepage. */
+body:has(.auth-shell) .topbar,
+body:has(.auth-shell) .navbar,
+body:has(.auth-shell) > footer {
+  display: none !important;
+}
+body:has(.auth-shell) .theme-main {
+  padding: 0;
+  margin: 0;
+}
+
+.auth-shell {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 56px 20px 56px;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+/* Atmospheric background — soft sky gradient with two airline-friendly
+   colour washes (indigo + cyan), plus a faint dot grid texture so the
+   card has something to sit on visually. */
+.auth-bg {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(60% 70% at 8% 0%,   rgba(21, 87, 232, 0.16), transparent 60%),
+    radial-gradient(55% 65% at 100% 20%, rgba(45, 212, 191, 0.12), transparent 65%),
+    radial-gradient(70% 80% at 50% 110%, rgba(168, 85, 247, 0.12), transparent 65%),
+    linear-gradient(180deg, #f3f6fc 0%, #eef4ff 60%, #e7eefb 100%);
+}
+.auth-bg::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(rgba(15, 23, 42, 0.06) 1px, transparent 1px);
+  background-size: 24px 24px;
+  mask-image: radial-gradient(ellipse 70% 60% at 50% 40%, #000 30%, transparent 80%);
+  -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 40%, #000 30%, transparent 80%);
+  opacity: 0.6;
+}
+/* Subtle decorative blurred orb at top-right. */
+.auth-bg::after {
+  content: "";
+  position: absolute;
+  top: -120px;
+  right: -120px;
+  width: 380px;
+  height: 380px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(21, 87, 232, 0.25), transparent 65%);
+  filter: blur(20px);
+}
+
+/* The auth card itself — sits centered on the gradient. */
+.auth-card {
+  position: relative;
+  width: 100%;
+  max-width: 460px;
+  margin: 0;
+  padding: 36px 36px 32px;
+  background: #fff;
+  border: 1px solid rgba(15, 23, 42, 0.06);
+  border-radius: 20px;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.6) inset,
+    0 24px 60px -28px rgba(15, 23, 42, 0.25),
+    0 8px 16px -8px rgba(21, 87, 232, 0.08);
+}
+.auth-card::before {
+  /* Thin gradient accent strip across the top of the card. */
+  content: "";
+  position: absolute;
+  inset: 0 24px auto 24px;
+  height: 3px;
+  border-radius: 0 0 3px 3px;
+  background: linear-gradient(90deg, #1d62f0, #6366f1 50%, #2dd4bf);
+}
+
+.auth-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 22px;
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: #0f172a;
+  text-decoration: none;
+}
+.auth-brand img {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+  filter: drop-shadow(0 4px 10px rgba(21, 87, 232, 0.18));
+}
+.auth-brand:hover { color: #1557e8; }
+
+.auth-head { margin: 0; padding: 0; background: none; border: 0; }
+
+.auth-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 12px;
+  padding: 4px 12px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #1d4ed8;
+  background: rgba(29, 78, 216, 0.08);
+  border: 1px solid rgba(29, 78, 216, 0.14);
+  border-radius: 999px;
+}
+.eyebrow-pulse {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #22c55e;
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.25);
+  animation: auth-pulse 1.6s ease-in-out infinite;
+}
+@keyframes auth-pulse {
+  0%, 100% { box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.25); }
+  50%      { box-shadow: 0 0 0 7px rgba(34, 197, 94, 0.0); }
+}
+
+.auth-title {
+  margin: 0;
+  font-size: 28px;
+  line-height: 1.15;
+  letter-spacing: -0.025em;
+  font-weight: 800;
+  color: #0f172a;
+}
+.auth-lede {
+  margin: 12px 0 0;
+  font-size: 15px;
+  line-height: 1.55;
+  color: #475569;
+}
+.auth-lede a { color: #1557e8; font-weight: 700; }
+
+/* Flash messages — pill-style alerts. */
+.auth-flash {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 22px 0 0;
+  padding: 12px 14px;
+  border-radius: 12px;
+  font-size: 14px;
+  line-height: 1.45;
+}
+.auth-flash i { margin-top: 2px; font-size: 14px; }
+.auth-flash--error {
+  background: #fef2f2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+.auth-flash--success {
+  background: #ecfdf5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+}
+
+.theme-auth-page__form-wrap { margin-top: 24px; }
+
+/* Google SSO button. */
+.auth-oauth { margin: 0 0 16px; }
+.auth-oauth-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  padding: 12px 18px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 14.5px;
+  color: #0f172a;
+  text-decoration: none;
+  transition: background 140ms ease, border-color 140ms ease, transform 140ms ease,
+              box-shadow 140ms ease;
+}
+.auth-oauth-btn:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px -4px rgba(15, 23, 42, 0.1);
+}
+.auth-oauth-icon { width: 18px; height: 18px; }
+
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 18px 0;
+  color: #94a3b8;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+.auth-divider span {
+  /* The horizontal lines sit on either side of the centred label. */
+  display: inline-block;
+  padding: 0 4px;
+}
+.auth-divider::before,
+.auth-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, #e2e8f0, transparent);
+}
+
+/* The form itself. */
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.auth-field { display: flex; flex-direction: column; gap: 6px; }
+.auth-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.auth-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: #334155;
+  letter-spacing: -0.01em;
+}
+.auth-label span { display: inline-block; }
+.auth-forgot {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #1557e8;
+  text-decoration: none;
+}
+.auth-forgot:hover { text-decoration: underline; }
+
+.auth-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+}
+.auth-input-icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #94a3b8;
+  font-size: 14px;
+  pointer-events: none;
+}
+.auth-input {
+  width: 100%;
+  padding: 12px 14px;
+  font-size: 15px;
+  font-family: inherit;
+  color: #0f172a;
+  background: #f8fafc;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 12px;
+  transition: border-color 140ms ease, background 140ms ease, box-shadow 140ms ease;
+  appearance: none;
+  -webkit-appearance: none;
+}
+/* Reserve room for the leading icon only when the field is actually
+   wrapped (login email/password get icons; register fields don't). */
+.auth-input-wrap .auth-input { padding-left: 42px; }
+
+/* 2FA code field — chunkier and spaced out for typing a 6-digit code. */
+.auth-input--otp {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 0.3em;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.auth-input-wrap .auth-input--otp { padding-left: 42px; padding-right: 14px; }
+.auth-input::placeholder { color: #94a3b8; }
+.auth-input:hover { border-color: #cbd5e1; }
+.auth-input:focus {
+  outline: none;
+  background: #fff;
+  border-color: #1d62f0;
+  box-shadow: 0 0 0 4px rgba(21, 87, 232, 0.15);
+}
+.auth-input:focus + .auth-input-icon,
+.auth-input-wrap:focus-within .auth-input-icon { color: #1d62f0; }
+/* The toggle button sits inside the wrap. We need to allow space on
+   the right so the password text doesn't run under it. */
+.auth-input-wrap:has(.auth-input-toggle) .auth-input { padding-right: 44px; }
+.auth-input-toggle {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  background: transparent;
+  border: 0;
+  color: #94a3b8;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  transition: background 140ms ease, color 140ms ease;
+}
+.auth-input-toggle:hover {
+  background: #f1f5f9;
+  color: #1557e8;
+}
+
+/* Custom checkbox. */
+.auth-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 4px;
+  font-size: 14px;
+  color: #334155;
+  cursor: pointer;
+  user-select: none;
+}
+.auth-check input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 5px;
+  background: #fff;
+  position: relative;
+  cursor: pointer;
+  transition: background 140ms ease, border-color 140ms ease;
+}
+.auth-check input[type="checkbox"]:hover { border-color: #94a3b8; }
+.auth-check input[type="checkbox"]:checked {
+  background: #1d62f0;
+  border-color: #1d62f0;
+}
+.auth-check input[type="checkbox"]:checked::after {
+  content: "";
+  position: absolute;
+  inset: 2px;
+  border-radius: 3px;
+  background:
+    /* SVG checkmark drawn with two gradients masked together — keeps
+       the asset inline and crisp at any DPR. */
+    linear-gradient(45deg, transparent 40%, #fff 40% 55%, transparent 55%) no-repeat 4px 7px / 6px 2px,
+    linear-gradient(-45deg, transparent 40%, #fff 40% 55%, transparent 55%) no-repeat 6px 4px / 8px 2px;
+}
+.auth-check input[type="checkbox"]:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 4px rgba(21, 87, 232, 0.18);
+}
+
+/* Submit button — full-width, brand gradient, lifted on hover. */
+.auth-submit {
+  width: 100%;
+  margin-top: 6px;
+  padding: 14px 20px;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  border-radius: 12px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0)) padding-box,
+    linear-gradient(180deg, #2a72ff 0%, #1557e8 55%, #0b40c6 100%) padding-box;
+  color: #fff;
+  border: 1px solid transparent;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    0 12px 24px -10px rgba(21, 87, 232, 0.55),
+    0 2px 4px rgba(11, 64, 198, 0.2);
+  cursor: pointer;
+  transition: transform 160ms ease, box-shadow 200ms ease, filter 160ms ease;
+}
+.auth-submit:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.05);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.45),
+    0 16px 32px -12px rgba(21, 87, 232, 0.65),
+    0 3px 6px rgba(11, 64, 198, 0.25);
+}
+.auth-submit:active { transform: translateY(0); filter: brightness(0.98); }
+.auth-submit i { transition: transform 160ms ease; }
+.auth-submit:hover i { transform: translateX(2px); }
+
+.auth-foot {
+  margin: 22px 0 0;
+  text-align: center;
+  font-size: 14px;
+  color: #475569;
+}
+.auth-foot a { color: #1557e8; font-weight: 700; text-decoration: none; }
+.auth-foot a:hover { text-decoration: underline; }
+
+.auth-fineprint {
+  margin: 24px -36px -32px;
+  padding: 16px 24px;
+  background: #f8fafc;
+  border-top: 1px solid #e2e8f0;
+  border-radius: 0 0 20px 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: #64748b;
+}
+.auth-fineprint i { color: #94a3b8; }
+
+@media (max-width: 520px) {
+  .auth-card {
+    padding: 28px 22px 24px;
+    border-radius: 16px;
+  }
+  .auth-fineprint {
+    margin: 20px -22px -24px;
+    padding: 14px 20px;
+    border-radius: 0 0 16px 16px;
+  }
+  .auth-title { font-size: 24px; }
+}
+
+/* =============================================================
+   Register page — split layout with marketing pitch on the left.
+   ============================================================= */
+
+.auth-shell--split {
+  /* Allow the split to breathe; constrain on huge displays. */
+  align-items: stretch;
+  padding: 40px 20px;
+}
+
+.auth-split {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+  gap: 32px;
+  width: 100%;
+  max-width: 1120px;
+  margin: 0 auto;
+  align-items: stretch;
+}
+
+.auth-card--split {
+  margin: 0;
+  align-self: center;
+  width: 100%;
+  max-width: 480px;
+  justify-self: end;
+}
+.auth-brand--mobile { display: none; }
+
+@media (max-width: 960px) {
+  .auth-split {
+    grid-template-columns: 1fr;
+    max-width: 480px;
+  }
+  .auth-card--split { justify-self: center; max-width: none; }
+  .auth-pitch { order: 0; }
+  /* On mobile we surface the pitch's decorative elements only at the
+     top, hide the heavier marketing body, and instead show the brand
+     row inside the card. */
+  .auth-pitch-body { padding: 24px 26px 30px; }
+  .auth-pitch-decor { display: none; }
+  .auth-brand--mobile { display: inline-flex; }
+  .auth-card--split .auth-brand { display: none; }
+}
+
+/* ---- Pitch panel ---- */
+.auth-pitch {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  border-radius: 24px;
+  color: #f1f5f9;
+  overflow: hidden;
+  isolation: isolate;
+  background:
+    radial-gradient(80% 60% at 20% 10%, rgba(99, 102, 241, 0.55), transparent 60%),
+    radial-gradient(70% 60% at 100% 30%, rgba(45, 212, 191, 0.45), transparent 60%),
+    radial-gradient(80% 70% at 50% 100%, rgba(168, 85, 247, 0.45), transparent 65%),
+    linear-gradient(135deg, #0b1d3a 0%, #0d2046 45%, #1a2554 100%);
+  box-shadow:
+    0 24px 60px -28px rgba(15, 23, 42, 0.5),
+    0 8px 16px -8px rgba(15, 23, 42, 0.25);
+}
+/* Faint dot grid + top hairline. */
+.auth-pitch::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px);
+  background-size: 24px 24px;
+  mask-image: linear-gradient(180deg, #000 0%, transparent 80%);
+  -webkit-mask-image: linear-gradient(180deg, #000 0%, transparent 80%);
+  pointer-events: none;
+  z-index: 0;
+}
+.auth-pitch::after {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.25), transparent);
+}
+.auth-pitch > * { position: relative; z-index: 1; }
+
+.auth-pitch-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin: 28px 32px 0;
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: #fff;
+  text-decoration: none;
+}
+.auth-pitch-brand img {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+  filter: drop-shadow(0 4px 12px rgba(99, 102, 241, 0.5));
+}
+
+.auth-pitch-body {
+  padding: 32px 36px 28px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.auth-pitch-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 16px;
+  padding: 5px 12px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #d1fae5;
+  background: rgba(34, 197, 94, 0.14);
+  border: 1px solid rgba(34, 197, 94, 0.28);
+  border-radius: 999px;
+  align-self: flex-start;
+}
+
+.auth-pitch-title {
+  margin: 0;
+  font-size: clamp(28px, 3.8vw, 40px);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+}
+.auth-pitch-title-accent {
+  background: linear-gradient(90deg, #a5b4fc 0%, #5eead4 55%, #fbbf24 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+.auth-pitch-sub {
+  margin: 14px 0 28px;
+  font-size: 15px;
+  line-height: 1.55;
+  color: #cbd5e1;
+  max-width: 38ch;
+}
+
+/* Perks list — icon + title + subtitle rows. */
+.auth-pitch-perks {
+  list-style: none;
+  margin: 0 0 28px;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+.auth-pitch-perks li {
+  display: grid;
+  grid-template-columns: 36px 1fr;
+  gap: 12px;
+  align-items: center;
+}
+.auth-pitch-perk-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  font-size: 14px;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+.auth-pitch-perk-icon[data-perk="deal"]  { background: linear-gradient(135deg, #f59e0b, #ef4444); border-color: rgba(245, 158, 11, 0.4); }
+.auth-pitch-perk-icon[data-perk="calc"]  { background: linear-gradient(135deg, #6366f1, #a855f7); border-color: rgba(168, 85, 247, 0.4); }
+.auth-pitch-perk-icon[data-perk="forum"] { background: linear-gradient(135deg, #2dd4bf, #0ea5e9); border-color: rgba(45, 212, 191, 0.4); }
+.auth-pitch-perk-icon[data-perk="save"]  { background: linear-gradient(135deg, #ec4899, #f43f5e); border-color: rgba(236, 72, 153, 0.4); }
+.auth-pitch-perks li span:last-child {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.auth-pitch-perks li strong {
+  font-size: 14.5px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: -0.01em;
+}
+.auth-pitch-perks li em {
+  font-style: normal;
+  font-size: 12.5px;
+  color: #94a3b8;
+}
+
+/* Trust strip at the bottom of the pitch. */
+.auth-pitch-trust {
+  margin-top: auto;
+  padding: 16px 0 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.auth-pitch-avatars {
+  display: flex;
+  align-items: center;
+}
+.auth-pitch-avatars span {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 11px;
+  font-weight: 800;
+  color: #fff;
+  border: 2px solid #0d2046;
+  margin-left: -8px;
+  letter-spacing: -0.02em;
+}
+.auth-pitch-avatars span:first-child { margin-left: 0; }
+.auth-pitch-trust-text { font-size: 13px; line-height: 1.4; }
+.auth-pitch-trust-text p { margin: 0; color: #cbd5e1; }
+.auth-pitch-trust-text strong { color: #fff; font-weight: 800; }
+.auth-pitch-stars {
+  color: #fbbf24;
+  margin-right: 4px;
+}
+.auth-pitch-stars i { font-size: 11px; }
+
+/* Decorative bottom-right plane + clouds. Just CSS shapes, no asset. */
+.auth-pitch-decor {
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 140px;
+  pointer-events: none;
+  overflow: hidden;
+}
+.auth-pitch-plane {
+  position: absolute;
+  bottom: 50px;
+  right: 12%;
+  font-size: 28px;
+  color: rgba(255, 255, 255, 0.4);
+  transform: rotate(-22deg);
+  filter: drop-shadow(0 6px 20px rgba(99, 102, 241, 0.45));
+  animation: auth-pitch-float 6s ease-in-out infinite;
+}
+@keyframes auth-pitch-float {
+  0%, 100% { transform: rotate(-22deg) translateY(0); }
+  50%      { transform: rotate(-22deg) translateY(-6px); }
+}
+.auth-pitch-cloud {
+  position: absolute;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  filter: blur(0.5px);
+}
+.auth-pitch-cloud--1 { bottom: 32px; left: 8%;  width: 80px; height: 14px; }
+.auth-pitch-cloud--2 { bottom: 70px; left: 38%; width: 60px; height: 12px; opacity: 0.7; }
+.auth-pitch-cloud--3 { bottom: 22px; right: 30%; width: 100px; height: 16px; opacity: 0.6; }
+
+/* ---- Password strength meter + match indicator ---- */
+.auth-field-hint {
+  margin: 4px 2px 0;
+  font-size: 12.5px;
+  color: #94a3b8;
+}
+
+.auth-strength {
+  margin-top: 8px;
+}
+.auth-strength-bar {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+  height: 5px;
+  border-radius: 4px;
+  overflow: hidden;
+}
+.auth-strength-bar span {
+  height: 100%;
+  background: #e2e8f0;
+  border-radius: 4px;
+  transition: background 200ms ease;
+}
+.auth-strength[data-strength="1"] .auth-strength-bar span:nth-child(-n + 1) { background: #f87171; }
+.auth-strength[data-strength="2"] .auth-strength-bar span:nth-child(-n + 2) { background: #f59e0b; }
+.auth-strength[data-strength="3"] .auth-strength-bar span:nth-child(-n + 3) { background: #84cc16; }
+.auth-strength[data-strength="4"] .auth-strength-bar span:nth-child(-n + 4) { background: #22c55e; }
+.auth-strength-text {
+  margin: 6px 2px 0;
+  font-size: 12px;
+  color: #94a3b8;
+  line-height: 1.4;
+  min-height: 1.4em;
+}
+.auth-strength[data-strength="1"] .auth-strength-text { color: #b91c1c; }
+.auth-strength[data-strength="2"] .auth-strength-text { color: #b45309; }
+.auth-strength[data-strength="3"] .auth-strength-text { color: #4d7c0f; }
+.auth-strength[data-strength="4"] .auth-strength-text { color: #15803d; }
+
+.auth-input-check {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #cbd5e1;
+  font-size: 16px;
+  opacity: 0;
+  transition: opacity 140ms ease, color 140ms ease, transform 200ms ease;
+  pointer-events: none;
+}
+.auth-input-check.is-ok {
+  opacity: 1;
+  color: #22c55e;
+  transform: translateY(-50%) scale(1.05);
+}
+.auth-input.is-mismatch {
+  border-color: #fca5a5;
+  background: #fef2f2;
+}
+.auth-input.is-mismatch:focus {
+  border-color: #ef4444;
+  box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.15);
+}
+
+@media (max-width: 520px) {
+  .auth-pitch { border-radius: 18px; }
+  .auth-pitch-body { padding: 22px 22px 26px; }
+  .auth-pitch-brand { margin: 22px 22px 0; }
+  .auth-pitch-title { font-size: 26px; }
+  .auth-pitch-sub { margin-bottom: 22px; }
+  .auth-pitch-trust { flex-wrap: wrap; }
+}
+
+/* --- Header quick search (jQuery overlay) -------------------------------- */
+body.header-search-open {
+  overflow: hidden;
+}
+
+.header-search-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 12000;
+  display: grid;
+  place-items: start center;
+  padding: clamp(72px, 12vh, 120px) 16px 32px;
+  box-sizing: border-box;
+}
+
+.header-search-overlay[hidden] {
+  display: none !important;
+}
+
+.header-search-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(6px);
+}
+
+.header-search-dialog {
+  position: relative;
+  width: min(560px, 100%);
+  background: #fff;
+  border-radius: 16px;
+  border: 1px solid var(--border, #e2e8f0);
+  box-shadow:
+    0 24px 48px -12px rgba(15, 23, 42, 0.25),
+    0 0 0 1px rgba(255, 255, 255, 0.06) inset;
+  padding: 20px 22px 22px;
+  animation: header-search-pop 0.22s ease-out;
+}
+
+@keyframes header-search-pop {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.header-search-dialog__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.header-search-dialog__title {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--text, #0f172a);
+}
+
+.header-search-dialog__close {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  border: 1px solid var(--border, #e2e8f0);
+  background: #f8fafc;
+  color: #64748b;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.header-search-dialog__close:hover {
+  background: #f1f5f9;
+  color: var(--text, #0f172a);
+  border-color: #cbd5e1;
+}
+
+.header-search-form__label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.header-search-form__row {
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+  position: relative;
+}
+
+.header-search-form__icon {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #94a3b8;
+  font-size: 15px;
+  width: 1.25rem;
+  text-align: center;
+  pointer-events: none;
+}
+
+/* Must beat `.theme-avios input { padding: 0 14px }` so text/placeholder clear the icon */
+body.theme-avios .header-search-form__input {
+  flex: 1;
+  min-width: 0;
+  padding: 14px 14px 14px 3rem;
+  border-radius: 12px;
+  border: 1px solid var(--border, #e2e8f0);
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--text, #0f172a);
+  background: #f8fafc;
+  transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+  width: auto;
+  height: auto;
+  min-height: 48px;
+}
+
+body.theme-avios .header-search-form__input::placeholder {
+  color: #94a3b8;
+}
+
+body.theme-avios .header-search-form__input:focus {
+  outline: none;
+  border-color: rgba(21, 87, 232, 0.45);
+  background: #fff;
+  box-shadow: 0 0 0 4px rgba(21, 87, 232, 0.12);
+}
+
+.header-search-form__submit {
+  flex-shrink: 0;
+  padding: 0 20px;
+  border-radius: 12px;
+  border: none;
+  font-weight: 700;
+  font-size: 15px;
+  cursor: pointer;
+  color: #fff;
+  background: linear-gradient(180deg, #1d62f0, #0b4cdb);
+  box-shadow: 0 8px 20px -6px rgba(21, 87, 232, 0.45);
+  transition: transform 0.12s, filter 0.12s;
+}
+
+.header-search-form__submit:hover {
+  filter: brightness(1.03);
+}
+
+.header-search-form__submit:active {
+  transform: translateY(1px);
+}
+
+.header-search-form__hint {
+  margin: 10px 0 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: #b45309;
+}
+
+@media (max-width: 480px) {
+  .header-search-form__row {
+    flex-direction: column;
+  }
+
+  .header-search-form__submit {
+    width: 100%;
+    padding: 14px 20px;
+  }
+}
+
+/* --- Public /search (theme shell; Avios styling) --------------------------- */
+.theme-avios .page-search {
+  padding: 32px 0 56px;
+}
+
+.theme-avios .page-search__hero {
+  margin-bottom: 22px;
+}
+
+.theme-avios .page-search__title {
+  margin: 0 0 8px;
+  font-size: clamp(28px, 4vw, 38px);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--text);
+}
+
+.theme-avios .page-search__lede {
+  margin: 0;
+  max-width: 40rem;
+  font-size: 16px;
+  line-height: 1.55;
+  color: var(--muted);
+}
+
+.theme-avios .page-search__form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: stretch;
+  margin-bottom: 24px;
+}
+
+.theme-avios .page-search__label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.theme-avios .page-search__field {
+  flex: 1 1 260px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 50px;
+  padding: 0 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 8px 22px rgba(7, 29, 58, 0.05);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.theme-avios .page-search__field:focus-within {
+  border-color: rgba(21, 87, 232, 0.45);
+  box-shadow: 0 0 0 3px rgba(21, 87, 232, 0.12);
+}
+
+.theme-avios .page-search__field-icon {
+  flex-shrink: 0;
+  color: var(--muted);
+  font-size: 15px;
+}
+
+.theme-avios .page-search__input {
+  flex: 1;
+  width: auto !important;
+  min-width: 0;
+  height: 48px !important;
+  border: none !important;
+  padding: 0 8px 0 0 !important;
+  box-shadow: none !important;
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--text);
+  background: transparent;
+}
+
+.theme-avios .page-search__input::placeholder {
+  color: var(--muted);
+}
+
+.theme-avios .page-search__input:focus {
+  outline: none;
+}
+
+.theme-avios .page-search__submit {
+  min-width: 120px;
+  height: 50px;
+  align-self: stretch;
+  padding-left: 22px;
+  padding-right: 22px;
+}
+
+.theme-avios .page-search__notice {
+  margin: 0 0 18px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  background: rgba(254, 243, 199, 0.35);
+  color: #92400e;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.theme-avios .page-search__summary {
+  margin: 0 0 18px;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.theme-avios .page-search__summary strong {
+  color: var(--text);
+}
+
+.theme-avios .page-search__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.theme-avios .page-search__hit {
+  margin: 0;
+}
+
+.theme-avios .page-search__hit-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.theme-avios .page-search__hit-title {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+}
+
+.theme-avios .page-search__hit-title a {
+  color: var(--blue);
+  text-decoration: none;
+}
+
+.theme-avios .page-search__hit-title a:hover {
+  text-decoration: underline;
+}
+
+.theme-avios .page-search__badge {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding: 4px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--soft);
+}
+
+.theme-avios .page-search__snippet {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--muted);
+}
+
+.theme-avios .page-search__url {
+  display: inline-block;
+  margin-top: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  word-break: break-all;
+  text-decoration: none;
+}
+
+.theme-avios .page-search__url:hover {
+  color: var(--blue);
+  text-decoration: underline;
+}
+
+.theme-avios .page-search__pager {
+  margin-top: 24px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+/* ---- Login / register / 2FA / logout (core uses theme-cms-page + theme-auth-page; Avios loads only this sheet) ---- */
+body.theme-avios .theme-main main#main-content.theme-public-solo {
+  margin-top: 1.25rem;
+  margin-bottom: 3rem;
+  min-height: min(72vh, 42rem);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 0 20px;
+}
+
+body.theme-avios .theme-main article.theme-cms-page.theme-auth-page {
+  width: 100%;
+  max-width: 28rem;
+  margin: 0 auto;
+  padding: 0;
+}
+
+body.theme-avios .theme-main article.theme-auth-page .theme-cms-page-hero {
+  position: relative;
+  padding: clamp(1.5rem, 4vw, 2.25rem) clamp(1.25rem, 3vw, 2rem) clamp(1.75rem, 4vw, 2.25rem);
+  border-radius: 20px;
+  border: 1px solid rgba(7, 29, 58, 0.08);
+  background: linear-gradient(180deg, #fff 0%, #f8fbff 100%);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.85) inset,
+    0 24px 56px -20px rgba(7, 29, 58, 0.18),
+    0 6px 16px -8px rgba(21, 87, 232, 0.08);
+}
+
+body.theme-avios .theme-main article.theme-auth-page .theme-cms-page-hero::before {
+  content: "";
+  position: absolute;
+  left: 1.25rem;
+  right: 1.25rem;
+  top: 0;
+  height: 3px;
+  border-radius: 0 0 3px 3px;
+  background: linear-gradient(90deg, #1557e8, #6366f1 45%, #2dd4bf);
+}
+
+body.theme-avios .theme-main article.theme-auth-page .theme-cms-page-hero .eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 14px;
+  padding: 4px 12px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #1d4ed8;
+  background: rgba(29, 78, 216, 0.08);
+  border: 1px solid rgba(29, 78, 216, 0.14);
+  border-radius: 999px;
+}
+
+body.theme-avios .theme-main article.theme-auth-page .theme-cms-page-title {
+  margin: 0;
+  font-size: clamp(1.65rem, 4vw, 2.15rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+  color: var(--navy);
+  background: none;
+  -webkit-background-clip: unset;
+  background-clip: unset;
+  filter: none;
+}
+
+body.theme-avios .theme-main article.theme-auth-page .theme-auth-page__intro {
+  margin-top: 12px;
+}
+
+body.theme-avios .theme-main article.theme-auth-page .auth-lede a,
+body.theme-avios .theme-main article.theme-auth-page .theme-auth-page__footer-link a {
+  color: var(--blue);
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+}
+
+body.theme-avios .theme-main article.theme-auth-page .theme-auth-page__footer-link {
+  margin-top: 1.25rem;
+  text-align: center;
+}
+
+body.theme-avios .theme-main article.theme-auth-page .theme-auth-page__form-wrap {
+  margin-top: 1.35rem;
+  max-width: 100%;
+}
+
+/* Win over `.theme-avios input` so login/register fields use the auth design */
+body.theme-avios .theme-main article.theme-auth-page .auth-input {
+  width: 100%;
+  height: auto;
+  min-height: 48px;
+  padding: 12px 14px;
+  font-size: 15px;
+  font-family: inherit;
+  color: #0f172a;
+  background: #f8fafc;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 12px;
+  transition: border-color 140ms ease, background 140ms ease, box-shadow 140ms ease;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+body.theme-avios .theme-main article.theme-auth-page .auth-input:hover {
+  border-color: #cbd5e1;
+}
+
+body.theme-avios .theme-main article.theme-auth-page .auth-input:focus {
+  outline: none;
+  background: #fff;
+  border-color: #1d62f0;
+  box-shadow: 0 0 0 4px rgba(21, 87, 232, 0.15);
+}
+
+body.theme-avios .theme-main article.theme-auth-page .auth-check input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  min-height: 0;
+  padding: 0;
+}
+
+body.theme-avios .theme-main article.theme-auth-page .auth-oauth .btn.btn-secondary,
+body.theme-avios .theme-main article.theme-auth-page .auth-oauth a.btn-secondary {
+  width: 100%;
+  justify-content: center;
+  box-sizing: border-box;
+  padding: 14px 18px;
+  border-radius: 12px;
+  font-weight: 800;
+  font-size: 15px;
+  background: #fff;
+  color: var(--text) !important;
+  border: 1px solid var(--border);
+  box-shadow: 0 4px 12px -4px rgba(7, 29, 58, 0.08);
+  text-decoration: none;
+}
+
+body.theme-avios .theme-main article.theme-auth-page .auth-oauth .btn.btn-secondary:hover,
+body.theme-avios .theme-main article.theme-auth-page .auth-oauth a.btn-secondary:hover {
+  background: #f5f8fd;
+  border-color: #c9d6ed;
+}
+
+body.theme-avios .theme-main article.theme-auth-page button.auth-submit.btn-primary {
+  margin-top: 8px;
+}
