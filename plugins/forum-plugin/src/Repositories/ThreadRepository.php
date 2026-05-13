@@ -31,8 +31,9 @@ final class ThreadRepository
     }
 
     /**
-     * Paginated list of threads in a forum. Sticky threads are pinned
-     * to the top regardless of last-post time (MyBB behaviour).
+     * Paginated list of threads in a forum. Ordered by latest activity
+     * (last reply or OP time), newest first. Sticky is surfaced in the UI
+     * only — it does not float old threads above recently active ones.
      *
      * @return list<array<string, mixed>>
      */
@@ -45,7 +46,7 @@ final class ThreadRepository
                        t.created_at, t.updated_at
                   FROM forum_threads t
                  WHERE t.forum_id = ? AND t.is_deleted = 0
-              ORDER BY t.is_sticky DESC, t.last_post_at DESC, t.id DESC
+              ORDER BY COALESCE(t.last_post_at, t.created_at) DESC, t.is_sticky DESC, t.id DESC
                  LIMIT ' . (int) $limit . ' OFFSET ' . (int) $offset;
 
         $stmt = $this->pdo->prepare($sql);
