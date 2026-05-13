@@ -1,0 +1,19 @@
+{
+  "name": "Guides",
+  "slug": "guides-plugin",
+  "version": "1.0.1",
+  "author": "Avios Studio",
+  "description": "Imports AI-rewritten travel guides from a TSV export into the 'Guides' CMS content type. One entry per source article, with the article HTML stored as a richtext body and SEO fields seeded from the export. Idempotent — re-running the importer only adds rows it hasn't seen before (matched on legacy_id).",
+  "requires_cms_version": "1.0.0",
+  "requires_php": "8.1",
+  "category": "content",
+  "tags": ["content", "import", "guides", "seo"],
+  "main_class": "GuidesPlugin\\GuidesServiceProvider",
+  "enabled_by_default": false,
+  "nested_admin_nav": true,
+  "autoload": {
+    "psr4": {
+      "GuidesPlugin\\": "src/"
+    }
+  }
+}
