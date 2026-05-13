@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.0.60",
-    "title": "Struxa 1.0.60",
-    "summary": "Avios theme base layout now includes external link tracking (same as default theme), so outbound footer and other links POST to /track/external-link and appear in Admin → Analytics → External links.",
+    "latest_version": "1.0.59",
+    "title": "Struxa 1.0.59",
+    "summary": "Plugin admin sidebar grouping: optional parent_plugin in plugin.json nests a plugin's sidebar links under the parent plugin's name (Extensions). Activation validates the parent folder exists on disk.",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "minor"
