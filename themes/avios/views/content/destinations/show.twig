@@ -1,0 +1,1018 @@
+{% extends 'layouts/base.twig' %}
+
+{% set _desc = content_meta_description|default('') %}
+
+{% block title %}{{ content_page_title|e }} — {{ settings.site_name|default('FL350')|e }}{% endblock %}
+{% block meta_description %}{{ _desc|e }}{% endblock %}
+{% block og_title %}{{ content_page_title|e }}{% endblock %}
+{% block og_description %}{{ _desc|e }}{% endblock %}
+{% block twitter_title %}{{ content_page_title|e }}{% endblock %}
+{% block twitter_description %}{{ _desc|e }}{% endblock %}
+
+{# Find the "body" + "iata" field values from the field rows the CMS hands us. #}
+{% set _body_html = '' %}
+{% set _iata = '' %}
+{% for row in content_field_rows %}
+  {% if row.field_key == 'body' %}{% set _body_html = row.html %}{% endif %}
+  {% if row.field_key == 'iata' %}{% set _iata = row.value_raw %}{% endif %}
+{% endfor %}
+
+{# Live fare data from the How Many Avios plugin (returns null when plugin inactive or no rows). #}
+{% set _fares = _iata ? hma_fares_for_iata(_iata) : null %}
+
+{# Airport lookup (provided by avios-theme-helpers-plugin). When this resolves
+   we can show a map + "trip at a glance" card with city, flag, distance from
+   LHR, etc. Falls back to a graceful no-map layout when the IATA isn't in
+   our catalogue. #}
+{% set _airport = _iata ? airport(_iata) : null %}
+{% set _lhr_lat = 51.4775 %}{% set _lhr_lng = -0.4614 %}
+{% set _distance_km = _airport ? haversine_km(_lhr_lat, _lhr_lng, _airport.lat, _airport.lng) : 0 %}
+{% set _distance_mi = (_distance_km * 0.621371)|round %}
+
+{# Lowest Avios redemption across cabins — surfaced in the at-a-glance card. #}
+{% set _min_avios = 0 %}
+{% if _fares and _fares.cabins %}
+  {% for c in _fares.cabins %}
+    {% set _cab_min = 0 %}
+    {% if c.off_peak and c.off_peak.avios %}{% set _cab_min = c.off_peak.avios %}{% endif %}
+    {% if c.peak and c.peak.avios and (_cab_min == 0 or c.peak.avios < _cab_min) %}{% set _cab_min = c.peak.avios %}{% endif %}
+    {% if _cab_min > 0 and (_min_avios == 0 or _cab_min < _min_avios) %}{% set _min_avios = _cab_min %}{% endif %}
+  {% endfor %}
+{% endif %}
+
+{% block head_extra %}
+  {{ parent() }}
+  <style>
+    .adrv-hero {
+      position: relative; overflow: hidden; isolation: isolate;
+      color: #fff;
+      padding: 64px 0 72px;
+      background:
+        radial-gradient(ellipse at 85% -10%, rgba(245, 158, 11, .22) 0%, transparent 55%),
+        radial-gradient(ellipse at 10% 110%, rgba(110, 231, 183, .12) 0%, transparent 50%),
+        linear-gradient(120deg, #06172f 0%, #08254d 60%, #1557e8 100%);
+      border-bottom: 1px solid rgba(255, 255, 255, .06);
+    }
+    .adrv-hero::after {
+      content: ""; position: absolute; inset: 0;
+      background-image: radial-gradient(rgba(255,255,255,.05) 1px, transparent 1px);
+      background-size: 28px 28px;
+      mask-image: linear-gradient(180deg, rgba(0,0,0,.9), transparent 80%);
+      pointer-events: none; z-index: -1;
+    }
+    /* When a featured image is set, overlay it behind the hero text. */
+    .adrv-hero--image {
+      padding: 96px 0 110px;
+    }
+    .adrv-hero--image .adrv-hero__bg {
+      position: absolute; inset: 0; z-index: -2;
+      background-size: cover;
+      background-position: center;
+      transform: scale(1.05);
+      filter: saturate(1.05);
+    }
+    .adrv-hero--image::before {
+      content: ""; position: absolute; inset: 0; z-index: -1;
+      background:
+        linear-gradient(180deg, rgba(6, 23, 47, .35) 0%, rgba(6, 23, 47, .55) 55%, rgba(6, 23, 47, .85) 100%),
+        linear-gradient(120deg, rgba(8, 37, 77, .55) 0%, rgba(21, 87, 232, .45) 100%);
+    }
+    .adrv-eyebrow {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 6px 12px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, .08);
+      border: 1px solid rgba(255, 255, 255, .12);
+      font-size: 12px; font-weight: 800; letter-spacing: .16em;
+      text-transform: uppercase; color: rgba(255, 255, 255, .8);
+      margin: 0 0 14px;
+    }
+    .adrv-eyebrow i { color: #fcd34d; font-size: 11px; }
+    .adrv-h1 {
+      margin: 0 0 12px;
+      font-size: clamp(34px, 5.2vw, 54px);
+      line-height: 1.05;
+      letter-spacing: -0.04em;
+    }
+    .adrv-h1 .accent {
+      background: linear-gradient(120deg, #fcd34d 0%, #f59e0b 50%, #fb923c 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+    .adrv-meta {
+      display: flex; flex-wrap: wrap; gap: 16px;
+      margin-top: 18px;
+      color: rgba(255, 255, 255, .82);
+      font-size: 14px;
+    }
+    .adrv-meta span { display: inline-flex; align-items: center; gap: 6px; }
+    .adrv-meta i { color: #fcd34d; font-size: 12px; }
+
+    /* ============================================================
+       Trip-at-a-glance panel
+       Sits right under the fares table (or under the hero when no
+       fares are available) and gives readers the headline data —
+       IATA, country flag, distance from LHR, lowest Avios fare —
+       as a row of compact stat tiles.
+       ============================================================ */
+    .adrv-glance {
+      max-width: 1080px;
+      margin: 0 auto 36px;
+      padding: 0 20px;
+    }
+    .adrv-glance__grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 14px;
+    }
+    .adrv-glance__stat {
+      position: relative;
+      padding: 18px 18px 16px;
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: 14px;
+      box-shadow: 0 1px 0 rgba(7, 22, 45, .04), 0 8px 22px -16px rgba(7, 22, 45, .12);
+      transition: transform .15s ease, box-shadow .15s ease;
+    }
+    .adrv-glance__stat:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 1px 0 rgba(7, 22, 45, .04), 0 14px 28px -18px rgba(7, 22, 45, .22);
+    }
+    .adrv-glance__label {
+      display: block;
+      font-size: 10.5px;
+      font-weight: 800;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      color: #64748b;
+      margin: 0 0 8px;
+    }
+    .adrv-glance__value {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      color: #0f172a;
+      line-height: 1.1;
+    }
+    .adrv-glance__value small {
+      font-size: 12px;
+      font-weight: 700;
+      color: #94a3b8;
+      letter-spacing: 0.04em;
+    }
+    .adrv-glance__flag { font-size: 26px; line-height: 1; }
+    .adrv-glance__sub  { display: block; margin-top: 6px; font-size: 12.5px; color: #64748b; line-height: 1.4; }
+
+    /* ============================================================
+       Map block
+       Lazy-loaded Leaflet renders an OpenStreetMap tile centred on
+       the destination airport. The block is a no-op when the IATA
+       is unknown to our airports catalogue.
+       ============================================================ */
+    .adrv-map {
+      max-width: 1080px;
+      margin: 0 auto 56px;
+      padding: 0 20px;
+    }
+    .adrv-map__card {
+      position: relative;
+      overflow: hidden;
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: 18px;
+      box-shadow: 0 1px 0 rgba(7, 22, 45, .04), 0 14px 28px -18px rgba(7, 22, 45, .14);
+    }
+    .adrv-map__head {
+      display: flex; flex-wrap: wrap; gap: 12px;
+      align-items: center; justify-content: space-between;
+      padding: 16px 22px;
+      background: linear-gradient(135deg, #f8fafc, #eef2ff);
+      border-bottom: 1px solid #e5e7eb;
+    }
+    .adrv-map__title {
+      margin: 0;
+      font-size: 15px;
+      font-weight: 800;
+      letter-spacing: -0.01em;
+      color: #0f172a;
+      display: inline-flex; align-items: center; gap: 8px;
+    }
+    .adrv-map__title i { color: #1557e8; font-size: 13px; }
+    .adrv-map__sub {
+      margin: 0;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: #475569;
+    }
+    .adrv-map__sub strong { color: #1557e8; font-weight: 800; }
+    .adrv-map__canvas {
+      width: 100%;
+      height: 380px;
+      background: #f1f5f9;
+    }
+    .adrv-map__canvas::before {
+      content: "Map loading…";
+      display: flex; align-items: center; justify-content: center;
+      width: 100%; height: 100%;
+      font-size: 13px; color: #94a3b8;
+    }
+    /* Leaflet popup polish — matches the brand. */
+    .adrv-map .leaflet-popup-content-wrapper {
+      border-radius: 12px;
+      box-shadow: 0 10px 24px -8px rgba(7, 22, 45, .35);
+    }
+    .adrv-map .leaflet-popup-content {
+      margin: 12px 14px;
+      font-size: 13px;
+      line-height: 1.45;
+      color: #0f172a;
+    }
+    .adrv-map .leaflet-popup-content strong { color: #0f172a; font-weight: 800; }
+    .adrv-map .leaflet-popup-content small  { color: #64748b; }
+    .adrv-map .leaflet-control-attribution  { font-size: 10px; }
+    /* Custom flag marker — circular tile with the country flag emoji,
+       a white ring and a slate shadow so it pops on any base map. */
+    .adrv-map__pin {
+      width: 44px; height: 44px;
+      border-radius: 50%;
+      background: #fff;
+      border: 3px solid #1557e8;
+      box-shadow: 0 6px 16px rgba(7, 22, 45, .28);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px; line-height: 1;
+    }
+
+    @media (max-width: 640px) {
+      .adrv-glance__grid { gap: 10px; }
+      .adrv-glance__stat { padding: 14px 14px 12px; }
+      .adrv-glance__value { font-size: 19px; }
+      .adrv-map__canvas { height: 300px; }
+      .adrv-map__head { padding: 12px 16px; }
+    }
+
+    /* ============================================================
+       Article
+       Now sits on a soft card surface with a generous lead paragraph,
+       drop-cap, prettier section dividers, and "tip" callout styles.
+       ============================================================ */
+    .adrv-article {
+      max-width: 820px;
+      margin: 0 auto 80px;
+      padding: 44px 48px 48px;
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: 22px;
+      box-shadow: 0 1px 0 rgba(7, 22, 45, .04), 0 18px 36px -20px rgba(7, 22, 45, .14);
+      color: #0f172a;
+      font-size: 17px;
+      line-height: 1.75;
+    }
+    /* Lead paragraph + drop-cap on the very first paragraph. */
+    .adrv-article > p:first-of-type {
+      font-size: 19.5px;
+      line-height: 1.6;
+      color: #1f2937;
+      margin: 0 0 1.4em;
+    }
+    .adrv-article > p:first-of-type::first-letter {
+      float: left;
+      font-size: 56px;
+      line-height: 0.9;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      color: #1557e8;
+      padding: 4px 12px 0 0;
+      margin: 4px 0 0;
+      font-family: Georgia, 'Times New Roman', serif;
+    }
+    .adrv-article h2 {
+      margin: 2em 0 0.7em;
+      font-size: 26px; letter-spacing: -0.02em; line-height: 1.2;
+      color: #0f172a;
+      position: relative; padding-left: 16px;
+    }
+    .adrv-article h2::before {
+      content: ""; position: absolute; left: 0; top: 0.3em; bottom: 0.3em;
+      width: 4px; background: linear-gradient(180deg, #1d62f0, #0b4cdb);
+      border-radius: 4px;
+    }
+    .adrv-article h2 + p { margin-top: 0.3em; }
+    .adrv-article h3 { margin: 1.8em 0 0.5em; font-size: 19px; font-weight: 700; color: #0f172a; }
+    .adrv-article p { margin: 0 0 1.2em; }
+    .adrv-article ul, .adrv-article ol { margin: 0 0 1.4em; padding-left: 0; list-style: none; }
+    .adrv-article ul li, .adrv-article ol li {
+      position: relative;
+      padding-left: 26px;
+      margin: 0 0 0.55em;
+    }
+    .adrv-article ul li::before {
+      content: "";
+      position: absolute;
+      left: 4px; top: 0.7em;
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #1d62f0, #0b4cdb);
+      box-shadow: 0 0 0 3px rgba(21, 87, 232, .12);
+    }
+    .adrv-article ol { counter-reset: adrv-ol; }
+    .adrv-article ol li { counter-increment: adrv-ol; }
+    .adrv-article ol li::before {
+      content: counter(adrv-ol);
+      position: absolute;
+      left: 0; top: 0.1em;
+      width: 22px; height: 22px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #1d62f0, #0b4cdb);
+      color: #fff;
+      font-size: 11px; font-weight: 800;
+      display: flex; align-items: center; justify-content: center;
+      letter-spacing: 0;
+    }
+    .adrv-article a {
+      color: #1557e8;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+      text-decoration-thickness: 1.5px;
+      text-decoration-color: rgba(21, 87, 232, .35);
+      transition: text-decoration-color .15s;
+    }
+    .adrv-article a:hover { text-decoration-color: #1557e8; }
+    .adrv-article strong { color: #0f172a; font-weight: 700; }
+    .adrv-article blockquote {
+      margin: 1.6em 0;
+      padding: 18px 22px;
+      background: linear-gradient(135deg, #f0f7ff, #eaf1ff);
+      border-left: 4px solid #1557e8;
+      border-radius: 0 12px 12px 0;
+      font-style: italic;
+      color: #0f172a;
+    }
+    .adrv-article blockquote p:last-child { margin: 0; }
+
+    /* Soft divider before "Final word" / "Bottom line" sections — picks
+       up any <h2> that ends with these phrases via :has(), which all
+       modern browsers support. Falls back gracefully when unsupported. */
+    .adrv-article h2:has(+ p:last-of-type) { margin-top: 2.4em; }
+
+    @media (max-width: 640px) {
+      .adrv-article {
+        padding: 28px 22px 32px;
+        margin-bottom: 56px;
+        font-size: 16px;
+      }
+      .adrv-article > p:first-of-type { font-size: 17.5px; }
+      .adrv-article > p:first-of-type::first-letter { font-size: 46px; padding-right: 10px; }
+      .adrv-article h2 { font-size: 22px; }
+    }
+
+    .adrv-footer-cta {
+      max-width: 780px; margin: 0 auto 80px;
+      padding: 24px 28px;
+      background: linear-gradient(135deg, #fffaf0 0%, #fef3c7 100%);
+      border: 1px solid #fde68a; border-radius: 16px;
+      display: flex; flex-wrap: wrap; gap: 12px;
+      align-items: center; justify-content: space-between;
+    }
+    .adrv-footer-cta p { margin: 0; color: #78350f; font-weight: 600; }
+    .adrv-footer-cta .btn-primary {
+      background: linear-gradient(180deg, #1d62f0, #0b4cdb);
+      color: #fff; padding: 10px 20px; border-radius: 999px;
+      font-weight: 700; text-decoration: none;
+      display: inline-flex; align-items: center; gap: 6px;
+    }
+
+    /* Live fare panel — visible right under the hero so it's the first thing readers see. */
+    .adrv-fares {
+      max-width: 780px;
+      margin: -36px auto 28px;
+      position: relative;
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: 18px;
+      box-shadow: 0 20px 40px rgba(7, 22, 45, .12);
+      overflow: hidden;
+    }
+    .adrv-fares__head {
+      display: flex; flex-wrap: wrap; gap: 12px;
+      align-items: center; justify-content: space-between;
+      padding: 16px 22px;
+      background: linear-gradient(135deg, #f8fafc, #eef2ff);
+      border-bottom: 1px solid #e5e7eb;
+    }
+    .adrv-fares__title {
+      margin: 0;
+      font-size: 15px;
+      font-weight: 800;
+      letter-spacing: -0.01em;
+      color: #0f172a;
+      display: inline-flex; align-items: center; gap: 8px;
+    }
+    .adrv-fares__title i { color: #1557e8; font-size: 13px; }
+    .adrv-fares__from {
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: #475569;
+    }
+    .adrv-fares__from strong {
+      color: #1557e8;
+      font-weight: 800;
+    }
+
+    .adrv-fares__table { width: 100%; border-collapse: collapse; }
+    .adrv-fares__table th, .adrv-fares__table td {
+      padding: 14px 18px;
+      text-align: left;
+      border-bottom: 1px solid #f1f5f9;
+      font-size: 14px;
+    }
+    .adrv-fares__table th {
+      font-size: 11px;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: #64748b;
+      font-weight: 800;
+      background: #fafafa;
+    }
+    .adrv-fares__table th.is-peak    { color: #b45309; }
+    .adrv-fares__table th.is-offpeak { color: #047857; }
+    .adrv-fares__table tr:last-child td { border-bottom: 0; }
+
+    .adrv-fares__cabin { font-weight: 700; color: #0f172a; }
+    .adrv-fares__cabin small {
+      display: block;
+      font-size: 11px;
+      font-weight: 600;
+      color: #94a3b8;
+      margin-top: 2px;
+      letter-spacing: 0;
+    }
+    .adrv-fares__avios {
+      font-weight: 800;
+      color: #0f172a;
+      font-size: 15px;
+      letter-spacing: -0.01em;
+    }
+    .adrv-fares__avios small {
+      display: block;
+      font-size: 11px;
+      font-weight: 600;
+      color: #64748b;
+      letter-spacing: 0;
+    }
+    .adrv-fares__avios--peak    { color: #b45309; }
+    .adrv-fares__avios--offpeak { color: #047857; }
+    .adrv-fares__none {
+      color: #cbd5e1; font-weight: 600; font-size: 13px;
+    }
+
+    .adrv-fares__foot {
+      display: flex; flex-wrap: wrap; gap: 12px;
+      align-items: center; justify-content: space-between;
+      padding: 14px 22px;
+      background: #fafbff;
+      border-top: 1px solid #e5e7eb;
+      font-size: 12.5px;
+      color: #64748b;
+    }
+    .adrv-fares__foot a {
+      color: #1557e8; font-weight: 700; text-decoration: none;
+      display: inline-flex; align-items: center; gap: 6px;
+    }
+    .adrv-fares__foot a:hover { text-decoration: underline; }
+
+    @media (max-width: 640px) {
+      .adrv-fares { margin: -28px auto 24px; }
+      .adrv-fares__table th, .adrv-fares__table td { padding: 12px 14px; font-size: 13px; }
+      .adrv-fares__avios { font-size: 14px; }
+    }
+
+    /* ============================================================
+       Credit cards · "earn Avios faster" footer section
+       Reuses the acc_featured_cards global the credit-cards plugin
+       eager-loads. Style language is consciously different from the
+       homepage sidebar widget (3-up grid here, not stacked list).
+       ============================================================ */
+    .adrv-cards {
+      max-width: 1100px;
+      margin: 0 auto 64px;
+      padding: 0 20px;
+    }
+    .adrv-cards__head { text-align: center; margin: 0 0 28px; }
+    .adrv-cards__eyebrow {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 6px 14px; border-radius: 999px;
+      background: linear-gradient(135deg, #fffaf0 0%, #fef3c7 100%);
+      border: 1px solid #fde68a;
+      font-size: 11px; font-weight: 800;
+      letter-spacing: .14em; text-transform: uppercase;
+      color: #b45309;
+      margin: 0 0 12px;
+    }
+    .adrv-cards__eyebrow i { color: #f59e0b; font-size: 11px; }
+    .adrv-cards__title {
+      margin: 0 0 8px;
+      font-size: clamp(24px, 3.4vw, 32px);
+      letter-spacing: -0.025em;
+      color: #0f172a;
+      line-height: 1.15;
+    }
+    .adrv-cards__sub {
+      margin: 0 auto;
+      max-width: 620px;
+      color: #475569;
+      font-size: 15px;
+      line-height: 1.55;
+    }
+
+    .adrv-cards__grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 18px;
+    }
+
+    .adrv-card {
+      position: relative;
+      display: flex; flex-direction: column;
+      background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+      border: 1px solid #e5e7eb;
+      border-radius: 18px;
+      padding: 22px 22px 24px;
+      transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+      overflow: hidden;
+    }
+    .adrv-card::before {
+      content: ""; position: absolute; inset: 0 0 auto 0;
+      height: 4px;
+      background: linear-gradient(90deg, #1d62f0 0%, #0b4cdb 100%);
+      opacity: 0; transition: opacity .2s;
+    }
+    .adrv-card:hover {
+      transform: translateY(-3px);
+      border-color: #c7d3eb;
+      box-shadow: 0 16px 32px rgba(7, 22, 45, .08);
+    }
+    .adrv-card:hover::before { opacity: 1; }
+    .adrv-card[data-rank="1"]::before { opacity: 1; background: linear-gradient(90deg, #f59e0b 0%, #d97706 100%); }
+
+    .adrv-card__rank {
+      position: absolute; top: 14px; right: 14px;
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 4px 9px;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, .04);
+      color: #475569;
+      font-size: 11px; font-weight: 800;
+      letter-spacing: .04em;
+    }
+    .adrv-card[data-rank="1"] .adrv-card__rank {
+      background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+      color: #fff;
+      box-shadow: 0 4px 10px rgba(217, 119, 6, .35);
+    }
+
+    .adrv-card__img-wrap {
+      display: flex; justify-content: center;
+      padding: 8px 0 18px;
+    }
+    .adrv-card__img {
+      width: 140px;
+      aspect-ratio: 1.586 / 1;
+      object-fit: contain;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #e7eaf2, #d6dce8);
+      box-shadow: 0 8px 20px rgba(7, 22, 45, .15);
+    }
+    .adrv-card__img--placeholder {
+      display: flex; align-items: center; justify-content: center;
+      background: linear-gradient(135deg, #1557e8, #6f8bff);
+      color: #fff;
+      font-size: 28px; font-weight: 900;
+    }
+
+    .adrv-card__cat {
+      display: inline-block;
+      font-size: 10px; font-weight: 800;
+      letter-spacing: .1em; text-transform: uppercase;
+      color: #1557e8;
+      background: #eaf1ff;
+      padding: 3px 9px; border-radius: 999px;
+      margin: 0 0 8px;
+    }
+    .adrv-card__name {
+      margin: 0 0 14px;
+      font-size: 17px;
+      letter-spacing: -0.015em;
+      color: #0f172a;
+      line-height: 1.3;
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .adrv-card__bonus {
+      padding: 10px 14px;
+      background: linear-gradient(135deg, #fffaf0 0%, #fef3c7 100%);
+      border: 1px solid #fde68a;
+      border-radius: 10px;
+      margin: 0 0 14px;
+    }
+    .adrv-card__bonus-label {
+      display: block;
+      font-size: 10px; font-weight: 800;
+      letter-spacing: .12em; text-transform: uppercase;
+      color: #b45309;
+      margin: 0 0 2px;
+    }
+    .adrv-card__bonus-amt {
+      display: block;
+      font-size: 18px; font-weight: 800;
+      letter-spacing: -0.015em;
+      color: #0f172a;
+      line-height: 1.2;
+    }
+
+    .adrv-card__facts {
+      list-style: none; padding: 0; margin: 0 0 16px;
+      display: grid; gap: 6px;
+    }
+    .adrv-card__facts li {
+      display: flex; gap: 8px; align-items: flex-start;
+      font-size: 13px; color: #475569;
+      line-height: 1.4;
+    }
+    .adrv-card__facts i {
+      color: #94a3b8; font-size: 12px; margin-top: 3px;
+      flex: 0 0 14px;
+    }
+
+    .adrv-card__cta,
+    .adrv-card__cta:link,
+    .adrv-card__cta:visited,
+    .adrv-card__cta:hover,
+    .adrv-card__cta:focus,
+    .adrv-card__cta:active {
+      margin-top: auto;
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+      padding: 11px 20px;
+      border-radius: 999px;
+      background: linear-gradient(180deg, #1d62f0, #0b4cdb);
+      color: #fff !important;
+      text-decoration: none;
+      font-size: 14px; font-weight: 700;
+      letter-spacing: 0.01em;
+      box-shadow: 0 6px 14px rgba(21, 87, 232, .25);
+      transition: filter .15s, transform .12s, box-shadow .18s;
+    }
+    .adrv-card__cta:hover {
+      filter: brightness(1.06);
+      transform: translateY(-1px);
+      box-shadow: 0 10px 22px rgba(21, 87, 232, .35);
+    }
+    .adrv-card__cta-arrow { transition: transform .15s; }
+    .adrv-card__cta:hover .adrv-card__cta-arrow { transform: translateX(3px); }
+
+    .adrv-cards__footer {
+      text-align: center; margin: 28px 0 0;
+    }
+    .adrv-cards__compare {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 11px 22px;
+      border-radius: 999px;
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      color: #0f172a;
+      text-decoration: none;
+      font-size: 14px; font-weight: 700;
+      transition: background .15s, border-color .15s, transform .12s;
+    }
+    .adrv-cards__compare:hover {
+      background: #eaf1ff;
+      border-color: #1557e8;
+      color: #1557e8;
+      transform: translateY(-1px);
+    }
+    .adrv-cards__compare i { font-size: 12px; }
+    .adrv-cards__disclaimer {
+      max-width: 720px; margin: 16px auto 0;
+      font-size: 11.5px; color: #94a3b8;
+      line-height: 1.5;
+    }
+
+    @media (max-width: 640px) {
+      .adrv-cards { margin-bottom: 48px; }
+      .adrv-card__img { width: 120px; }
+    }
+  </style>
+{% endblock %}
+
+{% block body %}
+  {% set _hero_image = content_featured_url|default('') %}
+  <section class="adrv-hero {% if _hero_image %}adrv-hero--image{% endif %}">
+    {% if _hero_image %}
+      <div class="adrv-hero__bg" style="background-image: url('{{ _hero_image|e('html_attr') }}');" aria-hidden="true"></div>
+    {% endif %}
+    <div class="container">
+      <p class="adrv-eyebrow"><i class="fa-solid fa-plane-departure"></i> {{ content_type.name|e }}</p>
+      <h1 class="adrv-h1">Avios flights to <span class="accent">{{ content_entry.title|e }}</span></h1>
+      <div class="adrv-meta">
+        {% if _iata %}<span><i class="fa-solid fa-location-dot"></i> LHR → {{ _iata|e }}</span>{% endif %}
+        {% if _airport %}<span><i class="fa-solid fa-earth-americas"></i> {{ _airport.flag }} {{ _airport.country|e }}</span>{% endif %}
+        {% if content_entry.publishedAt %}
+          <span><i class="fa-regular fa-calendar"></i> Updated {{ content_entry.publishedAt|date('j M Y') }}</span>
+        {% endif %}
+      </div>
+    </div>
+  </section>
+
+  {% if _fares and _fares.cabins|length > 0 %}
+    <section class="adrv-fares" aria-label="Avios fares for {{ _fares.destination|e }}">
+      <header class="adrv-fares__head">
+        <h2 class="adrv-fares__title">
+          <i class="fa-solid fa-coins"></i>
+          Avios fares to {{ _fares.destination|e }}
+        </h2>
+        <span class="adrv-fares__from">From <strong>LHR</strong> · One-way reward seat</span>
+      </header>
+      <table class="adrv-fares__table">
+        <thead>
+          <tr>
+            <th scope="col">Cabin</th>
+            <th scope="col" class="is-peak">Peak</th>
+            <th scope="col" class="is-offpeak">Off-peak</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for c in _fares.cabins %}
+            <tr>
+              <th scope="row" class="adrv-fares__cabin">
+                {{ c.cabin|e }}
+                <small>{{ {'Economy':'Euro Traveller / World Traveller','Premium Economy':'World Traveller Plus','Business':'Club Europe / Club World','First':'First class cabin'}[c.cabin]|default('') }}</small>
+              </th>
+              <td>
+                {% if c.peak %}
+                  <span class="adrv-fares__avios adrv-fares__avios--peak">
+                    {{ c.peak.avios|number_format }} Avios
+                    {% if c.peak.gbp is not null %}<small>+ £{{ c.peak.gbp|number_format(2) }} fees</small>{% endif %}
+                  </span>
+                {% else %}<span class="adrv-fares__none">—</span>{% endif %}
+              </td>
+              <td>
+                {% if c.off_peak %}
+                  <span class="adrv-fares__avios adrv-fares__avios--offpeak">
+                    {{ c.off_peak.avios|number_format }} Avios
+                    {% if c.off_peak.gbp is not null %}<small>+ £{{ c.off_peak.gbp|number_format(2) }} fees</small>{% endif %}
+                  </span>
+                {% else %}<span class="adrv-fares__none">—</span>{% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <footer class="adrv-fares__foot">
+        <span>Live from our Avios fare table · prices for one passenger, one way.</span>
+        <a href="/#how-many-avios">Open the full calculator <i class="fa-solid fa-arrow-right"></i></a>
+      </footer>
+    </section>
+  {% endif %}
+
+  {# ---- Trip at a glance ------------------------------------------------
+     Surfaces the headline facts (route, country, distance, cheapest fare)
+     as a row of compact stat tiles. Renders even when the airport isn't
+     in our catalogue — falls back to whatever data we DO have. #}
+  <section class="adrv-glance" aria-label="Trip at a glance">
+    <div class="adrv-glance__grid">
+      <div class="adrv-glance__stat">
+        <span class="adrv-glance__label">Route</span>
+        <div class="adrv-glance__value">LHR <small>→</small> {{ _iata|default('—')|e }}</div>
+        <span class="adrv-glance__sub">London Heathrow direct{% if _airport %} to {{ _airport.name|e }}{% endif %}</span>
+      </div>
+      {% if _airport %}
+        <div class="adrv-glance__stat">
+          <span class="adrv-glance__label">Country</span>
+          <div class="adrv-glance__value"><span class="adrv-glance__flag">{{ _airport.flag }}</span> {{ _airport.country|e }}</div>
+          <span class="adrv-glance__sub">{{ _airport.city|e }}</span>
+        </div>
+        <div class="adrv-glance__stat">
+          <span class="adrv-glance__label">Distance from LHR</span>
+          <div class="adrv-glance__value">{{ _distance_km|number_format }} <small>km</small></div>
+          <span class="adrv-glance__sub">≈ {{ _distance_mi|number_format }} miles, great-circle</span>
+        </div>
+      {% endif %}
+      {% if _min_avios > 0 %}
+        <div class="adrv-glance__stat">
+          <span class="adrv-glance__label">Lowest one-way</span>
+          <div class="adrv-glance__value">{{ _min_avios|number_format }} <small>Avios</small></div>
+          <span class="adrv-glance__sub">Cheapest reward fare on file</span>
+        </div>
+      {% endif %}
+    </div>
+  </section>
+
+  {# ---- Map -------------------------------------------------------------
+     Lazy-loaded Leaflet centred on the airport, with a single brand
+     flag pin. Skipped entirely when we don't have coords. #}
+  {% if _airport %}
+    <section class="adrv-map" aria-label="Map of {{ _airport.city|e }}">
+      <div class="adrv-map__card">
+        <header class="adrv-map__head">
+          <h2 class="adrv-map__title">
+            <i class="fa-solid fa-map-location-dot"></i>
+            On the map
+          </h2>
+          <p class="adrv-map__sub">{{ _airport.flag }} {{ _airport.city|e }} · <strong>{{ _iata|e }}</strong></p>
+        </header>
+        <div class="adrv-map__canvas"
+             id="adrv-map-canvas"
+             data-airport-lat="{{ _airport.lat|e('html_attr') }}"
+             data-airport-lng="{{ _airport.lng|e('html_attr') }}"
+             data-airport-flag="{{ _airport.flag|e('html_attr') }}"
+             data-airport-iata="{{ _iata|e('html_attr') }}"
+             data-airport-name="{{ _airport.name|e('html_attr') }}"
+             data-airport-city="{{ _airport.city|e('html_attr') }}"
+             data-airport-country="{{ _airport.country|e('html_attr') }}"></div>
+      </div>
+    </section>
+
+    {# Leaflet CSS + JS pulled lazily from the same CDN the destinations
+       index uses. The first time we touch the map (an IntersectionObserver
+       fires when the canvas scrolls into view) we inject the script tag
+       and initialise the map. Cuts ~140KB off pages that never scroll to
+       the map. The init is idempotent. #}
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css"
+          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="anonymous" />
+    <script>
+      (function () {
+        var canvas = document.getElementById('adrv-map-canvas');
+        if (!canvas) return;
+        var initted = false;
+
+        function loadLeaflet() {
+          return new Promise(function (resolve, reject) {
+            if (window.L) return resolve(window.L);
+            var s = document.createElement('script');
+            s.src = 'https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js';
+            s.integrity = 'sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=';
+            s.crossOrigin = 'anonymous';
+            s.onload = function () { resolve(window.L); };
+            s.onerror = reject;
+            document.head.appendChild(s);
+          });
+        }
+
+        function initMap() {
+          if (initted) return;
+          initted = true;
+          var lat = parseFloat(canvas.getAttribute('data-airport-lat'));
+          var lng = parseFloat(canvas.getAttribute('data-airport-lng'));
+          if (!isFinite(lat) || !isFinite(lng)) return;
+          loadLeaflet().then(function (L) {
+            var map = L.map(canvas, {
+              center: [lat, lng],
+              zoom: 11,
+              scrollWheelZoom: false,
+              zoomControl: true,
+              attributionControl: true,
+            });
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+              maxZoom: 18,
+              attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors',
+            }).addTo(map);
+            var flagIcon = L.divIcon({
+              className: 'adrv-map__pin-wrap',
+              html: '<div class="adrv-map__pin">' + (canvas.getAttribute('data-airport-flag') || '✈') + '</div>',
+              iconSize: [44, 44],
+              iconAnchor: [22, 22],
+              popupAnchor: [0, -22],
+            });
+            var iata    = canvas.getAttribute('data-airport-iata')    || '';
+            var name    = canvas.getAttribute('data-airport-name')    || '';
+            var city    = canvas.getAttribute('data-airport-city')    || '';
+            var country = canvas.getAttribute('data-airport-country') || '';
+            L.marker([lat, lng], { icon: flagIcon })
+              .addTo(map)
+              .bindPopup(
+                '<strong>' + name + '</strong> (' + iata + ')<br>' +
+                '<small>' + city + (country ? ', ' + country : '') + '</small>'
+              )
+              .openPopup();
+            /* Allow scroll-wheel zoom only AFTER the user clicks onto
+               the map — stops the page-scroll being hijacked when a
+               reader is just passing through. */
+            map.on('click focus', function () { map.scrollWheelZoom.enable(); });
+            map.on('mouseout', function () { map.scrollWheelZoom.disable(); });
+          });
+        }
+
+        if ('IntersectionObserver' in window) {
+          var io = new IntersectionObserver(function (entries) {
+            entries.forEach(function (e) {
+              if (e.isIntersecting) { io.disconnect(); initMap(); }
+            });
+          }, { rootMargin: '200px 0px' });
+          io.observe(canvas);
+        } else {
+          initMap();
+        }
+      })();
+    </script>
+  {% endif %}
+
+  <article class="adrv-article" id="main-content">
+    {{ _body_html|raw }}
+  </article>
+
+  {% include 'partials/content_entry_refs.twig' %}
+
+  {# ----- Credit cards: pulled from the avios-credit-cards-plugin global. -----
+       Renders only when the plugin is active AND has at least one card on file. #}
+  {% set _cc = acc_featured_cards|default([])|slice(0, 3) %}
+  {% if _cc|length > 0 %}
+    <section class="adrv-cards" aria-labelledby="adrv-cards-title">
+      <header class="adrv-cards__head">
+        <p class="adrv-cards__eyebrow">
+          <i class="fa-solid fa-credit-card" aria-hidden="true"></i>
+          Earn Avios faster
+        </p>
+        <h2 class="adrv-cards__title" id="adrv-cards-title">
+          Earn Avios on the way to {{ content_entry.title|e }}
+        </h2>
+        <p class="adrv-cards__sub">
+          Pair your trip with one of these reward credit cards and bank a stack of Avios
+          before you even reach the airport.
+        </p>
+      </header>
+
+      <div class="adrv-cards__grid">
+        {% for c in _cc %}
+          {% set _href = (c.affiliate_url|default(''))|trim != '' ? c.affiliate_url : ((c.url|default(''))|trim != '' ? c.url : '#') %}
+          {% set _ext  = _href starts with 'http' %}
+          <article class="adrv-card" data-rank="{{ loop.index }}">
+            <span class="adrv-card__rank" aria-hidden="true">
+              {% if loop.index == 1 %}<i class="fa-solid fa-crown" style="color:#fff;font-size:9px;"></i>{% endif %}
+              #{{ loop.index }}
+            </span>
+
+            <div class="adrv-card__img-wrap">
+              {% if c.card_image_url %}
+                <img class="adrv-card__img" src="{{ c.card_image_url|e('html_attr') }}" alt="{{ c.name|e('html_attr') }} card" loading="lazy" />
+              {% else %}
+                <div class="adrv-card__img adrv-card__img--placeholder" aria-hidden="true">{{ c.name|first|e }}</div>
+              {% endif %}
+            </div>
+
+            {% if c.category %}<span class="adrv-card__cat">{{ c.category|e }}</span>{% endif %}
+            <h3 class="adrv-card__name">{{ c.name|e }}</h3>
+
+            {% if c.welcome_bonus %}
+              <div class="adrv-card__bonus">
+                <span class="adrv-card__bonus-label">Welcome bonus</span>
+                <strong class="adrv-card__bonus-amt">{{ c.welcome_bonus|e }}</strong>
+              </div>
+            {% endif %}
+
+            {% if c.spend_requirement or c.annual_fee %}
+              <ul class="adrv-card__facts">
+                {% if c.spend_requirement %}
+                  <li><i class="fa-solid fa-receipt" aria-hidden="true"></i> {{ c.spend_requirement|e }}</li>
+                {% endif %}
+                {% if c.annual_fee %}
+                  <li><i class="fa-solid fa-tag" aria-hidden="true"></i> {{ c.annual_fee|e }}</li>
+                {% endif %}
+              </ul>
+            {% endif %}
+
+            <a class="adrv-card__cta" href="{{ _href|e('html_attr') }}"
+              {%- if _ext %} target="_blank" rel="sponsored noopener nofollow"{% endif -%}
+            >
+              <span>View offer</span>
+              <span class="adrv-card__cta-arrow" aria-hidden="true">→</span>
+            </a>
+          </article>
+        {% endfor %}
+      </div>
+
+      <div class="adrv-cards__footer">
+        <a class="adrv-cards__compare" href="/credit-cards">
+          <i class="fa-solid fa-scale-balanced" aria-hidden="true"></i>
+          <span>Compare all cards</span>
+        </a>
+        <p class="adrv-cards__disclaimer">
+          Some links are affiliate links. We may earn a commission at no extra cost to you.
+          Always read the full terms and check your eligibility before applying.
+        </p>
+      </div>
+    </section>
+  {% endif %}
+
+  <aside class="adrv-footer-cta">
+    <p>Want to know exactly how many Avios you need to fly to {{ content_entry.title|e }}?</p>
+    <a class="btn-primary" href="/#how-many-avios">Open the Avios calculator →</a>
+  </aside>
+{% endblock %}

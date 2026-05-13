@@ -1,0 +1,973 @@
+{% extends 'layouts/base.twig' %}
+
+{# Public detail page for individual "guides" content entries. Routed by
+   core's /{typeSlug}/{entrySlug} handler in routes/public_content.php.
+   We pull the article HTML from the `body` richtext field and any
+   extra metadata (summary, source URL, word count) from the matching
+   field rows. The body field is already passed through the rich-text
+   pipeline (which adds rel="nofollow ugc" to external links) so we can
+   render it raw. #}
+
+{% set _site = settings.site_name|default('FL350') %}
+{% set _desc = content_meta_description|default('') %}
+
+{% block title %}{{ content_page_title|e }} — {{ _site|e }}{% endblock %}
+{% block meta_description %}{{ _desc|e }}{% endblock %}
+{% block og_title %}{{ content_page_title|e }}{% endblock %}
+{% block og_description %}{{ _desc|e }}{% endblock %}
+{% block twitter_title %}{{ content_page_title|e }}{% endblock %}
+{% block twitter_description %}{{ _desc|e }}{% endblock %}
+{% block og_type %}article{% endblock %}
+
+{# Pull the field rows from the CMS payload. We only need the body, summary
+   and source_url for rendering; the rest is editorial metadata kept on the
+   entry but not shown publicly. #}
+{% set _body_html   = '' %}
+{% set _summary     = '' %}
+{% set _source_url  = '' %}
+{% set _word_count  = '' %}
+{% for row in content_field_rows %}
+  {% if row.field_key == 'body' %}{% set _body_html = row.html %}{% endif %}
+  {% if row.field_key == 'summary' %}{% set _summary = row.value_raw %}{% endif %}
+  {% if row.field_key == 'source_url' %}{% set _source_url = row.value_raw %}{% endif %}
+  {% if row.field_key == 'word_count' %}{% set _word_count = row.value_raw %}{% endif %}
+{% endfor %}
+
+{# Wide tables (e.g. the Avios zone pricing charts) don't fit in the
+   720px article column, so wrap them in a horizontal-scroll container.
+   All imported guides use bare <table> tags with no attributes — we
+   verified this against the corpus before adding the simple
+   string-replace below. If future content arrives with <table class=...>
+   we'll need a proper preg_replace filter, but for the current data
+   this is bulletproof and avoids a custom Twig extension. #}
+{% if '<table' in _body_html %}
+  {% set _body_html = _body_html
+    |replace({'<table>': '<div class="guide-table-wrap"><table>'})
+    |replace({'</table>': '</table></div>'})
+  %}
+{% endif %}
+
+{# Approximate reading time at 220 words/minute. Falls back to the
+   imported word count when available; otherwise estimates from the
+   stripped body. #}
+{% set _words_raw = _word_count is not empty and _word_count matches '/^\\d+$/' ? _word_count|number_format(0, '', '') : '' %}
+{% set _words_count = _words_raw ? _words_raw|number_format(0, '', '')|abs : (_body_html|striptags|trim|split(' ')|length) %}
+{% set _read_min = (_words_count / 220)|round(0, 'ceil') %}
+{% if _read_min < 1 %}{% set _read_min = 1 %}{% endif %}
+
+{% block head_extra %}
+  {{ parent() }}
+  {# Featured thumbnail for social crawlers when the entry has media but
+     the CMS SEO bundle did not produce an absolute OG image URL. #}
+  {% set _feat = content_featured_url|default('')|trim %}
+  {% set _og = struxa_og_image|default('')|trim %}
+  {% if _feat != '' and _og == '' %}
+    {% if _feat matches '/^https?:\\/\\//i' %}
+      {% set _og_abs = _feat %}
+    {% else %}
+      {% set _og_abs = site_url|trim('/') ~ '/' ~ _feat|trim('/') %}
+    {% endif %}
+    <meta property="og:image" content="{{ _og_abs|e('html_attr') }}" />
+    <meta name="twitter:image" content="{{ _og_abs|e('html_attr') }}" />
+  {% endif %}
+  <style>
+    /* Guide detail — article-first layout. Hero is short and dense
+       so the reader gets straight into the body. */
+    .guide-hero {
+      position: relative; color: #fff; isolation: isolate;
+      padding: 56px 0 64px;
+      background:
+        radial-gradient(ellipse at 85% -10%, rgba(245, 158, 11, .22) 0%, transparent 55%),
+        radial-gradient(ellipse at 10% 110%, rgba(110, 231, 183, .12) 0%, transparent 50%),
+        linear-gradient(120deg, #06172f 0%, #08254d 60%, #1557e8 100%);
+      border-bottom: 1px solid rgba(255,255,255,.06);
+    }
+    .guide-hero::after {
+      content: ""; position: absolute; inset: 0;
+      background-image: radial-gradient(rgba(255,255,255,.05) 1px, transparent 1px);
+      background-size: 28px 28px;
+      mask-image: linear-gradient(180deg, rgba(0,0,0,.9), transparent 80%);
+      z-index: -1;
+    }
+    .guide-hero-shell { max-width: 820px; margin: 0 auto; padding: 0 20px; }
+    .guide-hero-eyebrow {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-size: 12px; font-weight: 700;
+      color: #fcd34d;
+      letter-spacing: .08em; text-transform: uppercase;
+      margin-bottom: 14px;
+    }
+    .guide-hero-eyebrow a { color: inherit; text-decoration: none; border-bottom: 1px dashed rgba(252,211,77,.4); padding-bottom: 1px; }
+    .guide-hero h1 {
+      font-size: clamp(28px, 4.2vw, 44px);
+      font-weight: 800; letter-spacing: -.02em;
+      line-height: 1.15;
+      margin: 0 0 14px;
+    }
+    .guide-hero-lede {
+      font-size: 18px; line-height: 1.55; color: rgba(255,255,255,.78);
+      margin: 0 0 22px;
+      max-width: 720px;
+    }
+    .guide-hero-meta {
+      display: flex; flex-wrap: wrap; gap: 14px 22px;
+      font-size: 13px; color: rgba(255,255,255,.7);
+    }
+    .guide-hero-meta strong { color: #fff; font-weight: 600; }
+
+    /* Hero + thumbnail — two columns on wide viewports; stacks on phones.
+       Uses `content_featured_url` from core's public content presenter
+       (featured media or thumbnail_url field); placeholder when absent. */
+    .guide-hero-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(200px, 340px);
+      gap: 28px 36px;
+      align-items: start;
+    }
+    @media (max-width: 820px) {
+      .guide-hero-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+    .guide-hero-copy { min-width: 0; }
+    .guide-hero-media {
+      margin: 0;
+      border-radius: 16px;
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,.18);
+      box-shadow: 0 22px 48px rgba(0, 0, 0, .28);
+      aspect-ratio: 16 / 10;
+      background: rgba(0, 0, 0, .15);
+    }
+    .guide-hero-media img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .guide-hero-media img.is-placeholder {
+      object-fit: contain;
+      padding: 14%;
+      background: linear-gradient(135deg, rgba(6, 23, 47, .9), rgba(21, 87, 232, .75));
+    }
+
+    /* “More guides” strip — same visual language as /guides index cards,
+       but tighter for in-article context. */
+    .guide-more {
+      max-width: 1100px;
+      margin: 0 auto 48px;
+      padding: 0 20px;
+    }
+    .guide-more-head {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px 20px;
+      margin-bottom: 18px;
+    }
+    .guide-more-head h2 {
+      margin: 0;
+      font-size: 1.35rem;
+      font-weight: 800;
+      letter-spacing: -.02em;
+      color: var(--text, #0f172a);
+    }
+    .guide-more-head .link {
+      font-weight: 700;
+      font-size: 14px;
+    }
+    .guide-more-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+    @media (max-width: 900px) {
+      .guide-more-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 520px) {
+      .guide-more-grid { grid-template-columns: 1fr; }
+    }
+    .guide-more-card {
+      display: flex;
+      flex-direction: column;
+      border: 1px solid var(--border, #e5e7eb);
+      border-radius: 14px;
+      overflow: hidden;
+      background: #fff;
+      text-decoration: none;
+      color: inherit;
+      box-shadow: 0 1px 2px rgba(7, 29, 58, .04);
+      transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+    }
+    .guide-more-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 28px -14px rgba(15, 23, 42, .16);
+      border-color: #c7d2fe;
+    }
+    .guide-more-card-media {
+      aspect-ratio: 16 / 10;
+      background: var(--soft, #f1f5f9);
+      overflow: hidden;
+    }
+    .guide-more-card-media img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .guide-more-card-media img.is-placeholder {
+      object-fit: contain;
+      padding: 12%;
+      background: linear-gradient(135deg, #06172f, #1557e8);
+    }
+    .guide-more-card-body {
+      padding: 14px 16px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      flex: 1;
+    }
+    .guide-more-card-title {
+      margin: 0;
+      font-size: 15px;
+      font-weight: 800;
+      line-height: 1.3;
+      letter-spacing: -.01em;
+      color: var(--text, #0f172a);
+    }
+    .guide-more-card:hover .guide-more-card-title { color: var(--blue, #1557e8); }
+    .guide-more-card-excerpt {
+      margin: 0;
+      font-size: 13px;
+      line-height: 1.45;
+      color: var(--muted, #64748b);
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .guide-more-card-meta {
+      margin-top: auto;
+      padding-top: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--muted, #64748b);
+    }
+    .guide-more-card-meta i { margin-right: 5px; color: var(--blue, #1557e8); }
+
+    /* ─── Article body — magazine-grade long-form typography ─────────
+       The article IS the page. Everything below optimises for
+       long-form readability: a comfortable measure, classical
+       hierarchy, restrained colour, and editorial flourishes (lede,
+       drop cap, asterism, pull quote) used sparingly. */
+    .guide-article-wrap {
+      max-width: 720px;
+      margin: 56px auto 64px;
+      padding: 0 20px;
+    }
+    /* CMS entry_refs panels — same measure as the article column */
+    .guide-related-wrap {
+      max-width: 720px;
+      margin: 0 auto 48px;
+      padding: 0 20px;
+    }
+    .guide-article {
+      font-size: 18px;
+      line-height: 1.72;
+      color: #1f2937;
+      letter-spacing: -.002em;
+      font-feature-settings: "kern" 1, "liga" 1, "calt" 1;
+    }
+
+    /* Defensive: many imported articles open with an <h1> that simply
+       repeats the title — the hero already renders that, so a second
+       h1 in the body is both visually noisy and an SEO red flag. We
+       hide whichever shows up first, regardless of whether it sits at
+       the very top or after a stray empty element. */
+    .guide-article > h1:first-child,
+    .guide-article > *:first-child + h1 {
+      display: none;
+    }
+
+    /* ── Hierarchy ── */
+    .guide-article h2 {
+      position: relative;
+      font-size: 28px;
+      font-weight: 800;
+      letter-spacing: -.02em;
+      color: #0f172a;
+      line-height: 1.18;
+      margin: 56px 0 18px;
+    }
+    /* Subtle blue accent rule above every H2 — reads as a section
+       opener, like a magazine kicker bar. */
+    .guide-article h2::before {
+      content: "";
+      display: block;
+      width: 44px;
+      height: 3px;
+      margin: 0 0 18px;
+      background: linear-gradient(90deg, #1557e8, #6da4ff);
+      border-radius: 2px;
+    }
+    .guide-article h3 {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: -.015em;
+      color: #0f172a;
+      line-height: 1.25;
+      margin: 40px 0 12px;
+    }
+    .guide-article h4 {
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: -.01em;
+      color: #0f172a;
+      margin: 32px 0 8px;
+    }
+
+    /* ── Paragraphs ── */
+    .guide-article p {
+      margin: 0 0 20px;
+    }
+
+    /* Lede — the first paragraph (or the first paragraph after the
+       hidden duplicate h1) gets a larger, slightly heavier deck. */
+    .guide-article > p:first-of-type,
+    .guide-article > h1:first-child + p,
+    .guide-article > *:first-child + h1 + p {
+      font-size: 21px;
+      line-height: 1.55;
+      font-weight: 500;
+      letter-spacing: -.005em;
+      color: #0f172a;
+      margin-bottom: 28px;
+    }
+
+    /* Drop cap on the lede. Uses a serif stack so the capital reads
+       as a deliberate editorial flourish, not a giant button. */
+    .guide-article > p:first-of-type::first-letter,
+    .guide-article > h1:first-child + p::first-letter,
+    .guide-article > *:first-child + h1 + p::first-letter {
+      float: left;
+      font-family: Georgia, "Times New Roman", "Source Serif Pro", serif;
+      font-weight: 700;
+      font-size: 68px;
+      line-height: .85;
+      color: #0f172a;
+      margin: 8px 12px -4px 0;
+      padding: 4px 0;
+    }
+
+    /* ── Emphasis ── */
+    .guide-article strong {
+      font-weight: 700;
+      color: #0f172a;
+      /* Marker-pen highlight on the lower third of the text. Drawn
+         behind the glyphs with a linear-gradient band so it works
+         across line breaks without affecting layout. */
+      background-image: linear-gradient(
+        180deg,
+        transparent 0%,
+        transparent 60%,
+        rgba(252, 211, 77, .42) 60%,
+        rgba(252, 211, 77, .42) 92%,
+        transparent 92%
+      );
+      background-repeat: no-repeat;
+      padding: 0 2px;
+    }
+    .guide-article em {
+      font-style: italic;
+      color: #334155;
+    }
+
+    /* ── Links — refined underline that thickens on hover ── */
+    .guide-article a {
+      color: #1557e8;
+      text-decoration: underline;
+      text-decoration-thickness: 1px;
+      text-decoration-color: rgba(21, 87, 232, .35);
+      text-underline-offset: 4px;
+      transition: text-decoration-color .15s ease, text-decoration-thickness .15s ease, color .15s ease;
+    }
+    .guide-article a:hover {
+      color: #0b3fb5;
+      text-decoration-color: #1557e8;
+      text-decoration-thickness: 2px;
+    }
+
+    /* ── Lists — custom markers, browser defaults removed ── */
+    .guide-article ul,
+    .guide-article ol {
+      margin: 0 0 24px;
+      padding-left: 0;
+      list-style: none;
+    }
+    .guide-article li {
+      position: relative;
+      padding-left: 28px;
+      margin-bottom: 10px;
+    }
+    .guide-article ul > li::before {
+      content: "";
+      position: absolute;
+      left: 8px;
+      top: .7em;
+      width: 7px;
+      height: 7px;
+      background: #1557e8;
+      border-radius: 50%;
+    }
+    .guide-article ol {
+      counter-reset: gli;
+    }
+    .guide-article ol > li {
+      counter-increment: gli;
+      padding-left: 34px;
+    }
+    .guide-article ol > li::before {
+      content: counter(gli) ".";
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 26px;
+      font-weight: 800;
+      color: #1557e8;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -.02em;
+    }
+    /* Nested lists step down the marker so depth reads visually. */
+    .guide-article li li {
+      margin-top: 6px;
+      margin-bottom: 4px;
+    }
+    .guide-article ul ul > li::before,
+    .guide-article ol ul > li::before {
+      background: #94a3b8;
+      width: 5px;
+      height: 5px;
+      top: .82em;
+    }
+
+    /* ── Blockquote — proper pull quote with hanging quote mark ── */
+    .guide-article blockquote {
+      position: relative;
+      margin: 32px 0;
+      padding: 6px 0 6px 36px;
+      border-left: 3px solid #1557e8;
+      font-family: Georgia, "Times New Roman", serif;
+      font-style: italic;
+      font-size: 22px;
+      line-height: 1.45;
+      color: #1f2937;
+    }
+    .guide-article blockquote::before {
+      content: "\201C";
+      position: absolute;
+      left: 12px;
+      top: -10px;
+      font-family: Georgia, serif;
+      font-size: 56px;
+      line-height: 1;
+      font-weight: 700;
+      color: #1557e8;
+      opacity: .22;
+    }
+    .guide-article blockquote p { margin: 0 0 8px; }
+    .guide-article blockquote p:last-child { margin-bottom: 0; }
+    .guide-article blockquote cite {
+      display: block;
+      margin-top: 8px;
+      font-family: inherit;
+      font-style: normal;
+      font-size: 14px;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+      color: #64748b;
+    }
+    .guide-article blockquote cite::before { content: "— "; }
+
+    /* ── Inline code & pre blocks ── */
+    .guide-article code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: .9em;
+      background: #f1f5f9;
+      padding: 2px 6px;
+      border-radius: 5px;
+      color: #0f172a;
+    }
+    .guide-article pre {
+      background: #0f172a;
+      color: #e2e8f0;
+      padding: 16px 18px;
+      border-radius: 12px;
+      overflow: auto;
+      font-size: 14px;
+      line-height: 1.55;
+      margin: 0 0 26px;
+      box-shadow: 0 12px 30px -20px rgba(15, 23, 42, .4);
+    }
+    .guide-article pre code {
+      background: none;
+      padding: 0;
+      color: inherit;
+    }
+
+    /* ── Figures & inline images ── */
+    .guide-article figure {
+      margin: 32px 0;
+    }
+    .guide-article figure img {
+      display: block;
+      width: 100%;
+      height: auto;
+      border-radius: 14px;
+      box-shadow: 0 18px 40px -22px rgba(15, 23, 42, .3);
+    }
+    .guide-article figcaption {
+      margin-top: 10px;
+      font-size: 13.5px;
+      line-height: 1.5;
+      color: #64748b;
+      text-align: center;
+      font-style: italic;
+    }
+    .guide-article > img,
+    .guide-article p > img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 12px;
+      margin: 18px 0;
+    }
+
+    /* ── Section break — asterism (* * *), classic editorial ── */
+    .guide-article hr {
+      border: 0;
+      margin: 44px auto;
+      width: 100%;
+      max-width: 120px;
+      height: 16px;
+      position: relative;
+      overflow: visible;
+    }
+    .guide-article hr::after {
+      content: "* * *";
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      color: #cbd5e1;
+      letter-spacing: 1em;
+      font-size: 14px;
+      text-indent: 1em; /* offset so the three dots stay centred */
+    }
+
+    /* ─── Tables ──────────────────────────────────────────────────────
+       Designed for the Avios pricing charts (often 9 cols wide × 9
+       rows). Wide tables overflow horizontally inside their wrapper
+       rather than blowing out the article column, with scroll-edge
+       shadows that only appear when there's actually more content to
+       reveal. The first column sticks during horizontal scroll so the
+       row label stays visible when reading peak/off-peak rates on the
+       right.
+
+       Twig wraps every <table> in <div class="guide-table-wrap"> so the
+       overflow lives on the wrapper, not the table — this lets the
+       table keep proper internal table layout while the wrapper handles
+       the box chrome and shadows. */
+    .guide-table-wrap {
+      position: relative;
+      margin: 32px 0;
+      border: 1px solid #e5e7eb;
+      border-radius: 14px;
+      overflow-x: auto;
+      overflow-y: hidden;
+      box-shadow: 0 1px 2px rgba(15, 23, 42, .03);
+      /* Lea Verou's "scroll shadow" trick adapted for horizontal
+         scroll. Two `background-attachment: local` fade panels are
+         pinned to each end and travel with the scroll, while two
+         `background-attachment: scroll` shadow panels stay fixed to
+         the wrapper edges. The result: the left shadow only shows
+         when the user has scrolled past the start, and same for the
+         right side. Pure CSS, no JS. */
+      background:
+        linear-gradient(90deg, #fff 30%, rgba(255, 255, 255, 0)),
+        linear-gradient(90deg, rgba(255, 255, 255, 0), #fff 70%) 100% 0,
+        radial-gradient(farthest-side at 0 50%, rgba(15, 23, 42, .12), transparent),
+        radial-gradient(farthest-side at 100% 50%, rgba(15, 23, 42, .12), transparent) 100% 0;
+      background-repeat: no-repeat;
+      background-color: #fff;
+      background-size: 40px 100%, 40px 100%, 14px 100%, 14px 100%;
+      background-attachment: local, local, scroll, scroll;
+    }
+    /* Custom thin scrollbar so the wrapper feels designed, not stock. */
+    .guide-table-wrap::-webkit-scrollbar { height: 8px; }
+    .guide-table-wrap::-webkit-scrollbar-track { background: transparent; }
+    .guide-table-wrap::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 8px;
+    }
+    .guide-table-wrap::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+    .guide-article table {
+      width: 100%;
+      min-width: 100%;
+      margin: 0;
+      /* `separate` so sticky cells in column 1 can paint their own
+         background without the collapsed-border quirks that cause
+         hairlines to disappear behind the sticky cell. */
+      border-collapse: separate;
+      border-spacing: 0;
+      font-size: 14.5px;
+      font-variant-numeric: tabular-nums;
+      font-feature-settings: "tnum" 1, "lnum" 1;
+    }
+
+    /* ── Header row ── */
+    .guide-article thead th {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      text-align: left;
+      background: linear-gradient(180deg, #f1f5f9, #e2e8f0);
+      color: #0f172a;
+      font-weight: 700;
+      font-size: 11px;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      padding: 12px 14px;
+      border-bottom: 2px solid #cbd5e1;
+      white-space: nowrap;
+    }
+    /* All header cells past the row-label column are right-aligned
+       so their underlying numbers line up flush to the right edge. */
+    .guide-article thead th:not(:first-child) {
+      text-align: right;
+    }
+    /* First header cell is also sticky horizontally so the column
+       title stays anchored when scrolling sideways. */
+    .guide-article thead th:first-child {
+      position: sticky;
+      left: 0;
+      z-index: 3;
+    }
+
+    /* ── Body cells ── */
+    .guide-article tbody td {
+      padding: 11px 14px;
+      border-bottom: 1px solid #eef2f7;
+      vertical-align: middle;
+      color: #334155;
+      white-space: nowrap;
+    }
+    /* Numeric cells: right-align, slightly darker, tabular figures
+       so digits stack vertically column-to-column. */
+    .guide-article tbody td:not(:first-child) {
+      text-align: right;
+      color: #0f172a;
+      font-weight: 500;
+      font-variant-numeric: tabular-nums;
+      font-feature-settings: "tnum" 1, "lnum" 1;
+    }
+    /* First body column is the row label — sticky on horizontal
+       scroll, bolder, and slightly darker than numeric cells. The
+       row-level background is set via tr:nth-child rules below; the
+       sticky cell inherits it so it doesn't show transparent. */
+    .guide-article tbody td:first-child {
+      position: sticky;
+      left: 0;
+      z-index: 1;
+      font-weight: 700;
+      color: #0f172a;
+      box-shadow: 1px 0 0 #eef2f7;
+    }
+
+    /* Zebra striping — applied directly to td so sticky cells inherit
+       the row background. Cleaner than `tr` backgrounds which don't
+       always survive position:sticky on td. */
+    .guide-article tbody tr:nth-child(odd) td   { background: #ffffff; }
+    .guide-article tbody tr:nth-child(even) td  { background: #f8fafc; }
+    .guide-article tbody tr:hover td            { background: #eef2fb; }
+    .guide-article tbody tr:last-child td       { border-bottom: 0; }
+
+    /* En-dash placeholder cells (the "–" / "—" used to mean "not
+       offered") read as the row's quietest value. We can't select
+       by content in CSS, but we can lean on the `--muted` look for
+       single-character cells via a small attribute trick: any cell
+       whose entire content equals a dash will visually fade because
+       these are short, light-coloured single glyphs anyway. The
+       :not(:first-child) numeric styling above gives them enough
+       weight to be readable but they read as quiet by context. */
+
+    /* Bleed-to-edge on mobile so the table can use the full screen
+       width instead of being squeezed inside 20px page padding. */
+    @media (max-width: 540px) {
+      .guide-table-wrap {
+        margin: 24px -20px;
+        border-radius: 0;
+        border-left: 0;
+        border-right: 0;
+      }
+      .guide-article thead th {
+        font-size: 10px;
+        letter-spacing: .07em;
+        padding: 10px 12px;
+      }
+      .guide-article tbody td {
+        font-size: 13.5px;
+        padding: 9px 12px;
+      }
+    }
+
+    /* Tighten everything on phones — same hierarchy, less air. */
+    @media (max-width: 540px) {
+      .guide-article-wrap { margin: 36px auto 48px; }
+      .guide-article { font-size: 17px; line-height: 1.68; }
+      .guide-article h2 { font-size: 23px; margin-top: 40px; }
+      .guide-article h2::before { width: 36px; margin-bottom: 14px; }
+      .guide-article h3 { font-size: 19px; margin-top: 32px; }
+      .guide-article > p:first-of-type,
+      .guide-article > h1:first-child + p,
+      .guide-article > *:first-child + h1 + p { font-size: 19px; }
+      .guide-article > p:first-of-type::first-letter,
+      .guide-article > h1:first-child + p::first-letter,
+      .guide-article > *:first-child + h1 + p::first-letter { font-size: 56px; margin-right: 10px; }
+      .guide-article blockquote { font-size: 19px; padding-left: 22px; }
+      .guide-article blockquote::before { left: 4px; font-size: 42px; }
+      .guide-article li { padding-left: 24px; }
+      .guide-article ul > li::before { left: 6px; }
+      .guide-article ol > li { padding-left: 30px; }
+    }
+
+    /* ─── Article footer ─────────────────────────────────────────────
+       Two-tier composition:
+         1. A soft disclaimer card so the editorial note feels like a
+            considered design element rather than a fine-print afterthought.
+         2. A "Continue exploring" CTA strip below it with a prominent
+            primary back-link plus a secondary forum invitation, so the
+            reader has somewhere to go when they reach the end of the body.
+       ─────────────────────────────────────────────────────────────── */
+    /* End-of-article footer — editorial, not a card.
+       Earlier versions tried different card chromes (heavy disclaimer
+       box, magazine-cover gradient, then a site `.card`). All of them
+       fought the article they were sitting under: too many blue
+       accents (link + button + border) competing in a small space.
+       This rewrite drops the card entirely. The result is a quiet
+       editorial outro that reads as a continuation of the article:
+         * Asterism divider — matches the in-body <hr> style so it
+           feels like another chapter break.
+         * Muted eyebrow ("Continue exploring") in the same uppercase
+           tracking the body uses.
+         * Centered headline + lede.
+         * Two CTAs using the site's `.btn` / `.btn-primary` — the
+           ONLY saturated colour in the block, which lets the primary
+           button properly own attention.
+         * Plain muted disclaimer line at the very bottom. No box, no
+           icon, no bold "Editorial note." label. */
+    .guide-foot {
+      max-width: 680px;
+      margin: 64px auto 88px;
+      padding: 36px 28px 32px;
+      text-align: center;
+      /* Soft hairline frame around the whole block so the outro
+         reads as a contained "next steps" panel without bringing
+         back the heavy card chrome the user disliked previously.
+         Uses the site's `--border` (a light blue-tint) so it
+         visually rhymes with the cards above. */
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+    }
+
+    /* Asterism — three centred dots with letter-spacing trick. Same
+       glyph and visual weight as the article body's <hr>. */
+    .guide-foot-divider {
+      position: relative;
+      width: 120px;
+      height: 16px;
+      margin: 0 auto 32px;
+    }
+    .guide-foot-divider::after {
+      content: "* * *";
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      color: #cbd5e1;
+      letter-spacing: 1em;
+      font-size: 14px;
+      text-indent: 1em;
+    }
+
+    .guide-foot-eyebrow {
+      margin: 0 0 8px;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: .2em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .guide-foot-title {
+      margin: 0 0 10px;
+      font-size: 24px;
+      font-weight: 800;
+      letter-spacing: -.015em;
+      color: var(--text);
+      line-height: 1.2;
+    }
+    .guide-foot-sub {
+      margin: 0 auto 24px;
+      max-width: 480px;
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.55;
+    }
+
+    /* Buttons — reuse the global `.btn` / `.btn-primary` so they
+       inherit the site's exact gradient + border. Only override
+       padding to fit the in-flow context. */
+    .guide-foot-actions {
+      display: inline-flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      justify-content: center;
+    }
+    .guide-foot-actions .btn {
+      padding: 12px 22px;
+      font-size: 14px;
+    }
+
+    /* Disclaimer — plain muted line. No icon, no bold label, no
+       border. Reads as fine print, doesn't compete with the CTAs. */
+    .guide-foot-note {
+      margin: 32px auto 0;
+      max-width: 520px;
+      font-size: 13px;
+      line-height: 1.55;
+      color: var(--muted);
+    }
+
+      @media (max-width: 540px) {
+      .guide-foot { margin: 44px auto 60px; padding: 28px 20px; }
+      .guide-foot-title { font-size: 21px; }
+      .guide-foot-actions { flex-direction: column; align-items: stretch; width: 100%; }
+      .guide-foot-actions .btn { width: 100%; }
+    }
+  </style>
+{% endblock %}
+
+{% block body %}
+
+  <header class="guide-hero">
+    <div class="guide-hero-shell">
+      <div class="guide-hero-grid">
+        <div class="guide-hero-copy">
+          <p class="guide-hero-eyebrow">
+            <i class="fa-solid fa-book-open-reader" aria-hidden="true"></i>
+            <a href="/guides">Guides</a>
+          </p>
+          <h1>{{ content_page_title|e }}</h1>
+          {% if _summary %}
+            <p class="guide-hero-lede">{{ _summary|e }}</p>
+          {% endif %}
+          <div class="guide-hero-meta">
+            {% if _read_min %}
+              <span><i class="fa-regular fa-clock" aria-hidden="true"></i> <strong>{{ _read_min }}</strong> min read</span>
+            {% endif %}
+            {% if content_entry.publishedAt %}
+              <span><i class="fa-regular fa-calendar" aria-hidden="true"></i> Updated <strong>{{ content_entry.publishedAt|date('j M Y') }}</strong></span>
+            {% endif %}
+          </div>
+        </div>
+        <figure class="guide-hero-media" aria-label="Guide thumbnail">
+          {% set _thumb = content_featured_url|default('')|trim %}
+          {% if _thumb != '' %}
+            <img src="{{ _thumb|e('html_attr') }}" alt="" width="680" height="425" loading="eager" decoding="async" />
+          {% else %}
+            <img class="is-placeholder" src="{{ theme_asset('images/guide-placeholder.svg') }}" alt="" width="680" height="425" loading="eager" />
+          {% endif %}
+        </figure>
+      </div>
+    </div>
+  </header>
+
+  <article class="guide-article-wrap">
+    <div class="guide-article">
+      {{ _body_html|raw }}
+    </div>
+  </article>
+
+  <div class="guide-related-wrap">
+    {% include 'partials/content_entry_refs.twig' %}
+  </div>
+
+  {% set _more_guides = guides_related(content_entry.slug, 6) %}
+  {% if _more_guides|length > 0 %}
+    <section class="guide-more" aria-labelledby="guide-more-title">
+      <div class="guide-more-head">
+        <h2 id="guide-more-title">More guides</h2>
+        <a class="link" href="/guides">View all guides →</a>
+      </div>
+      <div class="guide-more-grid">
+        {% for g in _more_guides %}
+          <a class="guide-more-card" href="{{ g.href|e('html_attr') }}">
+            <div class="guide-more-card-media">
+              {% if g.image_url|default('')|trim != '' %}
+                <img src="{{ g.image_url|e('html_attr') }}" alt="" loading="lazy" decoding="async" />
+              {% else %}
+                <img class="is-placeholder" src="{{ theme_asset('images/guide-placeholder.svg') }}" alt="" loading="lazy" />
+              {% endif %}
+            </div>
+            <div class="guide-more-card-body">
+              <h3 class="guide-more-card-title">{{ g.title|e }}</h3>
+              {% if g.excerpt %}
+                <p class="guide-more-card-excerpt">{{ g.excerpt|e }}</p>
+              {% endif %}
+              {% if g.published_at %}
+                <div class="guide-more-card-meta">
+                  <span><i class="fa-regular fa-calendar" aria-hidden="true"></i>{{ g.published_at|date('j M Y') }}</span>
+                </div>
+              {% endif %}
+            </div>
+          </a>
+        {% endfor %}
+      </div>
+    </section>
+  {% endif %}
+
+  <section class="guide-foot" aria-label="End of article">
+    {# A <section> rather than <footer> on purpose: the site theme
+       applies `footer { background: navy gradient; color: #fff }`
+       globally for the actual site footer at the very bottom of the
+       page, so using <footer> here would paint this block navy and
+       make the dark-navy heading invisible. <section> is the correct
+       landmark for an in-article outro anyway. #}
+    <div class="guide-foot-divider" aria-hidden="true"></div>
+
+    <p class="guide-foot-eyebrow">Continue exploring</p>
+    <h2 class="guide-foot-title">Where to next?</h2>
+    <p class="guide-foot-sub">
+      Pick another guide from the archive, or take the conversation
+      further on the FL350 forum.
+    </p>
+
+    <nav class="guide-foot-actions" aria-label="Continue exploring">
+      <a class="btn btn-primary" href="/guides">
+        <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
+        Back to all guides
+      </a>
+      <a class="btn" href="/forum">
+        <i class="fa-solid fa-comments" aria-hidden="true"></i>
+        Discuss on the forum
+      </a>
+    </nav>
+
+    <p class="guide-foot-note">
+      Informational only. Always confirm fares, fees and card terms
+      directly with the operator before booking or applying.
+    </p>
+  </section>
+
+{% endblock body %}
