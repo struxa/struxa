@@ -39,6 +39,7 @@ final class ContentEntryFormValidator
         ContentType $type,
         array $fields,
         ContentEntryRepository $entryRepo,
+        ContentTypeRepository $typeRepo,
         MediaRepository $mediaRepo,
         ?int $exceptEntryId = null
     ): array {
@@ -153,6 +154,16 @@ final class ContentEntryFormValidator
 
         $customResult = $this->fieldNormalizer->normalizeAll($fields, $body, $mediaRepo);
         foreach ($customResult['errors'] as $k => $msg) {
+            $errors[$k] = $msg;
+        }
+        foreach (ContentEntryRefsGuard::validate(
+            $fields,
+            $customResult['values'],
+            $status,
+            $exceptEntryId,
+            $entryRepo,
+            $typeRepo,
+        ) as $k => $msg) {
             $errors[$k] = $msg;
         }
 

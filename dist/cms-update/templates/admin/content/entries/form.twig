@@ -62,6 +62,17 @@
 
 {% block admin_content %}
   <div class="admin-page-edit-layout">
+    {% set _elw = entry_link_warnings|default([]) %}
+    {% if _elw is iterable and _elw|length > 0 %}
+      <div class="admin-callout admin-callout--warn admin-field--full" style="grid-column: 1 / -1; margin-bottom: 1rem;">
+        <p class="admin-callout-title" style="margin-top:0">Linked entries need attention before publish</p>
+        <ul style="margin:0.5rem 0 0 1.25rem; padding:0;">
+          {% for w in _elw %}
+            <li>{{ w|e }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+    {% endif %}
     <div class="admin-page-edit-main admin-page-edit-main--composed">
       <form id="entry-edit-form" class="admin-form admin-form--wide admin-form--page-aside-inner admin-page-edit-form--composed" method="post" action="{{ is_edit ? url_for('admin.content_types.entries.update', { id: content_type.id, entryId: entry.id }) : url_for('admin.content_types.entries.store', { id: content_type.id }) }}">
         <input type="hidden" name="taxonomy_terms_submitted" value="1" />

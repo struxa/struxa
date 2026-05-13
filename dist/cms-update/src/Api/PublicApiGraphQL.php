@@ -400,7 +400,13 @@ final class PublicApiGraphQL
                         }
                         $fieldList = $ctx->fields->forTypeOrdered($t->id);
                         $valueMap = $ctx->values->valuesByFieldIdForEntry($entry->id);
-                        $fieldRows = ContentEntryViewPresenter::buildFieldRows($fieldList, $valueMap, $ctx->mediaUrls);
+                        $fieldRows = ContentEntryViewPresenter::buildFieldRows(
+                            $fieldList,
+                            $valueMap,
+                            $ctx->mediaUrls,
+                            $ctx->pdo,
+                            rtrim($ctx->siteUrl, '/')
+                        );
                         $featured = PublicContentApi::featuredImageUrlForEntry($entry, $fieldList, $valueMap, $ctx->mediaUrls);
                         $groups = $ctx->entryTaxonomies->termsGroupedForEntry($entry->id);
                         $data = PublicContentApi::entryDetail(

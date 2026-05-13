@@ -143,7 +143,8 @@ return static function (App $app, Twig $twig, \PDO $pdo, callable $viewData): vo
             $twig,
             $pageSections,
             $sectionRenderer,
-            $siteUrl
+            $siteUrl,
+            $pdo
         ): Response {
             $a = $auth($request);
             if (!$a->can('read')) {
@@ -158,6 +159,7 @@ return static function (App $app, Twig $twig, \PDO $pdo, callable $viewData): vo
             $ctx = new PublicApiGraphQLContext(
                 $a,
                 $siteUrl(),
+                $pdo,
                 $types,
                 $fields,
                 $entries,
@@ -297,7 +299,7 @@ return static function (App $app, Twig $twig, \PDO $pdo, callable $viewData): vo
             $fieldList = $fields->forTypeOrdered($t->id);
             $taxonomies = $taxonomyRepo->forContentTypeOrdered($t->id);
             $body = PublicApiEntryPayload::toFormBody($parsed, true, null, $fieldList, [], [], $taxonomies);
-            $result = $entryValidator->validate($body, $t, $fieldList, $entries, $mediaRepo, null);
+            $result = $entryValidator->validate($body, $t, $fieldList, $entries, $types, $mediaRepo, null);
             $taxResult = $entryTaxonomyValidator->validate($body, $taxonomies, $taxonomyTermRepo);
             $seoParsed = [
                 'errors' => [],
@@ -356,7 +358,7 @@ return static function (App $app, Twig $twig, \PDO $pdo, callable $viewData): vo
                 return $json($response, ['ok' => false, 'error' => 'server_error', 'message' => 'Entry could not be loaded after create.'], 500);
             }
             $valueMap = $values->valuesByFieldIdForEntry($eid);
-            $fieldRows = ContentEntryViewPresenter::buildFieldRows($fieldList, $valueMap, $mediaUrls);
+            $fieldRows = ContentEntryViewPresenter::buildFieldRows($fieldList, $valueMap, $mediaUrls, $pdo, rtrim($siteUrl(), '/'));
             $featured = PublicContentApi::featuredImageUrlForEntry($entry, $fieldList, $valueMap, $mediaUrls);
             $groups = $entryTaxonomies->termsGroupedForEntry($eid);
             $data = PublicContentApi::entryDetail($t, $entry, $fieldRows, $groups, $featured !== '' ? $featured : null, $siteUrl());
@@ -414,7 +416,7 @@ return static function (App $app, Twig $twig, \PDO $pdo, callable $viewData): vo
                 $body = PublicApiEntryPayload::mergeSeoFromEntryIfMissing($body, $entry);
             }
             $body = PublicApiEntryPayload::mergeScheduleFromEntryIfMissing($body, $entry);
-            $result = $entryValidator->validate($body, $t, $fieldList, $entries, $mediaRepo, $entry->id);
+            $result = $entryValidator->validate($body, $t, $fieldList, $entries, $types, $mediaRepo, $entry->id);
             $taxResult = $entryTaxonomyValidator->validate($body, $taxonomies, $taxonomyTermRepo);
             $seoParsed = [
                 'errors' => [],
@@ -481,7 +483,7 @@ return static function (App $app, Twig $twig, \PDO $pdo, callable $viewData): vo
                 return $json($response, ['ok' => false, 'error' => 'server_error', 'message' => 'Entry missing after update.'], 500);
             }
             $valueMap = $values->valuesByFieldIdForEntry($entry->id);
-            $fieldRows = ContentEntryViewPresenter::buildFieldRows($fieldList, $valueMap, $mediaUrls);
+            $fieldRows = ContentEntryViewPresenter::buildFieldRows($fieldList, $valueMap, $mediaUrls, $pdo, rtrim($siteUrl(), '/'));
             $featured = PublicContentApi::featuredImageUrlForEntry($entry, $fieldList, $valueMap, $mediaUrls);
             $groups = $entryTaxonomies->termsGroupedForEntry($entry->id);
             $data = PublicContentApi::entryDetail($t, $entry, $fieldRows, $groups, $featured !== '' ? $featured : null, $siteUrl());
@@ -498,7 +500,8 @@ return static function (App $app, Twig $twig, \PDO $pdo, callable $viewData): vo
             $mediaUrls,
             $entryTaxonomies,
             $json,
-            $siteUrl
+            $siteUrl,
+            $pdo
         ): Response {
             if (!$auth($request)->can('read')) {
                 return $json($response, ['ok' => false, 'error' => 'forbidden', 'message' => 'The read scope is required.'], 403);
@@ -521,7 +524,7 @@ return static function (App $app, Twig $twig, \PDO $pdo, callable $viewData): vo
             }
             $fieldList = $fields->forTypeOrdered($t->id);
             $valueMap = $values->valuesByFieldIdForEntry($entry->id);
-            $fieldRows = ContentEntryViewPresenter::buildFieldRows($fieldList, $valueMap, $mediaUrls);
+            $fieldRows = ContentEntryViewPresenter::buildFieldRows($fieldList, $valueMap, $mediaUrls, $pdo, rtrim($siteUrl(), '/'));
             $featuredUrl = PublicContentApi::featuredImageUrlForEntry($entry, $fieldList, $valueMap, $mediaUrls);
             $groups = $entryTaxonomies->termsGroupedForEntry($entry->id);
             $data = PublicContentApi::entryDetail($t, $entry, $fieldRows, $groups, $featuredUrl !== '' ? $featuredUrl : null, $siteUrl());

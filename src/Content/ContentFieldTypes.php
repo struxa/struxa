@@ -17,6 +17,7 @@ final class ContentFieldTypes
         'image',
         'date',
         'url',
+        'entry_refs',
     ];
 
     public static function isValid(string $type): bool

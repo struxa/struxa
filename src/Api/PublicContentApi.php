@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Api;
 
 use App\Content\ContentEntry;
+use App\Content\ContentEntryRefsFieldOptions;
 use App\Content\ContentField;
 use App\Content\ContentType;
 use App\Media\MediaUrlHelper;
@@ -64,6 +65,15 @@ final class PublicContentApi
         ];
         if ($f->fieldType === 'select') {
             $out['options'] = $f->selectOptions();
+        }
+        if ($f->fieldType === 'entry_refs') {
+            $o = ContentEntryRefsFieldOptions::fromField($f);
+            $out['entry_ref_settings'] = [
+                'target_content_type_id' => $o->targetContentTypeId,
+                'max_refs' => $o->maxRefs,
+                'require_public_targets' => $o->requirePublicTargets,
+            ];
+            $out['value_format'] = 'JSON array of numeric entry IDs, e.g. [12,34]';
         }
 
         return $out;

@@ -23,6 +23,7 @@ final class PublicApiGraphQLContext
     public function __construct(
         public readonly PublicApiAuthContext $auth,
         public readonly string $siteUrl,
+        public readonly \PDO $pdo,
         public readonly ContentTypeRepository $types,
         public readonly ContentFieldRepository $fields,
         public readonly ContentEntryRepository $entries,

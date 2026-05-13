@@ -152,6 +152,7 @@ SYS;
             'boolean' => "ID {$f->id} — boolean as \"1\" or \"0\" ({$req}) — label: {$f->label}{$help}",
             'date' => "ID {$f->id} — date as YYYY-MM-DD ({$req}) — label: {$f->label}{$help}",
             'select' => $this->selectLine($f, $req, $help),
+            'entry_refs' => "ID {$f->id} — linked entries as JSON array of numeric entry IDs, e.g. [12,34] ({$req}) — label: {$f->label}{$help}",
             default => null,
         };
     }

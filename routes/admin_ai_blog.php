@@ -169,7 +169,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
         }
 
         $taxonomies = $taxonomyRepo->forContentTypeOrdered($typeId);
-        $result = $entryValidator->validate($draftBody, $t, $fieldList, $entries, $mediaRepo, null);
+        $result = $entryValidator->validate($draftBody, $t, $fieldList, $entries, $types, $mediaRepo, null);
         $taxResult = $entryTaxonomyValidator->validate($draftBody, $taxonomies, $taxonomyTermRepo);
         $seoParsed = [
             'errors' => [],

@@ -12,7 +12,7 @@
 {% set oj = o.options_json is defined ? o.options_json : (field and field.optionsJson ? field.optionsJson : '') %}
 {% set so = o.sort_order is defined ? o.sort_order : (field ? field.sortOrder : 0) %}
 
-{% set field_types = ['text', 'textarea', 'richtext', 'number', 'boolean', 'select', 'image', 'date', 'url'] %}
+{% set field_types = ['text', 'textarea', 'richtext', 'number', 'boolean', 'select', 'image', 'date', 'url', 'entry_refs'] %}
 
 {% block admin_title %}{{ is_edit ? 'Edit field' : 'New field' }} — {{ content_type.name|e }}{% endblock %}
 
@@ -83,9 +83,15 @@
       </div>
 
       <div class="admin-field admin-field--full {{ errors.options_json is defined ? 'admin-field--error' : '' }}">
-        <label class="admin-label" for="fld-options">Select options</label>
-        <textarea class="admin-textarea" id="fld-options" name="options_json" rows="5" placeholder='[{"value":"a","label":"Option A"}] or one value per line'>{{ oj|e }}</textarea>
-        <p class="admin-hint">Required when type is <strong>select</strong>. JSON array or one option per line.</p>
+        <label class="admin-label" for="fld-options">{% if ft == 'select' %}Select options{% elseif ft == 'entry_refs' %}Entry link options{% else %}Field options (JSON){% endif %}</label>
+        <textarea class="admin-textarea" id="fld-options" name="options_json" rows="5" placeholder="{% if ft == 'select' %}[{&quot;value&quot;:&quot;a&quot;,&quot;label&quot;:&quot;Option A&quot;}] or one value per line{% elseif ft == 'entry_refs' %}{&quot;target_content_type_id&quot;: 0, &quot;max_refs&quot;: 25, &quot;require_public_targets&quot;: true}{% endif %}">{{ oj|e }}</textarea>
+        {% if ft == 'select' %}
+        <p class="admin-hint">Required when type is <strong>select</strong>. JSON array of <code>value</code>/<code>label</code> objects, or one option per line.</p>
+        {% elseif ft == 'entry_refs' %}
+        <p class="admin-hint">Optional JSON object: <code>target_content_type_id</code> (numeric type id, or 0 for any routable type), <code>max_refs</code> (1–100, default 25), <code>require_public_targets</code> (boolean, default true — publishing blocks targets that are not yet publicly visible).</p>
+        {% else %}
+        <p class="admin-hint">Used for <strong>select</strong> (choices) and <strong>entry_refs</strong> (link rules). Leave blank for other types.</p>
+        {% endif %}
         {% if errors.options_json is defined %}<p class="admin-field-error">{{ errors.options_json|e }}</p>{% endif %}
       </div>
     </div>

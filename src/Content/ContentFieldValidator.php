@@ -65,10 +65,16 @@ final class ContentFieldValidator
                     }
                 }
             }
+        } elseif ($fieldType === 'entry_refs') {
+            $optCheck = ContentEntryRefsFieldOptions::validateOptionsBody($body);
+            foreach ($optCheck['errors'] as $k => $msg) {
+                $errors[$k] = $msg;
+            }
+            $optionsJson = $optCheck['json'];
         } else {
             $rawOpt = $this->str($body, 'options_json');
             if ($rawOpt !== '') {
-                $errors['options_json'] = 'Options are only used for select fields.';
+                $errors['options_json'] = 'Options are only used for select and “entry links” fields.';
             }
         }
 

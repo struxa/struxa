@@ -61,6 +61,27 @@ final class ContentEntryRepository
         return $row === false ? null : $row;
     }
 
+    /**
+     * @param list<int> $ids
+     * @return array<int, array<string, mixed>> keyed by entry id
+     */
+    public function fetchRowsByIds(array $ids): array
+    {
+        $ids = array_values(array_unique(array_filter(array_map(static fn ($v): int => (int) $v, $ids), static fn (int $i): bool => $i > 0)));
+        if ($ids === []) {
+            return [];
+        }
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+        $stmt = $this->pdo->prepare('SELECT * FROM ' . self::TABLE . ' WHERE id IN (' . $placeholders . ')');
+        $stmt->execute($ids);
+        $out = [];
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            $out[(int) $row['id']] = $row;
+        }
+
+        return $out;
+    }
+
     public function countPublishedForContentType(int $contentTypeId): int
     {
         $stmt = $this->pdo->prepare(

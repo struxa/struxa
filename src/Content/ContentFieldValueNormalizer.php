@@ -62,6 +62,10 @@ final class ContentFieldValueNormalizer
             return ['value' => $on ? '1' : '0', 'error' => null];
         }
 
+        if ($type === 'entry_refs') {
+            return $this->entryRefs($field, $raw, $presentInRequest);
+        }
+
         if ($raw === null || (is_string($raw) && trim($raw) === '')) {
             if ($field->isRequired) {
                 return ['value' => null, 'error' => 'This field is required.'];
@@ -209,6 +213,57 @@ final class ContentFieldValueNormalizer
         }
 
         return ['value' => $str, 'error' => null];
+    }
+
+    /**
+     * @return array{value: ?string, error: ?string}
+     */
+    private function entryRefs(ContentField $field, mixed $raw, bool $presentInRequest): array
+    {
+        $opts = ContentEntryRefsFieldOptions::fromField($field);
+        $empty = $raw === null
+            || (is_string($raw) && trim($raw) === '')
+            || (is_array($raw) && $raw === []);
+        if ($empty) {
+            if ($field->isRequired) {
+                return ['value' => null, 'error' => 'This field is required.'];
+            }
+            if (!$presentInRequest && $field->defaultValue !== null && trim((string) $field->defaultValue) !== '') {
+                try {
+                    return ['value' => ContentEntryReferenceIds::toJson(ContentEntryReferenceIds::parse((string) $field->defaultValue)), 'error' => null];
+                } catch (\JsonException) {
+                    return ['value' => '[]', 'error' => null];
+                }
+            }
+
+            return ['value' => '[]', 'error' => null];
+        }
+
+        $ids = [];
+        if (is_array($raw)) {
+            foreach ($raw as $v) {
+                if (is_int($v) && $v > 0) {
+                    $ids[] = $v;
+                } elseif (is_string($v) && ctype_digit(trim($v))) {
+                    $ids[] = (int) trim($v);
+                }
+            }
+        } else {
+            $str = is_string($raw) ? str_replace("\0", '', (string) $raw) : (string) $raw;
+            $ids = ContentEntryReferenceIds::parse($str);
+        }
+
+        $ids = ContentEntryReferenceIds::dedupeIds($ids);
+        if (count($ids) > $opts->maxRefs) {
+            return ['value' => null, 'error' => 'Too many linked entries (max ' . $opts->maxRefs . ').'];
+        }
+        try {
+            $json = ContentEntryReferenceIds::toJson($ids);
+        } catch (\JsonException) {
+            return ['value' => null, 'error' => 'Could not store entry links.'];
+        }
+
+        return ['value' => $json, 'error' => null];
     }
 
     /**

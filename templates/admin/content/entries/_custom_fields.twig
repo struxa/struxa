@@ -81,6 +81,9 @@
           <option value="{{ im.id }}" {{ (cv_str ~ '') == (im.id ~ '') ? 'selected' : '' }}>#{{ im.id }} — {{ im.original_name|e }}</option>
         {% endfor %}
       </select>
+    {% elseif f.fieldType == 'entry_refs' %}
+      <textarea class="admin-textarea" id="cf-{{ f.id }}" name="custom_fields[{{ f.id }}]" rows="4" placeholder="[12, 34]" style="font-family: ui-monospace, monospace;" {{ f.isRequired ? 'required' : '' }}>{{ cv_str|e }}</textarea>
+      <p class="admin-hint" style="margin-top:0.35rem">JSON array of entry IDs in display order, e.g. <code>[12,34]</code>. Invalid or unpublished targets are called out above until you fix or publish them.</p>
     {% else %}
       <textarea class="admin-textarea" id="cf-{{ f.id }}" name="custom_fields[{{ f.id }}]" rows="3">{{ cv_str|e }}</textarea>
     {% endif %}

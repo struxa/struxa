@@ -8,6 +8,7 @@ use App\Access\PermissionSlug;
 use App\Access\WorkflowService;
 use App\Content\ContentEntry;
 use App\Content\ContentEntryFormValidator;
+use App\Content\ContentEntryRefsGuard;
 use App\Content\ContentEntryRepository;
 use App\Content\ContentEntryRevisionRepository;
 use App\Content\ContentEntryValueRepository;
@@ -592,6 +593,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 'seo_media_select' => $mediaRepo->listImagesForPicker(200),
                 'workflow_statuses' => WorkflowService::STATUSES,
                 'entry_primary_richtext_textarea_id' => $entryPrimaryRichtextTextareaId($fieldList),
+                'entry_link_warnings' => [],
             ], $entryFormMediaContext($request, $mediaRepo, $pdo, null, null))));
         })->setName('admin.content_types.entries.new')->add($permEntryCreate);
 
@@ -635,7 +637,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             }
             $body = $request->getParsedBody();
             $body = is_array($body) ? $body : [];
-            $result = $entryValidator->validate($body, $t, $fieldList, $entries, $mediaRepo, null);
+            $result = $entryValidator->validate($body, $t, $fieldList, $entries, $types, $mediaRepo, null);
             $taxResult = $entryTaxonomyValidator->validate($body, $taxonomies, $taxonomyTermRepo);
             $seoParsed = [
                 'errors' => [],
@@ -681,6 +683,13 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                     'seo_media_select' => $mediaRepo->listImagesForPicker(200),
                     'workflow_statuses' => WorkflowService::STATUSES,
                     'entry_primary_richtext_textarea_id' => $entryPrimaryRichtextTextareaId($fieldList),
+                    'entry_link_warnings' => ContentEntryRefsGuard::warnings(
+                        $fieldList,
+                        $result['values']['custom'],
+                        null,
+                        $entries,
+                        $types
+                    ),
                 ], $entryFormMediaContext($request, $mediaRepo, $pdo, null, $old))));
             }
             $v = $result['values'];
@@ -750,6 +759,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             }
             $fieldList = $fields->forTypeOrdered($id);
             $valueMap = $values->valuesByFieldIdForEntry($entryId);
+            $entryLinkWarnings = ContentEntryRefsGuard::warnings($fieldList, $valueMap, $entryId, $entries, $types);
             $taxonomies = $taxonomyRepo->forContentTypeOrdered($id);
             $taxonomy_term_rows = [];
             foreach ($taxonomies as $tx) {
@@ -779,6 +789,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 'workflow_statuses' => $workflow->allowedTargets($perms, $entry->status),
                 'entry_revision_rows' => $entryRevRepo->listForEntry($entryId, 15),
                 'entry_primary_richtext_textarea_id' => $entryPrimaryRichtextTextareaId($fieldList),
+                'entry_link_warnings' => $entryLinkWarnings,
             ], $entryFormMediaContext($request, $mediaRepo, $pdo, $entry, null))));
         })->setName('admin.content_types.entries.edit')->add($permEntryEdit);
 
@@ -827,7 +838,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             }
             $body = $request->getParsedBody();
             $body = is_array($body) ? $body : [];
-            $result = $entryValidator->validate($body, $t, $fieldList, $entries, $mediaRepo, $entryId);
+            $result = $entryValidator->validate($body, $t, $fieldList, $entries, $types, $mediaRepo, $entryId);
             $taxResult = $entryTaxonomyValidator->validate($body, $taxonomies, $taxonomyTermRepo);
             $seoParsed = [
                 'errors' => [],
@@ -874,6 +885,13 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                     'workflow_statuses' => $workflow->allowedTargets($perms, $entry->status),
                     'entry_revision_rows' => $entryRevRepo->listForEntry($entryId, 15),
                     'entry_primary_richtext_textarea_id' => $entryPrimaryRichtextTextareaId($fieldList),
+                    'entry_link_warnings' => ContentEntryRefsGuard::warnings(
+                        $fieldList,
+                        $result['values']['custom'],
+                        $entryId,
+                        $entries,
+                        $types
+                    ),
                 ], $entryFormMediaContext($request, $mediaRepo, $pdo, $entry, $old))));
             }
             $v = $result['values'];

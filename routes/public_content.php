@@ -60,7 +60,9 @@ return static function (App $app, Twig $twig, \PDO $pdo, callable $viewData): vo
 
         $fieldList = $fields->forTypeOrdered($type->id);
         $valueMap = $values->valuesByFieldIdForEntry($entry->id);
-        $fieldRows = ContentEntryViewPresenter::buildFieldRows($fieldList, $valueMap, $mediaUrls);
+        $vd = $viewData();
+        $siteBase = rtrim((string) ($vd['site_url'] ?? ''), '/');
+        $fieldRows = ContentEntryViewPresenter::buildFieldRows($fieldList, $valueMap, $mediaUrls, $pdo, $siteBase);
 
         $featuredUrl = '';
         if ($entry->featuredImageId !== null) {
