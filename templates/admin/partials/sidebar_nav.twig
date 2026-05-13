@@ -99,7 +99,7 @@
     </details>
   {% endif %}
 
-  <details class="admin-nav-group" {{ nav in ['pages','content_types','media'] ? 'open' : '' }}>
+  <details class="admin-nav-group" {{ nav in ['pages','content_types','media','seo_sitemap'] ? 'open' : '' }}>
     <summary class="admin-nav-group-title">Content</summary>
     <div class="admin-nav-group-items">
       {# Pages: use sidebar pin only (avoids duplicate nav) #}
@@ -115,11 +115,17 @@
           Media library
         </a>
       {% endif %}
+      {% if cms_can('manage_settings') %}
+        <a href="{{ url_for('admin.seo.sitemap') }}" class="{{ nav == 'seo_sitemap' ? 'is-active' : '' }}">
+          <svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
+          Sitemap
+        </a>
+      {% endif %}
     </div>
   </details>
 
-  {% if cms_can('manage_settings') or cms_can('manage_menus') or cms_can('view_link_analytics') %}
-    <details class="admin-nav-group" {{ nav in ['settings','menus','seo_redirects','seo_not_found','seo_sitemap','cache_tools','analytics_external_links','settings_search'] ? 'open' : '' }}>
+  {% if cms_can('manage_settings') or cms_can('view_link_analytics') %}
+    <details class="admin-nav-group" {{ nav in ['settings','seo_redirects','seo_not_found','cache_tools','analytics_external_links','settings_search'] ? 'open' : '' }}>
       <summary class="admin-nav-group-title">Site</summary>
       <div class="admin-nav-group-items">
         {% if cms_can('manage_settings') %}
@@ -135,10 +141,6 @@
             <svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
             404 log
           </a>
-          <a href="{{ url_for('admin.seo.sitemap') }}" class="{{ nav == 'seo_sitemap' ? 'is-active' : '' }}">
-            <svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
-            Sitemap
-          </a>
           <a href="{{ url_for('admin.tools.cache') }}" class="{{ nav == 'cache_tools' ? 'is-active' : '' }}">
             <svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
             Performance
@@ -146,12 +148,6 @@
           <a href="{{ url_for('admin.settings.search') }}" class="{{ nav == 'settings_search' ? 'is-active' : '' }}">
             <svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>
             Search
-          </a>
-        {% endif %}
-        {% if cms_can('manage_menus') %}
-          <a href="{{ url_for('admin.menus.index') }}" class="{{ nav == 'menus' ? 'is-active' : '' }}">
-            <svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="14" y2="18"/></svg>
-            Menus
           </a>
         {% endif %}
         {% if cms_can('view_link_analytics') %}
@@ -164,14 +160,22 @@
     </details>
   {% endif %}
 
-  {% if cms_can('manage_themes') %}
-    <details class="admin-nav-group" {{ nav == 'themes' ? 'open' : '' }}>
+  {% if cms_can('manage_themes') or cms_can('manage_menus') %}
+    <details class="admin-nav-group" {{ nav in ['themes','menus'] ? 'open' : '' }}>
       <summary class="admin-nav-group-title">Appearance</summary>
       <div class="admin-nav-group-items">
-        <a href="{{ url_for('admin.themes.index') }}" class="{{ nav == 'themes' ? 'is-active' : '' }}">
-          <svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="12" cy="12" r="3"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
-          Themes
-        </a>
+        {% if cms_can('manage_themes') %}
+          <a href="{{ url_for('admin.themes.index') }}" class="{{ nav == 'themes' ? 'is-active' : '' }}">
+            <svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="12" cy="12" r="3"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+            Themes
+          </a>
+        {% endif %}
+        {% if cms_can('manage_menus') %}
+          <a href="{{ url_for('admin.menus.index') }}" class="{{ nav == 'menus' ? 'is-active' : '' }}">
+            <svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="14" y2="18"/></svg>
+            Menus
+          </a>
+        {% endif %}
       </div>
     </details>
   {% endif %}
