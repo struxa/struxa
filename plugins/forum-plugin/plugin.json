@@ -1,0 +1,24 @@
+{
+  "name": "Forum",
+  "slug": "forum-plugin",
+  "version": "1.0.1",
+  "author": "Studio CMS",
+  "description": "MyBB-inspired community forum for Struxa CMS. Categories → forums → threads → posts, with sticky/locked threads, post likes, thread subscriptions, user ranks, quote replies, Markdown rendering, online-now tracking, and a full admin moderation panel. Threads are also exposed as a 'Forum thread' CMS content type so they inherit SEO metadata, slugs and featured images.",
+  "requires_cms_version": "1.0.0",
+  "requires_php": "8.1",
+  "homepage": "https://example.com/plugins/forum",
+  "repository_url": "https://example.com/repo/forum-plugin",
+  "license": "MIT",
+  "support_url": "https://example.com/support",
+  "category": "community",
+  "tags": ["forum", "community", "discussion", "mybb", "bbcode", "threads"],
+  "tested_up_to": "1.0.0",
+  "main_class": "ForumPlugin\\ForumServiceProvider",
+  "enabled_by_default": false,
+  "nested_admin_nav": true,
+  "autoload": {
+    "psr4": {
+      "ForumPlugin\\": "src/"
+    }
+  }
+}

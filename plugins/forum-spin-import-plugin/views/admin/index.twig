@@ -448,7 +448,7 @@
     var uploadMsg = document.getElementById('fspi-upload-msg');
     var batchInput = document.getElementById('fspi-batch');
     var autoEl = document.getElementById('fspi-auto');
-    var timer = null;
+    var autoTimer = null;
 
     function log(line) {
       if (!logEl) return;
@@ -493,7 +493,29 @@
     }
 
     function stopAuto() {
-      if (timer) { clearInterval(timer); timer = null; }
+      if (autoTimer !== null) {
+        clearTimeout(autoTimer);
+        autoTimer = null;
+      }
+    }
+
+    /** Run the next auto step only after the previous one finishes (avoids stacked requests). */
+    function scheduleNextAutoTick() {
+      stopAuto();
+      if (!autoEl || !autoEl.checked) {
+        return;
+      }
+      autoTimer = setTimeout(function () {
+        autoTimer = null;
+        if (!autoEl || !autoEl.checked) {
+          return;
+        }
+        stepOnce().finally(function () {
+          if (autoEl && autoEl.checked) {
+            scheduleNextAutoTick();
+          }
+        });
+      }, 1500);
     }
 
     function stopPollingUi() {
@@ -511,7 +533,9 @@
           stopPollingUi();
           return;
         }
-        log((j.message || 'ok') + ' | status=' + (j.status || '') + ' topics_done=' + (j.topics_done || 0) + '/' + (j.max_threads || 0));
+        if (j.message !== 'Job is not running.') {
+          log((j.message || 'ok') + ' | status=' + (j.status || '') + ' topics_done=' + (j.topics_done || 0) + '/' + (j.max_threads || 0));
+        }
         if (j.status !== 'running') {
           stopPollingUi();
         }
@@ -592,7 +616,7 @@
       autoEl.addEventListener('change', function () {
         stopAuto();
         if (autoEl.checked) {
-          timer = setInterval(function () { stepOnce(); }, 1500);
+          scheduleNextAutoTick();
         }
       });
     }
