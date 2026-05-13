@@ -31,6 +31,8 @@ final class PluginAdminNavRegistry
 
     /**
      * @param array<string, string> $routeParams
+     * @param bool                  $allowSelfAsParent When true, {@code $parentPluginSlug} may equal
+     *                                                {@code $pluginSlug} so the grouper nests links under this plugin's manifest name.
      */
     public function register(
         string $pluginSlug,
@@ -38,9 +40,12 @@ final class PluginAdminNavRegistry
         string $routeName,
         array $routeParams = [],
         ?string $parentPluginSlug = null,
+        bool $allowSelfAsParent = false,
     ): void {
         $parent = $parentPluginSlug !== null ? trim($parentPluginSlug) : '';
-        if ($parent === '' || strcasecmp($parent, $pluginSlug) === 0 || !preg_match('/^[a-z0-9]+(?:-[a-z0-9]+)*$/', $parent)) {
+        if ($parent === '' || !preg_match('/^[a-z0-9]+(?:-[a-z0-9]+)*$/', $parent)) {
+            $parent = null;
+        } elseif (strcasecmp($parent, $pluginSlug) === 0 && !$allowSelfAsParent) {
             $parent = null;
         }
 

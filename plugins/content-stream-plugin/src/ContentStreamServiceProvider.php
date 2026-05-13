@@ -11,7 +11,7 @@ final class ContentStreamServiceProvider implements PluginServiceProviderInterfa
 {
     public function boot(PluginBootContext $context): void
     {
-        $context->registerAdminNavItem('Content Stream · API settings', 'plugin.content_stream_plugin.admin');
-        $context->registerAdminNavItem('Content Stream · domain tool', 'plugin.content_stream_plugin.tool');
+        $context->registerAdminNavItem('API settings', 'plugin.content_stream_plugin.admin');
+        $context->registerAdminNavItem('Domain tool', 'plugin.content_stream_plugin.tool');
     }
 }

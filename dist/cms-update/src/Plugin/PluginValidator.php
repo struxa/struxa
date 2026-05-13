@@ -24,6 +24,10 @@ final class PluginValidator
             $errors[] = 'This plugin requires CMS version ' . $m->requiresCmsVersion . ' or newer.';
         }
 
+        if ($m->nestedAdminNav && $m->parentPluginSlug !== null && $m->parentPluginSlug !== '') {
+            $errors[] = 'plugin.json: use either nested_admin_nav (group this plugin\'s links under its own name) or parent_plugin (attach under another plugin), not both.';
+        }
+
         $parent = $m->parentPluginSlug;
         if ($parent !== null && $parent !== '') {
             if (strcasecmp($parent, $m->slug) === 0) {

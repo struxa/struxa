@@ -77,15 +77,20 @@ final class PluginBootContext
      *
      * When this plugin's {@code plugin.json} sets {@code parent_plugin} to another plugin's
      * directory slug, the link is nested under that parent's label in the sidebar (expandable group).
+     * When {@code nested_admin_nav} is true, links are nested under this plugin's own {@code name}
+     * instead of listing flat under Extensions.
      */
     public function registerAdminNavItem(string $label, string $routeName, array $routeParams = []): void
     {
+        $nested = $this->manifest->nestedAdminNav;
+        $parentForNav = $nested ? $this->manifest->slug : $this->manifest->parentPluginSlug;
         $this->adminNav->register(
             $this->manifest->slug,
             $label,
             $routeName,
             $routeParams,
-            $this->manifest->parentPluginSlug,
+            $parentForNav,
+            $nested,
         );
     }
 }

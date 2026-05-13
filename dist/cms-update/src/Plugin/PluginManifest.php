@@ -39,6 +39,13 @@ final class PluginManifest
          * admin sidebar entry as a nested item (Extensions → parent name → child links).
          */
         public readonly ?string $parentPluginSlug = null,
+        /**
+         * When true, every {@see PluginBootContext::registerAdminNavItem} link is grouped under this
+         * plugin's {@code name} in the sidebar (Extensions → …), like multiple child plugins under a parent,
+         * without splitting the codebase across folders. Mutually exclusive with {@see parentPluginSlug}
+         * in {@code plugin.json} (activation validates).
+         */
+        public readonly bool $nestedAdminNav = false,
     ) {
     }
 
@@ -98,7 +105,16 @@ final class PluginManifest
                 ? trim($data['tested_up_to'])
                 : null,
             parentPluginSlug: self::parseParentPluginSlug($data, $slug),
+            nestedAdminNav: self::parseNestedAdminNav($data),
         );
+    }
+
+    /**
+     * @param array<string, mixed> $data
+     */
+    private static function parseNestedAdminNav(array $data): bool
+    {
+        return !empty($data['nested_admin_nav']) || !empty($data['nestedAdminNav']);
     }
 
     /**

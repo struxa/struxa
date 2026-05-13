@@ -10,6 +10,7 @@
   "tags": ["avios", "ai", "openai", "seo", "content"],
   "main_class": "AviosDestinationReviewPlugin\\AviosDestinationReviewServiceProvider",
   "enabled_by_default": false,
+  "nested_admin_nav": true,
   "autoload": {
     "psr4": {
       "AviosDestinationReviewPlugin\\": "src/"

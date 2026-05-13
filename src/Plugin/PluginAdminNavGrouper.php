@@ -6,7 +6,8 @@ namespace App\Plugin;
 
 /**
  * Splits {@see PluginAdminNavRegistry} items into a flat list (no parent) and nested groups
- * keyed by {@code parent_plugin_slug} from each plugin's {@code plugin.json}.
+ * keyed by {@code parent_plugin_slug} (another plugin's folder slug, or this plugin's slug when
+ * {@code nested_admin_nav} is enabled in {@code plugin.json}).
  */
 final class PluginAdminNavGrouper
 {
@@ -31,11 +32,8 @@ final class PluginAdminNavGrouper
             $parent = isset($item['parent_plugin_slug']) && is_string($item['parent_plugin_slug'])
                 ? trim($item['parent_plugin_slug'])
                 : '';
-            $self = isset($item['plugin_slug']) && is_string($item['plugin_slug'])
-                ? trim($item['plugin_slug'])
-                : '';
 
-            if ($parent === '' || strcasecmp($parent, $self) === 0 || !preg_match('/^[a-z0-9]+(?:-[a-z0-9]+)*$/', $parent)) {
+            if ($parent === '' || !preg_match('/^[a-z0-9]+(?:-[a-z0-9]+)*$/', $parent)) {
                 $flat[] = $item;
 
                 continue;

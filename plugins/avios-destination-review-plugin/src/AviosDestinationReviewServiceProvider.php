@@ -15,8 +15,8 @@ final class AviosDestinationReviewServiceProvider implements PluginServiceProvid
         // Top-level admin nav links under "Extensions". The list page itself handles the
         // dependency banner when How Many Avios isn't active — routes always register so
         // admins land on a useful page either way.
-        $context->registerAdminNavItem('Avios Destination Review', 'plugin.avios_destination_review.list');
-        $context->registerAdminNavItem('Avios Destination Review · Settings', 'plugin.avios_destination_review.settings');
+        $context->registerAdminNavItem('Destination reviews', 'plugin.avios_destination_review.list');
+        $context->registerAdminNavItem('Settings', 'plugin.avios_destination_review.settings');
 
         // Expose the homepage "Best Avios Redemptions" data source. Themes can call
         // `adr_best_redemptions(5)` on demand or read the eager-loaded global below.
