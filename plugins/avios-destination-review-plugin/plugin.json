@@ -1,7 +1,7 @@
 {
   "name": "Avios Destination Review",
   "slug": "avios-destination-review-plugin",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "author": "Avios Studio",
   "description": "Generate SEO-friendly destination reviews via OpenAI for each British Airways destination on file in the How Many Avios · Fare table. Editable rich-text reviews stored in self-contained adr_* tables.",
   "requires_cms_version": "1.0.0",
