@@ -12,7 +12,7 @@ use Psr\Http\Server\RequestHandlerInterface;
 use Slim\Psr7\Response;
 
 /**
- * Rate limits POST /login and all /api/v1 traffic per client IP.
+ * Rate limits POST /login, POST /register, and all /api/v1 traffic per client IP.
  */
 final class ThrottlingMiddleware implements MiddlewareInterface
 {
@@ -34,6 +34,13 @@ final class ThrottlingMiddleware implements MiddlewareInterface
             $max = $this->intEnv('CMS_LOGIN_MAX_ATTEMPTS_PER_QUARTER_HOUR', 40);
             if (!$this->limiter->hit('login', $ip, $max, 900)) {
                 return $this->tooMany('Too many sign-in attempts. Try again in a few minutes.');
+            }
+        }
+
+        if ($method === 'POST' && $path === '/register') {
+            $max = $this->intEnv('CMS_REGISTER_MAX_ATTEMPTS_PER_HOUR', 10);
+            if (!$this->limiter->hit('register', $ip, $max, 3600)) {
+                return $this->tooMany('Too many sign-up attempts. Try again in an hour.');
             }
         }
 

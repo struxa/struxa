@@ -17,20 +17,32 @@ final class AfterSaveRedirect
         return isset($body['after_save']) && (string) $body['after_save'] === 'view';
     }
 
-    public static function entryPublicUrl(string $siteUrl, ContentType $type, string $slug, string $status): ?string
+    public static function entryPublicUrl(string $siteUrl, ContentType $type, string $slug, string $status, ?string $publishedAt = null): ?string
     {
         if ($status !== 'published' || !$type->hasPublicRoute) {
             return null;
+        }
+        if ($publishedAt !== null && $publishedAt !== '') {
+            $t = strtotime($publishedAt);
+            if ($t !== false && $t > time()) {
+                return null;
+            }
         }
         $base = rtrim($siteUrl, '/');
 
         return $base . '/' . rawurlencode($type->slug) . '/' . rawurlencode($slug);
     }
 
-    public static function pagePublicUrl(string $siteUrl, string $slug, string $status, ?int $pageId): ?string
+    public static function pagePublicUrl(string $siteUrl, string $slug, string $status, ?int $pageId, ?string $publishedAt = null): ?string
     {
         if ($status !== 'published') {
             return null;
+        }
+        if ($publishedAt !== null && $publishedAt !== '') {
+            $t = strtotime($publishedAt);
+            if ($t !== false && $t > time()) {
+                return null;
+            }
         }
         $base = rtrim($siteUrl, '/');
         if ($pageId !== null) {

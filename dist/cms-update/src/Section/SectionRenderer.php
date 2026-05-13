@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Section;
 
 use App\Content\RichtextTabsShortcode;
+use App\Seo\ExternalLinkPolicy;
 use Twig\Environment;
 
 /**
@@ -28,7 +29,9 @@ final class SectionRenderer
             $html .= $this->renderOne($env, $row);
         }
 
-        return RichtextTabsShortcode::transform($html);
+        $out = RichtextTabsShortcode::transform($html);
+
+        return ExternalLinkPolicy::maybeNofollowExternalAnchorsInHtml($out);
     }
 
     public function renderOne(Environment $env, PageSection $row): string

@@ -1,0 +1,65 @@
+{% import _self as thread %}
+{% if comments_thread is defined and comments_thread is not empty %}
+  <div class="cms-comments-list" role="list">
+    {% for node in comments_thread %}
+      {{ thread.item(node, comments_thread_key, comments_return_to, logged_in|default(false)) }}
+    {% endfor %}
+  </div>
+{% else %}
+  <p class="cms-comments-empty">No comments yet.{% if logged_in|default(false) %} Be the first to start a thread.{% endif %}</p>
+{% endif %}
+
+{% macro item(node, thread_key, return_to, is_logged_in) %}
+  {% set _d = node.depth|default(0) %}
+  {% set dclamped = _d > 4 ? 4 : _d %}
+  {% set initials = (node.author_name|default('?'))|upper|slice(0, 2) %}
+  <article class="cms-comment cms-comment--depth-{{ dclamped }}" role="listitem" id="comment-{{ node.id }}">
+    <div class="cms-comment-avatar" aria-hidden="true">{{ initials|e }}</div>
+    <header class="cms-comment-head">
+      <span class="cms-comment-author">{{ node.author_name|e }}</span>
+      <time class="cms-comment-time" datetime="{{ node.created_at|e('html_attr') }}">{{ node.created_at|e }}</time>
+    </header>
+    <div class="cms-comment-body">{{ node.body|default('')|e|nl2br }}</div>
+    <div class="cms-comment-actions">
+      {% set _likes = node.like_count|default(0) %}
+      {% if is_logged_in %}
+        <form method="post" action="{{ url_for('public.comments.like') }}" class="cms-comment-like-form" style="display:inline">
+          <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+          <input type="hidden" name="comment_id" value="{{ node.id }}" />
+          <input type="hidden" name="thread_key" value="{{ thread_key|e('html_attr') }}" />
+          <input type="hidden" name="return_to" value="{{ return_to|e('html_attr') }}" />
+          <button type="submit" class="cms-comment-like-btn" aria-pressed="{{ node.liked_by_me|default(false) ? 'true' : 'false' }}">
+            {% if node.liked_by_me|default(false) %}♥ Liked{% else %}♡ Like{% endif %} · {{ _likes }}
+          </button>
+        </form>
+      {% else %}
+        <span class="cms-comments-note" style="margin:0;font-size:.8rem">{{ _likes }} like{% if _likes != 1 %}s{% endif %}</span>
+      {% endif %}
+    </div>
+    {% if is_logged_in %}
+      <details class="cms-comment-reply">
+        <summary>Reply</summary>
+        <form method="post" action="{{ url_for('public.comments.post') }}" class="cms-comment-form cms-comment-form--reply">
+          <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+          <input type="hidden" name="thread_key" value="{{ thread_key|e('html_attr') }}" />
+          <input type="hidden" name="parent_id" value="{{ node.id }}" />
+          <input type="hidden" name="return_to" value="{{ return_to|e('html_attr') }}" />
+          <input type="text" name="website" value="" autocomplete="off" tabindex="-1" aria-hidden="true" style="position:absolute;left:-9999px;opacity:0" />
+          <label>
+            <span>Reply</span>
+            <textarea required name="body" maxlength="4000" rows="3" placeholder="Add to the thread…"></textarea>
+          </label>
+          <button type="submit">Send reply</button>
+        </form>
+      </details>
+    {% endif %}
+    {% if node.children is defined and node.children is not empty %}
+      <div class="cms-comment-children">
+        {% import _self as thread %}
+        {% for child in node.children %}
+          {{ thread.item(child, thread_key, return_to, is_logged_in) }}
+        {% endfor %}
+      </div>
+    {% endif %}
+  </article>
+{% endmacro %}

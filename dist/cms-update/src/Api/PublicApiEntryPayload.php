@@ -54,6 +54,8 @@ final class PublicApiEntryPayload
             $body['seo_title'] = isset($json['seo_title']) ? trim((string) $json['seo_title']) : '';
             $body['seo_description'] = isset($json['seo_description']) ? trim((string) $json['seo_description']) : '';
             $body['published_at'] = isset($json['published_at']) ? trim((string) $json['published_at']) : '';
+            $body['scheduled_publish_at'] = isset($json['scheduled_publish_at']) ? trim((string) $json['scheduled_publish_at']) : '';
+            $body['scheduled_unpublish_at'] = isset($json['scheduled_unpublish_at']) ? trim((string) $json['scheduled_unpublish_at']) : '';
         } else {
             $body['featured_image_id'] = array_key_exists('featured_image_id', $json)
                 ? self::featuredImageIdString($json, $entry->featuredImageId)
@@ -67,6 +69,12 @@ final class PublicApiEntryPayload
             $body['published_at'] = array_key_exists('published_at', $json)
                 ? trim((string) $json['published_at'])
                 : (string) ($entry->publishedAt ?? '');
+            $body['scheduled_publish_at'] = array_key_exists('scheduled_publish_at', $json)
+                ? trim((string) $json['scheduled_publish_at'])
+                : (string) ($entry->scheduledPublishAt ?? '');
+            $body['scheduled_unpublish_at'] = array_key_exists('scheduled_unpublish_at', $json)
+                ? trim((string) $json['scheduled_unpublish_at'])
+                : (string) ($entry->scheduledUnpublishAt ?? '');
         }
 
         $taxTerms = self::mergeTaxonomyInput($json, $taxonomySelection, $taxonomies);
@@ -80,6 +88,24 @@ final class PublicApiEntryPayload
             if (array_key_exists($seoKey, $json)) {
                 $body[$seoKey] = $json[$seoKey];
             }
+        }
+
+        return $body;
+    }
+
+    /**
+     * Fills omitted schedule keys from the stored entry so PATCH does not clear them when omitted from JSON.
+     *
+     * @param array<string, mixed> $body
+     * @return array<string, mixed>
+     */
+    public static function mergeScheduleFromEntryIfMissing(array $body, ContentEntry $entry): array
+    {
+        if (!array_key_exists('scheduled_publish_at', $body)) {
+            $body['scheduled_publish_at'] = (string) ($entry->scheduledPublishAt ?? '');
+        }
+        if (!array_key_exists('scheduled_unpublish_at', $body)) {
+            $body['scheduled_unpublish_at'] = (string) ($entry->scheduledUnpublishAt ?? '');
         }
 
         return $body;

@@ -22,12 +22,15 @@ use App\Page\PageRevisionRepository;
 use App\Page\PageSlugger;
 use App\Page\PageTagParser;
 use App\Page\PageValidator;
+use App\Preview\PreviewTokenRepository;
+use App\Support\LineDiff;
 use App\Section\PageSectionRepository;
 use App\Section\PageSection;
 use App\Section\SectionManager;
 use App\Section\SectionRenderer;
 use App\Section\SectionSchemaValidator;
 use App\Section\SectionTemplateResolver;
+use App\Seo\ExternalLinkPolicy;
 use App\Seo\MetaTagBuilder;
 use App\Seo\RedirectRepository;
 use App\Seo\SeoFormParser;
@@ -112,6 +115,9 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             'twitter_description' => trim((string) ($body['twitter_description'] ?? '')),
             'twitter_image_id' => trim((string) ($body['twitter_image_id'] ?? '')),
             'schema_json' => (string) ($body['schema_json'] ?? ''),
+            'published_at' => trim((string) ($body['published_at'] ?? '')),
+            'scheduled_publish_at' => trim((string) ($body['scheduled_publish_at'] ?? '')),
+            'scheduled_unpublish_at' => trim((string) ($body['scheduled_unpublish_at'] ?? '')),
         ]);
     };
 
@@ -260,8 +266,10 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 $siteUrl,
                 Settings::get('site_name') ?: null
             ));
+            $previewBody = ExternalLinkPolicy::maybeNofollowExternalAnchorsInHtml($previewPage->content);
+            $cmsPageView = $previewBody === $previewPage->content ? $previewPage : $previewPage->withContent($previewBody);
             $html = $twig->fetch('page/show.twig', array_merge($vd, $seoTwig, [
-                'cms_page' => $previewPage,
+                'cms_page' => $cmsPageView,
                 'cms_page_preview' => true,
                 'cms_page_has_sections' => $hasSections,
                 'cms_page_sections_html' => $sectionsHtml,
@@ -356,7 +364,10 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 $seoParsed['twitter_image_id'],
                 $seoParsed['schema_json'],
                 $v['content'],
-                $v['status']
+                $v['status'],
+                $v['published_at'] ?? null,
+                $v['scheduled_publish_at'] ?? null,
+                $v['scheduled_unpublish_at'] ?? null
             );
             $page = $repo->findById($newId);
             if ($page !== null) {
@@ -367,7 +378,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             $parser = RouteContext::fromRequest($request)->getRouteParser();
             $siteUrl = (string) (($viewData())['site_url'] ?? '');
             if (AfterSaveRedirect::wantsPublicView($body)) {
-                $viewUrl = AfterSaveRedirect::pagePublicUrl($siteUrl, $slug, $v['status'], $newId);
+                $viewUrl = AfterSaveRedirect::pagePublicUrl($siteUrl, $slug, $v['status'], $newId, $v['published_at'] ?? null);
                 if ($viewUrl !== null) {
                     Flash::set('success', 'Page created.');
 
@@ -471,6 +482,9 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 $seoParsed['schema_json'],
                 $v['content'],
                 $v['status'],
+                $v['published_at'] ?? null,
+                $v['scheduled_publish_at'] ?? null,
+                $v['scheduled_unpublish_at'] ?? null,
                 $cmsUid($request)
             );
             if ($page->status === 'published' && $oldSlug !== $slug) {
@@ -482,7 +496,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             $parser = RouteContext::fromRequest($request)->getRouteParser();
             $siteUrl = (string) (($viewData())['site_url'] ?? '');
             if (AfterSaveRedirect::wantsPublicView($body)) {
-                $viewUrl = AfterSaveRedirect::pagePublicUrl($siteUrl, $slug, $v['status'], $id);
+                $viewUrl = AfterSaveRedirect::pagePublicUrl($siteUrl, $slug, $v['status'], $id, $v['published_at'] ?? null);
                 if ($viewUrl !== null) {
                     Flash::set('success', 'Page updated.');
 
@@ -541,13 +555,62 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 ? (string) $rev['tags_json']
                 : null;
 
+            $q = $request->getQueryParams();
+            $otherRaw = isset($q['other']) ? (string) $q['other'] : '';
+            $otherId = ctype_digit($otherRaw) ? (int) $otherRaw : 0;
+            $revRight = null;
+            $revRightTagsDisplay = '';
+            if ($otherId > 0 && $otherId !== $revId) {
+                $revRight = $revisions->findById($otherId);
+                if ($revRight === null || (int) $revRight['page_id'] !== $id) {
+                    throw new HttpNotFoundException($request);
+                }
+                $rtj = $revRight['tags_json'] ?? null;
+                $revRightTagsDisplay = PageTagParser::slugsToEditString(PageTagParser::fromJson(
+                    $rtj !== null && $rtj !== '' ? (string) $rtj : null
+                ));
+            }
+
+            $leftContent = (string) $rev['content'];
+            $rightContent = $revRight !== null ? (string) $revRight['content'] : $page->content;
+            $unifiedDiff = implode("\n", LineDiff::unified($leftContent, $rightContent));
+
             return $twig->render($response, 'admin/pages/revision_compare.twig', $withCmsUser($request, array_merge($adminContext(), [
                 'admin_nav' => 'pages',
                 'page' => $page,
                 'revision' => $rev,
+                'revision_right' => $revRight,
                 'revision_tags_display' => PageTagParser::slugsToEditString(PageTagParser::fromJson($revTagsJson)),
+                'revision_right_tags_display' => $revRightTagsDisplay,
+                'revision_unified_diff' => $unifiedDiff,
             ])));
         })->setName('admin.pages.revision_compare');
+
+        $group->post('/pages/{id:[0-9]+}/preview-link', function (Request $request, Response $response, array $args) use ($repo, $pdo, $cmsUid, $viewData): Response {
+            $id = (int) $args['id'];
+            $page = $repo->findById($id);
+            if ($page === null) {
+                throw new HttpNotFoundException($request);
+            }
+            $body = $request->getParsedBody();
+            $body = is_array($body) ? $body : [];
+            $ttlChoices = [3600 => true, 86400 => true, 604800 => true];
+            $ttlRaw = (string) ($body['preview_link_ttl'] ?? '86400');
+            $ttl = ctype_digit($ttlRaw) ? (int) $ttlRaw : 86400;
+            if (!isset($ttlChoices[$ttl])) {
+                $ttl = 86400;
+            }
+            $plain = (new PreviewTokenRepository($pdo))->mint('page', $id, $ttl, $cmsUid($request));
+            $parser = RouteContext::fromRequest($request)->getRouteParser();
+            $site = rtrim((string) (($viewData())['site_url'] ?? ''), '/');
+            $path = $parser->urlFor('public.preview.page', ['id' => (string) $id], ['token' => $plain]);
+            $url = $site !== '' ? ($site . $path) : $path;
+            Flash::set('success', 'Stakeholder preview link (copy now; expires automatically): ' . $url);
+
+            return $response
+                ->withHeader('Location', $parser->urlFor('admin.pages.edit', ['id' => (string) $id]))
+                ->withStatus(302);
+        })->setName('admin.pages.preview_link');
 
         $group->post('/pages/{id:[0-9]+}/revisions/{revId:[0-9]+}/restore', function (Request $request, Response $response, array $args) use ($repo, $revisions, $workflow, $activity, $cmsUid, $mediaRepo): Response {
             $id = (int) $args['id'];
@@ -595,6 +658,12 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             if ($revTwImg !== null && !$mediaRepo->isImageId($revTwImg)) {
                 $revTwImg = null;
             }
+            $revPublishedAt = isset($rev['published_at']) && $rev['published_at'] !== null && (string) $rev['published_at'] !== ''
+                ? (string) $rev['published_at'] : null;
+            $revSchedPub = isset($rev['scheduled_publish_at']) && $rev['scheduled_publish_at'] !== null && (string) $rev['scheduled_publish_at'] !== ''
+                ? (string) $rev['scheduled_publish_at'] : null;
+            $revSchedUnpub = isset($rev['scheduled_unpublish_at']) && $rev['scheduled_unpublish_at'] !== null && (string) $rev['scheduled_unpublish_at'] !== ''
+                ? (string) $rev['scheduled_unpublish_at'] : null;
             $repo->update(
                 $id,
                 (string) $rev['title'],
@@ -614,6 +683,9 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 $revSchema,
                 $restoredBody,
                 $targetStatus,
+                $revPublishedAt,
+                $revSchedPub,
+                $revSchedUnpub,
                 $cmsUid($request)
             );
             $activity->log($cmsUid($request), 'page.revision_restored', 'page', $id, ['revision_id' => $revId]);

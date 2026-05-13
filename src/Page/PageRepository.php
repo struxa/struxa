@@ -10,7 +10,9 @@ final class PageRepository
 {
     private const TABLE = 'cms_pages';
 
-    private const SELECT = 'id, title, slug, seo_title, seo_description, tags_json, featured_image_id, canonical_url, seo_noindex, og_title, og_description, og_image_id, twitter_title, twitter_description, twitter_image_id, schema_json, content, status, created_at, updated_at';
+    private const SELECT = 'id, title, slug, seo_title, seo_description, tags_json, featured_image_id, canonical_url, seo_noindex, og_title, og_description, og_image_id, twitter_title, twitter_description, twitter_image_id, schema_json, content, status, published_at, scheduled_publish_at, scheduled_unpublish_at, created_at, updated_at';
+
+    private const PUBLIC_WHERE = "status = 'published' AND (published_at IS NULL OR published_at <= NOW(6))";
 
     public function __construct(private readonly PDO $pdo)
     {
@@ -46,9 +48,9 @@ final class PageRepository
     {
         $stmt = $this->pdo->prepare(
             'SELECT ' . self::SELECT . ' FROM ' . self::TABLE
-            . ' WHERE slug = ? AND status = ? LIMIT 1'
+            . ' WHERE slug = ? AND ' . self::PUBLIC_WHERE . ' LIMIT 1'
         );
-        $stmt->execute([$slug, 'published']);
+        $stmt->execute([$slug]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
         return $row === false ? null : Page::fromRow($row);
@@ -69,9 +71,9 @@ final class PageRepository
     public function findPublishedSlugById(int $id): ?string
     {
         $stmt = $this->pdo->prepare(
-            'SELECT slug FROM ' . self::TABLE . ' WHERE id = ? AND status = ? LIMIT 1'
+            'SELECT slug FROM ' . self::TABLE . ' WHERE id = ? AND ' . self::PUBLIC_WHERE . ' LIMIT 1'
         );
-        $stmt->execute([$id, 'published']);
+        $stmt->execute([$id]);
         $slug = $stmt->fetchColumn();
 
         return $slug === false ? null : (string) $slug;
@@ -84,7 +86,7 @@ final class PageRepository
     {
         $stmt = $this->pdo->query(
             'SELECT id, title, slug, updated_at FROM ' . self::TABLE
-            . " WHERE status = 'published' AND COALESCE(seo_noindex, 0) = 0 ORDER BY updated_at DESC"
+            . ' WHERE ' . self::PUBLIC_WHERE . ' AND COALESCE(seo_noindex, 0) = 0 ORDER BY updated_at DESC'
         );
         $out = [];
         while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
@@ -123,7 +125,7 @@ final class PageRepository
     public function publishedIdTitlePairs(): array
     {
         $stmt = $this->pdo->query(
-            'SELECT id, title FROM ' . self::TABLE . " WHERE status = 'published' ORDER BY title ASC"
+            'SELECT id, title FROM ' . self::TABLE . ' WHERE ' . self::PUBLIC_WHERE . ' ORDER BY title ASC'
         );
         $out = [];
         while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
@@ -143,7 +145,7 @@ final class PageRepository
         $limit = max(1, min(80, $limit));
         $stmt = $this->pdo->query(
             'SELECT title, slug FROM ' . self::TABLE
-            . " WHERE status = 'published' AND slug <> '' ORDER BY updated_at DESC LIMIT " . $limit
+            . ' WHERE ' . self::PUBLIC_WHERE . " AND slug <> '' ORDER BY updated_at DESC LIMIT " . $limit
         );
         if ($stmt === false) {
             return [];
@@ -196,15 +198,18 @@ final class PageRepository
         ?int $twitterImageId,
         ?string $schemaJson,
         string $content,
-        string $status
+        string $status,
+        ?string $publishedAt,
+        ?string $scheduledPublishAt,
+        ?string $scheduledUnpublishAt
     ): int {
         $stmt = $this->pdo->prepare(
             'INSERT INTO ' . self::TABLE . ' (
                 title, slug, seo_title, seo_description, tags_json, featured_image_id,
                 canonical_url, seo_noindex, og_title, og_description, og_image_id,
                 twitter_title, twitter_description, twitter_image_id, schema_json,
-                content, status
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+                content, status, published_at, scheduled_publish_at, scheduled_unpublish_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
         );
         $stmt->execute([
             $title,
@@ -224,6 +229,9 @@ final class PageRepository
             $schemaJson,
             $content,
             $status,
+            $publishedAt,
+            $scheduledPublishAt,
+            $scheduledUnpublishAt,
         ]);
 
         return (int) $this->pdo->lastInsertId();
@@ -248,13 +256,16 @@ final class PageRepository
         ?string $schemaJson,
         string $content,
         string $status,
+        ?string $publishedAt,
+        ?string $scheduledPublishAt,
+        ?string $scheduledUnpublishAt,
         ?int $updatedBy = null
     ): void {
         $stmt = $this->pdo->prepare(
             'UPDATE ' . self::TABLE . ' SET title = ?, slug = ?, seo_title = ?, seo_description = ?, tags_json = ?, featured_image_id = ?,
              canonical_url = ?, seo_noindex = ?, og_title = ?, og_description = ?, og_image_id = ?,
              twitter_title = ?, twitter_description = ?, twitter_image_id = ?, schema_json = ?,
-             content = ?, status = ?, updated_by = ? WHERE id = ?'
+             content = ?, status = ?, published_at = ?, scheduled_publish_at = ?, scheduled_unpublish_at = ?, updated_by = ? WHERE id = ?'
         );
         $stmt->execute([
             $title,
@@ -274,6 +285,9 @@ final class PageRepository
             $schemaJson,
             $content,
             $status,
+            $publishedAt,
+            $scheduledPublishAt,
+            $scheduledUnpublishAt,
             $updatedBy,
             $id,
         ]);

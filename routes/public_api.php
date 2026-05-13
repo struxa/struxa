@@ -338,6 +338,8 @@ return static function (App $app, Twig $twig, \PDO $pdo, callable $viewData): vo
                 $seoParsed['twitter_image_id'],
                 $seoParsed['schema_json'],
                 $v['published_at'],
+                $v['scheduled_publish_at'] ?? null,
+                $v['scheduled_unpublish_at'] ?? null,
                 null
             );
             foreach ($fieldList as $f) {
@@ -411,6 +413,7 @@ return static function (App $app, Twig $twig, \PDO $pdo, callable $viewData): vo
             if ($t->supportsSeo) {
                 $body = PublicApiEntryPayload::mergeSeoFromEntryIfMissing($body, $entry);
             }
+            $body = PublicApiEntryPayload::mergeScheduleFromEntryIfMissing($body, $entry);
             $result = $entryValidator->validate($body, $t, $fieldList, $entries, $mediaRepo, $entry->id);
             $taxResult = $entryTaxonomyValidator->validate($body, $taxonomies, $taxonomyTermRepo);
             $seoParsed = [
@@ -456,7 +459,9 @@ return static function (App $app, Twig $twig, \PDO $pdo, callable $viewData): vo
                 $seoParsed['twitter_description'],
                 $seoParsed['twitter_image_id'],
                 $seoParsed['schema_json'],
-                $v['published_at']
+                $v['published_at'],
+                $v['scheduled_publish_at'] ?? null,
+                $v['scheduled_unpublish_at'] ?? null
             );
             if ($entry->status === 'published' && $t->hasPublicRoute && $oldSlug !== $newSlug) {
                 $base = rtrim((string) (($viewData())['site_url'] ?? ''), '/');

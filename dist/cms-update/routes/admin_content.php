@@ -27,6 +27,7 @@ use App\Taxonomy\TaxonomyRepository;
 use App\Taxonomy\TaxonomyTermRepository;
 use App\Taxonomy\TaxonomyTermTree;
 use App\Flash;
+use App\Preview\PreviewTokenRepository;
 use App\Http\Middleware\RequireCmsStaff;
 use App\Http\Middleware\RequirePermission;
 use App\Media\MediaRepository;
@@ -93,6 +94,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
 
     $mergeEntrySeoOld = static function (array $values, array $body): array {
         return array_merge($values, [
+            'published_at' => trim((string) ($body['published_at'] ?? '')),
             'canonical_url' => trim((string) ($body['canonical_url'] ?? '')),
             'seo_noindex' => !empty($body['seo_noindex']),
             'og_title' => trim((string) ($body['og_title'] ?? '')),
@@ -102,6 +104,8 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             'twitter_description' => trim((string) ($body['twitter_description'] ?? '')),
             'twitter_image_id' => trim((string) ($body['twitter_image_id'] ?? '')),
             'schema_json' => (string) ($body['schema_json'] ?? ''),
+            'scheduled_publish_at' => trim((string) ($body['scheduled_publish_at'] ?? '')),
+            'scheduled_unpublish_at' => trim((string) ($body['scheduled_unpublish_at'] ?? '')),
         ]);
     };
 
@@ -699,6 +703,8 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 $seoParsed['twitter_image_id'],
                 $seoParsed['schema_json'],
                 $v['published_at'],
+                $v['scheduled_publish_at'] ?? null,
+                $v['scheduled_unpublish_at'] ?? null,
                 $cmsUserId($request)
             );
             foreach ($fieldList as $f) {
@@ -715,7 +721,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             $parser = RouteContext::fromRequest($request)->getRouteParser();
             $siteUrl = (string) (($viewData())['site_url'] ?? '');
             if (AfterSaveRedirect::wantsPublicView($body)) {
-                $viewUrl = AfterSaveRedirect::entryPublicUrl($siteUrl, $t, $slug, $v['status']);
+                $viewUrl = AfterSaveRedirect::entryPublicUrl($siteUrl, $t, $slug, $v['status'], $v['published_at'] ?? null);
                 if ($viewUrl !== null) {
                     Flash::set('success', 'Entry created.');
 
@@ -894,7 +900,9 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 $seoParsed['twitter_description'],
                 $seoParsed['twitter_image_id'],
                 $seoParsed['schema_json'],
-                $v['published_at']
+                $v['published_at'],
+                $v['scheduled_publish_at'] ?? null,
+                $v['scheduled_unpublish_at'] ?? null
             );
             if ($entry->status === 'published' && $t->hasPublicRoute && $oldSlug !== $slug) {
                 $base = rtrim((string) ($viewData()['site_url'] ?? ''), '/');
@@ -913,7 +921,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             $parser = RouteContext::fromRequest($request)->getRouteParser();
             $siteUrl = (string) (($viewData())['site_url'] ?? '');
             if (AfterSaveRedirect::wantsPublicView($body)) {
-                $viewUrl = AfterSaveRedirect::entryPublicUrl($siteUrl, $t, $slug, $v['status']);
+                $viewUrl = AfterSaveRedirect::entryPublicUrl($siteUrl, $t, $slug, $v['status'], $v['published_at'] ?? null);
                 if ($viewUrl !== null) {
                     Flash::set('success', 'Entry updated.');
 
@@ -958,6 +966,32 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             }
             $snap = json_decode((string) $rev['snapshot_json'], true);
             $snap = is_array($snap) ? $snap : [];
+            $valuesSnap = isset($snap['values']) && is_array($snap['values']) ? $snap['values'] : [];
+
+            $q = $request->getQueryParams();
+            $otherRaw = isset($q['other']) ? (string) $q['other'] : '';
+            $otherId = ctype_digit($otherRaw) ? (int) $otherRaw : 0;
+            $revRight = null;
+            $snapshotRight = [];
+            $revUnifiedDiff = '';
+
+            if ($otherId > 0 && $otherId !== $revId) {
+                $otherRow = $entryRevRepo->findById($otherId);
+                if ($otherRow !== null && (int) $otherRow['content_entry_id'] === $entryId) {
+                    $revRight = $otherRow;
+                    $snapshotRight = json_decode((string) $otherRow['snapshot_json'], true);
+                    $snapshotRight = is_array($snapshotRight) ? $snapshotRight : [];
+                    $vsOther = isset($snapshotRight['values']) && is_array($snapshotRight['values']) ? $snapshotRight['values'] : [];
+                    $leftStr = json_encode($valuesSnap, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+                    $rightStr = json_encode($vsOther, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+                    $revUnifiedDiff = implode("\n", \App\Support\LineDiff::unified($leftStr, $rightStr));
+                }
+            }
+            if ($revUnifiedDiff === '') {
+                $snapJson = json_encode($valuesSnap, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+                $currentJson = json_encode($values->valuesByFieldIdForEntry($entryId), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+                $revUnifiedDiff = implode("\n", \App\Support\LineDiff::unified($snapJson, $currentJson));
+            }
 
             return $twig->render($response, 'admin/content/entries/revision_compare.twig', $withCmsUser($request, array_merge($adminContext(), [
                 'admin_nav' => 'content_types',
@@ -965,9 +999,47 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 'entry' => $entry,
                 'revision' => $rev,
                 'snapshot' => $snap,
+                'revision_right' => $revRight,
+                'snapshot_right' => $snapshotRight,
                 'current_value_map' => $values->valuesByFieldIdForEntry($entryId),
+                'revision_unified_diff' => $revUnifiedDiff,
             ])));
         })->setName('admin.content_types.entries.revision_compare')->add($permEntryEdit);
+
+        $group->post('/content-types/{id:[0-9]+}/entries/{entryId:[0-9]+}/preview-link', function (Request $request, Response $response, array $args) use ($types, $entries, $pdo, $viewData, $cmsUserId): Response {
+            $id = (int) $args['id'];
+            $entryId = (int) $args['entryId'];
+            $t = $types->findById($id);
+            $entry = $entries->findById($entryId);
+            if ($t === null || $entry === null || $entry->contentTypeId !== $id) {
+                throw new HttpNotFoundException($request);
+            }
+            if (!$t->hasPublicRoute) {
+                Flash::set('error', 'Preview links require a public route on this content type.');
+
+                return $response
+                    ->withHeader('Location', RouteContext::fromRequest($request)->getRouteParser()->urlFor('admin.content_types.entries.edit', ['id' => (string) $id, 'entryId' => (string) $entryId]))
+                    ->withStatus(302);
+            }
+            $body = $request->getParsedBody();
+            $body = is_array($body) ? $body : [];
+            $ttlChoices = [3600 => true, 86400 => true, 604800 => true];
+            $ttlRaw = (string) ($body['preview_link_ttl'] ?? '86400');
+            $ttl = ctype_digit($ttlRaw) ? (int) $ttlRaw : 86400;
+            if (!isset($ttlChoices[$ttl])) {
+                $ttl = 86400;
+            }
+            $plain = (new PreviewTokenRepository($pdo))->mint('content_entry', $entryId, $ttl, $cmsUserId($request));
+            $parser = RouteContext::fromRequest($request)->getRouteParser();
+            $site = rtrim((string) (($viewData())['site_url'] ?? ''), '/');
+            $path = $parser->urlFor('public.preview.content_entry', ['entryId' => (string) $entryId], ['token' => $plain]);
+            $url = $site !== '' ? ($site . $path) : $path;
+            Flash::set('success', 'Stakeholder preview link (copy now; expires automatically): ' . $url);
+
+            return $response
+                ->withHeader('Location', $parser->urlFor('admin.content_types.entries.edit', ['id' => (string) $id, 'entryId' => (string) $entryId]))
+                ->withStatus(302);
+        })->setName('admin.content_types.entries.preview_link')->add($permEntryEdit);
 
         $group->post('/content-types/{id:[0-9]+}/entries/{entryId:[0-9]+}/revisions/{revId:[0-9]+}/restore', function (Request $request, Response $response, array $args) use ($types, $entries, $values, $entryRevRepo, $workflow, $activity, $cmsUserId): Response {
             $id = (int) $args['id'];
@@ -1036,7 +1108,11 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 $twD,
                 $twImg,
                 $schema,
-                $pub
+                $pub,
+                isset($er['scheduled_publish_at']) && $er['scheduled_publish_at'] !== null && (string) $er['scheduled_publish_at'] !== ''
+                    ? (string) $er['scheduled_publish_at'] : null,
+                isset($er['scheduled_unpublish_at']) && $er['scheduled_unpublish_at'] !== null && (string) $er['scheduled_unpublish_at'] !== ''
+                    ? (string) $er['scheduled_unpublish_at'] : null
             );
             $vals = isset($snap['values']) && is_array($snap['values']) ? $snap['values'] : [];
             $values->deleteForEntry($entryId);

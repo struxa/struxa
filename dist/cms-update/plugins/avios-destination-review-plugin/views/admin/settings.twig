@@ -1,0 +1,112 @@
+{% extends 'admin/base.twig' %}
+
+{% block admin_title %}Avios Destination Review — Settings{% endblock %}
+
+{% block admin_hero_title %}
+  <h1 class="admin-hero-title">Avios Destination Review · Settings</h1>
+{% endblock %}
+
+{% block admin_hero_sub %}
+  <p class="admin-hero-sub">Prompt template and optional hero-image settings. The OpenAI API key and chat model come from <strong>System → API keys</strong> (same as the rest of the CMS).</p>
+{% endblock %}
+
+{% block admin_content %}
+  <section class="admin-section">
+    <form class="admin-form" method="post" action="{{ url_for('plugin.avios_destination_review.settings') }}">
+      <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+
+      <div class="admin-field admin-field--full" style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 1rem 1.25rem;">
+        <h2 style="margin: 0 0 0.5rem; font-size: 16px; letter-spacing: -0.01em;">OpenAI (shared with the CMS)</h2>
+        {% if adr_settings.openai_env_override %}
+          <p class="admin-field-hint" style="margin: 0 0 0.75rem;">
+            An API key is set in the environment (<code class="admin-inline-code">OPENAI_API_KEY</code> or <code class="admin-inline-code">STRUXA_OPENAI_API_KEY</code>), which overrides the key saved in the admin.
+            Chat model in use: <code class="admin-inline-code">{{ adr_settings.openai_model|e('html') }}</code>.
+          </p>
+        {% elseif adr_settings.api_key_stored %}
+          <p class="admin-field-hint" style="margin: 0 0 0.75rem;">
+            A key is available from <strong>System → API keys</strong> or the environment. Chat model in use: <code class="admin-inline-code">{{ adr_settings.openai_model|e('html') }}</code>.
+          </p>
+        {% else %}
+          <p class="admin-field-hint" style="margin: 0 0 0.75rem; color: #b45309;">
+            No OpenAI API key is configured. Add one under <strong>System → API keys</strong>, or set <code class="admin-inline-code">OPENAI_API_KEY</code> in the environment.
+          </p>
+        {% endif %}
+        <p class="admin-field-hint" style="margin: 0 0 0.75rem;">
+          Keys are not stored in this plugin. Get a key from <a class="admin-link" href="https://platform.openai.com/api-keys" rel="noopener noreferrer" target="_blank">platform.openai.com</a>.
+        </p>
+        <a class="admin-btn-secondary" href="{{ url_for('admin.system.api_keys') }}">Open System → API keys</a>
+      </div>
+
+      <div class="admin-field admin-field--full">
+        <label class="admin-label" for="adr-prompt">SEO prompt template</label>
+        <textarea
+          class="admin-input"
+          id="adr-prompt"
+          name="prompt_template"
+          rows="20"
+          style="font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; line-height: 1.55;"
+          required
+        >{{ adr_settings.prompt_template }}</textarea>
+        <p class="admin-field-hint">
+          Use <code class="admin-inline-code">{{ '{{destination}}' }}</code> and <code class="admin-inline-code">{{ '{{iata}}' }}</code> as placeholders.
+          The model must return JSON: <code class="admin-inline-code">{ meta_title, meta_description, content_html }</code>.
+        </p>
+      </div>
+
+      <hr style="margin: 2rem 0; border: 0; border-top: 1px solid #e5e7eb" />
+
+      <h2 style="margin: 0 0 0.5rem; font-size: 18px; letter-spacing: -0.01em;">Thumbnail / hero image generation</h2>
+      <p class="admin-field-hint" style="margin-top: 0">Optional. Calls the OpenAI Images API every time a review is generated and attaches the result as the entry's <em>featured image</em>. Costs apply.</p>
+
+      <div class="admin-field admin-field--full">
+        <label class="admin-label admin-settings-check-label" style="display: flex; gap: 8px; align-items: center;">
+          <input type="checkbox" name="image_enabled" value="1" {% if adr_settings.image_enabled %}checked{% endif %} />
+          <span>Generate a hero image alongside each review</span>
+        </label>
+      </div>
+
+      <div class="admin-field admin-field--full">
+        <label class="admin-label" for="adr-image-model">Image model</label>
+        <input
+          class="admin-input"
+          type="text"
+          id="adr-image-model"
+          name="image_model"
+          value="{{ adr_settings.image_model|e('html_attr') }}"
+          maxlength="80"
+        />
+        <p class="admin-field-hint">Default <code class="admin-inline-code">gpt-image-1</code>. <code class="admin-inline-code">dall-e-3</code> also works.</p>
+      </div>
+
+      <div class="admin-field admin-field--full">
+        <label class="admin-label" for="adr-image-size">Image size</label>
+        <select class="admin-input" id="adr-image-size" name="image_size">
+          {% for s in ['1024x1024','1024x1536','1536x1024','1792x1024','1024x1792','auto'] %}
+            <option value="{{ s }}" {% if adr_settings.image_size == s %}selected{% endif %}>{{ s }}{% if s == '1536x1024' %} — recommended (landscape){% elseif s == '1024x1024' %} — square{% endif %}</option>
+          {% endfor %}
+        </select>
+        <p class="admin-field-hint">Hero images look best in landscape (<code class="admin-inline-code">1536×1024</code>). Larger sizes cost more.</p>
+      </div>
+
+      <div class="admin-field admin-field--full">
+        <label class="admin-label" for="adr-image-prompt">Image prompt template</label>
+        <textarea
+          class="admin-input"
+          id="adr-image-prompt"
+          name="image_prompt_template"
+          rows="6"
+          style="font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; line-height: 1.55;"
+        >{{ adr_settings.image_prompt_template }}</textarea>
+        <p class="admin-field-hint">
+          Same placeholders: <code class="admin-inline-code">{{ '{{destination}}' }}</code>, <code class="admin-inline-code">{{ '{{iata}}' }}</code>.
+          Keep it short and visually descriptive (avoid mentioning logos, real people, or text).
+        </p>
+      </div>
+
+      <div class="admin-form-actions">
+        <button class="admin-btn-primary" type="submit">Save settings</button>
+        <a class="admin-btn-secondary" href="{{ url_for('plugin.avios_destination_review.list') }}">Back to reviews</a>
+      </div>
+    </form>
+  </section>
+{% endblock %}

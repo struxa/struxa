@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Content;
 
 use App\Media\MediaRepository;
+use DateTimeImmutable;
+use DateTimeZone;
 
 final class ContentEntryFormValidator
 {
@@ -26,6 +28,8 @@ final class ContentEntryFormValidator
      *     seo_title: ?string,
      *     seo_description: ?string,
      *     published_at: ?string,
+     *     scheduled_publish_at: ?string,
+     *     scheduled_unpublish_at: ?string,
      *     custom: array<int, string|null>
      *   }
      * }
@@ -102,7 +106,48 @@ final class ContentEntryFormValidator
             if ($publishedAt === null) {
                 $errors['published_at'] = 'Use a valid date/time.';
             }
-        } elseif ($status === 'published') {
+        }
+
+        $schedPubRaw = $this->str($body, 'scheduled_publish_at');
+        $schedPub = $schedPubRaw !== '' ? $this->parsePublishedAt($schedPubRaw) : null;
+        if ($schedPubRaw !== '' && $schedPub === null) {
+            $errors['scheduled_publish_at'] = 'Use a valid date/time.';
+        }
+
+        $schedUnpubRaw = $this->str($body, 'scheduled_unpublish_at');
+        $schedUnpub = $schedUnpubRaw !== '' ? $this->parsePublishedAt($schedUnpubRaw) : null;
+        if ($schedUnpubRaw !== '' && $schedUnpub === null) {
+            $errors['scheduled_unpublish_at'] = 'Use a valid date/time.';
+        }
+
+        $now = new DateTimeImmutable('now', new DateTimeZone(date_default_timezone_get()));
+        if ($schedPub !== null && !$this->isFutureSql($schedPub, $now)) {
+            $errors['scheduled_publish_at'] = 'Schedule publish must be in the future.';
+        }
+        if ($schedUnpub !== null && !$this->isFutureSql($schedUnpub, $now)) {
+            $errors['scheduled_unpublish_at'] = 'Unpublish time must be in the future.';
+        }
+
+        if ($status !== 'published') {
+            $schedUnpub = null;
+        }
+
+        if ($status === 'published' && $schedPub !== null) {
+            $errors['scheduled_publish_at'] = 'Clear “Schedule publish” when status is Published (use “Published at” for a delayed go-live), or set status to Approved.';
+        }
+
+        if ($schedPub !== null && !in_array($status, ['draft', 'in_review', 'approved'], true)) {
+            $errors['scheduled_publish_at'] = 'Schedule publish only applies when status is Draft, In review, or Approved.';
+        }
+
+        if ($publishedAt !== null) {
+            $ts = strtotime($publishedAt);
+            if ($ts !== false && $ts > time() && $status !== 'published') {
+                $errors['published_at'] = 'A future “Published at” requires status Published.';
+            }
+        }
+
+        if ($status === 'published' && $publishedAt === null && $pubRaw === '' && $schedPub === null) {
             $publishedAt = date('Y-m-d H:i:s');
         }
 
@@ -121,6 +166,8 @@ final class ContentEntryFormValidator
                 'seo_title' => $seoTitle,
                 'seo_description' => $seoDescription,
                 'published_at' => $publishedAt,
+                'scheduled_publish_at' => $schedPub,
+                'scheduled_unpublish_at' => $schedUnpub,
                 'custom' => $customResult['values'],
             ],
         ];
@@ -137,6 +184,19 @@ final class ContentEntryFormValidator
         }
 
         return null;
+    }
+
+    /**
+     * @param non-empty-string $sqlDatetime
+     */
+    private function isFutureSql(string $sqlDatetime, DateTimeImmutable $now): bool
+    {
+        $t = DateTimeImmutable::createFromFormat('Y-m-d H:i:s', $sqlDatetime, $now->getTimezone());
+        if ($t === false) {
+            return false;
+        }
+
+        return $t > $now;
     }
 
     private function str(array $body, string $key): string

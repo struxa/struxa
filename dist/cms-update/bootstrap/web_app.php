@@ -23,11 +23,14 @@ use App\Flash;
 use App\Http\Middleware\CsrfProtectionMiddleware;
 use App\Http\Middleware\NotFoundLogMiddleware;
 use App\Http\PublicNotFoundHandler;
+use App\Http\Middleware\PublishScheduleMiddleware;
 use App\Http\Middleware\RedirectMiddleware;
+use App\Http\Middleware\IpBlockMiddleware;
 use App\Http\Middleware\SecurityHeadersMiddleware;
 use App\Http\Middleware\ThrottlingMiddleware;
 use App\Http\Middleware\TwigCmsGlobals;
 use App\Twig\CoreAssetTwigExtension;
+use App\Http\PostLoginRedirect;
 use App\Http\SafeRedirectPath;
 use App\Http\MediaDerivativeHandler;
 use App\Http\ThemePublicAssetsHandler;
@@ -45,6 +48,8 @@ use App\Plugin\PluginManager;
 use App\Plugin\PluginRepository;
 use App\Plugin\PluginScanner;
 use App\Plugin\PluginValidator;
+use App\Security\IpBlockHitThrottledLogger;
+use App\Security\IpBlockRepository;
 use App\Security\TwoFactorLoginSession;
 use App\Security\TotpService;
 use App\Settings;
@@ -172,6 +177,12 @@ $app->add(new NotFoundLogMiddleware($pdo));
 $app->add(new RedirectMiddleware($pdo));
 $app->add(new ThrottlingMiddleware($root));
 $app->add(new SecurityHeadersMiddleware());
+$app->add(new IpBlockMiddleware(
+    new IpBlockRepository($pdo),
+    $cacheManager->internal(),
+    IpBlockHitThrottledLogger::createDefault($pdo, $root),
+));
+$app->add(new PublishScheduleMiddleware($pdo, $cacheManager->internal()));
 
 $displayErrorDetails = in_array(
     strtolower(trim((string) ($_ENV['APP_DEBUG'] ?? ''))),
@@ -207,6 +218,7 @@ $viewData = static function (array $extra = []) use ($auth, $pdo, $googleSso): a
 
     return array_merge([
         'logged_in' => $auth->isLogged(),
+        'phpauth_user_id' => $auth->isLogged() ? (int) $auth->getCurrentUID() : 0,
         'user_email' => $userEmail,
         'user_username' => $userUsername,
         'flash_error' => Flash::pull('error'),
@@ -224,7 +236,7 @@ $app->get('/', function (Request $request, Response $response) use ($twig, $view
     $publishedHomePage = null;
     if ($homePageIdRaw !== '' && ctype_digit($homePageIdRaw)) {
         $cand = (new PageRepository($pdo))->findById((int) $homePageIdRaw);
-        if ($cand !== null && $cand->status === 'published') {
+        if ($cand !== null && $cand->isPubliclyVisible()) {
             $publishedHomePage = $cand;
         }
     }
@@ -239,6 +251,7 @@ $app->get('/', function (Request $request, Response $response) use ($twig, $view
             $publishedHomePage,
             '/',
             true,
+            $request,
         );
     }
 
@@ -247,22 +260,31 @@ $app->get('/', function (Request $request, Response $response) use ($twig, $view
     return $twig->render($response, 'page/home.twig', array_merge($viewData(), $seoTwig));
 })->setName('home');
 
-$app->get('/login', function (Request $request, Response $response) use ($twig, $viewData): Response {
+$app->get('/login', function (Request $request, Response $response) use ($twig, $viewData, $auth, $pdo): Response {
     $next = $request->getQueryParams()['next'] ?? null;
     $next = is_string($next) ? $next : null;
+    if ($auth->isLogged()) {
+        $routeParser = RouteContext::fromRequest($request)->getRouteParser();
+
+        return $response
+            ->withHeader('Location', PostLoginRedirect::forCurrentUser($auth, $routeParser, $pdo, $next))
+            ->withStatus(302);
+    }
 
     return $twig->render($response, 'pages/login.twig', $viewData(['login_next' => $next]));
 })->setName('login');
 
-$app->get('/auth/google/start', function (Request $request, Response $response) use ($googleSso, $auth): Response {
+$app->get('/auth/google/start', function (Request $request, Response $response) use ($googleSso, $auth, $pdo): Response {
     if ($googleSso === null) {
         throw new HttpNotFoundException($request);
     }
     if ($auth->isLogged()) {
         $routeParser = RouteContext::fromRequest($request)->getRouteParser();
+        $q = $request->getQueryParams();
+        $alreadyNext = isset($q['next']) && is_string($q['next']) ? $q['next'] : null;
 
         return $response
-            ->withHeader('Location', $routeParser->urlFor('home'))
+            ->withHeader('Location', PostLoginRedirect::forCurrentUser($auth, $routeParser, $pdo, $alreadyNext))
             ->withStatus(302);
     }
 
@@ -306,7 +328,7 @@ $app->get('/auth/google/callback', function (Request $request, Response $respons
 
     if ($auth->isLogged()) {
         return $response
-            ->withHeader('Location', $routeParser->urlFor('home'))
+            ->withHeader('Location', PostLoginRedirect::forCurrentUser($auth, $routeParser, $pdo))
             ->withStatus(302);
     }
 
@@ -398,17 +420,17 @@ $app->get('/auth/google/callback', function (Request $request, Response $respons
     }
 
     Events::dispatch(new UserLoggedInEvent($email));
-    $target = SafeRedirectPath::afterLogin($next, $routeParser->urlFor('home'));
+    $target = PostLoginRedirect::target($next, $uid, $routeParser, $pdo);
 
     return $response->withHeader('Location', $target)->withStatus(302);
 })->setName('auth.google.callback');
 
-$app->get('/login/two-factor', function (Request $request, Response $response) use ($twig, $viewData, $auth): Response {
+$app->get('/login/two-factor', function (Request $request, Response $response) use ($twig, $viewData, $auth, $pdo): Response {
     if ($auth->isLogged()) {
         $routeParser = RouteContext::fromRequest($request)->getRouteParser();
 
         return $response
-            ->withHeader('Location', $routeParser->urlFor('home'))
+            ->withHeader('Location', PostLoginRedirect::forCurrentUser($auth, $routeParser, $pdo))
             ->withStatus(302);
     }
     if (TwoFactorLoginSession::get() === null) {
@@ -468,12 +490,19 @@ $app->post('/login/two-factor', function (Request $request, Response $response) 
         Events::dispatch(new UserLoggedInEvent($email));
     }
 
-    $target = SafeRedirectPath::afterLogin($next, $routeParser->urlFor('home'));
+    $target = PostLoginRedirect::target($next, (int) $pending['phpauth_uid'], $routeParser, $pdo);
 
     return $response->withHeader('Location', $target)->withStatus(302);
 })->setName('login.two_factor.submit');
 
 $app->post('/login', function (Request $request, Response $response) use ($auth, $pdo): Response {
+    $routeParser = RouteContext::fromRequest($request)->getRouteParser();
+    if ($auth->isLogged()) {
+        return $response
+            ->withHeader('Location', PostLoginRedirect::forCurrentUser($auth, $routeParser, $pdo))
+            ->withStatus(302);
+    }
+
     $body = $request->getParsedBody();
     $email = is_array($body)
         ? trim((string) ($body['email'] ?? $body['username'] ?? ''))
@@ -481,7 +510,6 @@ $app->post('/login', function (Request $request, Response $response) use ($auth,
     $password = is_array($body) ? (string) ($body['password'] ?? '') : '';
     $remember = is_array($body) && !empty($body['remember']) ? 1 : 0;
 
-    $routeParser = RouteContext::fromRequest($request)->getRouteParser();
     $next = is_array($body) && isset($body['next']) && is_string($body['next']) ? $body['next'] : null;
     $loginUrl = $routeParser->urlFor('login');
     if ($next !== null && $next !== '') {
@@ -520,18 +548,33 @@ $app->post('/login', function (Request $request, Response $response) use ($auth,
     }
 
     Events::dispatch(new UserLoggedInEvent($email));
-    $target = SafeRedirectPath::afterLogin($next, $routeParser->urlFor('home'));
+    $target = PostLoginRedirect::target($next, $uid, $routeParser, $pdo);
 
     return $response->withHeader('Location', $target)->withStatus(302);
 });
 
-$app->get('/register', function (Request $request, Response $response) use ($twig, $viewData): Response {
+$app->get('/register', function (Request $request, Response $response) use ($twig, $viewData, $auth, $pdo): Response {
+    if ($auth->isLogged()) {
+        $routeParser = RouteContext::fromRequest($request)->getRouteParser();
+
+        return $response
+            ->withHeader('Location', PostLoginRedirect::forCurrentUser($auth, $routeParser, $pdo))
+            ->withStatus(302);
+    }
+
     return $twig->render($response, 'pages/register.twig', array_merge($viewData(), [
         'registration_collect_username' => Settings::get('registration_collect_username', '0') === '1',
     ]));
 })->setName('register');
 
 $app->post('/register', function (Request $request, Response $response) use ($auth, $pdo): Response {
+    $routeParser = RouteContext::fromRequest($request)->getRouteParser();
+    if ($auth->isLogged()) {
+        return $response
+            ->withHeader('Location', PostLoginRedirect::forCurrentUser($auth, $routeParser, $pdo))
+            ->withStatus(302);
+    }
+
     $body = $request->getParsedBody();
     $email = is_array($body) ? trim((string) ($body['email'] ?? '')) : '';
     $password = is_array($body) ? (string) ($body['password'] ?? '') : '';
@@ -539,7 +582,6 @@ $app->post('/register', function (Request $request, Response $response) use ($au
     $usernameRaw = is_array($body) ? (string) ($body['username'] ?? '') : '';
     $collectUsername = Settings::get('registration_collect_username', '0') === '1';
     $usernameCheck = UsernameValidation::validate($usernameRaw, $collectUsername);
-    $routeParser = RouteContext::fromRequest($request)->getRouteParser();
     $registerUrl = $routeParser->urlFor('register');
 
     if (!$usernameCheck['ok']) {
@@ -594,8 +636,11 @@ $app->get('/logout', function (Request $request, Response $response) use ($twig,
 (require $root . '/routes/public_seo.php')($app, $pdo, $viewData);
 
 (require $root . '/routes/public_api.php')($app, $twig, $pdo, $viewData);
+(require $root . '/routes/public_comments.php')($app, $pdo, $root, $auth);
+(require $root . '/routes/public_external_link_tracking.php')($app, $pdo, $root, $auth);
 
 (require $root . '/routes/admin.php')($app, $twig, $auth, $pdo, $viewData);
+(require $root . '/routes/admin_analytics.php')($app, $twig, $auth, $pdo, $viewData);
 (require $root . '/routes/admin_users.php')($app, $twig, $auth, $pdo, $viewData);
 (require $root . '/routes/admin_roles.php')($app, $twig, $auth, $pdo, $viewData);
 (require $root . '/routes/admin_activity.php')($app, $twig, $auth, $pdo, $viewData);
@@ -603,13 +648,18 @@ $app->get('/logout', function (Request $request, Response $response) use ($twig,
 (require $root . '/routes/admin_tools.php')($app, $twig, $auth, $pdo, $viewData);
 (require $root . '/routes/admin_pages.php')($app, $twig, $auth, $pdo, $viewData);
 (require $root . '/routes/admin_settings.php')($app, $twig, $auth, $pdo, $viewData);
+(require $root . '/routes/admin_search.php')($app, $twig, $auth, $pdo, $viewData);
 (require $root . '/routes/admin_cache.php')($app, $twig, $auth, $pdo, $viewData);
 (require $root . '/routes/admin_seo.php')($app, $twig, $auth, $pdo, $viewData);
+(require $root . '/routes/admin_security.php')($app, $twig, $auth, $pdo, $viewData);
+(require $root . '/routes/admin_comments.php')($app, $twig, $auth, $pdo, $viewData);
+(require $root . '/routes/admin_system_api_keys.php')($app, $twig, $auth, $pdo, $viewData);
 (require $root . '/routes/admin_account.php')($app, $twig, $auth, $pdo, $viewData);
 (require $root . '/routes/admin_menus.php')($app, $twig, $auth, $pdo, $viewData);
 (require $root . '/routes/admin_media.php')($app, $twig, $auth, $pdo, $viewData);
 (require $root . '/routes/admin_content.php')($app, $twig, $auth, $pdo, $viewData);
 (require $root . '/routes/admin_ai_blog.php')($app, $twig, $auth, $pdo, $viewData);
+(require $root . '/routes/admin_ai_comments.php')($app, $twig, $auth, $pdo, $viewData);
 (require $root . '/routes/admin_taxonomies.php')($app, $twig, $auth, $pdo, $viewData);
 (require $root . '/routes/admin_themes.php')($app, $twig, $auth, $pdo, $viewData);
 (require $root . '/routes/admin_plugins.php')($app, $twig, $auth, $pdo, $viewData);
@@ -618,6 +668,8 @@ $pluginRepo = new PluginRepository($pdo);
 $pluginManager = new PluginManager($root, $pluginRepo, new PluginScanner($root), new PluginValidator());
 $pluginContexts = $pluginManager->registerActivePublicRoutes($app, $twig, $auth, $pdo, $viewData, $eventDispatcher);
 
+(require $root . '/routes/public_search.php')($app, $twig, $pdo, $root, $viewData);
+(require $root . '/routes/public_preview.php')($app, $twig, $pdo, $viewData);
 (require $root . '/routes/public_pages.php')($app, $twig, $pdo, $viewData);
 // Before public_taxonomy_archive: FastRoute errors if plugin admin adds /admin/.../... after /{a}/{b}/{c}.
 $pluginManager->registerActiveAdminRoutes($app, $pluginContexts);
@@ -626,5 +678,24 @@ $pluginManager->registerActiveAdminRoutes($app, $pluginContexts);
 (require $root . '/routes/public_content.php')($app, $twig, $pdo, $viewData);
 
 $pluginManager->bootActivePluginLifecycle($pluginContexts, $eventDispatcher);
+
+$scheduleRunToken = trim((string) ($_ENV['CMS_SCHEDULE_RUN_TOKEN'] ?? ''));
+if ($scheduleRunToken !== '') {
+    $app->get('/schedule/run', function (Request $request, Response $response) use ($pdo, $scheduleRunToken): Response {
+        $q = $request->getQueryParams();
+        if (($q['token'] ?? '') !== $scheduleRunToken) {
+            throw new HttpNotFoundException($request);
+        }
+        (new \App\Preview\PreviewTokenRepository($pdo))->deleteExpired();
+        $report = (new \App\Publishing\PublishScheduleService($pdo))->runDue();
+        $ok = $report['errors'] === [];
+        $payload = json_encode(array_merge(['ok' => $ok], $report), JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES);
+        $response->getBody()->write($payload);
+
+        return $response
+            ->withHeader('Content-Type', 'application/json; charset=utf-8')
+            ->withStatus($ok ? 200 : 500);
+    })->setName('public.schedule_run');
+}
 
 return $app;

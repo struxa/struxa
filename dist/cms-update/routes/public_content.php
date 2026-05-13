@@ -9,6 +9,8 @@ use App\Content\ContentEntryViewPresenter;
 use App\Content\ContentFieldRepository;
 use App\Content\ContentTypeRepository;
 use App\Content\ContentViewTemplates;
+use App\Comment\CommentRepository;
+use App\Comment\CommentThreadBuilder;
 use App\Content\ReservedContentSlugs;
 use App\Media\MediaUrlHelper;
 use App\Seo\MetaTagBuilder;
@@ -32,6 +34,7 @@ return static function (App $app, Twig $twig, \PDO $pdo, callable $viewData): vo
     $app->get('/{typeSlug}/{entrySlug}', function (Request $request, Response $response, array $args) use (
         $twig,
         $viewData,
+        $pdo,
         $types,
         $fields,
         $entries,
@@ -100,8 +103,28 @@ return static function (App $app, Twig $twig, \PDO $pdo, callable $viewData): vo
         ));
 
         $tpl = ContentViewTemplates::resolve($twig->getEnvironment(), ContentViewTemplates::contentShow($type->slug));
+        $threadKey = 'entry:' . $entry->id;
+        $vd = $viewData();
+        $viewerUid = isset($vd['phpauth_user_id']) && is_int($vd['phpauth_user_id']) ? $vd['phpauth_user_id'] : 0;
+        $viewer = $viewerUid > 0 ? $viewerUid : null;
+        $q = $request->getQueryParams();
+        $cPage = isset($q['c_page']) && is_string($q['c_page']) && ctype_digit($q['c_page']) ? max(1, (int) $q['c_page']) : 1;
+        $perRoots = max(3, min(30, (int) ($_ENV['CMS_COMMENTS_ROOTS_PER_PAGE'] ?? 10)));
+        $pack = CommentRepository::loadThreadPagePackSafe($pdo, $threadKey, $cPage, $perRoots, $viewer);
+        $commentTree = CommentThreadBuilder::toTree($pack['rows']);
+        $basePath = '/' . $typeSlug . '/' . $entrySlug;
+        $returnTo = $basePath . ($pack['page'] > 1 ? ('?c_page=' . $pack['page']) : '');
+        $pager = [
+            'page' => $pack['page'],
+            'per_page' => $pack['per_page'],
+            'total_pages' => $pack['total_pages'],
+            'total_roots' => $pack['total_roots'],
+            'from' => $pack['total_roots'] > 0 ? (($pack['page'] - 1) * $pack['per_page'] + 1) : 0,
+            'to' => $pack['total_roots'] > 0 ? min($pack['page'] * $pack['per_page'], $pack['total_roots']) : 0,
+            'base_path' => $basePath,
+        ];
 
-        return $twig->render($response, $tpl, array_merge($viewData(), $seoTwig, [
+        return $twig->render($response, $tpl, array_merge($vd, $seoTwig, [
             'content_type' => $type,
             'content_entry' => $entry,
             'content_field_rows' => $fieldRows,
@@ -109,6 +132,11 @@ return static function (App $app, Twig $twig, \PDO $pdo, callable $viewData): vo
             'content_page_title' => $pageTitle,
             'content_meta_description' => $metaDesc,
             'entry_taxonomy_groups' => $entryTaxonomies->termsGroupedForEntry($entry->id),
+            'comments_thread_key' => $threadKey,
+            'comments_return_to' => $returnTo,
+            'comments_pager_base' => $basePath,
+            'comments_pager' => $pager,
+            'comments_thread' => $commentTree,
         ]));
     })->setName('public.content_entry');
 };

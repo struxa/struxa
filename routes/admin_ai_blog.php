@@ -219,6 +219,8 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             $seoParsed['twitter_image_id'],
             $seoParsed['schema_json'],
             $v['published_at'],
+            null,
+            null,
             $cmsUserId($request)
         );
         foreach ($fieldList as $f) {

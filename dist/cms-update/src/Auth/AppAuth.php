@@ -152,7 +152,7 @@ final class AppAuth extends Auth
             return false;
         }
 
-        $query = "SELECT id, uid, expiredate, ip, agent, cookie_crc, device_id FROM {$this->config->table_sessions} WHERE hash = :hash";
+        $query = "SELECT id, uid, expiredate, remember, ip, agent, cookie_crc, device_id FROM {$this->config->table_sessions} WHERE hash = :hash";
         $query_prepared = $this->dbh->prepare($query);
         if ($query_prepared === false) {
             return false;
@@ -191,8 +191,9 @@ final class AppAuth extends Auth
 
         if ($db_cookie == sha1($hash . $this->config->site_key)) {
             if ($expire_date - $current_date < strtotime($this->config->cookie_renew) - $current_date) {
+                $remember = ((int) ($row['remember'] ?? 0)) === 1;
                 $this->deleteSession($hash);
-                if ($this->addSession((int) $uid, false) === false) {
+                if ($this->addSession((int) $uid, $remember) === false) {
                     return false;
                 }
             }
@@ -231,14 +232,15 @@ final class AppAuth extends Auth
 
         $query = "
             INSERT INTO {$this->config->table_sessions}
-            (uid, hash, expiredate, ip, agent, cookie_crc)
-            VALUES (:uid, :hash, :expiredate, :ip, :agent, :cookie_crc)
+            (uid, hash, expiredate, remember, ip, agent, cookie_crc)
+            VALUES (:uid, :hash, :expiredate, :remember, :ip, :agent, :cookie_crc)
             ";
         $query_prepared = $this->dbh->prepare($query);
         $query_params = [
             'uid' => $uid,
             'hash' => $data['hash'],
             'expiredate' => date('Y-m-d H:i:s', $data['expire']),
+            'remember' => $remember ? 1 : 0,
             'ip' => $ip,
             'agent' => $agent,
             'cookie_crc' => $data['cookie_crc'],

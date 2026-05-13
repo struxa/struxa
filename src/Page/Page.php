@@ -28,6 +28,9 @@ final class Page
         public readonly ?string $schemaJson,
         public readonly string $content,
         public readonly string $status,
+        public readonly ?string $publishedAt,
+        public readonly ?string $scheduledPublishAt,
+        public readonly ?string $scheduledUnpublishAt,
         public readonly string $createdAt,
         public readonly string $updatedAt,
     ) {
@@ -54,6 +57,10 @@ final class Page
         $sj = $row['schema_json'] ?? null;
         $schema = $sj !== null && $sj !== '' ? (string) $sj : null;
 
+        $pub = $row['published_at'] ?? null;
+        $sp = $row['scheduled_publish_at'] ?? null;
+        $su = $row['scheduled_unpublish_at'] ?? null;
+
         return new self(
             (int) $row['id'],
             (string) $row['title'],
@@ -73,6 +80,9 @@ final class Page
             $schema,
             (string) $row['content'],
             (string) $row['status'],
+            $pub !== null && $pub !== '' ? (string) $pub : null,
+            $sp !== null && $sp !== '' ? (string) $sp : null,
+            $su !== null && $su !== '' ? (string) $su : null,
             (string) ($row['created_at'] ?? ''),
             (string) ($row['updated_at'] ?? ''),
         );
@@ -81,6 +91,22 @@ final class Page
     public function isPublished(): bool
     {
         return $this->status === 'published';
+    }
+
+    /**
+     * True when the page should be shown on the public site (published and not embargoed).
+     */
+    public function isPubliclyVisible(): bool
+    {
+        if ($this->status !== 'published') {
+            return false;
+        }
+        if ($this->publishedAt === null || $this->publishedAt === '') {
+            return true;
+        }
+        $t = strtotime($this->publishedAt);
+
+        return $t !== false && $t <= time();
     }
 
     public function metaTitle(?string $siteName): string
@@ -131,6 +157,9 @@ final class Page
             $this->schemaJson,
             $content,
             $this->status,
+            $this->publishedAt,
+            $this->scheduledPublishAt,
+            $this->scheduledUnpublishAt,
             $this->createdAt,
             $this->updatedAt,
         );

@@ -58,13 +58,10 @@ final class OpenAiChatStreamProcessor
         if ($this->ch !== null && $this->mh !== null) {
             curl_multi_remove_handle($this->mh, $this->ch);
         }
-        if ($this->ch !== null) {
-            curl_close($this->ch);
-        }
+        $this->ch = null;
         if ($this->mh !== null) {
             curl_multi_close($this->mh);
         }
-        $this->ch = null;
         $this->mh = null;
     }
 

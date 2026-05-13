@@ -782,6 +782,8 @@ final class BlueprintManager
                 $twId,
                 $schemaJ,
                 $pub,
+                null,
+                null,
                 null
             );
             $fieldMap = $e['field_values'] ?? [];
@@ -899,7 +901,10 @@ final class BlueprintManager
                 $twId,
                 $schemaJ,
                 $content,
-                $status
+                $status,
+                null,
+                null,
+                null
             );
             $applied[] = 'page ' . $slug;
             if (isset($p['sections']) && is_array($p['sections']) && $p['sections'] !== []) {

@@ -8,6 +8,8 @@ use App\Event\StorefrontCachesInvalidateEvent;
 use App\Flash;
 use App\Http\Middleware\RequireCmsStaff;
 use App\Http\Middleware\RequirePermission;
+use App\Security\IpBlockMatcher;
+use App\Security\IpBlockRepository;
 use App\Seo\NotFoundLogRepository;
 use App\Seo\RedirectRepository;
 use App\Seo\SitemapOptions;
@@ -39,6 +41,15 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
         $cmsUser = $request->getAttribute('cms_user') ?? [];
 
         return array_merge($data, ['cms_user' => $cmsUser]);
+    };
+
+    $jsonResponse = static function (Response $response, array $payload, int $status = 200): Response {
+        $response->getBody()->write(json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR));
+
+        return $response
+            ->withStatus($status)
+            ->withHeader('Content-Type', 'application/json; charset=utf-8')
+            ->withHeader('Cache-Control', 'no-store');
     };
 
     $parseRedirectBody = static function (array $body): array {
@@ -98,7 +109,8 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
         $notFoundListPerPage,
         $paginateRedirects,
         $pdo,
-        $viewData
+        $viewData,
+        $jsonResponse
     ): void {
         $group->get('/seo/redirects', function (Request $request, Response $response) use ($twig, $adminContext, $withCmsUser, $redirects, $redirectListPerPage, $paginateRedirects): Response {
             $q = $request->getQueryParams();
@@ -209,6 +221,30 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             ])));
         })->setName('admin.seo.not_found');
 
+        $group->get('/seo/not-found/{id:[0-9]+}/hits', function (Request $request, Response $response, array $args) use ($notFound, $jsonResponse, $pdo): Response {
+            $id = (int) $args['id'];
+            $row = $notFound->findById($id);
+            if ($row === null) {
+                return $jsonResponse($response, ['ok' => false, 'error' => 'Log entry not found.'], 404);
+            }
+            $hits = $notFound->listHitsForLogId($id);
+            $blockPatterns = (new IpBlockRepository($pdo))->allPatterns();
+            $annotatedHits = [];
+            foreach ($hits as $h) {
+                $ip = isset($h['client_ip']) ? trim((string) $h['client_ip']) : '';
+                $annotatedHits[] = array_merge($h, [
+                    'ip_already_blocked' => $ip !== '' && IpBlockMatcher::isBlocked($ip, $blockPatterns),
+                ]);
+            }
+
+            return $jsonResponse($response, [
+                'ok' => true,
+                'path' => (string) ($row['path'] ?? ''),
+                'hit_count' => (int) ($row['hit_count'] ?? 0),
+                'hits' => $annotatedHits,
+            ]);
+        })->setName('admin.seo.not_found.hits');
+
         $group->post('/seo/not-found/{id:[0-9]+}/delete', function (Request $request, Response $response, array $args) use ($notFound): Response {
             $notFound->deleteById((int) $args['id']);
             Flash::set('success', '404 log entry removed.');
@@ -224,6 +260,33 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 ->withHeader('Location', $url)
                 ->withStatus(302);
         })->setName('admin.seo.not_found.delete');
+
+        $group->post('/seo/not-found/bulk-delete', function (Request $request, Response $response) use ($notFound, $notFoundListPerPage): Response {
+            $body = $request->getParsedBody();
+            $body = is_array($body) ? $body : [];
+            $raw = $body['ids'] ?? [];
+            if (!is_array($raw)) {
+                $raw = [];
+            }
+            $deleted = $notFound->deleteByIds($raw);
+            if ($deleted > 0) {
+                Flash::set('success', $deleted === 1 ? 'Removed 1 log row.' : 'Removed ' . $deleted . ' log rows.');
+            } else {
+                Flash::set('success', 'Nothing was selected to remove.');
+            }
+            $returnPage = isset($body['return_page']) && is_numeric($body['return_page']) ? max(1, (int) $body['return_page']) : 1;
+            $total = $notFound->countAll();
+            $totalPages = $total > 0 ? (int) ceil($total / $notFoundListPerPage) : 1;
+            $page = min($returnPage, max(1, $totalPages));
+            $url = RouteContext::fromRequest($request)->getRouteParser()->urlFor('admin.seo.not_found');
+            if ($page > 1) {
+                $url .= '?' . http_build_query(['page' => $page]);
+            }
+
+            return $response
+                ->withHeader('Location', $url)
+                ->withStatus(302);
+        })->setName('admin.seo.not_found.bulk_delete');
 
         $group->get('/seo/sitemap', function (Request $request, Response $response) use ($twig, $adminContext, $withCmsUser, $pdo, $viewData): Response {
             $siteUrl = rtrim((string) (($viewData())['site_url'] ?? ''), '/');
@@ -261,3 +324,4 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
         })->setName('admin.seo.sitemap.save');
     })->add($perm)->add($middleware);
 };
+

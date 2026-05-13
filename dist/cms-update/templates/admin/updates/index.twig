@@ -24,7 +24,7 @@
     <dl class="admin-updates-dl">
       <div class="admin-updates-dl-row">
         <dt>Installed</dt>
-        <dd><code class="admin-inline-code">{{ st.current_version|default(cms_version)|e }}</code></dd>
+        <dd id="admin-updates-installed"><code class="admin-inline-code">{{ st.current_version|default(cms_version)|e }}</code></dd>
       </div>
       <div class="admin-updates-dl-row">
         <dt>Latest (remote)</dt>
@@ -75,6 +75,9 @@
       {% else %}
         Feed: <code class="admin-inline-code">{{ st.feed_url|default('')|e }}</code> (static <code class="admin-inline-code">.json</code> or PHP that returns JSON) · override with <code class="admin-inline-code">STRUXA_UPDATES_JSON_URL</code>, or mirror to disk with <code class="admin-inline-code">STRUXA_UPDATES_JSON_PATH</code> if the server cannot fetch its own public URL, or use GitHub with <code class="admin-inline-code">STRUXA_UPDATES_GITHUB_REPO</code>.
       {% endif %}
+    </p>
+    <p class="admin-hint">
+      Struxa default public feed (view JSON): <a class="admin-link" href="https://struxapoint.com/dist/struxa-updates-json.php" rel="noopener noreferrer" target="_blank">https://struxapoint.com/dist/struxa-updates-json.php</a>
     </p>
 
     <div class="admin-updates-cta" id="admin-updates-cta">
@@ -131,6 +134,7 @@
       var url = root.getAttribute('data-poll-url');
       if (!url) return;
       var pollMs = 180000;
+      var installedEl = document.getElementById('admin-updates-installed');
       var latestEl = document.getElementById('admin-updates-latest');
       var statusEl = document.getElementById('admin-updates-status-line');
       var summaryEl = document.getElementById('admin-updates-summary');
@@ -143,6 +147,7 @@
       var applyProgress = document.getElementById('admin-updates-apply-progress');
       var applyPanel = document.getElementById('admin-updates-apply-panel');
       var applyDisabledHint = document.getElementById('admin-updates-apply-disabled-hint');
+      var statusPollAbort = null;
 
       function esc(s) {
         if (!s) return '';
@@ -163,7 +168,7 @@
               '</p>'
           );
           parts.push(
-            '<p class="admin-updates-apply-banner-text">New files are in place. Reload this page so the admin shows the current version. If the site acts strangely, restart PHP-FPM or clear OPcache.</p>'
+            '<p class="admin-updates-apply-banner-text">New files are in place. The version row should update above; if it still shows the old number, reload this page or restart PHP-FPM / clear OPcache.</p>'
           );
           parts.push('</div>');
           if (data.steps && data.steps.length) {
@@ -214,6 +219,10 @@
 
       function apply(data) {
         if (!data || typeof data !== 'object') return;
+        if (installedEl && data.current_version) {
+          installedEl.innerHTML =
+            '<code class="admin-inline-code">' + esc(String(data.current_version)) + '</code>';
+        }
         if (latestEl) {
           if (data.ok && data.latest_version) {
             latestEl.innerHTML = '<code class="admin-inline-code">' + esc(String(data.latest_version)) + '</code>';
@@ -288,14 +297,32 @@
         }
       }
 
-      function tick() {
+      function tick(forceFresh) {
         if (document.hidden) return;
-        fetch(url, { headers: { Accept: 'application/json' }, credentials: 'same-origin' })
+        if (statusPollAbort) {
+          statusPollAbort.abort();
+        }
+        statusPollAbort = new AbortController();
+        var myCtrl = statusPollAbort;
+        var fetchUrl =
+          url + (forceFresh ? (url.indexOf('?') >= 0 ? '&' : '?') + 'fresh=1' : '');
+        fetch(fetchUrl, {
+          headers: { Accept: 'application/json' },
+          credentials: 'same-origin',
+          signal: myCtrl.signal,
+        })
           .then(function (r) {
             return r.json();
           })
           .then(apply)
-          .catch(function () {});
+          .catch(function (err) {
+            if (err && err.name === 'AbortError') return;
+          })
+          .finally(function () {
+            if (statusPollAbort === myCtrl) {
+              statusPollAbort = null;
+            }
+          });
       }
 
       tick();
@@ -317,6 +344,10 @@
             return;
           }
           applyBtn.disabled = true;
+          if (statusPollAbort) {
+            statusPollAbort.abort();
+            statusPollAbort = null;
+          }
           if (applyPanel) {
             applyPanel.hidden = true;
             applyPanel.innerHTML = '';
@@ -350,6 +381,10 @@
               if (applyPanel) {
                 applyPanel.innerHTML = renderApplyPanel(data);
                 applyPanel.hidden = false;
+              }
+              if (data.ok && data.status) {
+                apply(data.status);
+                tick(true);
               }
               if (!data.ok) {
                 applyBtn.disabled = false;

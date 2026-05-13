@@ -15,6 +15,10 @@
 {% set seod = o.seo_description|default(entry ? (entry.seoDescription ?? '') : '') %}
 {% set pub_raw = o.published_at|default(entry ? (entry.publishedAt ?? '') : '') %}
 {% set pub_dt = pub_raw ? pub_raw|replace({' ': 'T'})|slice(0, 16) : '' %}
+{% set sched_pub_raw = o.scheduled_publish_at|default(entry ? (entry.scheduledPublishAt ?? '') : '') %}
+{% set sched_unpub_raw = o.scheduled_unpublish_at|default(entry ? (entry.scheduledUnpublishAt ?? '') : '') %}
+{% set sched_pub_dt = sched_pub_raw ? sched_pub_raw|replace({' ': 'T'})|slice(0, 16) : '' %}
+{% set sched_unpub_dt = sched_unpub_raw ? sched_unpub_raw|replace({' ': 'T'})|slice(0, 16) : '' %}
 {% set wf = workflow_statuses|default(['draft', 'in_review', 'approved', 'published', 'archived']) %}
 {% set seo_ctx = {
   canonical_url: o.canonical_url|default(entry ? (entry.canonicalUrl|default('')) : ''),
@@ -27,7 +31,7 @@
   twitter_image_id: o.twitter_image_id|default(entry and entry.twitterImageId ? entry.twitterImageId : ''),
   schema_json: o.schema_json|default(entry ? (entry.schemaJson|default('')) : '')
 } %}
-{% set seo_errors_open = errors.seo_title is defined or errors.seo_description is defined or errors.canonical_url is defined or errors.seo_noindex is defined or errors.og_title is defined or errors.og_description is defined or errors.og_image_id is defined or errors.twitter_title is defined or errors.twitter_description is defined or errors.twitter_image_id is defined or errors.schema_json is defined %}
+{% set seo_errors_open = errors.seo_title is defined or errors.seo_description is defined or errors.canonical_url is defined or errors.seo_noindex is defined or errors.og_title is defined or errors.og_description is defined or errors.og_image_id is defined or errors.twitter_title is defined or errors.twitter_description is defined or errors.twitter_image_id is defined or errors.schema_json is defined or errors.published_at is defined or errors.scheduled_publish_at is defined or errors.scheduled_unpublish_at is defined %}
 {% set seo_extended_errors_open = errors.canonical_url is defined or errors.seo_noindex is defined or errors.og_title is defined or errors.og_description is defined or errors.og_image_id is defined or errors.twitter_title is defined or errors.twitter_description is defined or errors.twitter_image_id is defined or errors.schema_json is defined %}
 
 {% block admin_title %}{{ is_edit ? 'Edit entry' : 'New entry' }} — {{ content_type.name|e }}{% endblock %}
@@ -172,8 +176,21 @@
         <div class="admin-field admin-field--full {{ errors.published_at is defined ? 'admin-field--error' : '' }}">
           <label class="admin-label" for="ent-published">Published at</label>
           <input class="admin-input" id="ent-published" name="published_at" type="datetime-local" value="{{ pub_dt|e('html_attr') }}" form="entry-edit-form" />
-          <p class="admin-hint">Optional. If empty and status is published, the current time is used.</p>
+          <p class="admin-hint">Optional. If empty and status is published, the current time is used. Future time embargoes the entry on the public site.</p>
           {% if errors.published_at is defined %}<p class="admin-field-error">{{ errors.published_at|e }}</p>{% endif %}
+        </div>
+
+        <div class="admin-field admin-field--full {{ errors.scheduled_publish_at is defined ? 'admin-field--error' : '' }}">
+          <label class="admin-label" for="ent-sched-pub">Schedule publish</label>
+          <input class="admin-input" id="ent-sched-pub" name="scheduled_publish_at" type="datetime-local" value="{{ sched_pub_dt|e('html_attr') }}" form="entry-edit-form" />
+          <p class="admin-hint">Optional. Auto-publishes draft / in review / approved at this time. Use <code class="admin-inline-code">php bin/cms.php schedule:run</code> on a timer, or rely on occasional web-triggered runs.</p>
+          {% if errors.scheduled_publish_at is defined %}<p class="admin-field-error">{{ errors.scheduled_publish_at|e }}</p>{% endif %}
+        </div>
+        <div class="admin-field admin-field--full {{ errors.scheduled_unpublish_at is defined ? 'admin-field--error' : '' }}">
+          <label class="admin-label" for="ent-sched-unpub">Schedule unpublish</label>
+          <input class="admin-input" id="ent-sched-unpub" name="scheduled_unpublish_at" type="datetime-local" value="{{ sched_unpub_dt|e('html_attr') }}" form="entry-edit-form" />
+          <p class="admin-hint">Optional. When published, returns to draft at this time.</p>
+          {% if errors.scheduled_unpublish_at is defined %}<p class="admin-field-error">{{ errors.scheduled_unpublish_at|e }}</p>{% endif %}
         </div>
 
         <div class="admin-page-edit-aside-actions">
@@ -208,6 +225,24 @@
             <a class="admin-link admin-page-edit-revisions-all" href="{{ url_for('admin.content_types.entries.revisions', { id: content_type.id, entryId: entry.id }) }}">View all revisions</a>
           {% endif %}
         </div>
+
+        {% if content_type.hasPublicRoute %}
+          <div class="admin-card admin-page-edit-aside-card admin-page-edit-revisions-card">
+            <h2 class="admin-card-title admin-page-edit-revisions-title">Stakeholder preview</h2>
+            <p class="admin-hint">Time-limited public link (saved entry). Copy the URL from the green banner after generating.</p>
+            <form method="post" action="{{ url_for('admin.content_types.entries.preview_link', { id: content_type.id, entryId: entry.id }) }}" style="margin-top:0.5rem">
+              <div class="admin-field">
+                <label class="admin-label" for="entry-preview-ttl">Link lifetime</label>
+                <select class="admin-select" id="entry-preview-ttl" name="preview_link_ttl">
+                  <option value="3600">1 hour</option>
+                  <option value="86400" selected>24 hours</option>
+                  <option value="604800">7 days</option>
+                </select>
+              </div>
+              <button type="submit" class="admin-btn-ghost" style="margin-top:0.5rem">Generate preview link</button>
+            </form>
+          </div>
+        {% endif %}
       {% endif %}
     </aside>
 

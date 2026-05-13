@@ -14,7 +14,7 @@ final class FileRateLimiter
     }
 
     /**
-     * @return true if under limit (and increment counter), false if exceeded
+     * @return bool true if under limit (and increment counter), false if exceeded
      */
     public function hit(string $bucket, string $clientKey, int $maxHits, int $windowSeconds): bool
     {

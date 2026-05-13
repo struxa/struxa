@@ -21,7 +21,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
     $middleware = new RequireCmsStaff($auth, $pdo);
     $root = dirname(__DIR__);
     $cacheInternal = (new CacheManager($root . DIRECTORY_SEPARATOR . 'storage' . DIRECTORY_SEPARATOR . 'cache'))->internal();
-    $checker = new CmsUpdateChecker($cacheInternal);
+    $checker = new CmsUpdateChecker($cacheInternal, $pdo);
 
     $adminContext = static function () use ($viewData): array {
         return array_merge($viewData(), []);
@@ -102,6 +102,18 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                     $profile->syncInstalledVersion();
                 }
                 $cacheInternal->clear();
+                $fresh = $checker->check(true);
+                $applied = trim((string) ($result['applied_version'] ?? ''));
+                if ($applied !== '') {
+                    $fresh['current_version'] = $applied;
+                    $lv = trim((string) ($fresh['latest_version'] ?? ''));
+                    if ($lv !== '') {
+                        $fresh['update_available'] = version_compare($lv, $applied, '>');
+                    } else {
+                        $fresh['update_available'] = false;
+                    }
+                }
+                $result['status'] = $fresh;
             }
 
             return $jsonResponse($response, $result, $result['ok'] ? 200 : 422);

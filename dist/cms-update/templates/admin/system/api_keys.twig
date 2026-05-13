@@ -1,0 +1,145 @@
+{% extends 'admin/base.twig' %}
+
+{% block admin_title %}System API keys{% endblock %}
+
+{% block admin_hero_title %}
+  <h1 class="admin-hero-title">API keys</h1>
+{% endblock %}
+
+{% block admin_hero_sub %}
+  <p class="admin-hero-sub">Store provider credentials for server-side integrations. Values are masked by default and can be revealed on demand.</p>
+{% endblock %}
+
+{% block admin_content %}
+  <section class="admin-card" style="margin-bottom:1.25rem">
+    <h2 class="admin-card-title">OpenAI</h2>
+    <p class="admin-hint" style="margin-top:0">
+      {% if openai_env_key %}
+        Environment key is detected (<code class="admin-inline-code">OPENAI_API_KEY</code> / <code class="admin-inline-code">STRUXA_OPENAI_API_KEY</code>) and overrides stored value at runtime.
+      {% else %}
+        No environment override detected.
+      {% endif %}
+    </p>
+    <form method="post" action="{{ url_for('admin.system.api_keys.openai') }}" class="admin-form-stack" style="max-width:40rem">
+      <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+      <label class="admin-field">
+        <span class="admin-field-label">Stored key</span>
+        {% if openai_key_stored %}
+          <div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap">
+            <code class="admin-inline-code" id="openai-key-mask">{{ openai_key_masked|e }}</code>
+            <button class="admin-btn admin-btn--ghost admin-btn--sm" type="button" data-reveal-key data-type="openai" data-id="1" data-url="{{ url_for('admin.system.api_keys.reveal', { type: 'openai', id: 1 })|e('html_attr') }}">View</button>
+          </div>
+        {% else %}
+          <p class="admin-hint" style="margin:0">No key stored.</p>
+        {% endif %}
+      </label>
+      <label class="admin-field">
+        <span class="admin-field-label">Set / replace OpenAI key</span>
+        <input class="admin-input" type="password" name="openai_api_key" value="" autocomplete="new-password" maxlength="512" placeholder="{{ openai_key_stored ? 'Leave blank to keep existing key' : 'sk-…' }}" />
+      </label>
+      <label class="admin-hint" style="display:flex;gap:0.5rem;align-items:center">
+        <input type="checkbox" name="openai_api_key_clear" value="1" />
+        Remove stored OpenAI key
+      </label>
+      <button type="submit" class="admin-btn admin-btn--primary">Save OpenAI key</button>
+    </form>
+  </section>
+
+  <section class="admin-card">
+    <h2 class="admin-card-title">Custom API keys</h2>
+    <form method="post" action="{{ url_for('admin.system.api_keys.custom') }}" class="admin-form-stack" style="max-width:40rem;margin-bottom:1rem">
+      <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+      <label class="admin-field">
+        <span class="admin-field-label">Key name</span>
+        <input class="admin-input" type="text" name="key_name" maxlength="160" required placeholder="e.g. Anthropic, Stripe, Data API" />
+      </label>
+      <label class="admin-field">
+        <span class="admin-field-label">Key value</span>
+        <input class="admin-input" type="password" name="key_value" maxlength="1024" required autocomplete="new-password" placeholder="Enter secret key" />
+      </label>
+      <button type="submit" class="admin-btn admin-btn--primary">Add key</button>
+    </form>
+
+    {% if custom_keys is empty %}
+      <p class="admin-hint">No custom keys saved.</p>
+    {% else %}
+      <div class="admin-table-wrap" style="overflow-x:auto">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Key</th>
+              <th>Updated</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in custom_keys %}
+              <tr>
+                <td>{{ row.key_name|e }}</td>
+                <td>
+                  <code class="admin-inline-code" id="key-mask-{{ row.id }}">{{ row.masked|e }}</code>
+                  <button class="admin-btn admin-btn--ghost admin-btn--sm" type="button" data-reveal-key data-type="custom" data-id="{{ row.id }}" data-url="{{ url_for('admin.system.api_keys.reveal', { type: 'custom', id: row.id })|e('html_attr') }}">View</button>
+                </td>
+                <td>{{ row.updated_at|e }}</td>
+                <td>
+                  <form method="post" action="{{ url_for('admin.system.api_keys.delete', { id: row.id }) }}" style="display:inline" onsubmit="return confirm('Delete this key?');">
+                    <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+                    <button class="admin-btn admin-btn--ghost admin-btn--sm" type="submit">Delete</button>
+                  </form>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% endif %}
+  </section>
+
+  <script>
+    (function () {
+      function csrfToken() {
+        var i = document.querySelector('input[name="_csrf_token"]');
+        return i ? i.value : '';
+      }
+      document.querySelectorAll('[data-reveal-key]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          var type = btn.getAttribute('data-type');
+          var id = btn.getAttribute('data-id');
+          if (!type || !id) return;
+          var u = btn.getAttribute('data-url');
+          if (!u) return;
+          btn.disabled = true;
+          fetch(u, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {
+              'Accept': 'application/json',
+              'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
+            },
+            body: '_csrf_token=' + encodeURIComponent(csrfToken())
+          }).then(function (r) {
+            return r.json().then(function (data) { return { ok: r.ok, data: data }; });
+          }).then(function (res) {
+            if (!res.ok || !res.data || !res.data.ok) {
+              alert('Could not reveal key.');
+              return;
+            }
+            var targetId = type === 'openai' ? 'openai-key-mask' : 'key-mask-' + id;
+            var node = document.getElementById(targetId);
+            if (node) node.textContent = String(res.data.value || '');
+            btn.textContent = 'Hide';
+            btn.disabled = false;
+            btn.addEventListener('click', function onHide() {
+              window.location.reload();
+            }, { once: true });
+          }).catch(function () {
+            alert('Request failed.');
+          }).finally(function () {
+            if (btn.textContent !== 'Hide') btn.disabled = false;
+          });
+        });
+      });
+    })();
+  </script>
+{% endblock %}

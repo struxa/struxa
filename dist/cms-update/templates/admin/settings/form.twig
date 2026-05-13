@@ -268,6 +268,14 @@
                 <textarea class="admin-textarea" id="robots_txt_custom" name="robots_txt_custom" rows="5" maxlength="32000" placeholder="Leave blank for defaults (admin disallowed; Sitemap line added when enabled under SEO → Sitemap).">{{ settings_values.robots_txt_custom|default('')|e }}</textarea>
                 {% if errors.robots_txt_custom is defined %}<p class="admin-field-error">{{ errors.robots_txt_custom|e }}</p>{% endif %}
               </div>
+              <div class="admin-field admin-field--full">
+                <input type="hidden" name="seo_external_links_nofollow" value="0" />
+                <label class="admin-checkbox-label">
+                  <input type="checkbox" name="seo_external_links_nofollow" value="1" {{ (settings_values.seo_external_links_nofollow|default('0') ~ '') == '1' ? 'checked' : '' }} />
+                  <span>Nofollow external links on the public site</span>
+                </label>
+                <p class="admin-hint">When enabled, <code class="admin-inline-code">rel="nofollow"</code> is added to outbound <code class="admin-inline-code">http(s)</code> links (different host than your site URL) in page and entry HTML, page sections, and header/footer menus. Same-site and relative links are unchanged.</p>
+              </div>
             </div>
           </section>
         </div>

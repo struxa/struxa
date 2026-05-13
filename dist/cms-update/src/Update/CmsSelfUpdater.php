@@ -480,7 +480,6 @@ final class CmsSelfUpdater
         $errno = curl_errno($ch);
         $err = curl_error($ch);
         $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
         if ($errno !== 0) {
             $hint = $err !== '' ? $err : ('cURL error ' . (string) $errno);
 

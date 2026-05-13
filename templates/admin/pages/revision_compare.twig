@@ -1,35 +1,67 @@
 {% extends 'admin/base.twig' %}
 
+{% set is_rev_vs_rev = revision_right is defined and revision_right is not null %}
+
 {% block admin_title %}Compare revision{% endblock %}
 
-{% block admin_hero_title %}<h1 class="admin-hero-title">Compare with revision</h1>{% endblock %}
+{% block admin_hero_title %}<h1 class="admin-hero-title">{{ is_rev_vs_rev ? 'Compare two revisions' : 'Compare with revision' }}</h1>{% endblock %}
 
 {% block admin_hero_sub %}
   <p class="admin-hero-sub">
     <a class="admin-link" href="{{ url_for('admin.pages.revisions', { id: page.id }) }}">← Revisions</a>
     · saved {{ revision.created_at|e }}
+    {% if not is_rev_vs_rev %}
+      · <span class="admin-hint">Compare two saved revisions: add <code class="admin-inline-code">?other=</code> and another revision ID to this URL.</span>
+    {% endif %}
   </p>
 {% endblock %}
 
 {% block admin_content %}
   <div class="admin-form-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;align-items:start">
-    <div class="admin-card">
-      <h2 class="admin-card-title">Current</h2>
-      <p class="admin-hint">{{ page.status|e }} · {{ page.slug|e }}</p>
-      <p class="admin-hint" style="margin-top:0.5rem"><strong>SEO title:</strong> {{ page.seoTitle|default('—')|e }}</p>
-      <p class="admin-hint"><strong>SEO description:</strong> {{ page.seoDescription|default('—')|e }}</p>
-      <p class="admin-hint"><strong>Tags:</strong> {{ page.tagsEditString() != '' ? page.tagsEditString()|e : '—' }}</p>
-      <h3 style="margin:0.75rem 0 0.35rem">{{ page.title|e }}</h3>
-      <pre style="white-space:pre-wrap;font:inherit;font-size:0.9rem;opacity:0.9">{{ page.content|e }}</pre>
-    </div>
-    <div class="admin-card">
-      <h2 class="admin-card-title">Revision #{{ revision.id }}</h2>
-      <p class="admin-hint">{{ revision.status|e }} · {{ revision.slug|e }}</p>
-      <p class="admin-hint" style="margin-top:0.5rem"><strong>SEO title:</strong> {{ revision.seo_title|default('—')|e }}</p>
-      <p class="admin-hint"><strong>SEO description:</strong> {{ revision.seo_description|default('—')|e }}</p>
-      <p class="admin-hint"><strong>Tags:</strong> {{ revision_tags_display != '' ? revision_tags_display|e : '—' }}</p>
-      <h3 style="margin:0.75rem 0 0.35rem">{{ revision.title|e }}</h3>
-      <pre style="white-space:pre-wrap;font:inherit;font-size:0.9rem;opacity:0.9">{{ revision.content|e }}</pre>
-    </div>
+    {% if is_rev_vs_rev %}
+      <div class="admin-card">
+        <h2 class="admin-card-title">Revision #{{ revision.id }} (left in diff)</h2>
+        <p class="admin-hint">{{ revision.status|e }} · {{ revision.slug|e }}</p>
+        <p class="admin-hint" style="margin-top:0.5rem"><strong>SEO title:</strong> {{ revision.seo_title|default('—')|e }}</p>
+        <p class="admin-hint"><strong>SEO description:</strong> {{ revision.seo_description|default('—')|e }}</p>
+        <p class="admin-hint"><strong>Tags:</strong> {{ revision_tags_display != '' ? revision_tags_display|e : '—' }}</p>
+        <h3 style="margin:0.75rem 0 0.35rem">{{ revision.title|e }}</h3>
+        <pre style="white-space:pre-wrap;font:inherit;font-size:0.9rem;opacity:0.9">{{ revision.content|e }}</pre>
+      </div>
+      <div class="admin-card">
+        <h2 class="admin-card-title">Revision #{{ revision_right.id }} (right in diff)</h2>
+        <p class="admin-hint">{{ revision_right.status|e }} · {{ revision_right.slug|e }}</p>
+        <p class="admin-hint" style="margin-top:0.5rem"><strong>SEO title:</strong> {{ revision_right.seo_title|default('—')|e }}</p>
+        <p class="admin-hint"><strong>SEO description:</strong> {{ revision_right.seo_description|default('—')|e }}</p>
+        <p class="admin-hint"><strong>Tags:</strong> {{ revision_right_tags_display != '' ? revision_right_tags_display|e : '—' }}</p>
+        <h3 style="margin:0.75rem 0 0.35rem">{{ revision_right.title|e }}</h3>
+        <pre style="white-space:pre-wrap;font:inherit;font-size:0.9rem;opacity:0.9">{{ revision_right.content|e }}</pre>
+      </div>
+    {% else %}
+      <div class="admin-card">
+        <h2 class="admin-card-title">Revision #{{ revision.id }} (left in diff)</h2>
+        <p class="admin-hint">{{ revision.status|e }} · {{ revision.slug|e }}</p>
+        <p class="admin-hint" style="margin-top:0.5rem"><strong>SEO title:</strong> {{ revision.seo_title|default('—')|e }}</p>
+        <p class="admin-hint"><strong>SEO description:</strong> {{ revision.seo_description|default('—')|e }}</p>
+        <p class="admin-hint"><strong>Tags:</strong> {{ revision_tags_display != '' ? revision_tags_display|e : '—' }}</p>
+        <h3 style="margin:0.75rem 0 0.35rem">{{ revision.title|e }}</h3>
+        <pre style="white-space:pre-wrap;font:inherit;font-size:0.9rem;opacity:0.9">{{ revision.content|e }}</pre>
+      </div>
+      <div class="admin-card">
+        <h2 class="admin-card-title">Current (right in diff)</h2>
+        <p class="admin-hint">{{ page.status|e }} · {{ page.slug|e }}</p>
+        <p class="admin-hint" style="margin-top:0.5rem"><strong>SEO title:</strong> {{ page.seoTitle|default('—')|e }}</p>
+        <p class="admin-hint"><strong>SEO description:</strong> {{ page.seoDescription|default('—')|e }}</p>
+        <p class="admin-hint"><strong>Tags:</strong> {{ page.tagsEditString() != '' ? page.tagsEditString()|e : '—' }}</p>
+        <h3 style="margin:0.75rem 0 0.35rem">{{ page.title|e }}</h3>
+        <pre style="white-space:pre-wrap;font:inherit;font-size:0.9rem;opacity:0.9">{{ page.content|e }}</pre>
+      </div>
+    {% endif %}
+  </div>
+
+  <div class="admin-card" style="margin-top:1.25rem">
+    <h2 class="admin-card-title">Body unified diff (lines)</h2>
+    <p class="admin-hint" style="margin-top:0">Lines prefixed with <code class="admin-inline-code">-</code> / <code class="admin-inline-code">+</code> are removed / added going from the <strong>left</strong> column to the <strong>right</strong> column above.</p>
+    <pre class="admin-revision-diff" style="margin-top:0.75rem;white-space:pre-wrap;font:0.8rem/1.4 ui-monospace,Menlo,Consolas,monospace;background:var(--admin-surface-2,#f1f5f9);padding:1rem;border-radius:8px;overflow:auto;max-height:28rem">{{ revision_unified_diff|default('')|e }}</pre>
   </div>
 {% endblock %}

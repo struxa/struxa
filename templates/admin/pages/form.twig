@@ -8,6 +8,12 @@
 {% set f_seo_title = old is not null ? old.seo_title|default('') : (page ? page.seoTitle|default('') : '') %}
 {% set f_seo_desc = old is not null ? old.seo_description|default('') : (page ? page.seoDescription|default('') : '') %}
 {% set f_tags = old is not null ? old.tags|default('') : (page ? page.tagsEditString() : '') %}
+{% set page_pub_raw = old is not null ? old.published_at|default('') : (page ? (page.publishedAt ?? '') : '') %}
+{% set page_sched_pub_raw = old is not null ? old.scheduled_publish_at|default('') : (page ? (page.scheduledPublishAt ?? '') : '') %}
+{% set page_sched_unpub_raw = old is not null ? old.scheduled_unpublish_at|default('') : (page ? (page.scheduledUnpublishAt ?? '') : '') %}
+{% set page_pub_dt = page_pub_raw ? page_pub_raw|replace({' ': 'T'})|slice(0, 16) : '' %}
+{% set page_sched_pub_dt = page_sched_pub_raw ? page_sched_pub_raw|replace({' ': 'T'})|slice(0, 16) : '' %}
+{% set page_sched_unpub_dt = page_sched_unpub_raw ? page_sched_unpub_raw|replace({' ': 'T'})|slice(0, 16) : '' %}
 {% set f_fid = '' %}
 {% if old is not null %}
   {% set f_fid = (old.featured_image_id_typed|default('')|trim != '') ? old.featured_image_id_typed : (old.featured_image_id ?? '') %}
@@ -92,7 +98,7 @@
           {% if errors.content is defined %}<p class="admin-field-error">{{ errors.content|e }}</p>{% endif %}
         </div>
 
-        {% set seo_errors_open = errors.seo_title is defined or errors.seo_description is defined or errors.tags is defined or errors.canonical_url is defined or errors.seo_noindex is defined or errors.og_title is defined or errors.og_description is defined or errors.og_image_id is defined or errors.twitter_title is defined or errors.twitter_description is defined or errors.twitter_image_id is defined or errors.schema_json is defined %}
+        {% set seo_errors_open = errors.seo_title is defined or errors.seo_description is defined or errors.tags is defined or errors.canonical_url is defined or errors.seo_noindex is defined or errors.og_title is defined or errors.og_description is defined or errors.og_image_id is defined or errors.twitter_title is defined or errors.twitter_description is defined or errors.twitter_image_id is defined or errors.schema_json is defined or errors.published_at is defined or errors.scheduled_publish_at is defined or errors.scheduled_unpublish_at is defined %}
         {% set seo_extended_errors_open = errors.canonical_url is defined or errors.seo_noindex is defined or errors.og_title is defined or errors.og_description is defined or errors.og_image_id is defined or errors.twitter_title is defined or errors.twitter_description is defined or errors.twitter_image_id is defined or errors.schema_json is defined %}
         <details class="admin-card admin-seo-suite-panel admin-page-edit-seo admin-page-edit--order-seo"{% if seo_errors_open %} open{% endif %} aria-labelledby="page-seo-heading">
           <summary class="admin-seo-suite-summary">
@@ -179,6 +185,25 @@
             {% if errors.status is defined %}<p class="admin-field-error">{{ errors.status|e }}</p>{% endif %}
           </div>
 
+          <div class="admin-field admin-field--full {{ errors.published_at is defined ? 'admin-field--error' : '' }}">
+            <label class="admin-label" for="page-published-at">Published at</label>
+            <input class="admin-input" id="page-published-at" name="published_at" type="datetime-local" value="{{ page_pub_dt|e('html_attr') }}" form="page-edit-form" />
+            <p class="admin-hint">Optional. When set in the future, the page stays hidden from the public site until that time (embargo).</p>
+            {% if errors.published_at is defined %}<p class="admin-field-error">{{ errors.published_at|e }}</p>{% endif %}
+          </div>
+          <div class="admin-field admin-field--full {{ errors.scheduled_publish_at is defined ? 'admin-field--error' : '' }}">
+            <label class="admin-label" for="page-sched-pub">Schedule publish</label>
+            <input class="admin-input" id="page-sched-pub" name="scheduled_publish_at" type="datetime-local" value="{{ page_sched_pub_dt|e('html_attr') }}" form="page-edit-form" />
+            <p class="admin-hint">Optional. When the clock passes this time, status moves to published automatically (cron or web traffic). Clear when not needed.</p>
+            {% if errors.scheduled_publish_at is defined %}<p class="admin-field-error">{{ errors.scheduled_publish_at|e }}</p>{% endif %}
+          </div>
+          <div class="admin-field admin-field--full {{ errors.scheduled_unpublish_at is defined ? 'admin-field--error' : '' }}">
+            <label class="admin-label" for="page-sched-unpub">Schedule unpublish</label>
+            <input class="admin-input" id="page-sched-unpub" name="scheduled_unpublish_at" type="datetime-local" value="{{ page_sched_unpub_dt|e('html_attr') }}" form="page-edit-form" />
+            <p class="admin-hint">Optional. When published, the page returns to draft at this time. Run <code class="admin-inline-code">php bin/cms.php schedule:run</code> on a timer for reliability.</p>
+            {% if errors.scheduled_unpublish_at is defined %}<p class="admin-field-error">{{ errors.scheduled_unpublish_at|e }}</p>{% endif %}
+          </div>
+
           <div class="admin-page-edit-aside-actions">
             <button class="admin-btn-primary" type="submit" form="page-edit-form" data-admin-save-primary name="after_save" value="stay">{{ is_edit ? 'Save changes' : 'Create page' }}</button>
             <button type="submit" form="page-edit-form" class="admin-btn-ghost" name="after_save" value="view">Save &amp; view</button>
@@ -212,6 +237,22 @@
             {% elseif rev_preview is not empty %}
               <a class="admin-link admin-page-edit-revisions-all" href="{{ url_for('admin.pages.revisions', { id: page.id }) }}">View all revisions</a>
             {% endif %}
+          </div>
+
+          <div class="admin-card admin-page-edit-aside-card">
+            <h2 class="admin-card-title admin-page-edit-revisions-title">Stakeholder preview</h2>
+            <p class="admin-hint">Time-limited public link for this page (saved content only). The full URL appears once in the green banner after you generate it.</p>
+            <form method="post" action="{{ url_for('admin.pages.preview_link', { id: page.id }) }}" style="margin-top:0.5rem">
+              <div class="admin-field">
+                <label class="admin-label" for="page-preview-ttl">Link lifetime</label>
+                <select class="admin-select" id="page-preview-ttl" name="preview_link_ttl">
+                  <option value="3600">1 hour</option>
+                  <option value="86400" selected>24 hours</option>
+                  <option value="604800">7 days</option>
+                </select>
+              </div>
+              <button type="submit" class="admin-btn-ghost" style="margin-top:0.5rem">Generate preview link</button>
+            </form>
           </div>
         {% endif %}
       </aside>

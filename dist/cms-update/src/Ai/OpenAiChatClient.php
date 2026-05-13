@@ -51,8 +51,6 @@ final class OpenAiChatClient
         $errno = curl_errno($ch);
         $err = $errno !== 0 ? curl_error($ch) : '';
         $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
-
         if ($raw === false || $errno !== 0) {
             throw new OpenAiException('OpenAI request failed: ' . ($err !== '' ? $err : 'unknown error'));
         }
@@ -133,8 +131,6 @@ final class OpenAiChatClient
         $errno = curl_errno($ch);
         $err = $errno !== 0 ? curl_error($ch) : '';
         $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
-
         if ($raw === false || $errno !== 0) {
             throw new OpenAiException('OpenAI request failed: ' . ($err !== '' ? $err : 'unknown error'));
         }

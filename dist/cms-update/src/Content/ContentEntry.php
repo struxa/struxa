@@ -25,6 +25,8 @@ final class ContentEntry
         public readonly ?int $twitterImageId,
         public readonly ?string $schemaJson,
         public readonly ?string $publishedAt,
+        public readonly ?string $scheduledPublishAt,
+        public readonly ?string $scheduledUnpublishAt,
         public readonly ?int $createdBy,
         public readonly string $createdAt,
         public readonly string $updatedAt,
@@ -43,6 +45,9 @@ final class ContentEntry
         $og = $row['og_image_id'] ?? null;
         $tw = $row['twitter_image_id'] ?? null;
         $sj = $row['schema_json'] ?? null;
+
+        $sp = $row['scheduled_publish_at'] ?? null;
+        $su = $row['scheduled_unpublish_at'] ?? null;
 
         return new self(
             (int) $row['id'],
@@ -63,6 +68,8 @@ final class ContentEntry
             $tw !== null && $tw !== '' ? (int) $tw : null,
             $sj !== null && $sj !== '' ? (string) $sj : null,
             $pub !== null && $pub !== '' ? (string) $pub : null,
+            $sp !== null && $sp !== '' ? (string) $sp : null,
+            $su !== null && $su !== '' ? (string) $su : null,
             $cb !== null && $cb !== '' ? (int) $cb : null,
             (string) ($row['created_at'] ?? ''),
             (string) ($row['updated_at'] ?? ''),
@@ -72,5 +79,18 @@ final class ContentEntry
     public function isPublished(): bool
     {
         return $this->status === 'published';
+    }
+
+    public function isPubliclyVisible(): bool
+    {
+        if ($this->status !== 'published') {
+            return false;
+        }
+        if ($this->publishedAt === null || $this->publishedAt === '') {
+            return true;
+        }
+        $t = strtotime($this->publishedAt);
+
+        return $t !== false && $t <= time();
     }
 }

@@ -23,6 +23,7 @@ use App\Flash;
 use App\Http\Middleware\CsrfProtectionMiddleware;
 use App\Http\Middleware\NotFoundLogMiddleware;
 use App\Http\PublicNotFoundHandler;
+use App\Http\Middleware\PublishScheduleMiddleware;
 use App\Http\Middleware\RedirectMiddleware;
 use App\Http\Middleware\IpBlockMiddleware;
 use App\Http\Middleware\SecurityHeadersMiddleware;
@@ -181,6 +182,7 @@ $app->add(new IpBlockMiddleware(
     $cacheManager->internal(),
     IpBlockHitThrottledLogger::createDefault($pdo, $root),
 ));
+$app->add(new PublishScheduleMiddleware($pdo, $cacheManager->internal()));
 
 $displayErrorDetails = in_array(
     strtolower(trim((string) ($_ENV['APP_DEBUG'] ?? ''))),
@@ -234,7 +236,7 @@ $app->get('/', function (Request $request, Response $response) use ($twig, $view
     $publishedHomePage = null;
     if ($homePageIdRaw !== '' && ctype_digit($homePageIdRaw)) {
         $cand = (new PageRepository($pdo))->findById((int) $homePageIdRaw);
-        if ($cand !== null && $cand->status === 'published') {
+        if ($cand !== null && $cand->isPubliclyVisible()) {
             $publishedHomePage = $cand;
         }
     }
@@ -667,6 +669,7 @@ $pluginManager = new PluginManager($root, $pluginRepo, new PluginScanner($root),
 $pluginContexts = $pluginManager->registerActivePublicRoutes($app, $twig, $auth, $pdo, $viewData, $eventDispatcher);
 
 (require $root . '/routes/public_search.php')($app, $twig, $pdo, $root, $viewData);
+(require $root . '/routes/public_preview.php')($app, $twig, $pdo, $viewData);
 (require $root . '/routes/public_pages.php')($app, $twig, $pdo, $viewData);
 // Before public_taxonomy_archive: FastRoute errors if plugin admin adds /admin/.../... after /{a}/{b}/{c}.
 $pluginManager->registerActiveAdminRoutes($app, $pluginContexts);
@@ -675,5 +678,24 @@ $pluginManager->registerActiveAdminRoutes($app, $pluginContexts);
 (require $root . '/routes/public_content.php')($app, $twig, $pdo, $viewData);
 
 $pluginManager->bootActivePluginLifecycle($pluginContexts, $eventDispatcher);
+
+$scheduleRunToken = trim((string) ($_ENV['CMS_SCHEDULE_RUN_TOKEN'] ?? ''));
+if ($scheduleRunToken !== '') {
+    $app->get('/schedule/run', function (Request $request, Response $response) use ($pdo, $scheduleRunToken): Response {
+        $q = $request->getQueryParams();
+        if (($q['token'] ?? '') !== $scheduleRunToken) {
+            throw new HttpNotFoundException($request);
+        }
+        (new \App\Preview\PreviewTokenRepository($pdo))->deleteExpired();
+        $report = (new \App\Publishing\PublishScheduleService($pdo))->runDue();
+        $ok = $report['errors'] === [];
+        $payload = json_encode(array_merge(['ok' => $ok], $report), JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES);
+        $response->getBody()->write($payload);
+
+        return $response
+            ->withHeader('Content-Type', 'application/json; charset=utf-8')
+            ->withStatus($ok ? 200 : 500);
+    })->setName('public.schedule_run');
+}
 
 return $app;

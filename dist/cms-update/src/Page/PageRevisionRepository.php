@@ -20,8 +20,8 @@ final class PageRevisionRepository
                 page_id, title, slug, seo_title, seo_description, tags_json, featured_image_id,
                 canonical_url, seo_noindex, og_title, og_description, og_image_id,
                 twitter_title, twitter_description, twitter_image_id, schema_json,
-                content, status, created_by
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+                content, status, published_at, scheduled_publish_at, scheduled_unpublish_at, created_by
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
         );
         $stmt->execute([
             $page->id,
@@ -42,6 +42,9 @@ final class PageRevisionRepository
             $page->schemaJson,
             $page->content,
             $page->status,
+            $page->publishedAt,
+            $page->scheduledPublishAt,
+            $page->scheduledUnpublishAt,
             $createdBy,
         ]);
     }

@@ -95,6 +95,9 @@ final class PagePreviewFactory
             $schemaJson,
             $content,
             $status,
+            $existing?->publishedAt,
+            $existing?->scheduledPublishAt,
+            $existing?->scheduledUnpublishAt,
             $now,
             $now,
         );

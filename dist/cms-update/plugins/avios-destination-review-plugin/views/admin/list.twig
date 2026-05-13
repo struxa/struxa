@@ -1,0 +1,1207 @@
+{% extends 'admin/base.twig' %}
+
+{% block admin_title %}Avios Destination Review{% endblock %}
+
+{% block admin_hero_title %}
+  <h1 class="admin-hero-title">
+    <i class="fa-solid fa-feather-pointed" style="color:#fcd34d;margin-right:8px;"></i>
+    Avios Destination Review
+  </h1>
+{% endblock %}
+
+{% block admin_hero_sub %}
+  <p class="admin-hero-sub">
+    AI-written, SEO-optimised destination reviews for every British Airways route on file. Select destinations, hit generate, and watch the pipeline run.
+  </p>
+{% endblock %}
+
+{% block admin_hero_actions %}
+  <a class="admin-btn-secondary" href="/destinations" target="_blank" rel="noopener">
+    <i class="fa-solid fa-arrow-up-right-from-square" style="margin-right:6px;"></i>Public index
+  </a>
+  <a class="admin-btn-secondary" href="{{ url_for('plugin.avios_destination_review.settings') }}" style="margin-left:8px;">
+    <i class="fa-solid fa-gear" style="margin-right:6px;"></i>Settings
+  </a>
+{% endblock %}
+
+{% block admin_head %}
+  {# The admin chrome doesn't ship Font Awesome — load it ourselves so action icons render. #}
+  <link
+    rel="stylesheet"
+    href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.2/css/all.min.css"
+    crossorigin="anonymous"
+    referrerpolicy="no-referrer"
+  />
+  <style>
+    /* ============================================================
+       Avios Destination Review · admin
+       Premium, scoped to .adr-page so it can't bleed into other admin screens.
+       ============================================================ */
+
+    /* ============================================================
+       Avios Destination Review · admin (dark-theme aware)
+       Built on top of the admin chrome's CSS custom props so it blends in.
+       ============================================================ */
+    .adr-page {
+      --adr-blue:      #60a5fa;
+      --adr-blue-2:    #3b82f6;
+      --adr-line:      rgba(255, 255, 255, 0.06);
+      --adr-line-soft: rgba(255, 255, 255, 0.04);
+      --adr-card:      #111a2a;
+      --adr-card-2:    #152033;
+      --adr-card-3:    #1b2740;
+      --adr-text:      #f4f4f5;
+      --adr-dim:       #94a3b8;
+      --adr-dim-2:     #6b7280;
+    }
+
+    /* ---------- KPI stat cards ---------------------------------- */
+    .adr-page .adr-stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+      gap: 14px;
+      margin: 0 0 18px;
+    }
+    .adr-page .adr-stat {
+      position: relative; overflow: hidden;
+      background: linear-gradient(180deg, var(--adr-card) 0%, var(--adr-card-2) 100%);
+      border: 1px solid var(--adr-line);
+      border-radius: 14px;
+      padding: 16px 18px 18px;
+      transition: transform .15s ease, border-color .15s ease, box-shadow .15s ease;
+    }
+    .adr-page .adr-stat:hover {
+      transform: translateY(-1px);
+      border-color: rgba(255,255,255,.1);
+      box-shadow: 0 12px 28px rgba(0,0,0,.35);
+    }
+    .adr-page .adr-stat__label {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 11px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase;
+      color: var(--adr-dim);
+      margin: 0 0 10px;
+    }
+    .adr-page .adr-stat__label i { color: var(--adr-blue); font-size: 12px; }
+    .adr-page .adr-stat__value {
+      font-size: 30px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      color: var(--adr-text);
+      line-height: 1;
+    }
+    .adr-page .adr-stat__value small {
+      font-size: 14px; color: var(--adr-dim); font-weight: 600; letter-spacing: 0; margin-left: 4px;
+    }
+    .adr-page .adr-stat__hint {
+      margin: 8px 0 0; font-size: 12.5px; color: var(--adr-dim);
+    }
+    .adr-page .adr-stat__hint .admin-link { color: #93c5fd; }
+    .adr-page .adr-stat--accent::before {
+      content: ""; position: absolute; inset: 0 auto 0 0;
+      width: 3px;
+      background: linear-gradient(180deg, var(--adr-blue) 0%, #a78bfa 100%);
+    }
+    .adr-page .adr-progress {
+      margin-top: 12px;
+      height: 6px;
+      background: rgba(255,255,255,.06);
+      border-radius: 999px; overflow: hidden;
+    }
+    .adr-page .adr-progress__bar {
+      display: block; height: 100%;
+      background: linear-gradient(90deg, var(--adr-blue) 0%, #a78bfa 100%);
+      border-radius: 999px;
+      transition: width .4s ease;
+    }
+
+    /* ---------- Toolbar card ------------------------------------ */
+    .adr-page .adr-toolbar {
+      display: flex; flex-wrap: wrap; gap: 12px; align-items: center;
+      padding: 12px 14px;
+      background: var(--adr-card);
+      border: 1px solid var(--adr-line);
+      border-radius: 14px;
+      margin: 0 0 14px;
+    }
+    .adr-page .adr-search {
+      flex: 1 1 240px; min-width: 220px; position: relative;
+    }
+    .adr-page .adr-search i {
+      position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
+      color: var(--adr-dim-2); font-size: 13px; pointer-events: none;
+    }
+    .adr-page .adr-search input {
+      width: 100%;
+      padding: 10px 14px 10px 36px;
+      border-radius: 10px;
+      border: 1px solid var(--adr-line);
+      background: rgba(0,0,0,.25);
+      color: var(--adr-text);
+      font: inherit; font-size: 14px;
+      transition: border-color .15s, background .15s, box-shadow .15s;
+    }
+    .adr-page .adr-search input:focus {
+      outline: 0;
+      border-color: var(--adr-blue);
+      background: rgba(0,0,0,.35);
+      box-shadow: 0 0 0 4px rgba(96,165,250,.18);
+    }
+    .adr-page .adr-search input::placeholder { color: var(--adr-dim-2); }
+
+    .adr-page .adr-tabs {
+      display: inline-flex; gap: 4px;
+      background: rgba(0,0,0,.22);
+      padding: 4px;
+      border-radius: 999px;
+      border: 1px solid var(--adr-line);
+    }
+    .adr-page .adr-tab {
+      padding: 7px 14px; border-radius: 999px;
+      background: transparent; border: 0;
+      color: var(--adr-dim); font: inherit; font-size: 13px; font-weight: 700;
+      cursor: pointer;
+      transition: background .15s, color .15s, box-shadow .15s;
+    }
+    .adr-page .adr-tab:hover { color: var(--adr-text); }
+    .adr-page .adr-tab.is-active {
+      background: rgba(96,165,250,.16);
+      color: #bfdbfe;
+      box-shadow: inset 0 0 0 1px rgba(96,165,250,.3);
+    }
+    .adr-page .adr-tab .count {
+      display: inline-block; margin-left: 6px; padding: 1px 7px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.08);
+      color: var(--adr-dim);
+      font-size: 11px; font-weight: 800;
+    }
+    .adr-page .adr-tab.is-active .count {
+      background: rgba(147,197,253,.2); color: #dbeafe;
+    }
+
+    .adr-page .adr-toolbar__sep {
+      width: 1px; align-self: stretch;
+      background: var(--adr-line); margin: 4px 4px;
+    }
+
+    .adr-page .adr-toolbar__ghost {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 8px 12px; border-radius: 8px;
+      border: 1px solid var(--adr-line);
+      background: rgba(255,255,255,.02); color: var(--adr-text);
+      font: inherit; font-size: 13px; font-weight: 700;
+      cursor: pointer; transition: border-color .15s, background .15s;
+    }
+    .adr-page .adr-toolbar__ghost:hover {
+      border-color: rgba(255,255,255,.15); background: rgba(255,255,255,.05);
+    }
+    .adr-page .adr-toolbar__ghost i { color: #fcd34d; }
+
+    /* ---------- Prompt preview panel ---------------------------- */
+    .adr-page .adr-prompt-preview {
+      margin: 0 0 14px;
+      background: linear-gradient(135deg, #0b1220 0%, #111a2a 100%);
+      border: 1px solid var(--adr-line);
+      border-radius: 14px;
+      padding: 16px 18px;
+    }
+    .adr-page .adr-prompt-preview__head {
+      display: flex; align-items: center; justify-content: space-between;
+      margin: 0 0 10px;
+    }
+    .adr-page .adr-prompt-preview__head p {
+      margin: 0; color: var(--adr-dim);
+      font-size: 11.5px; letter-spacing: .12em; text-transform: uppercase; font-weight: 800;
+      display: inline-flex; align-items: center; gap: 8px;
+    }
+    .adr-page .adr-prompt-preview__head p i { color: #fcd34d; }
+    .adr-page .adr-prompt-preview pre {
+      white-space: pre-wrap; word-break: break-word;
+      margin: 0; color: #e2e8f0;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 12.5px; line-height: 1.6;
+      max-height: 300px; overflow: auto;
+    }
+
+    /* ---------- Flash ------------------------------------------- */
+    .adr-page .adr-flash {
+      display: none;
+      margin: 0 0 14px; padding: 12px 16px;
+      border-radius: 12px;
+      font-size: 14px; font-weight: 600;
+      align-items: center; gap: 10px;
+      border: 1px solid transparent;
+    }
+    .adr-page .adr-flash.is-visible { display: flex; }
+    .adr-page .adr-flash i { font-size: 16px; }
+    .adr-page .adr-flash--ok    { background: rgba(16,185,129,.12);  color: #6ee7b7; border-color: rgba(110,231,183,.2); }
+    .adr-page .adr-flash--warn  { background: rgba(245,158,11,.12);  color: #fbbf24; border-color: rgba(252,211,77,.25); }
+    .adr-page .adr-flash--error { background: rgba(239,68,68,.12);   color: #fca5a5; border-color: rgba(252,165,165,.22); }
+
+    /* ---------- Datatable card ---------------------------------- */
+    .adr-page .adr-card {
+      background: var(--adr-card);
+      border: 1px solid var(--adr-line);
+      border-radius: 14px;
+      overflow: hidden;
+      margin: 0 0 90px; /* room for sticky bulk bar */
+    }
+    .adr-page .adr-table {
+      width: 100%; border-collapse: separate; border-spacing: 0;
+      color: var(--adr-text);
+    }
+    .adr-page .adr-table thead th {
+      position: sticky; top: 0;
+      background: var(--adr-card-2);
+      border-bottom: 1px solid var(--adr-line);
+      padding: 11px 14px;
+      font-size: 11px; font-weight: 800;
+      letter-spacing: .1em; text-transform: uppercase;
+      color: var(--adr-dim);
+      text-align: left; white-space: nowrap;
+      z-index: 1;
+    }
+    .adr-page .adr-table tbody td {
+      padding: 14px;
+      border-bottom: 1px solid var(--adr-line-soft);
+      font-size: 14px;
+      vertical-align: middle;
+    }
+    .adr-page .adr-table tbody tr {
+      transition: background .12s ease;
+    }
+    .adr-page .adr-table tbody tr:hover { background: rgba(255,255,255,.025); }
+    .adr-page .adr-table tbody tr.is-selected { background: rgba(96,165,250,.08); }
+    .adr-page .adr-table tbody tr.is-selected:hover { background: rgba(96,165,250,.12); }
+    .adr-page .adr-table tbody tr.is-selected td:first-child {
+      box-shadow: inset 3px 0 0 0 var(--adr-blue);
+    }
+    .adr-page .adr-table tbody tr:last-child td { border-bottom: 0; }
+
+    .adr-page .adr-table .col-check { width: 44px; padding-left: 16px; }
+    .adr-page .adr-table .col-status { width: 130px; }
+    .adr-page .adr-table .col-thumb { width: 84px; }
+    .adr-page .adr-table .col-meta { max-width: 320px; }
+    .adr-page .adr-table .col-actions { width: 1%; white-space: nowrap; text-align: right; padding-right: 16px; }
+
+    .adr-page .adr-check-wrap {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 18px; height: 18px;
+    }
+    .adr-page .adr-table input[type="checkbox"] {
+      width: 16px; height: 16px; cursor: pointer; accent-color: var(--adr-blue);
+    }
+
+    /* Thumbnail tile. */
+    .adr-page .adr-thumb {
+      width: 72px; height: 46px;
+      border-radius: 8px;
+      background: rgba(255,255,255,.04) center / cover no-repeat;
+      border: 1px solid var(--adr-line);
+      display: inline-block; vertical-align: middle;
+      position: relative;
+    }
+    .adr-page .adr-thumb--has::after {
+      content: ""; position: absolute; inset: 0;
+      border-radius: 8px;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.06);
+      pointer-events: none;
+    }
+    .adr-page .adr-thumb--none {
+      display: inline-flex; align-items: center; justify-content: center;
+      color: var(--adr-dim-2); font-size: 16px;
+      background:
+        repeating-linear-gradient(45deg, rgba(255,255,255,.025) 0 6px, transparent 6px 12px),
+        rgba(255,255,255,.02);
+    }
+
+    /* Destination cell. */
+    .adr-page .adr-dest {
+      display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    }
+    .adr-page .adr-dest__name {
+      font-weight: 700; color: var(--adr-text); font-size: 14.5px; letter-spacing: -0.01em;
+    }
+    .adr-page .adr-iata-badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 2px 8px; border-radius: 6px;
+      background: rgba(96,165,250,.1);
+      color: #bfdbfe;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 11.5px; font-weight: 700;
+      border: 1px solid rgba(96,165,250,.2);
+    }
+    .adr-page .adr-iata-badge i { color: #93c5fd; }
+
+    /* Meta column. */
+    .adr-page .adr-meta {
+      color: var(--adr-dim); font-size: 13.5px; line-height: 1.45;
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+      overflow: hidden; text-overflow: ellipsis;
+    }
+    .adr-page .adr-meta--empty { color: var(--adr-dim-2); font-style: italic; }
+    .adr-page .adr-date {
+      color: var(--adr-dim); font-size: 12.5px;
+      display: inline-flex; align-items: center; gap: 6px;
+      font-variant-numeric: tabular-nums;
+    }
+    .adr-page .adr-date i { color: var(--adr-dim-2); }
+    .adr-page .adr-date--empty { color: var(--adr-dim-2); }
+
+    /* Status pill. */
+    .adr-page .adr-status {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 4px 10px 4px 8px;
+      border-radius: 999px;
+      font-size: 11px; font-weight: 800;
+      letter-spacing: .06em; text-transform: uppercase;
+      border: 1px solid transparent;
+    }
+    .adr-page .adr-status::before {
+      content: ''; width: 7px; height: 7px; border-radius: 999px; flex-shrink: 0;
+    }
+    .adr-page .adr-status--generated {
+      background: rgba(16,185,129,.12); color: #6ee7b7; border-color: rgba(110,231,183,.22);
+    }
+    .adr-page .adr-status--generated::before { background: #10b981; box-shadow: 0 0 8px rgba(16,185,129,.7); }
+    .adr-page .adr-status--pending {
+      background: rgba(234,179,8,.1); color: #fde68a; border-color: rgba(252,211,77,.22);
+    }
+    .adr-page .adr-status--pending::before { background: #eab308; }
+    .adr-page .adr-status--working {
+      background: rgba(96,165,250,.14); color: #bfdbfe; border-color: rgba(96,165,250,.3);
+    }
+    .adr-page .adr-status--working::before {
+      background: var(--adr-blue); animation: adr-pulse 1s infinite;
+    }
+    .adr-page .adr-status--error {
+      background: rgba(239,68,68,.12); color: #fca5a5; border-color: rgba(252,165,165,.22);
+    }
+    .adr-page .adr-status--error::before { background: #ef4444; }
+    @keyframes adr-pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50%      { opacity: .4; transform: scale(.7); }
+    }
+
+    .adr-page .adr-row[hidden] { display: none !important; }
+
+    /* Icon-button actions. */
+    .adr-page .adr-actions { display: inline-flex; gap: 4px; align-items: center; }
+    .adr-page .adr-iconbtn {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 32px; height: 32px;
+      border-radius: 8px;
+      background: transparent;
+      border: 1px solid transparent;
+      color: var(--adr-dim);
+      cursor: pointer; font: inherit; font-size: 13px;
+      text-decoration: none;
+      transition: background .15s, border-color .15s, color .15s, transform .1s;
+    }
+    .adr-page .adr-iconbtn:hover {
+      background: rgba(255,255,255,.06);
+      border-color: rgba(255,255,255,.1);
+      color: var(--adr-text);
+    }
+    .adr-page .adr-iconbtn:active { transform: scale(.94); }
+    .adr-page .adr-iconbtn--primary:hover { color: #93c5fd; border-color: rgba(96,165,250,.3); background: rgba(96,165,250,.1); }
+    .adr-page .adr-iconbtn--danger:hover  { color: #fca5a5; border-color: rgba(252,165,165,.25); background: rgba(239,68,68,.12); }
+    /* Image button stands out a touch — it's the one that costs money. */
+    .adr-page .adr-iconbtn--image {
+      color: #fcd34d;
+      border-color: rgba(252,211,77,.18);
+      background: rgba(252,211,77,.06);
+    }
+    .adr-page .adr-iconbtn--image:hover {
+      color: #fde68a;
+      border-color: rgba(252,211,77,.35);
+      background: rgba(252,211,77,.12);
+    }
+    .adr-page .adr-iconbtn--image.is-working {
+      pointer-events: none;
+      color: #fde68a;
+    }
+    .adr-page .adr-iconbtn--image.is-working i {
+      animation: adr-spin .8s linear infinite;
+    }
+    .adr-page .adr-iconbtn[disabled] { opacity: .35; cursor: not-allowed; }
+    .adr-page .adr-actions__empty { color: var(--adr-dim-2); font-size: 12px; padding-right: 8px; }
+    .adr-page .adr-actions form { display: inline-flex; }
+
+    /* ---------- Sticky bulk action bar -------------------------- */
+    .adr-page .adr-bulkbar {
+      position: fixed; left: 50%; bottom: 24px;
+      transform: translate(-50%, 160%);
+      z-index: 80;
+      display: flex; align-items: center; gap: 14px;
+      padding: 10px 12px 10px 18px;
+      min-width: 460px; max-width: calc(100vw - 32px);
+      background: linear-gradient(135deg, #0b1220 0%, #1e3a8a 100%);
+      color: #f1f5f9;
+      border-radius: 999px;
+      box-shadow: 0 20px 40px rgba(0,0,0,.45), 0 0 0 1px rgba(255,255,255,.06) inset;
+      transition: transform .25s cubic-bezier(.2,.7,.3,1.4);
+      pointer-events: none; opacity: 0;
+    }
+    .adr-page .adr-bulkbar.is-visible {
+      transform: translate(-50%, 0);
+      pointer-events: auto; opacity: 1;
+    }
+    .adr-page .adr-bulkbar__count {
+      font-size: 13px; font-weight: 600; color: #cbd5e1;
+    }
+    .adr-page .adr-bulkbar__count strong { color: #fcd34d; font-weight: 800; }
+    .adr-page .adr-bulkbar__spacer { flex: 1; min-width: 8px; }
+    .adr-page .adr-bulkbar__clear {
+      background: transparent; border: 1px solid rgba(255,255,255,.18);
+      color: #cbd5e1; font: inherit; font-size: 12.5px; font-weight: 600;
+      padding: 7px 12px; border-radius: 999px; cursor: pointer;
+      transition: background .15s, color .15s;
+    }
+    .adr-page .adr-bulkbar__clear:hover { background: rgba(255,255,255,.08); color: #fff; }
+    .adr-page .adr-bulkbar__primary {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: linear-gradient(135deg, #fcd34d 0%, #f59e0b 100%);
+      color: #422006;
+      border: 0; padding: 10px 18px;
+      border-radius: 999px; cursor: pointer;
+      font: inherit; font-size: 14px; font-weight: 800;
+      letter-spacing: -0.01em;
+      box-shadow: 0 4px 12px rgba(245,158,11,.35);
+      transition: transform .12s, box-shadow .12s, filter .15s;
+    }
+    .adr-page .adr-bulkbar__primary:hover:not(:disabled) {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 18px rgba(245,158,11,.4);
+    }
+    .adr-page .adr-bulkbar__primary:disabled {
+      opacity: .55; cursor: not-allowed;
+    }
+    .adr-page .adr-bulkbar__primary i { font-size: 13px; }
+    /* Secondary CTA — image-only batch. Less visually heavy than the gold primary. */
+    .adr-page .adr-bulkbar__secondary {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: rgba(252, 211, 77, .14);
+      color: #fde68a;
+      border: 1px solid rgba(252, 211, 77, .28);
+      padding: 9px 16px;
+      border-radius: 999px; cursor: pointer;
+      font: inherit; font-size: 13.5px; font-weight: 700;
+      letter-spacing: -0.005em;
+      transition: background .15s, border-color .15s, color .15s, transform .12s;
+    }
+    .adr-page .adr-bulkbar__secondary:hover:not(:disabled) {
+      background: rgba(252, 211, 77, .22);
+      border-color: rgba(252, 211, 77, .45);
+      color: #fef3c7;
+      transform: translateY(-1px);
+    }
+    .adr-page .adr-bulkbar__secondary:disabled { opacity: .45; cursor: not-allowed; }
+    .adr-page .adr-bulkbar__secondary i { font-size: 12px; }
+    .adr-page .adr-bulkbar__tag {
+      display: inline-block;
+      margin-left: 2px;
+      padding: 1px 7px;
+      border-radius: 999px;
+      background: rgba(252, 211, 77, .22);
+      color: #fef3c7;
+      font-size: 11px; font-weight: 800;
+      letter-spacing: 0;
+    }
+    .adr-page .adr-bulkbar__progress {
+      display: inline-flex; align-items: center; gap: 8px; font-weight: 800;
+    }
+    /* Respect the [hidden] attribute — beats the inline-flex above for specificity. */
+    .adr-page [hidden] { display: none !important; }
+    .adr-page .adr-bulkbar__progress .spinner {
+      width: 14px; height: 14px; border-radius: 50%;
+      border: 2px solid rgba(66,32,6,.25); border-top-color: #422006;
+      animation: adr-spin .8s linear infinite;
+    }
+    @keyframes adr-spin { to { transform: rotate(360deg); } }
+
+    /* ---------- Empty state ------------------------------------- */
+    .adr-page .adr-empty {
+      text-align: center;
+      padding: 56px 24px;
+      color: var(--adr-dim);
+    }
+    .adr-page .adr-empty__icon {
+      width: 64px; height: 64px; border-radius: 50%;
+      background: rgba(96,165,250,.12);
+      color: var(--adr-blue);
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 24px; margin: 0 0 16px;
+    }
+    .adr-page .adr-empty__title {
+      color: var(--adr-text); font-weight: 700; font-size: 16px; margin: 0 0 4px;
+    }
+    .adr-page .adr-empty__sub { margin: 0; font-size: 13.5px; }
+    .adr-page .adr-empty__sub strong { color: var(--adr-text); }
+    .adr-page .adr-empty code {
+      background: rgba(255,255,255,.06);
+      padding: 1px 6px; border-radius: 4px;
+      color: #e2e8f0; font-size: 12.5px;
+    }
+
+    /* ---------- Dependency banner ------------------------------- */
+    .adr-page .adr-warning {
+      display: flex; gap: 14px; align-items: flex-start;
+      padding: 16px 18px;
+      background: linear-gradient(135deg, rgba(245,158,11,.12) 0%, rgba(245,158,11,.04) 100%);
+      border: 1px solid rgba(252,211,77,.25);
+      border-radius: 14px;
+      color: #fde68a;
+      margin: 0 0 18px;
+    }
+    .adr-page .adr-warning__icon {
+      width: 40px; height: 40px; border-radius: 10px;
+      background: rgba(245,158,11,.18); color: #fbbf24;
+      display: inline-flex; align-items: center; justify-content: center;
+      flex-shrink: 0; font-size: 16px;
+    }
+    .adr-page .adr-warning p { margin: 0 0 6px; }
+    .adr-page .adr-warning strong { color: #fef3c7; }
+
+    /* ---------- Mobile niceties --------------------------------- */
+    @media (max-width: 720px) {
+      .adr-page .adr-stat__value { font-size: 24px; }
+      .adr-page .adr-table .col-meta { display: none; }
+      .adr-page .adr-bulkbar { min-width: 0; width: calc(100vw - 24px); border-radius: 16px; }
+    }
+  </style>
+{% endblock %}
+
+{% block admin_content %}
+  {% set _percent = adr_total_destinations > 0 ? (adr_generated_count * 100 / adr_total_destinations)|round : 0 %}
+  {% set _image_count = 0 %}
+  {% for r in adr_rows %}
+    {% if r.entry is not null and r.entry.featured_image_path %}{% set _image_count = _image_count + 1 %}{% endif %}
+  {% endfor %}
+
+  <div class="adr-page">
+
+  {# ---------- Dependency banner --------------------------------------------- #}
+  {% if not adr_dependency.ok %}
+    <div class="adr-warning" role="alert">
+      <span class="adr-warning__icon"><i class="fa-solid fa-triangle-exclamation"></i></span>
+      <div>
+        <p><strong>How Many Avios · Fare table is required.</strong></p>
+        <p style="font-size:13.5px;">{{ adr_dependency.message|e }}</p>
+        <a class="admin-btn-primary" href="/admin/extensions" style="margin-top:10px;">
+          <i class="fa-solid fa-puzzle-piece" style="margin-right:6px;"></i>Open Extensions
+        </a>
+      </div>
+    </div>
+  {% endif %}
+
+  {# ---------- KPI Stats ----------------------------------------------------- #}
+  <section class="admin-section adr-stats">
+    <div class="adr-stat adr-stat--accent">
+      <p class="adr-stat__label"><i class="fa-solid fa-chart-line"></i> Coverage</p>
+      <div class="adr-stat__value">{{ _percent }}<small>%</small></div>
+      <div class="adr-progress" aria-hidden="true">
+        <span class="adr-progress__bar" style="width: {{ _percent }}%;"></span>
+      </div>
+      <p class="adr-stat__hint">{{ adr_generated_count }} of {{ adr_total_destinations }} destinations live</p>
+    </div>
+    <div class="adr-stat">
+      <p class="adr-stat__label"><i class="fa-solid fa-circle-check" style="color:#10b981 !important;"></i> Generated</p>
+      <div class="adr-stat__value">{{ adr_generated_count }}</div>
+      <p class="adr-stat__hint">Published as content entries</p>
+    </div>
+    <div class="adr-stat">
+      <p class="adr-stat__label"><i class="fa-solid fa-clock" style="color:#f59e0b !important;"></i> Pending</p>
+      <div class="adr-stat__value">{{ adr_pending_count }}</div>
+      <p class="adr-stat__hint">Waiting on a writer</p>
+    </div>
+    <div class="adr-stat">
+      <p class="adr-stat__label"><i class="fa-solid fa-image"></i> Hero images</p>
+      <div class="adr-stat__value">{{ _image_count }}</div>
+      <p class="adr-stat__hint">
+        {% if adr_settings.image_enabled %}
+          Auto-generation on
+        {% else %}
+          <a class="admin-link" href="{{ url_for('plugin.avios_destination_review.settings') }}">Enable in settings ↗</a>
+        {% endif %}
+      </p>
+    </div>
+  </section>
+
+  {# ---------- Toolbar ------------------------------------------------------- #}
+  <section class="admin-section">
+    <div class="adr-toolbar">
+      <div class="adr-search">
+        <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+        <input id="adr-search" type="search" placeholder="Search destinations or IATA…" autocomplete="off" aria-label="Search" />
+      </div>
+
+      <div class="adr-tabs" role="group" aria-label="Filter">
+        <button type="button" class="adr-tab is-active" data-status="">All <span class="count">{{ adr_total_destinations }}</span></button>
+        <button type="button" class="adr-tab" data-status="pending">Pending <span class="count">{{ adr_pending_count }}</span></button>
+        <button type="button" class="adr-tab" data-status="generated">Generated <span class="count">{{ adr_generated_count }}</span></button>
+      </div>
+
+      <span class="adr-toolbar__sep" aria-hidden="true"></span>
+
+      <button
+        type="button"
+        class="adr-toolbar__ghost"
+        id="adr-toggle-prompt"
+        aria-expanded="false"
+        aria-controls="adr-prompt-preview"
+      ><i class="fa-solid fa-scroll"></i> View prompt</button>
+    </div>
+
+    <div id="adr-flash" class="adr-flash" role="status">
+      <i class="fa-solid fa-circle-info" data-adr-flash-icon></i>
+      <span data-adr-flash-msg></span>
+    </div>
+
+    <div id="adr-prompt-preview" hidden class="adr-prompt-preview">
+      <div class="adr-prompt-preview__head">
+        <p><i class="fa-solid fa-wand-magic-sparkles"></i> Prompt template</p>
+        <a class="admin-link" href="{{ url_for('plugin.avios_destination_review.settings') }}" style="color:#7dd3fc;font-size:12.5px;font-weight:700;">Edit in settings →</a>
+      </div>
+      <pre>{{ adr_settings.prompt_template|e }}</pre>
+    </div>
+  </section>
+
+  {# ---------- Datatable ---------------------------------------------------- #}
+  <section class="admin-section">
+    <div class="adr-card">
+      <div class="admin-table-wrap" style="overflow:auto;">
+        <table class="adr-table" id="adr-table">
+          <thead>
+            <tr>
+              <th class="col-check">
+                <span class="adr-check-wrap">
+                  <input type="checkbox" id="adr-check-all" aria-label="Select all visible rows" {% if not adr_dependency.ok %}disabled{% endif %} />
+                </span>
+              </th>
+              <th class="col-thumb">Image</th>
+              <th>Destination</th>
+              <th class="col-status">Status</th>
+              <th class="col-meta">Meta title</th>
+              <th>Updated</th>
+              <th class="col-actions">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="adr-rows">
+            {% for r in adr_rows %}
+              {% set _has = r.entry is not null %}
+              <tr
+                class="adr-row"
+                data-iata="{{ r.iata|e('html_attr') }}"
+                data-destination="{{ r.destination|e('html_attr') }}"
+                data-status="{{ _has ? 'generated' : 'pending' }}"
+                data-search="{{ (r.destination ~ ' ' ~ r.iata)|lower|e('html_attr') }}"
+              >
+                <td class="col-check">
+                  <span class="adr-check-wrap">
+                    <input
+                      type="checkbox"
+                      class="adr-check"
+                      aria-label="Select {{ r.destination|e('html_attr') }}"
+                      {% if not adr_dependency.ok %}disabled{% endif %}
+                    />
+                  </span>
+                </td>
+                <td class="col-thumb">
+                  {% if _has and r.entry.featured_image_path %}
+                    <span class="adr-thumb adr-thumb--has" style="background-image:url('{{ r.entry.featured_image_path|e('html_attr') }}');" title="Featured image" role="img" aria-label="Hero image for {{ r.destination|e('html_attr') }}"></span>
+                  {% else %}
+                    <span class="adr-thumb adr-thumb--none" title="No image yet"><i class="fa-regular fa-image"></i></span>
+                  {% endif %}
+                </td>
+                <td>
+                  <div class="adr-dest">
+                    <span class="adr-dest__name">{{ r.destination|e }}</span>
+                    <span class="adr-iata-badge"><i class="fa-solid fa-plane-departure" style="font-size:10px;"></i>{{ r.iata|e }}</span>
+                  </div>
+                </td>
+                <td>
+                  <span class="adr-status {{ _has ? 'adr-status--generated' : 'adr-status--pending' }}" data-adr-status-pill>
+                    {{ _has ? 'Generated' : 'Pending' }}
+                  </span>
+                </td>
+                <td class="col-meta">
+                  {% if _has %}
+                    <div class="adr-meta" title="{{ r.entry.seo_title|default(r.entry.title)|e('html_attr') }}">{{ r.entry.seo_title|default(r.entry.title)|e }}</div>
+                  {% else %}
+                    <span class="adr-meta adr-meta--empty">Not yet written</span>
+                  {% endif %}
+                </td>
+                <td>
+                  {% if _has %}
+                    <span class="adr-date" title="{{ r.entry.updated_at|e('html_attr') }}">
+                      <i class="fa-regular fa-clock"></i>{{ r.entry.updated_at|slice(0, 10)|e }}
+                    </span>
+                  {% else %}
+                    <span class="adr-date adr-date--empty">—</span>
+                  {% endif %}
+                </td>
+                <td class="col-actions">
+                  {% if _has %}
+                    <div class="adr-actions">
+                      <button
+                        type="button"
+                        class="adr-iconbtn adr-iconbtn--image"
+                        data-adr-image-btn
+                        data-link-id="{{ r.entry.link_id }}"
+                        title="{{ r.entry.featured_image_path ? 'Regenerate hero image' : 'Generate hero image' }}"
+                        aria-label="{{ r.entry.featured_image_path ? 'Regenerate hero image for ' ~ r.destination : 'Generate hero image for ' ~ r.destination }}"
+                      >
+                        <i class="fa-solid {{ r.entry.featured_image_path ? 'fa-arrows-rotate' : 'fa-wand-magic-sparkles' }}"></i>
+                      </button>
+                      <a class="adr-iconbtn adr-iconbtn--primary" href="/destinations/{{ r.entry.slug|e('html_attr') }}" target="_blank" rel="noopener" title="View public page" aria-label="View public page for {{ r.destination|e('html_attr') }}">
+                        <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                      </a>
+                      {% if adr_type_id %}
+                        <a class="adr-iconbtn" href="/admin/content-types/{{ adr_type_id }}/entries/{{ r.entry.entry_id }}/edit" title="Edit in CMS" aria-label="Edit {{ r.destination|e('html_attr') }} in CMS">
+                          <i class="fa-solid fa-pen"></i>
+                        </a>
+                      {% endif %}
+                      <form method="post" action="/admin/avios-destination-review/{{ r.entry.link_id }}/delete" onsubmit="return confirm('Delete this review and its content entry?')">
+                        <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+                        <button type="submit" class="adr-iconbtn adr-iconbtn--danger" title="Delete review" aria-label="Delete {{ r.destination|e('html_attr') }}">
+                          <i class="fa-solid fa-trash"></i>
+                        </button>
+                      </form>
+                    </div>
+                  {% else %}
+                    <span class="adr-actions__empty">—</span>
+                  {% endif %}
+                </td>
+              </tr>
+            {% else %}
+              <tr>
+                <td colspan="7">
+                  <div class="adr-empty">
+                    <div class="adr-empty__icon"><i class="fa-solid fa-plane-up"></i></div>
+                    <p class="adr-empty__title">
+                      {% if adr_dependency.ok %}No destinations on file{% else %}Set up the fare table first{% endif %}
+                    </p>
+                    <p class="adr-empty__sub">
+                      {% if adr_dependency.ok %}
+                        Nothing in <code>hma_fares</code> yet. Import or seed destinations and they'll appear here.
+                      {% else %}
+                        Activate <strong>How Many Avios · Fare table</strong> and add destinations to see them here.
+                      {% endif %}
+                    </p>
+                  </div>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="adr-no-matches" hidden>
+      <div class="adr-empty">
+        <div class="adr-empty__icon"><i class="fa-solid fa-magnifying-glass"></i></div>
+        <p class="adr-empty__title">No destinations match those filters</p>
+        <p class="adr-empty__sub">Try clearing the search or switching tabs.</p>
+      </div>
+    </div>
+  </section>
+
+  {# ---------- Sticky bulk action bar --------------------------------------- #}
+  <div id="adr-bulkbar" class="adr-bulkbar" role="region" aria-label="Bulk actions">
+    <span class="adr-bulkbar__count"><strong id="adr-selected-count">0</strong> destination<span id="adr-selected-plural">s</span> selected</span>
+    <button type="button" class="adr-bulkbar__clear" id="adr-clear-selection">Clear</button>
+    <span class="adr-bulkbar__spacer"></span>
+    <button
+      type="button"
+      class="adr-bulkbar__secondary"
+      id="adr-generate-images"
+      disabled
+      {% if not adr_dependency.ok %}disabled{% endif %}
+      title="Generate hero images for selected destinations that already have a review"
+    >
+      <span class="adr-btn-label"><i class="fa-solid fa-image"></i> Generate images <span id="adr-img-eligible-count" class="adr-bulkbar__tag" hidden>0</span></span>
+      <span class="adr-bulkbar__progress adr-btn-loading" hidden>
+        <span class="spinner" aria-hidden="true"></span>
+        <span id="adr-img-progress-text">0 / 0</span>
+      </span>
+    </button>
+    <button
+      type="button"
+      class="adr-bulkbar__primary"
+      id="adr-generate"
+      disabled
+      {% if not adr_dependency.ok %}disabled{% endif %}
+    >
+      <span class="adr-btn-label"><i class="fa-solid fa-wand-magic-sparkles"></i> Generate selected</span>
+      <span class="adr-bulkbar__progress adr-btn-loading" hidden>
+        <span class="spinner" aria-hidden="true"></span>
+        <span id="adr-progress-text">0 / 0</span>
+      </span>
+    </button>
+  </div>
+
+  </div> {# /.adr-page #}
+{% endblock %}
+
+{% block admin_scripts %}
+  <script>
+  (function () {
+    'use strict';
+
+    const csrf = {{ csrf_token()|json_encode|raw }};
+
+    /* ------- Collapsible prompt preview ----------------------------------- */
+    const togglePrompt = document.getElementById('adr-toggle-prompt');
+    const promptBox = document.getElementById('adr-prompt-preview');
+    if (togglePrompt && promptBox) {
+      togglePrompt.addEventListener('click', () => {
+        const isOpen = !promptBox.hidden;
+        promptBox.hidden = isOpen;
+        togglePrompt.setAttribute('aria-expanded', String(!isOpen));
+        togglePrompt.innerHTML = isOpen
+          ? '<i class="fa-solid fa-scroll"></i> View prompt'
+          : '<i class="fa-solid fa-chevron-up"></i> Hide prompt';
+      });
+    }
+
+    /* ------- Filters: search + status tabs -------------------------------- */
+    const rows = Array.from(document.querySelectorAll('.adr-row'));
+    const search = document.getElementById('adr-search');
+    const tabs = document.querySelectorAll('.adr-tab');
+    const checkAll = document.getElementById('adr-check-all');
+    const checks = () => document.querySelectorAll('.adr-check:not(:disabled)');
+    const visibleChecks = () => Array.from(checks()).filter((c) => !c.closest('.adr-row').hidden);
+    const selectedRows = () => rows.filter((r) => {
+      const c = r.querySelector('.adr-check');
+      return c && c.checked && !r.hidden;
+    });
+    const selectedCountEl = document.getElementById('adr-selected-count');
+    const selectedPluralEl = document.getElementById('adr-selected-plural');
+    const genBtn = document.getElementById('adr-generate');
+    const imgBtn = document.getElementById('adr-generate-images');
+    const imgEligibleTag = document.getElementById('adr-img-eligible-count');
+    const noMatches = document.getElementById('adr-no-matches');
+    const bulkBar = document.getElementById('adr-bulkbar');
+    const clearBtn = document.getElementById('adr-clear-selection');
+
+    let activeStatus = '';
+
+    function applyFilters() {
+      const q = (search.value || '').trim().toLowerCase();
+      let shown = 0;
+      rows.forEach((r) => {
+        const matchesQ = !q || (r.dataset.search && r.dataset.search.indexOf(q) !== -1);
+        const matchesStatus = !activeStatus || r.dataset.status === activeStatus;
+        const show = matchesQ && matchesStatus;
+        r.hidden = !show;
+        if (!show) {
+          const c = r.querySelector('.adr-check');
+          if (c) c.checked = false;
+        } else {
+          shown++;
+        }
+      });
+      if (noMatches) noMatches.hidden = shown !== 0;
+      updateSelectionState();
+    }
+
+    function updateSelectionState() {
+      const sel = selectedRows();
+      selectedCountEl.textContent = sel.length;
+      if (selectedPluralEl) selectedPluralEl.textContent = sel.length === 1 ? '' : 's';
+      genBtn.disabled = sel.length === 0;
+
+      // Image bulk button: only enabled when at least one selected row has a review
+      // already (rows tagged data-status="generated"). Show the eligible count beside it.
+      const imgEligible = sel.filter((r) => r.dataset.status === 'generated');
+      if (imgBtn) imgBtn.disabled = imgEligible.length === 0;
+      if (imgEligibleTag) {
+        imgEligibleTag.textContent = imgEligible.length;
+        imgEligibleTag.hidden = imgEligible.length === 0;
+      }
+
+      if (bulkBar) bulkBar.classList.toggle('is-visible', sel.length > 0);
+
+      const vis = visibleChecks();
+      const checkedVis = vis.filter((c) => c.checked).length;
+      if (vis.length === 0) {
+        checkAll.checked = false;
+        checkAll.indeterminate = false;
+      } else if (checkedVis === 0) {
+        checkAll.checked = false;
+        checkAll.indeterminate = false;
+      } else if (checkedVis === vis.length) {
+        checkAll.checked = true;
+        checkAll.indeterminate = false;
+      } else {
+        checkAll.checked = false;
+        checkAll.indeterminate = true;
+      }
+
+      rows.forEach((r) => {
+        const c = r.querySelector('.adr-check');
+        r.classList.toggle('is-selected', !!(c && c.checked));
+      });
+    }
+
+    if (clearBtn) {
+      clearBtn.addEventListener('click', () => {
+        document.querySelectorAll('.adr-check').forEach((c) => { c.checked = false; });
+        updateSelectionState();
+      });
+    }
+
+    if (search) search.addEventListener('input', applyFilters);
+    tabs.forEach((t) => t.addEventListener('click', () => {
+      tabs.forEach((x) => x.classList.remove('is-active'));
+      t.classList.add('is-active');
+      activeStatus = t.dataset.status || '';
+      applyFilters();
+    }));
+    if (checkAll) {
+      checkAll.addEventListener('change', () => {
+        const v = checkAll.checked;
+        visibleChecks().forEach((c) => { c.checked = v; });
+        updateSelectionState();
+      });
+    }
+    document.getElementById('adr-rows').addEventListener('change', (ev) => {
+      if (ev.target.classList.contains('adr-check')) updateSelectionState();
+    });
+
+    /* ------- Flash helper ------------------------------------------------- */
+    const flash = document.getElementById('adr-flash');
+    const flashIcon = flash ? flash.querySelector('[data-adr-flash-icon]') : null;
+    const flashMsg = flash ? flash.querySelector('[data-adr-flash-msg]') : null;
+    const flashIconClass = {
+      ok: 'fa-solid fa-circle-check',
+      warn: 'fa-solid fa-triangle-exclamation',
+      error: 'fa-solid fa-circle-xmark',
+    };
+    function showFlash(kind, msg) {
+      if (!flash || !flashMsg) return;
+      flash.classList.remove('adr-flash--ok', 'adr-flash--warn', 'adr-flash--error');
+      flash.classList.add('adr-flash--' + kind, 'is-visible');
+      if (flashIcon) flashIcon.className = flashIconClass[kind] || flashIconClass.ok;
+      flashMsg.textContent = msg;
+    }
+
+    /* ------- Per-row status helpers --------------------------------------- */
+    function setRowStatus(row, kind, label) {
+      const pill = row.querySelector('[data-adr-status-pill]');
+      if (!pill) return;
+      pill.classList.remove('adr-status--generated', 'adr-status--pending', 'adr-status--working', 'adr-status--error');
+      pill.classList.add('adr-status--' + kind);
+      pill.textContent = label;
+    }
+
+    /* ------- Batch generate (sequential) ---------------------------------- */
+    async function generateOne(row) {
+      const iata = row.dataset.iata;
+      const res = await fetch('/admin/avios-destination-review/generate', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Accept': 'application/json',
+          'X-CSRF-Token': csrf,
+        },
+        body: new URLSearchParams({ iata: iata, _csrf_token: csrf }).toString(),
+      });
+      const data = await res.json().catch(() => ({ ok: false, error: 'Non-JSON response.' }));
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error || ('HTTP ' + res.status));
+      }
+      return data;
+    }
+
+    /* ------- Per-row image (re)generation --------------------------------- */
+    function updateThumbCell(row, imagePath) {
+      const thumbCell = row.querySelector('.col-thumb');
+      if (!thumbCell || !imagePath) return;
+      thumbCell.innerHTML =
+        '<span class="adr-thumb adr-thumb--has" style="background-image:url(\'' +
+        imagePath.replace(/'/g, '%27') +
+        '\');" title="Featured image"></span>';
+      // Flip the row's image button so it now reads "Regenerate".
+      const btn = row.querySelector('[data-adr-image-btn]');
+      if (btn) {
+        const icon = btn.querySelector('i');
+        if (icon) icon.className = 'fa-solid fa-arrows-rotate';
+        btn.title = 'Regenerate hero image';
+      }
+    }
+
+    /**
+     * Generate an image for a single review and update its row in-place.
+     * Caller is responsible for spinner UI on the trigger button (if any).
+     *
+     * @returns {Promise<{destination:string, image_path:string}>}
+     */
+    async function generateImageForRow(row) {
+      const btn = row.querySelector('[data-adr-image-btn]');
+      const linkId = btn && btn.dataset.linkId;
+      if (!linkId) throw new Error('Row has no link id.');
+
+      // Per-row spinner on the inline image button.
+      let prevIconCls = '';
+      if (btn) {
+        btn.classList.add('is-working');
+        btn.disabled = true;
+        const icon = btn.querySelector('i');
+        prevIconCls = icon.className;
+        icon.className = 'fa-solid fa-spinner';
+      }
+
+      try {
+        const res = await fetch('/admin/avios-destination-review/' + encodeURIComponent(linkId) + '/image', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'Accept': 'application/json',
+            'X-CSRF-Token': csrf,
+          },
+          body: new URLSearchParams({ _csrf_token: csrf }).toString(),
+        });
+        const data = await res.json().catch(() => ({ ok: false, error: 'Non-JSON response.' }));
+        if (!res.ok || !data.ok) throw new Error(data.error || ('HTTP ' + res.status));
+        updateThumbCell(row, data.image_path);
+        return data;
+      } catch (err) {
+        // Reset the inline icon so the user knows it's clickable again.
+        if (btn) {
+          const icon = btn.querySelector('i');
+          if (icon) icon.className = prevIconCls;
+        }
+        throw err;
+      } finally {
+        if (btn) {
+          btn.classList.remove('is-working');
+          btn.disabled = false;
+        }
+      }
+    }
+
+    /* Per-row inline image button → delegates to generateImageForRow. */
+    document.addEventListener('click', async (ev) => {
+      const btn = ev.target.closest('[data-adr-image-btn]');
+      if (!btn) return;
+      ev.preventDefault();
+      if (btn.classList.contains('is-working')) return;
+      const row = btn.closest('.adr-row');
+      if (!row) return;
+      try {
+        const data = await generateImageForRow(row);
+        showFlash('ok', 'Hero image generated for ' + (data.destination || row.dataset.destination) + '.');
+      } catch (err) {
+        showFlash('error', 'Image error for ' + row.dataset.destination + ': ' + err.message);
+      }
+    });
+
+    /* Bulk: generate images for every selected row that already has an entry. */
+    if (imgBtn) {
+      imgBtn.addEventListener('click', async () => {
+        const targets = selectedRows().filter((r) => r.dataset.status === 'generated');
+        if (targets.length === 0) return;
+        const lbl = imgBtn.querySelector('.adr-btn-label');
+        const ldg = imgBtn.querySelector('.adr-btn-loading');
+        const progress = document.getElementById('adr-img-progress-text');
+
+        imgBtn.disabled = true; lbl.hidden = true; ldg.hidden = false;
+        genBtn.disabled = true;
+        checkAll.disabled = true;
+
+        let ok = 0, fail = 0, lastErr = '';
+        for (let i = 0; i < targets.length; i++) {
+          const row = targets[i];
+          progress.textContent = (i + 1) + ' / ' + targets.length;
+          try {
+            await generateImageForRow(row);
+            ok++;
+          } catch (err) {
+            fail++; lastErr = err.message;
+            // Stop early on config issues so the user can fix and retry.
+            if (/api key/i.test(err.message)) break;
+          }
+        }
+
+        if (fail === 0) {
+          showFlash('ok', 'Generated ' + ok + ' image' + (ok === 1 ? '' : 's') + '.');
+        } else if (ok === 0) {
+          showFlash('error', 'All ' + fail + ' image generations failed. Last error: ' + lastErr);
+        } else {
+          showFlash('warn', ok + ' generated, ' + fail + ' failed. Last error: ' + lastErr);
+        }
+
+        imgBtn.disabled = false; lbl.hidden = false; ldg.hidden = true;
+        checkAll.disabled = false;
+        updateSelectionState();
+      });
+    }
+
+    if (genBtn) {
+      genBtn.addEventListener('click', async () => {
+        const targets = selectedRows();
+        if (targets.length === 0) return;
+        const lbl = genBtn.querySelector('.adr-btn-label');
+        const ldg = genBtn.querySelector('.adr-btn-loading');
+        const progress = document.getElementById('adr-progress-text');
+
+        genBtn.disabled = true; lbl.hidden = true; ldg.hidden = false;
+        checkAll.disabled = true;
+        targets.forEach((r) => { const c = r.querySelector('.adr-check'); if (c) c.disabled = true; });
+
+        let ok = 0, fail = 0, imageWarnings = 0, lastImageWarning = '';
+        for (let i = 0; i < targets.length; i++) {
+          const row = targets[i];
+          progress.textContent = (i + 1) + ' / ' + targets.length;
+          setRowStatus(row, 'working', 'Generating…');
+          try {
+            const data = await generateOne(row);
+            setRowStatus(row, 'generated', 'Generated');
+            row.dataset.status = 'generated';
+            ok++;
+            if (data && data.image_warning) {
+              imageWarnings++;
+              lastImageWarning = data.image_warning;
+            }
+          } catch (err) {
+            setRowStatus(row, 'error', 'Error');
+            fail++;
+            showFlash('error', row.dataset.destination + ': ' + err.message);
+            // Stop on first error if it's likely a configuration issue (no API key).
+            if (/api key/i.test(err.message)) break;
+          }
+        }
+
+        if (fail === 0 && imageWarnings === 0) {
+          showFlash('ok', 'Generated ' + ok + ' review' + (ok === 1 ? '' : 's') + '. Refreshing…');
+        } else if (fail === 0 && imageWarnings > 0) {
+          showFlash('warn', 'Text generated, but ' + imageWarnings + ' image' + (imageWarnings === 1 ? '' : 's') + ' failed. ' +
+            'Try the per-row image button. Last error: ' + lastImageWarning);
+        } else if (ok === 0) {
+          showFlash('error', 'All ' + fail + ' generations failed.');
+        } else {
+          showFlash('warn', ok + ' generated, ' + fail + ' failed. Refreshing what succeeded…');
+        }
+
+        // Reload so the Edit / Delete actions and Meta-title columns populate for fresh rows.
+        // Give image-warning flashes time to be read before the reload.
+        if (ok > 0) {
+          setTimeout(() => window.location.reload(), imageWarnings > 0 ? 4500 : 800);
+        } else {
+          // Re-enable so the admin can fix the issue and retry.
+          checkAll.disabled = false;
+          targets.forEach((r) => { const c = r.querySelector('.adr-check'); if (c) c.disabled = false; });
+          genBtn.disabled = false; lbl.hidden = false; ldg.hidden = true;
+        }
+      });
+    }
+
+    /* ------- Initial state ------------------------------------------------ */
+    updateSelectionState();
+  })();
+  </script>
+{% endblock %}
