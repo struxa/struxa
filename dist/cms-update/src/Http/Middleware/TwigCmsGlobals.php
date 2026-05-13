@@ -10,9 +10,12 @@ use App\Locale\SiteLocale;
 use App\CmsVersion;
 use App\Media\SiteBrandingResolver;
 use App\Menu\MenuPublicLoader;
+use App\Seo\ExternalLinkPolicy;
 use App\Settings\SettingsRepository;
 use App\Settings\SiteSettingsService;
+use App\Plugin\PluginAdminNavGrouper;
 use App\Plugin\PluginAdminNavRegistry;
+use App\Plugin\PluginScanner;
 use App\Theme\ThemeManager;
 use App\Theme\ThemeSettingsResolver;
 use App\Update\CmsUpdateChecker;
@@ -77,7 +80,6 @@ final class TwigCmsGlobals implements MiddlewareInterface
             $header = $menus->forLocation('header');
             $footer = $menus->forLocation('footer');
         }
-        $env->addGlobal('footer_menu', $footer);
 
         $activeSlug = $this->themeManager->activeSlug();
         if ($internal !== null) {
@@ -97,7 +99,10 @@ final class TwigCmsGlobals implements MiddlewareInterface
             $manifestArr = $manifest !== null ? $manifest->toArray() : [];
             $themeSettings = $manifest !== null ? (new ThemeSettingsResolver())->resolvedValues($manifest) : [];
         }
-        $env->addGlobal('site_url', rtrim($_ENV['PHPAUTH_SITE_URL'] ?? 'http://localhost:8080', '/'));
+        $siteUrlGlobal = rtrim($_ENV['PHPAUTH_SITE_URL'] ?? 'http://localhost:8080', '/');
+        $env->addGlobal('site_url', $siteUrlGlobal);
+        $navRelHost = ExternalLinkPolicy::siteHostFromSiteUrl($siteUrlGlobal);
+        $navNofollowExternal = ExternalLinkPolicy::isEnabled();
         $uri = $request->getUri();
         $requestPath = $this->normalizeRequestPath($uri->getPath());
         $env->addGlobal('request_path', $requestPath);
@@ -105,9 +110,27 @@ final class TwigCmsGlobals implements MiddlewareInterface
         foreach ($header as $item) {
             $headerForTwig[] = array_merge($item, [
                 'is_active' => $this->navHrefMatchesRequest($item['href'], $requestPath),
+                'anchor_rel' => ExternalLinkPolicy::anchorRelForNavLink(
+                    (string) ($item['href'] ?? ''),
+                    (string) ($item['target'] ?? ''),
+                    $navNofollowExternal,
+                    $navRelHost
+                ),
             ]);
         }
         $env->addGlobal('header_menu', $headerForTwig);
+        $footerForTwig = [];
+        foreach ($footer as $item) {
+            $footerForTwig[] = array_merge($item, [
+                'anchor_rel' => ExternalLinkPolicy::anchorRelForNavLink(
+                    (string) ($item['href'] ?? ''),
+                    (string) ($item['target'] ?? ''),
+                    $navNofollowExternal,
+                    $navRelHost
+                ),
+            ]);
+        }
+        $env->addGlobal('footer_menu', $footerForTwig);
         $ro = $uri->getScheme() . '://' . $uri->getHost();
         $port = $uri->getPort();
         if ($port !== null) {
@@ -124,7 +147,10 @@ final class TwigCmsGlobals implements MiddlewareInterface
         if ($this->routeParser !== null) {
             $pluginNav = $this->filterPluginAdminNavForResolvableRoutes($pluginNav);
         }
-        $env->addGlobal('plugin_admin_nav_items', $pluginNav);
+        $projectRoot = dirname(__DIR__, 3);
+        $partition = PluginAdminNavGrouper::partition($pluginNav, new PluginScanner($projectRoot));
+        $env->addGlobal('plugin_admin_nav_items', $partition['flat']);
+        $env->addGlobal('plugin_admin_nav_groups', $partition['groups']);
         $env->addGlobal('cms_public_page_cache_on', CacheConfig::publicCacheEnabled());
         $env->addGlobal('cms_version', CmsVersion::CURRENT);
 
@@ -133,7 +159,7 @@ final class TwigCmsGlobals implements MiddlewareInterface
             dirname(__DIR__, 3) . DIRECTORY_SEPARATOR . 'storage' . DIRECTORY_SEPARATOR . 'cache'
         ))->internal();
         if ($this->isAdminRequestPath($adminPath)) {
-            $env->addGlobal('cms_update_status', (new CmsUpdateChecker($internalForUpdates))->checkForAdminUi());
+            $env->addGlobal('cms_update_status', (new CmsUpdateChecker($internalForUpdates, $this->pdo))->checkForAdminUi());
         } else {
             $env->addGlobal('cms_update_status', [
                 'ok' => true,

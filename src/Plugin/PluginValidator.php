@@ -11,7 +11,7 @@ final class PluginValidator
     /**
      * @return list<string> error messages; empty = ok
      */
-    public function activationErrors(DiscoveredPlugin $plugin): array
+    public function activationErrors(DiscoveredPlugin $plugin, ?PluginScanner $scanner = null): array
     {
         $errors = [];
         $m = $plugin->manifest;
@@ -22,6 +22,15 @@ final class PluginValidator
 
         if ($m->requiresCmsVersion !== null && !version_compare(CmsVersion::CURRENT, $m->requiresCmsVersion, '>=')) {
             $errors[] = 'This plugin requires CMS version ' . $m->requiresCmsVersion . ' or newer.';
+        }
+
+        $parent = $m->parentPluginSlug;
+        if ($parent !== null && $parent !== '') {
+            if (strcasecmp($parent, $m->slug) === 0) {
+                $errors[] = 'plugin.json parent_plugin cannot be the same as this plugin slug.';
+            } elseif ($scanner !== null && $scanner->findBySlug($parent) === null) {
+                $errors[] = 'plugin.json parent_plugin "' . $parent . '" is not installed on disk (expected /plugins/' . $parent . '/).';
+            }
         }
 
         if ($m->mainClass !== null && !class_exists($m->mainClass)) {

@@ -74,9 +74,18 @@ final class PluginBootContext
 
     /**
      * Register an extra admin sidebar link (under Extensions).
+     *
+     * When this plugin's {@code plugin.json} sets {@code parent_plugin} to another plugin's
+     * directory slug, the link is nested under that parent's label in the sidebar (expandable group).
      */
     public function registerAdminNavItem(string $label, string $routeName, array $routeParams = []): void
     {
-        $this->adminNav->register($this->manifest->slug, $label, $routeName, $routeParams);
+        $this->adminNav->register(
+            $this->manifest->slug,
+            $label,
+            $routeName,
+            $routeParams,
+            $this->manifest->parentPluginSlug,
+        );
     }
 }

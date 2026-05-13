@@ -142,9 +142,13 @@
 }
 
 @media (min-width: 961px) {
-  /* Collapsible in-flow sidebar: narrow first track when closed, full width when open */
+  /* Collapsible in-flow sidebar: narrow first track when closed, full width when open. */
+  /* Single row must be bounded (minmax 0 / 1fr) so .admin-sidebar height: 100% resolves to the
+     viewport-minus-topbar instead of growing to nav content, which previously clipped the last
+     items and the “View site” footer when many groups were expanded. */
   .admin-shell {
     grid-template-columns: 0 minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
     transition: grid-template-columns 0.28s var(--admin-ease);
     overflow-x: clip;
   }
@@ -3569,6 +3573,28 @@ body.admin-media-modal-open {
   margin: 0;
 }
 
+/* Nested plugin groups under Extensions (parent_plugin in plugin.json) */
+.admin-nav-group--nested {
+  margin: 0.25rem 0 0;
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.35);
+}
+
+.admin-nav-group--nested > .admin-nav-group-title--nested {
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+  text-transform: none;
+  font-weight: 700;
+  color: #94a3b8;
+  padding: 0.45rem 0.5rem 0.35rem 0.5rem;
+}
+
+.admin-nav-group-items--nested {
+  margin-top: 0.08rem;
+  margin-left: 0.35rem;
+  padding-left: 0.55rem;
+}
+
 /* —— Toasts (bottom-right, glass stack) —— */
 @keyframes admin-toast-in {
   from {
@@ -5881,4 +5907,26 @@ body.admin-nav-open {
   .admin-dash-cta:hover {
     transform: none;
   }
+}
+
+/* —— SEO 404 monitor: Queue storefront palette accent + wide hit-details modal —— */
+.admin-seo-nf-queue-accent {
+  display: block;
+  height: 3px;
+  border-radius: 999px;
+  margin: 0 0 1.1rem;
+  background: linear-gradient(90deg, var(--admin-teal), var(--admin-purple), var(--admin-orange));
+  opacity: 0.92;
+}
+
+.admin-nf-modal-panel.admin-media-modal-panel {
+  width: min(56rem, 100%);
+  max-height: min(92vh, 720px);
+}
+
+.admin-table-col-num {
+  width: 2.5rem;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--admin-muted);
 }

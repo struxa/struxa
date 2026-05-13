@@ -13,7 +13,9 @@ use App\Menu\MenuPublicLoader;
 use App\Seo\ExternalLinkPolicy;
 use App\Settings\SettingsRepository;
 use App\Settings\SiteSettingsService;
+use App\Plugin\PluginAdminNavGrouper;
 use App\Plugin\PluginAdminNavRegistry;
+use App\Plugin\PluginScanner;
 use App\Theme\ThemeManager;
 use App\Theme\ThemeSettingsResolver;
 use App\Update\CmsUpdateChecker;
@@ -145,7 +147,10 @@ final class TwigCmsGlobals implements MiddlewareInterface
         if ($this->routeParser !== null) {
             $pluginNav = $this->filterPluginAdminNavForResolvableRoutes($pluginNav);
         }
-        $env->addGlobal('plugin_admin_nav_items', $pluginNav);
+        $projectRoot = dirname(__DIR__, 3);
+        $partition = PluginAdminNavGrouper::partition($pluginNav, new PluginScanner($projectRoot));
+        $env->addGlobal('plugin_admin_nav_items', $partition['flat']);
+        $env->addGlobal('plugin_admin_nav_groups', $partition['groups']);
         $env->addGlobal('cms_public_page_cache_on', CacheConfig::publicCacheEnabled());
         $env->addGlobal('cms_version', CmsVersion::CURRENT);
 

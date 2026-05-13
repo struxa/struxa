@@ -16,6 +16,8 @@ use App\Content\RichtextTabsShortcode;
 use App\Analytics\ExternalLinkClickRepository;
 use App\Content\ReservedContentSlugs;
 use App\Http\SafeRedirectPath;
+use App\Plugin\PluginAdminNavGrouper;
+use App\Plugin\PluginScanner;
 use App\Search\ContentSearchService;
 use App\Seo\ExternalLinkPolicy;
 use App\Seo\MetaTagBuilder;
@@ -226,6 +228,26 @@ if (SafeRedirectPath::afterLogin('/../etc/passwd', '/x') !== '/x') {
 }
 if (SafeRedirectPath::afterLogin('/admin/users?q=1', '/x') !== '/admin/users?q=1') {
     $fail('SafeRedirectPath should preserve same-origin paths with query strings.');
+}
+
+$scanner = new PluginScanner($root);
+$part = PluginAdminNavGrouper::partition([
+    ['plugin_slug' => 'alpha', 'label' => 'Zebra', 'route_name' => 'home', 'route_params' => [], 'parent_plugin_slug' => null],
+    ['plugin_slug' => 'child', 'label' => 'Apple', 'route_name' => 'home', 'route_params' => [], 'parent_plugin_slug' => 'content-stream-plugin'],
+    ['plugin_slug' => 'child2', 'label' => 'Mango', 'route_name' => 'home', 'route_params' => [], 'parent_plugin_slug' => 'content-stream-plugin'],
+], $scanner);
+if (count($part['flat']) !== 1 || ($part['flat'][0]['plugin_slug'] ?? '') !== 'alpha') {
+    $fail('PluginAdminNavGrouper should keep non-child items in flat.');
+}
+if (count($part['groups']) !== 1) {
+    $fail('PluginAdminNavGrouper should merge siblings under one parent slug.');
+}
+$kids = $part['groups'][0]['items'] ?? [];
+if (count($kids) !== 2 || ($kids[0]['label'] ?? '') !== 'Apple' || ($kids[1]['label'] ?? '') !== 'Mango') {
+    $fail('PluginAdminNavGrouper should sort children by label.');
+}
+if (($part['groups'][0]['label'] ?? '') === '' || !is_string($part['groups'][0]['label'])) {
+    $fail('PluginAdminNavGrouper should set a non-empty parent label.');
 }
 
 if (ContentSearchService::sanitizeQuery(" \t\n  ") !== '') {

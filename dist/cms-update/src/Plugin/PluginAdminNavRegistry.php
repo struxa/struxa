@@ -11,7 +11,7 @@ final class PluginAdminNavRegistry
 {
     private static ?self $instance = null;
 
-    /** @var list<array{plugin_slug: string, label: string, route_name: string, route_params: array<string, string>}> */
+    /** @var list<array{plugin_slug: string, label: string, route_name: string, route_params: array<string, string>, parent_plugin_slug: ?string}> */
     private array $items = [];
 
     public static function instance(): self
@@ -32,18 +32,29 @@ final class PluginAdminNavRegistry
     /**
      * @param array<string, string> $routeParams
      */
-    public function register(string $pluginSlug, string $label, string $routeName, array $routeParams = []): void
-    {
+    public function register(
+        string $pluginSlug,
+        string $label,
+        string $routeName,
+        array $routeParams = [],
+        ?string $parentPluginSlug = null,
+    ): void {
+        $parent = $parentPluginSlug !== null ? trim($parentPluginSlug) : '';
+        if ($parent === '' || strcasecmp($parent, $pluginSlug) === 0 || !preg_match('/^[a-z0-9]+(?:-[a-z0-9]+)*$/', $parent)) {
+            $parent = null;
+        }
+
         $this->items[] = [
             'plugin_slug' => $pluginSlug,
             'label' => $label,
             'route_name' => $routeName,
             'route_params' => $routeParams,
+            'parent_plugin_slug' => $parent,
         ];
     }
 
     /**
-     * @return list<array{plugin_slug: string, label: string, route_name: string, route_params: array<string, string>}>
+     * @return list<array{plugin_slug: string, label: string, route_name: string, route_params: array<string, string>, parent_plugin_slug: ?string}>
      */
     public function all(): array
     {

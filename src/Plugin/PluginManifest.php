@@ -34,6 +34,11 @@ final class PluginManifest
         public readonly ?string $category = null,
         public readonly array $tags = [],
         public readonly ?string $testedUpTo = null,
+        /**
+         * Optional slug of another plugin under {@code /plugins/{slug}/} that should own this plugin's
+         * admin sidebar entry as a nested item (Extensions → parent name → child links).
+         */
+        public readonly ?string $parentPluginSlug = null,
     ) {
     }
 
@@ -92,7 +97,28 @@ final class PluginManifest
             testedUpTo: isset($data['tested_up_to']) && is_string($data['tested_up_to']) && $data['tested_up_to'] !== ''
                 ? trim($data['tested_up_to'])
                 : null,
+            parentPluginSlug: self::parseParentPluginSlug($data, $slug),
         );
+    }
+
+    /**
+     * @param array<string, mixed> $data
+     */
+    private static function parseParentPluginSlug(array $data, string $selfSlug): ?string
+    {
+        $raw = $data['parent_plugin'] ?? $data['parentPlugin'] ?? null;
+        if (!is_string($raw)) {
+            return null;
+        }
+        $p = trim($raw);
+        if ($p === '' || strcasecmp($p, $selfSlug) === 0) {
+            return null;
+        }
+        if (!preg_match('/^[a-z0-9]+(?:-[a-z0-9]+)*$/', $p)) {
+            return null;
+        }
+
+        return $p;
     }
 
     /**

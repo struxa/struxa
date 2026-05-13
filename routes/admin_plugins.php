@@ -126,7 +126,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             }
 
             $manager->registerAutoloadForPlugin($discovered);
-            $errors = $validator->activationErrors($discovered);
+            $errors = $validator->activationErrors($discovered, $scanner);
             if ($errors !== []) {
                 Flash::set('error', implode(' ', $errors));
 
