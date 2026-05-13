@@ -20,16 +20,14 @@
 {% block og_type %}article{% endblock %}
 
 {# Pull the field rows from the CMS payload. We only need the body, summary
-   and source_url for rendering; the rest is editorial metadata kept on the
+   and word count for rendering; the rest is editorial metadata kept on the
    entry but not shown publicly. #}
 {% set _body_html   = '' %}
 {% set _summary     = '' %}
-{% set _source_url  = '' %}
 {% set _word_count  = '' %}
 {% for row in content_field_rows %}
   {% if row.field_key == 'body' %}{% set _body_html = row.html %}{% endif %}
   {% if row.field_key == 'summary' %}{% set _summary = row.value_raw %}{% endif %}
-  {% if row.field_key == 'source_url' %}{% set _source_url = row.value_raw %}{% endif %}
   {% if row.field_key == 'word_count' %}{% set _word_count = row.value_raw %}{% endif %}
 {% endfor %}
 

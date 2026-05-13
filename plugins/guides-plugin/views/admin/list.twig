@@ -1,0 +1,1105 @@
+{% extends 'admin/base.twig' %}
+
+{% block admin_title %}Guides{% endblock %}
+
+{% block admin_hero_title %}
+  <h1 class="admin-hero-title">
+    <i class="fa-solid fa-book-open-reader" aria-hidden="true" style="margin-right:8px;color:#fcd34d;"></i>
+    Guides
+  </h1>
+{% endblock %}
+
+{% block admin_hero_sub %}
+  <p class="admin-hero-sub">
+    {{ guides_stats.total|default(0) }} guide entries
+    · {{ guides_stats.with_thumb|default(0) }} have AI thumbnails
+    {% if guides_stats.total > 0 %}
+      ({{ ((guides_stats.with_thumb / guides_stats.total) * 100)|round }}%)
+    {% endif %}
+  </p>
+{% endblock %}
+
+{% block admin_hero_actions %}
+  <a class="admin-btn-secondary" href="/guides" target="_blank" rel="noopener">
+    <i class="fa-solid fa-arrow-up-right-from-square" style="margin-right:6px;"></i>Public index
+  </a>
+  <a class="admin-btn-secondary" href="{{ url_for('plugin.guides.import') }}" style="margin-left:8px;">
+    <i class="fa-solid fa-file-import" style="margin-right:6px;"></i>Import TSV
+  </a>
+{% endblock %}
+
+{% block admin_head %}
+  {# Admin chrome doesn't ship Font Awesome — load locally so our action icons render. #}
+  <link
+    rel="stylesheet"
+    href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.2/css/all.min.css"
+    crossorigin="anonymous"
+    referrerpolicy="no-referrer"
+  />
+  <style>
+    /* ──────────────────────────────────────────────────────────────────
+       Guides admin datatable — dark-theme aware. Scoped to .gp-page so
+       it can't bleed into other admin screens. Uses the same layout DNA
+       as the Destination Review plugin (KPI strip, dark cards, inline
+       thumb cell + per-row action button) so the two pages feel like
+       siblings rather than one-off designs.
+       ────────────────────────────────────────────────────────────────── */
+    .gp-page {
+      --gp-blue:      #60a5fa;
+      --gp-blue-2:    #3b82f6;
+      --gp-line:      rgba(255, 255, 255, 0.06);
+      --gp-line-soft: rgba(255, 255, 255, 0.04);
+      --gp-card:      #111a2a;
+      --gp-card-2:    #152033;
+      --gp-card-3:    #1b2740;
+      --gp-text:      #f4f4f5;
+      --gp-dim:       #94a3b8;
+      --gp-dim-2:     #6b7280;
+    }
+
+    .gp-page .gp-banner {
+      display: flex; gap: 14px; align-items: flex-start;
+      padding: 12px 16px;
+      background: linear-gradient(135deg, rgba(252,165,165,.08), rgba(248,113,113,.04));
+      border: 1px solid rgba(252,165,165,.25);
+      border-radius: 12px;
+      color: #fecaca;
+      margin: 0 0 16px;
+    }
+    .gp-page .gp-banner i { font-size: 18px; margin-top: 1px; color: #fca5a5; }
+    .gp-page .gp-banner a { color: #fda4af; text-decoration: underline; }
+
+    /* KPI strip */
+    .gp-page .gp-stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+      gap: 14px;
+      margin: 0 0 18px;
+    }
+    .gp-page .gp-stat {
+      background: linear-gradient(180deg, var(--gp-card) 0%, var(--gp-card-2) 100%);
+      border: 1px solid var(--gp-line);
+      border-radius: 14px;
+      padding: 16px 18px 18px;
+    }
+    .gp-page .gp-stat__label {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 11px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase;
+      color: var(--gp-dim);
+      margin: 0 0 10px;
+    }
+    .gp-page .gp-stat__label i { color: var(--gp-blue); font-size: 12px; }
+    .gp-page .gp-stat__value {
+      font-size: 30px; font-weight: 800; letter-spacing: -0.02em;
+      color: var(--gp-text); line-height: 1;
+    }
+    .gp-page .gp-stat__value small {
+      font-size: 14px; color: var(--gp-dim); font-weight: 600; margin-left: 4px;
+    }
+    .gp-page .gp-stat__hint {
+      margin: 8px 0 0; font-size: 12.5px; color: var(--gp-dim);
+    }
+
+    /* Filter bar */
+    .gp-page .gp-filters {
+      display: flex; flex-wrap: wrap; gap: 10px;
+      align-items: center;
+      padding: 12px 14px;
+      background: var(--gp-card);
+      border: 1px solid var(--gp-line);
+      border-radius: 12px;
+      margin: 0 0 14px;
+    }
+    .gp-page .gp-filters .gp-search {
+      flex: 1 1 280px; display: flex; align-items: center; gap: 8px;
+      background: var(--gp-card-2);
+      border: 1px solid var(--gp-line);
+      border-radius: 10px;
+      padding: 6px 12px;
+    }
+    .gp-page .gp-filters .gp-search input {
+      flex: 1; background: none; border: none; outline: none;
+      color: var(--gp-text); font-size: 14px; padding: 8px 0;
+    }
+    .gp-page .gp-filters .gp-search input::placeholder { color: var(--gp-dim-2); }
+    .gp-page .gp-filters .gp-search i { color: var(--gp-dim); }
+    .gp-page .gp-tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+    .gp-page .gp-tab {
+      padding: 8px 14px;
+      border-radius: 999px;
+      font-size: 13px; font-weight: 600;
+      color: var(--gp-dim); text-decoration: none;
+      background: var(--gp-card-2);
+      border: 1px solid var(--gp-line);
+    }
+    .gp-page .gp-tab:hover { color: var(--gp-text); border-color: rgba(96,165,250,.4); }
+    .gp-page .gp-tab.is-active {
+      color: #0f172a; background: #fcd34d; border-color: #fcd34d;
+    }
+    .gp-page .gp-filters .gp-submit {
+      padding: 8px 14px; border-radius: 10px;
+      background: var(--gp-blue-2); color: #fff;
+      border: 0; font-weight: 600; font-size: 13px;
+      cursor: pointer;
+    }
+    .gp-page .gp-filters .gp-submit:hover { background: var(--gp-blue); }
+
+    /* ─── Bulk-action toolbar ─────────────────────────────────────────
+       Sticky-ish toolbar that appears above the table when ≥1 row is
+       selected. We dim it to a subtle banner when nothing's selected so
+       admins still see the "Select all on page" handle without it
+       shouting at them, then promote to a fully styled action bar with
+       primary buttons once a selection exists. */
+    .gp-page .gp-bulk {
+      display: flex; align-items: center; flex-wrap: wrap; gap: 10px;
+      padding: 10px 14px;
+      background: var(--gp-card);
+      border: 1px solid var(--gp-line);
+      border-radius: 12px;
+      margin: 0 0 12px;
+      transition: background .15s ease, border-color .15s ease;
+    }
+    .gp-page .gp-bulk.is-active {
+      background: linear-gradient(135deg, rgba(252,211,77,.10), rgba(96,165,250,.08));
+      border-color: rgba(252,211,77,.35);
+    }
+    .gp-page .gp-bulk-label {
+      display: flex; align-items: center; gap: 10px;
+      font-size: 13px; color: var(--gp-dim);
+      cursor: pointer; user-select: none;
+    }
+    .gp-page .gp-bulk-label input { cursor: pointer; }
+    .gp-page .gp-bulk-count {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 3px 10px;
+      background: #fcd34d; color: #0f172a;
+      border-radius: 999px;
+      font-size: 12px; font-weight: 800; letter-spacing: .02em;
+    }
+    .gp-page .gp-bulk-count.is-zero {
+      background: var(--gp-card-2); color: var(--gp-dim);
+    }
+    .gp-page .gp-bulk-quick {
+      font-size: 12.5px; color: #93c5fd;
+      background: none; border: none; padding: 0;
+      cursor: pointer; text-decoration: underline; text-underline-offset: 3px;
+    }
+    .gp-page .gp-bulk-quick:hover { color: #bfdbfe; }
+    .gp-page .gp-bulk-spacer { flex: 1; }
+    .gp-page .gp-bulk-progress {
+      font-size: 12.5px; color: var(--gp-dim);
+      display: inline-flex; align-items: center; gap: 8px;
+    }
+    .gp-page .gp-bulk-progress strong { color: var(--gp-text); font-weight: 700; }
+    .gp-page .gp-bulk-progress-track {
+      width: 140px; height: 6px;
+      background: var(--gp-card-3);
+      border-radius: 3px; overflow: hidden;
+    }
+    .gp-page .gp-bulk-progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, #fcd34d, #fbbf24);
+      transition: width .25s ease;
+      width: 0%;
+    }
+    .gp-page .gp-bulk-actions { display: flex; gap: 8px; align-items: center; }
+    .gp-page .gp-bulk-btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 9px 14px;
+      border-radius: 10px;
+      font-size: 13px; font-weight: 700;
+      cursor: pointer; border: 1px solid var(--gp-line);
+      background: var(--gp-card-2);
+      color: var(--gp-text);
+      transition: all .15s ease;
+    }
+    .gp-page .gp-bulk-btn:hover { background: var(--gp-card-3); border-color: rgba(96,165,250,.5); }
+    .gp-page .gp-bulk-btn--primary {
+      background: linear-gradient(135deg, #fcd34d 0%, #fbbf24 100%);
+      color: #0f172a; border-color: #fbbf24;
+    }
+    .gp-page .gp-bulk-btn--primary:hover {
+      background: linear-gradient(135deg, #fde68a 0%, #fcd34d 100%);
+    }
+    .gp-page .gp-bulk-btn--danger {
+      background: rgba(248,113,113,.12); color: #fca5a5;
+      border-color: rgba(248,113,113,.4);
+    }
+    .gp-page .gp-bulk-btn--danger:hover { background: rgba(248,113,113,.22); }
+    .gp-page .gp-bulk-btn:disabled,
+    .gp-page .gp-bulk-btn[disabled] { opacity: .45; cursor: not-allowed; }
+    .gp-page .gp-bulk-btn.is-working i { animation: gp-spin 1s linear infinite; }
+
+    /* ─── Row checkbox column ───────────────────────────────────────── */
+    .gp-page .gp-table .col-check { width: 42px; padding: 12px 8px 12px 14px; }
+    .gp-page .gp-check {
+      appearance: none;
+      width: 18px; height: 18px;
+      border-radius: 5px;
+      border: 1.5px solid var(--gp-dim-2);
+      background: var(--gp-card-2);
+      cursor: pointer;
+      display: inline-block; vertical-align: middle;
+      position: relative;
+      transition: border-color .12s ease, background .12s ease;
+    }
+    .gp-page .gp-check:hover { border-color: var(--gp-blue); }
+    .gp-page .gp-check:checked {
+      background: #fcd34d; border-color: #fbbf24;
+    }
+    .gp-page .gp-check:checked::after {
+      content: "\f00c"; /* fa-check */
+      font-family: "Font Awesome 6 Free"; font-weight: 900;
+      position: absolute; inset: 0;
+      display: grid; place-items: center;
+      color: #0f172a; font-size: 11px;
+    }
+    .gp-page .gp-check:indeterminate {
+      background: var(--gp-blue-2); border-color: var(--gp-blue-2);
+    }
+    .gp-page .gp-check:indeterminate::after {
+      content: ""; position: absolute;
+      left: 3px; right: 3px; top: 50%;
+      height: 2px; background: #fff; border-radius: 2px;
+      transform: translateY(-50%);
+    }
+    .gp-page .gp-check:disabled { opacity: .35; cursor: not-allowed; }
+    .gp-page .gp-table tbody tr.is-queued { background: rgba(252,211,77,.06); }
+    .gp-page .gp-table tbody tr.is-working { background: rgba(96,165,250,.06); }
+    .gp-page .gp-table tbody tr.is-cancelled { opacity: .55; }
+
+    /* Datatable */
+    .gp-page .gp-table-wrap {
+      background: var(--gp-card);
+      border: 1px solid var(--gp-line);
+      border-radius: 14px;
+      overflow: hidden;
+    }
+    .gp-page .gp-table {
+      width: 100%; border-collapse: collapse;
+      color: var(--gp-text); font-size: 14px;
+    }
+    .gp-page .gp-table thead th {
+      text-align: left; font-size: 11px; font-weight: 800;
+      letter-spacing: .1em; text-transform: uppercase;
+      color: var(--gp-dim);
+      padding: 12px 14px;
+      background: var(--gp-card-2);
+      border-bottom: 1px solid var(--gp-line);
+    }
+    .gp-page .gp-table tbody tr {
+      border-bottom: 1px solid var(--gp-line-soft);
+      transition: background .12s ease;
+    }
+    .gp-page .gp-table tbody tr:hover { background: var(--gp-card-2); }
+    .gp-page .gp-table td { padding: 14px; vertical-align: middle; }
+    .gp-page .gp-table .col-thumb { width: 96px; padding: 12px 14px; }
+    .gp-page .gp-table .col-title { width: auto; }
+    .gp-page .gp-table .col-meta { width: 220px; }
+    .gp-page .gp-table .col-actions {
+      width: 200px; text-align: right; white-space: nowrap;
+    }
+
+    .gp-page .gp-thumb {
+      width: 80px; height: 56px;
+      display: inline-block;
+      border-radius: 8px;
+      background-color: var(--gp-card-3);
+      background-size: cover; background-position: center;
+      border: 1px solid var(--gp-line);
+      position: relative;
+    }
+    .gp-page .gp-thumb--empty::after {
+      content: "\f03e"; /* fa-image */
+      font-family: "Font Awesome 6 Free"; font-weight: 900;
+      position: absolute; inset: 0;
+      display: grid; place-items: center;
+      color: var(--gp-dim-2); font-size: 18px;
+    }
+    .gp-page .gp-thumb--working::after {
+      content: "\f110"; /* fa-spinner */
+      font-family: "Font Awesome 6 Free"; font-weight: 900;
+      position: absolute; inset: 0;
+      display: grid; place-items: center;
+      color: #fcd34d; font-size: 18px;
+      animation: gp-spin 1s linear infinite;
+    }
+    @keyframes gp-spin { to { transform: rotate(360deg); } }
+
+    .gp-page .gp-title {
+      color: var(--gp-text); font-weight: 600;
+      line-height: 1.35; display: block; text-decoration: none;
+    }
+    .gp-page .gp-title:hover { color: #93c5fd; }
+    .gp-page .gp-title small {
+      display: block; font-size: 12px; color: var(--gp-dim);
+      margin-top: 4px; font-weight: 400;
+    }
+    .gp-page .gp-title small code {
+      background: var(--gp-card-2);
+      padding: 1px 6px; border-radius: 4px;
+      font-size: 11px; color: var(--gp-dim);
+    }
+
+    .gp-page .gp-meta {
+      color: var(--gp-dim); font-size: 12.5px; line-height: 1.5;
+    }
+    .gp-page .gp-meta strong { color: var(--gp-text); font-weight: 600; }
+    .gp-page .gp-meta a { color: #93c5fd; text-decoration: none; }
+    .gp-page .gp-meta a:hover { text-decoration: underline; }
+
+    .gp-page .gp-status {
+      display: inline-block; padding: 3px 10px;
+      font-size: 11px; font-weight: 700; letter-spacing: .04em;
+      border-radius: 999px; text-transform: capitalize;
+    }
+    .gp-page .gp-status--published { background: rgba(34,197,94,.12); color: #4ade80; }
+    .gp-page .gp-status--draft { background: rgba(148,163,184,.12); color: #94a3b8; }
+    .gp-page .gp-status--archived { background: rgba(244,114,182,.12); color: #f472b6; }
+
+    .gp-page .gp-btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 8px 12px;
+      border-radius: 10px;
+      font-size: 12.5px; font-weight: 700;
+      cursor: pointer;
+      border: 1px solid var(--gp-line);
+      background: var(--gp-card-2);
+      color: var(--gp-text);
+      transition: all .15s ease;
+    }
+    .gp-page .gp-btn:hover { background: var(--gp-card-3); border-color: rgba(96,165,250,.5); }
+    .gp-page .gp-btn--primary {
+      background: linear-gradient(135deg, #fcd34d 0%, #fbbf24 100%);
+      color: #0f172a; border-color: #fbbf24;
+    }
+    .gp-page .gp-btn--primary:hover { background: linear-gradient(135deg, #fde68a 0%, #fcd34d 100%); }
+    .gp-page .gp-btn--ghost {
+      background: transparent; color: var(--gp-dim);
+    }
+    .gp-page .gp-btn--ghost:hover { color: #fca5a5; border-color: rgba(252,165,165,.5); }
+    .gp-page .gp-btn.is-working {
+      cursor: progress; opacity: .85;
+    }
+    .gp-page .gp-btn.is-working i { animation: gp-spin 1s linear infinite; }
+    .gp-page .gp-btn:disabled,
+    .gp-page .gp-btn[disabled] { opacity: .45; cursor: not-allowed; }
+
+    /* Empty + pager */
+    .gp-page .gp-empty {
+      padding: 60px 24px; text-align: center;
+      color: var(--gp-dim); font-size: 14px;
+    }
+    .gp-page .gp-empty i {
+      font-size: 28px; color: var(--gp-dim-2); margin-bottom: 12px; display: block;
+    }
+    .gp-page .gp-pager {
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+      padding: 14px;
+      background: var(--gp-card);
+      border-top: 1px solid var(--gp-line);
+      flex-wrap: wrap;
+    }
+    .gp-page .gp-pager a, .gp-page .gp-pager span {
+      display: inline-flex; align-items: center; justify-content: center;
+      min-width: 36px; height: 32px; padding: 0 10px;
+      border-radius: 8px; font-size: 13px; font-weight: 600;
+      border: 1px solid var(--gp-line);
+      background: var(--gp-card-2); color: var(--gp-text); text-decoration: none;
+    }
+    .gp-page .gp-pager a:hover { border-color: rgba(96,165,250,.5); color: #93c5fd; }
+    .gp-page .gp-pager .is-current { background: #fcd34d; color: #0f172a; border-color: #fcd34d; }
+    .gp-page .gp-pager .is-gap { border-color: transparent; background: transparent; color: var(--gp-dim-2); }
+
+    /* Floating flash toast (for AJAX feedback) */
+    .gp-flash-host {
+      position: fixed; bottom: 24px; right: 24px;
+      display: flex; flex-direction: column; gap: 10px;
+      z-index: 9999; pointer-events: none;
+    }
+    .gp-flash {
+      pointer-events: auto;
+      padding: 12px 16px; min-width: 280px; max-width: 420px;
+      border-radius: 10px;
+      color: #fff; font-size: 13.5px; line-height: 1.45; font-weight: 500;
+      box-shadow: 0 18px 40px rgba(0,0,0,.45);
+      animation: gp-flash-in .25s ease-out both;
+    }
+    .gp-flash--ok { background: linear-gradient(135deg, #16a34a, #15803d); }
+    .gp-flash--error { background: linear-gradient(135deg, #dc2626, #991b1b); }
+    @keyframes gp-flash-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  </style>
+{% endblock %}
+
+{% block admin_content %}
+<div class="gp-page">
+
+  {% if not guides_has_api_key %}
+    <div class="gp-banner">
+      <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
+      <div>
+        <strong>OpenAI key not set.</strong>
+        Thumbnail generation calls the OpenAI Images API. Add a key on the
+        <a href="/admin/system/api-keys">System · API keys</a> page (field <em>OpenAI API key</em>) and reload this page.
+      </div>
+    </div>
+  {% endif %}
+
+  {# KPI strip #}
+  <div class="gp-stats">
+    <div class="gp-stat">
+      <p class="gp-stat__label"><i class="fa-solid fa-database"></i> Total entries</p>
+      <p class="gp-stat__value">
+        {{ guides_stats.total|default(0) }}
+        <small>guides</small>
+      </p>
+      <p class="gp-stat__hint">{{ guides_stats.published|default(0) }} published</p>
+    </div>
+    <div class="gp-stat">
+      <p class="gp-stat__label"><i class="fa-solid fa-image"></i> With thumbnail</p>
+      <p class="gp-stat__value">
+        {{ guides_stats.with_thumb|default(0) }}
+        <small>/ {{ guides_stats.total|default(0) }}</small>
+      </p>
+      <p class="gp-stat__hint">
+        {% if guides_stats.total > 0 %}
+          {{ ((guides_stats.with_thumb / guides_stats.total) * 100)|round }}% covered
+        {% else %}
+          No guides yet
+        {% endif %}
+      </p>
+    </div>
+    <div class="gp-stat">
+      <p class="gp-stat__label"><i class="fa-solid fa-key"></i> OpenAI key</p>
+      <p class="gp-stat__value">
+        {% if guides_has_api_key %}
+          <span style="color:#4ade80;">Configured</span>
+        {% else %}
+          <span style="color:#fca5a5;">Missing</span>
+        {% endif %}
+      </p>
+      <p class="gp-stat__hint">
+        <a class="admin-link" href="/admin/system/api-keys" style="color:#93c5fd;">Manage key →</a>
+      </p>
+    </div>
+  </div>
+
+  {# Filter bar #}
+  <form class="gp-filters" method="get" action="{{ url_for('plugin.guides.list') }}">
+    <div class="gp-search">
+      <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+      <input
+        type="text"
+        name="q"
+        value="{{ guides_search|e('html_attr') }}"
+        placeholder="Search guides by title…"
+        maxlength="80"
+      />
+    </div>
+    <div class="gp-tabs" role="tablist" aria-label="Filter by thumbnail status">
+      {% set _tabs = [
+        { id: 'all',     label: 'All' },
+        { id: 'has',     label: 'With thumbnail' },
+        { id: 'missing', label: 'Missing thumbnail' }
+      ] %}
+      {% for t in _tabs %}
+        <a
+          class="gp-tab {{ guides_thumbs == t.id ? 'is-active' : '' }}"
+          href="{{ url_for('plugin.guides.list') }}?{% if guides_search %}q={{ guides_search|url_encode }}&{% endif %}thumbs={{ t.id }}"
+          role="tab"
+          aria-selected="{{ guides_thumbs == t.id ? 'true' : 'false' }}"
+        >{{ t.label }}</a>
+      {% endfor %}
+    </div>
+    <button class="gp-submit" type="submit">Apply</button>
+  </form>
+
+  {# Bulk-action toolbar — visible whenever there are rows. The right-hand
+     side stays hidden until at least one row is selected, so the bar reads
+     as a compact filter when nobody's queueing yet. #}
+  {% if guides_rows|length > 0 %}
+    <div class="gp-bulk" id="gp-bulk-bar" data-bulk-bar>
+      <label class="gp-bulk-label">
+        <input
+          type="checkbox"
+          class="gp-check"
+          id="gp-check-all"
+          data-bulk-master
+          aria-label="Select all guides on this page"
+        />
+        <span>Select all on page</span>
+      </label>
+
+      <span class="gp-bulk-count is-zero" data-bulk-count>0 selected</span>
+
+      <button type="button" class="gp-bulk-quick" data-bulk-quick="missing">
+        Quick-pick rows missing a thumbnail
+      </button>
+
+      <div class="gp-bulk-spacer"></div>
+
+      <div class="gp-bulk-progress" data-bulk-progress hidden>
+        <span data-bulk-progress-text>0 / 0</span>
+        <div class="gp-bulk-progress-track" aria-hidden="true">
+          <div class="gp-bulk-progress-bar" data-bulk-progress-bar></div>
+        </div>
+      </div>
+
+      <div class="gp-bulk-actions">
+        <button
+          type="button"
+          class="gp-bulk-btn gp-bulk-btn--primary"
+          data-bulk-action="generate"
+          {% if not guides_has_api_key %}disabled title="Add an OpenAI key first"{% endif %}
+        >
+          <i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i>
+          Generate <span data-bulk-action-count></span>
+        </button>
+        <button
+          type="button"
+          class="gp-bulk-btn gp-bulk-btn--danger"
+          data-bulk-action="cancel"
+          hidden
+        >
+          <i class="fa-solid fa-stop" aria-hidden="true"></i>
+          Cancel
+        </button>
+      </div>
+    </div>
+  {% endif %}
+
+  {# Datatable #}
+  <div class="gp-table-wrap">
+    {% if guides_rows|length == 0 %}
+      <div class="gp-empty">
+        <i class="fa-solid fa-book-open" aria-hidden="true"></i>
+        <div>
+          {% if guides_search or guides_thumbs != 'all' %}
+            No guides match those filters.
+          {% else %}
+            No guides yet. Head to <a class="admin-link" href="{{ url_for('plugin.guides.import') }}">Import TSV</a> to seed the archive.
+          {% endif %}
+        </div>
+      </div>
+    {% else %}
+      <table class="gp-table" data-csrf="{{ csrf_token() }}">
+        <thead>
+          <tr>
+            <th class="col-check" scope="col">
+              <span class="visually-hidden" style="position:absolute;left:-9999px;">Select</span>
+            </th>
+            <th class="col-thumb">Thumb</th>
+            <th class="col-title">Title</th>
+            <th class="col-meta">Meta</th>
+            <th class="col-actions">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in guides_rows %}
+            <tr
+              data-guide-row
+              data-guide-id="{{ row.id }}"
+              data-guide-title="{{ row.title|e('html_attr') }}"
+              data-guide-has-thumb="{{ row.featured_media_path ? '1' : '0' }}"
+            >
+              <td class="col-check">
+                <input
+                  type="checkbox"
+                  class="gp-check"
+                  data-guide-check
+                  aria-label="Select {{ row.title|e('html_attr') }}"
+                />
+              </td>
+              <td class="col-thumb">
+                <span
+                  class="gp-thumb {{ row.featured_media_path ? '' : 'gp-thumb--empty' }}"
+                  data-thumb
+                  {% if row.featured_media_path %}style="background-image:url('{{ row.featured_media_path|e('html_attr') }}');"{% endif %}
+                  aria-hidden="true"
+                ></span>
+              </td>
+              <td class="col-title">
+                <a class="gp-title" href="/guides/{{ row.slug|e('html_attr') }}" target="_blank" rel="noopener">
+                  {{ row.title|e }}
+                  <small>
+                    <code>/guides/{{ row.slug|e }}</code>
+                    {% if row.legacy_id %} · legacy id {{ row.legacy_id }}{% endif %}
+                  </small>
+                </a>
+              </td>
+              <td class="col-meta">
+                <div class="gp-meta">
+                  <span class="gp-status gp-status--{{ row.status }}">{{ row.status }}</span>
+                  <div style="margin-top:8px;">
+                    Updated <strong>{{ row.updated_at|date('j M Y, H:i') }}</strong>
+                  </div>
+                </div>
+              </td>
+              <td class="col-actions">
+                {% if row.featured_media_path %}
+                  <button
+                    class="gp-btn"
+                    type="button"
+                    data-guide-action="generate-image"
+                    title="Regenerate thumbnail from the title"
+                    {% if not guides_has_api_key %}disabled{% endif %}
+                  >
+                    <i class="fa-solid fa-arrows-rotate" aria-hidden="true"></i>
+                    Regenerate
+                  </button>
+                  <button
+                    class="gp-btn gp-btn--ghost"
+                    type="button"
+                    data-guide-action="clear-image"
+                    title="Detach the current thumbnail"
+                    style="margin-left:4px;"
+                  >
+                    <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+                  </button>
+                {% else %}
+                  <button
+                    class="gp-btn gp-btn--primary"
+                    type="button"
+                    data-guide-action="generate-image"
+                    title="Generate a thumbnail from the title via OpenAI"
+                    {% if not guides_has_api_key %}disabled{% endif %}
+                  >
+                    <i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i>
+                    Generate
+                  </button>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      {% if guides_total_pages > 1 %}
+        <nav class="gp-pager" aria-label="Pagination">
+          {% set _qs = '' %}
+          {% if guides_search %}{% set _qs = _qs ~ 'q=' ~ guides_search|url_encode ~ '&' %}{% endif %}
+          {% if guides_thumbs != 'all' %}{% set _qs = _qs ~ 'thumbs=' ~ guides_thumbs ~ '&' %}{% endif %}
+          {% if guides_page > 1 %}
+            <a href="?{{ _qs }}page={{ guides_page - 1 }}" rel="prev"><i class="fa-solid fa-chevron-left"></i></a>
+          {% endif %}
+          {% for p in 1..guides_total_pages %}
+            {% if guides_total_pages <= 9 or p == 1 or p == guides_total_pages or (p >= guides_page - 2 and p <= guides_page + 2) %}
+              {% if p == guides_page %}
+                <span class="is-current" aria-current="page">{{ p }}</span>
+              {% else %}
+                <a href="?{{ _qs }}page={{ p }}">{{ p }}</a>
+              {% endif %}
+            {% elseif p == 2 or p == guides_total_pages - 1 %}
+              <span class="is-gap">…</span>
+            {% endif %}
+          {% endfor %}
+          {% if guides_page < guides_total_pages %}
+            <a href="?{{ _qs }}page={{ guides_page + 1 }}" rel="next"><i class="fa-solid fa-chevron-right"></i></a>
+          {% endif %}
+        </nav>
+      {% endif %}
+    {% endif %}
+  </div>
+
+  <div class="gp-flash-host" id="gp-flash-host" aria-live="polite"></div>
+</div>
+
+<script>
+(() => {
+  // ──────────────────────────────────────────────────────────────────────
+  // Admin datatable — async thumbnail generate/regenerate/clear, plus
+  // bulk-queue generation for multiple rows at once. We post a CSRF token
+  // + entry id to /admin/guides/{id}/image and update the row in-place on
+  // success. Errors surface as a floating toast.
+  //
+  // Queue behaviour:
+  //   * Selecting rows builds an in-memory queue.
+  //   * Generate processes them strictly sequentially (gpt-image-1 takes
+  //     ~30–60 s per call and OpenAI rate-limits parallel image jobs).
+  //   * The toolbar shows a live progress bar + "n / total" counter.
+  //   * Cancel stops the queue *after* the current job finishes — there's
+  //     no clean way to abort an in-flight image generation.
+  //   * Per-row Generate/Regenerate buttons stay enabled for one-off use
+  //     when no batch is running.
+  // ──────────────────────────────────────────────────────────────────────
+  const table = document.querySelector('.gp-table');
+  if (!table) return;
+  const csrf = table.dataset.csrf || '';
+  const flashHost = document.getElementById('gp-flash-host');
+
+  // Bulk toolbar handles — present whenever there are rows on the page.
+  const bulkBar       = document.querySelector('[data-bulk-bar]');
+  const masterCheck   = document.querySelector('[data-bulk-master]');
+  const bulkCount     = document.querySelector('[data-bulk-count]');
+  const bulkActionBtn = document.querySelector('[data-bulk-action="generate"]');
+  const bulkCancelBtn = document.querySelector('[data-bulk-action="cancel"]');
+  const bulkActionCt  = document.querySelector('[data-bulk-action-count]');
+  const bulkProg      = document.querySelector('[data-bulk-progress]');
+  const bulkProgText  = document.querySelector('[data-bulk-progress-text]');
+  const bulkProgBar   = document.querySelector('[data-bulk-progress-bar]');
+  const bulkQuickBtn  = document.querySelector('[data-bulk-quick="missing"]');
+
+  // Set true while a batch is running so per-row buttons + filters stay
+  // out of the way until the queue finishes (or the admin clicks Cancel).
+  let isRunning = false;
+  let cancelRequested = false;
+
+  function flash(kind, message) {
+    if (!flashHost) return;
+    const el = document.createElement('div');
+    el.className = 'gp-flash gp-flash--' + (kind === 'ok' ? 'ok' : 'error');
+    el.textContent = message;
+    flashHost.appendChild(el);
+    setTimeout(() => { el.style.transition = 'opacity .3s ease'; el.style.opacity = '0'; }, 4500);
+    setTimeout(() => { el.remove(); }, 5200);
+  }
+
+  function setThumb(row, imagePath) {
+    const thumb = row.querySelector('[data-thumb]');
+    if (!thumb) return;
+    thumb.classList.remove('gp-thumb--empty', 'gp-thumb--working');
+    if (imagePath) {
+      thumb.style.backgroundImage = "url('" + imagePath.replace(/'/g, '%27') + "')";
+    } else {
+      thumb.style.backgroundImage = '';
+      thumb.classList.add('gp-thumb--empty');
+    }
+  }
+
+  async function callJson(url, payload) {
+    const body = new URLSearchParams(Object.assign({ _csrf_token: csrf }, payload || {})).toString();
+    const res = await fetch(url, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Accept': 'application/json',
+        'X-CSRF-Token': csrf,
+      },
+      body: body,
+    });
+    let data;
+    try { data = await res.json(); } catch (e) { data = { ok: false, error: 'Non-JSON response.' }; }
+    if (!res.ok || !data.ok) {
+      throw new Error(data.error || ('HTTP ' + res.status));
+    }
+    return data;
+  }
+
+  /**
+   * Run a single image-generation job for one row. Returns the JSON
+   * payload on success, throws on failure. Also handles all the
+   * row-local UI updates (thumb cell, button label, working spinner) so
+   * both the per-row click handler and the bulk queue can share it.
+   *
+   * @param {HTMLTableRowElement} row
+   * @param {{quiet?:boolean}} [opts] When quiet, success/error toasts are
+   *   suppressed — the bulk queue surfaces its own summary at the end.
+   */
+  async function runImageJob(row, opts = {}) {
+    const id = row.dataset.guideId;
+    const title = row.dataset.guideTitle || ('guide #' + id);
+    const btn = row.querySelector('[data-guide-action="generate-image"]');
+    const thumb = row.querySelector('[data-thumb]');
+
+    if (btn) {
+      btn.classList.add('is-working');
+      btn.disabled = true;
+      const icon = btn.querySelector('i');
+      if (icon) icon.className = 'fa-solid fa-spinner';
+    }
+    if (thumb) {
+      thumb.classList.remove('gp-thumb--empty');
+      thumb.style.backgroundImage = '';
+      thumb.classList.add('gp-thumb--working');
+    }
+
+    try {
+      const data = await callJson('/admin/guides/' + encodeURIComponent(id) + '/image');
+      setThumb(row, data.image_path);
+      row.dataset.guideHasThumb = '1';
+      if (!opts.quiet) {
+        flash('ok', 'Thumbnail generated for "' + title + '"');
+      }
+
+      // Swap the button label/state to "Regenerate" without a full reload.
+      if (btn) {
+        btn.classList.remove('gp-btn--primary', 'is-working');
+        btn.disabled = false;
+        btn.title = 'Regenerate thumbnail from the title';
+        btn.innerHTML = '<i class="fa-solid fa-arrows-rotate" aria-hidden="true"></i> Regenerate';
+
+        // Insert the "clear" button if it isn't already there.
+        if (!row.querySelector('[data-guide-action="clear-image"]')) {
+          const clearBtn = document.createElement('button');
+          clearBtn.className = 'gp-btn gp-btn--ghost';
+          clearBtn.type = 'button';
+          clearBtn.dataset.guideAction = 'clear-image';
+          clearBtn.title = 'Detach the current thumbnail';
+          clearBtn.style.marginLeft = '4px';
+          clearBtn.innerHTML = '<i class="fa-solid fa-xmark" aria-hidden="true"></i>';
+          btn.insertAdjacentElement('afterend', clearBtn);
+        }
+      }
+      return data;
+    } catch (err) {
+      setThumb(row, null);
+      if (btn) {
+        btn.classList.remove('is-working');
+        btn.disabled = false;
+        const icon = btn.querySelector('i');
+        if (icon) {
+          icon.className = row.dataset.guideHasThumb === '1'
+            ? 'fa-solid fa-arrows-rotate'
+            : 'fa-solid fa-wand-magic-sparkles';
+        }
+      }
+      if (!opts.quiet) {
+        flash('error', 'Failed to generate thumbnail: ' + err.message);
+      }
+      throw err;
+    }
+  }
+
+  async function clearImage(row) {
+    const id = row.dataset.guideId;
+    const clearBtn = row.querySelector('[data-guide-action="clear-image"]');
+    if (clearBtn) clearBtn.disabled = true;
+    try {
+      await callJson('/admin/guides/' + encodeURIComponent(id) + '/image/clear');
+      setThumb(row, null);
+      flash('ok', 'Thumbnail removed');
+      if (clearBtn) clearBtn.remove();
+
+      // Switch the primary button back to "Generate".
+      const genBtn = row.querySelector('[data-guide-action="generate-image"]');
+      if (genBtn) {
+        genBtn.classList.add('gp-btn--primary');
+        genBtn.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i> Generate';
+      }
+    } catch (err) {
+      flash('error', 'Could not clear: ' + err.message);
+      if (clearBtn) clearBtn.disabled = false;
+    }
+  }
+
+  // Event delegation — one listener handles every row's buttons.
+  table.addEventListener('click', (ev) => {
+    const btn = ev.target.closest('[data-guide-action]');
+    if (!btn) return;
+    const row = btn.closest('[data-guide-row]');
+    if (!row) return;
+    ev.preventDefault();
+    if (btn.classList.contains('is-working')) return;
+    if (isRunning) {
+      flash('error', 'A bulk job is running — wait for it to finish or cancel it first.');
+      return;
+    }
+    const action = btn.dataset.guideAction;
+    if (action === 'generate-image') {
+      runImageJob(row).catch(() => { /* surfaced via flash already */ });
+    } else if (action === 'clear-image') {
+      clearImage(row);
+    }
+  });
+
+  // ──────────────────────────────────────────────────────────────────────
+  // Bulk-queue plumbing
+  // ──────────────────────────────────────────────────────────────────────
+
+  /** All row checkboxes currently in the DOM. */
+  const rowChecks = () => Array.from(table.querySelectorAll('[data-guide-check]'));
+  const checkedRows = () =>
+    rowChecks()
+      .filter((c) => c.checked && !c.disabled)
+      .map((c) => c.closest('[data-guide-row]'))
+      .filter(Boolean);
+
+  /**
+   * Sync the toolbar's count, button label, and indeterminate-master
+   * state with the current set of ticked checkboxes. Called after every
+   * change to selection or after each job in a batch finishes.
+   */
+  function updateSelectionState() {
+    if (!bulkBar) return;
+    const all = rowChecks();
+    const checked = all.filter((c) => c.checked);
+
+    if (bulkCount) {
+      const n = checked.length;
+      bulkCount.textContent = n + (n === 1 ? ' selected' : ' selected');
+      bulkCount.classList.toggle('is-zero', n === 0);
+    }
+    if (bulkActionCt) {
+      bulkActionCt.textContent = checked.length > 0 ? '(' + checked.length + ')' : '';
+    }
+    if (bulkActionBtn && !isRunning) {
+      bulkActionBtn.disabled = checked.length === 0 || bulkActionBtn.dataset.forceDisabled === '1';
+    }
+    bulkBar.classList.toggle('is-active', checked.length > 0 || isRunning);
+
+    if (masterCheck) {
+      if (checked.length === 0) {
+        masterCheck.checked = false; masterCheck.indeterminate = false;
+      } else if (checked.length === all.length) {
+        masterCheck.checked = true; masterCheck.indeterminate = false;
+      } else {
+        masterCheck.checked = false; masterCheck.indeterminate = true;
+      }
+    }
+  }
+
+  /** Lock the UI while a bulk job is running. */
+  function setRunning(active) {
+    isRunning = active;
+    if (bulkActionBtn) {
+      bulkActionBtn.hidden = active;
+    }
+    if (bulkCancelBtn) {
+      bulkCancelBtn.hidden = !active;
+      bulkCancelBtn.disabled = false;
+    }
+    if (bulkProg) bulkProg.hidden = !active;
+    if (masterCheck) masterCheck.disabled = active;
+    if (bulkQuickBtn) bulkQuickBtn.disabled = active;
+
+    // Disable row checkboxes during the run so the selection set can't
+    // change mid-flight (would be confusing — what does "remove from queue"
+    // mean once the job's already in progress?).
+    rowChecks().forEach((c) => { c.disabled = active; });
+
+    // Disable filter/search submit and pager links so the page can't
+    // navigate away mid-batch.
+    document.querySelectorAll('.gp-filters .gp-submit, .gp-pager a').forEach((el) => {
+      if (active) el.setAttribute('aria-disabled', 'true');
+      else el.removeAttribute('aria-disabled');
+      el.style.pointerEvents = active ? 'none' : '';
+      el.style.opacity = active ? '0.5' : '';
+    });
+  }
+
+  function setProgress(done, total, title) {
+    if (bulkProgText) {
+      bulkProgText.textContent = done + ' / ' + total + (title ? ' · ' + title : '');
+    }
+    if (bulkProgBar) {
+      bulkProgBar.style.width = total > 0 ? ((done / total) * 100) + '%' : '0%';
+    }
+  }
+
+  /**
+   * Walk the queue sequentially. We hold a reference to the original
+   * row list so the user can deselect rows mid-batch without affecting
+   * what's still pending.
+   */
+  async function runQueue(rows) {
+    if (!rows.length) return;
+    setRunning(true);
+    cancelRequested = false;
+    setProgress(0, rows.length, '');
+
+    let ok = 0, fail = 0, lastErr = '', stopped = false;
+    for (let i = 0; i < rows.length; i++) {
+      if (cancelRequested) { stopped = true; break; }
+      const row = rows[i];
+      const title = row.dataset.guideTitle || ('guide #' + row.dataset.guideId);
+      row.classList.add('is-working');
+      setProgress(i, rows.length, title);
+
+      try {
+        await runImageJob(row, { quiet: true });
+        ok++;
+      } catch (err) {
+        fail++;
+        lastErr = err && err.message ? err.message : String(err);
+        // Bail on config issues so the admin can fix and retry.
+        if (/api key/i.test(lastErr)) {
+          flash('error', 'Stopped: ' + lastErr);
+          row.classList.remove('is-working');
+          stopped = true;
+          break;
+        }
+      }
+      row.classList.remove('is-working');
+      // Untick the row once it's processed so the count reflects what's
+      // still pending — visually reinforces progress.
+      const cb = row.querySelector('[data-guide-check]');
+      if (cb) cb.checked = false;
+      setProgress(i + 1, rows.length, '');
+    }
+
+    setRunning(false);
+    setProgress(0, 0, '');
+    updateSelectionState();
+
+    if (stopped && ok === 0 && fail === 0) {
+      flash('error', 'Cancelled before any thumbnails were generated.');
+    } else if (stopped) {
+      flash('error', 'Stopped after ' + ok + ' of ' + rows.length + '. Last error: ' + (lastErr || 'cancelled by user'));
+    } else if (fail === 0) {
+      flash('ok', 'Generated ' + ok + ' thumbnail' + (ok === 1 ? '' : 's') + '.');
+    } else if (ok === 0) {
+      flash('error', 'All ' + fail + ' generations failed. Last error: ' + lastErr);
+    } else {
+      flash('error', ok + ' generated, ' + fail + ' failed. Last error: ' + lastErr);
+    }
+  }
+
+  // ─── Toolbar wiring ─────────────────────────────────────────────────
+  if (masterCheck) {
+    masterCheck.addEventListener('change', () => {
+      const target = masterCheck.checked;
+      rowChecks().forEach((c) => { if (!c.disabled) c.checked = target; });
+      updateSelectionState();
+    });
+  }
+
+  if (bulkQuickBtn) {
+    bulkQuickBtn.addEventListener('click', () => {
+      // Tick every visible row whose thumb is missing, untick everything
+      // else. Saves the operator a column of clicks when the goal is
+      // "fill in the gaps".
+      table.querySelectorAll('[data-guide-row]').forEach((row) => {
+        const c = row.querySelector('[data-guide-check]');
+        if (!c || c.disabled) return;
+        c.checked = row.dataset.guideHasThumb !== '1';
+      });
+      updateSelectionState();
+    });
+  }
+
+  // Tick / untick a single row.
+  table.addEventListener('change', (ev) => {
+    const c = ev.target.closest('[data-guide-check]');
+    if (!c) return;
+    updateSelectionState();
+  });
+
+  if (bulkActionBtn) {
+    bulkActionBtn.addEventListener('click', () => {
+      if (isRunning) return;
+      const rows = checkedRows();
+      if (rows.length === 0) {
+        flash('error', 'Tick at least one row first.');
+        return;
+      }
+      // Snapshot the queue — disable selection during the run anyway, but
+      // also pass a stable list to runQueue so a stray DOM mutation can't
+      // shift indices mid-batch.
+      runQueue(rows.slice());
+    });
+  }
+
+  if (bulkCancelBtn) {
+    bulkCancelBtn.addEventListener('click', () => {
+      cancelRequested = true;
+      bulkCancelBtn.disabled = true;
+      bulkCancelBtn.innerHTML = '<i class="fa-solid fa-hourglass-half" aria-hidden="true"></i> Stopping after current…';
+    });
+  }
+
+  // Initial pass so the toolbar matches state on page load.
+  updateSelectionState();
+})();
+</script>
+{% endblock %}
