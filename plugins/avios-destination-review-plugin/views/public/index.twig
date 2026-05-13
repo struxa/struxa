@@ -1,0 +1,120 @@
+{% extends 'layouts/base.twig' %}
+
+{% block title %}Avios destination reviews — {{ settings.site_name|default('FL350')|e }}{% endblock %}
+{% block meta_description %}Independent British Airways destination reviews for every airport you can fly to on Avios from London Heathrow.{% endblock %}
+
+{% block head_extra %}
+  {{ parent() }}
+  <style>
+    .adrx-hero {
+      position: relative; overflow: hidden; isolation: isolate;
+      color: #fff;
+      padding: 64px 0 64px;
+      background:
+        radial-gradient(ellipse at 85% -10%, rgba(245, 158, 11, .22) 0%, transparent 55%),
+        radial-gradient(ellipse at 10% 110%, rgba(110, 231, 183, .12) 0%, transparent 50%),
+        linear-gradient(120deg, #06172f 0%, #08254d 60%, #1557e8 100%);
+    }
+    .adrx-hero h1 { margin: 0 0 12px; font-size: clamp(32px, 5vw, 48px); letter-spacing: -0.04em; line-height: 1.05; }
+    .adrx-hero h1 .accent { background: linear-gradient(120deg, #fcd34d, #f59e0b); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .adrx-hero p { max-width: 680px; color: rgba(255,255,255,.82); font-size: 17px; line-height: 1.6; margin: 0; }
+
+    .adrx-search { max-width: 520px; margin: 24px 0 0; position: relative; }
+    .adrx-search input {
+      width: 100%; padding: 14px 18px 14px 46px;
+      border-radius: 999px; border: 0;
+      font: inherit; font-size: 15px;
+      background: rgba(255,255,255,.95);
+      color: #0f172a;
+    }
+    .adrx-search::before {
+      content: "\f002"; font-family: "Font Awesome 6 Free"; font-weight: 900;
+      position: absolute; left: 18px; top: 50%; transform: translateY(-50%);
+      color: #64748b; font-size: 14px;
+    }
+
+    .adrx-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 18px;
+      margin: 40px 0 80px;
+    }
+    .adrx-card {
+      display: flex; flex-direction: column;
+      padding: 18px 20px;
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: 14px;
+      text-decoration: none; color: inherit;
+      transition: transform .18s, box-shadow .18s, border-color .18s;
+    }
+    .adrx-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 16px 30px rgba(7, 22, 45, .08);
+      border-color: #c7d3eb;
+    }
+    .adrx-card__iata {
+      display: inline-block;
+      font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase;
+      color: #1557e8; background: #eaf1ff;
+      padding: 3px 9px; border-radius: 999px;
+      margin-bottom: 10px; align-self: flex-start;
+    }
+    .adrx-card__name { margin: 0 0 8px; font-size: 18px; letter-spacing: -0.01em; color: #0f172a; }
+    .adrx-card__desc { margin: 0 0 12px; color: #475569; font-size: 13.5px; line-height: 1.5; flex: 1; }
+    .adrx-card__cta {
+      color: #1557e8; font-weight: 700; font-size: 13px;
+      display: inline-flex; gap: 4px;
+    }
+
+    .adrx-empty { text-align: center; padding: 60px 16px; color: #64748b; }
+
+    .adrx-card[hidden] { display: none !important; }
+  </style>
+{% endblock %}
+
+{% block body %}
+  <section class="adrx-hero">
+    <div class="container">
+      <h1>Avios <span class="accent">destination reviews</span></h1>
+      <p>Independent reviews of every British Airways destination you can reach on Avios from London Heathrow.</p>
+      <div class="adrx-search">
+        <input id="adrx-search" type="search" placeholder="Search by destination or IATA…" autocomplete="off" />
+      </div>
+    </div>
+  </section>
+
+  <main class="container" id="main-content">
+    {% if reviews|length == 0 %}
+      <p class="adrx-empty">No destination reviews have been published yet.</p>
+    {% else %}
+      <p style="color:#64748b;font-size:14px;margin:24px 0 0;"><strong style="color:#0f172a;">{{ totalReviews }}</strong> destination{{ totalReviews == 1 ? '' : 's' }} reviewed</p>
+      <div class="adrx-grid" id="adrx-grid">
+        {% for r in reviews %}
+          <a class="adrx-card"
+             href="/destinations/{{ r.slug|e('html_attr') }}"
+             data-search="{{ (r.destination ~ ' ' ~ r.iata)|lower|e('html_attr') }}">
+            <span class="adrx-card__iata">LHR → {{ r.iata|e }}</span>
+            <h2 class="adrx-card__name">{{ r.destination|e }}</h2>
+            <p class="adrx-card__desc">{{ (r.meta_description ?: 'Read the full Avios review for ' ~ r.destination ~ '.')|e }}</p>
+            <span class="adrx-card__cta">Read review →</span>
+          </a>
+        {% endfor %}
+      </div>
+    {% endif %}
+  </main>
+
+  <script>
+  (function () {
+    const search = document.getElementById('adrx-search');
+    const grid = document.getElementById('adrx-grid');
+    if (!search || !grid) return;
+    search.addEventListener('input', () => {
+      const q = (search.value || '').trim().toLowerCase();
+      grid.querySelectorAll('.adrx-card').forEach((c) => {
+        c.hidden = q && c.dataset.search.indexOf(q) === -1;
+      });
+    });
+  })();
+  </script>
+{% endblock %}
