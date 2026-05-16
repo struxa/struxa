@@ -51,9 +51,15 @@ public function boot(PluginBootContext $context): void
 
 **Bundled example:** `content-stream-plugin` registers `content-stream` for its staff tool at `/content-stream` (see `ContentStreamServiceProvider`).
 
+## Browse and install from the catalog
+
+**Extensions → Plugins → Browse catalog** installs packages from the same distribution registry as themes (`https://struxapoint.com/struxa-dist/repo.json` by default). The catalog’s **`plugins`** array lists slug, metadata, and **`download_url`** (HTTPS ZIP). After install, **Activate** the plugin to run migrations and load routes.
+
+Host your own registry: publish the **`struxa-dist/`** folder (see **`struxa-dist/README.md`**) to a separate git repo / CDN and set **`STRUXA_DIST_CATALOG_URL`** on each CMS site. Local dev: copy **`storage/dist-catalog.example.json`** to **`storage/dist-catalog.json`**.
+
 ## Example plugins
 
-See **`plugins/hello-plugin`**, **`plugins/seo-helper-plugin`**, **`plugins/analytics-widget-plugin`**, and **`plugins/content-stream-plugin`** (OpenAI-backed public form + admin API settings) for small, copy-paste-friendly patterns.
+See **`plugins/hello-plugin`**, **`plugins/seo-helper-plugin`**, **`plugins/analytics-widget-plugin`**, **`plugins/content-stream-plugin`** (OpenAI-backed public form + admin API settings), and **`plugins/mailing-list-plugin`** (multiple lists, email validation, storefront signup) for small, copy-paste-friendly patterns.
 
 **Commerce:** **`plugins/stripe-store-plugin`** adds Stripe Checkout for purchasable content entries (e.g. products) without core code changes. Run its SQL migration, **`composer install` at the project root** (Stripe PHP is required in the root `composer.json`), activate the plugin, add optional content fields `stripe_price_id` / `stripe_amount_cents`, and include `<script src="…/stripe-store/embed.js" defer></script>` on your storefront layout.
 

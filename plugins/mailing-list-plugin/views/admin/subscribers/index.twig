@@ -1,0 +1,70 @@
+{% extends 'admin/base.twig' %}
+
+{% block admin_title %}Subscribers — {{ mailing_list.name|e }}{% endblock %}
+
+{% block admin_hero_title %}
+  <h1 class="admin-hero-title">Subscribers</h1>
+{% endblock %}
+
+{% block admin_hero_sub %}
+  <p class="admin-hero-sub">
+    <a class="admin-link" href="{{ url_for('plugin.mailing_list_plugin.lists.index') }}">← Mailing lists</a>
+    · <strong>{{ mailing_list.name|e }}</strong> (<code class="admin-inline-code">{{ mailing_list.slug|e }}</code>)
+  </p>
+{% endblock %}
+
+{% block admin_content %}
+  <p class="admin-hint">{{ subscriber_total }} subscriber{{ subscriber_total == 1 ? '' : 's' }} (subscribed status).</p>
+
+  {% if subscriber_rows is empty %}
+    <div class="admin-card" style="margin-top:1rem">
+      <p>No subscribers yet. Share the subscribe page or embed the signup form on your site.</p>
+      {% if mailing_list.isActive %}
+        <p class="admin-hint" style="margin-top:0.75rem">
+          <a class="admin-link" href="{{ site_url|default('') }}/mailing-list/subscribe/{{ mailing_list.slug|e('url') }}" target="_blank" rel="noopener">Open subscribe page</a>
+        </p>
+      {% endif %}
+    </div>
+  {% else %}
+    <div class="admin-table-wrap" style="margin-top:1rem">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th scope="col">Email</th>
+            <th scope="col">Subscribed</th>
+            <th scope="col">Status</th>
+            <th class="admin-table-col-actions" scope="col"><span class="admin-table-muted">Actions</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for sub in subscriber_rows %}
+            <tr>
+              <td>{{ sub.email|e }}</td>
+              <td>{{ sub.subscribedAt|e }}</td>
+              <td><span class="admin-pill {{ sub.status == 'subscribed' ? 'admin-pill--accent' : '' }}">{{ sub.status|e }}</span></td>
+              <td class="admin-table-actions">
+                <form method="post" action="{{ url_for('plugin.mailing_list_plugin.subscribers.delete', { listId: mailing_list.id, subscriberId: sub.id }) }}" style="display:inline" onsubmit="return confirm('Remove this subscriber?');">
+                  <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+                  <button type="submit" class="admin-link admin-link--button">Remove</button>
+                </form>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {% set total_pages = (subscriber_total / per_page)|round(0, 'ceil') %}
+    {% if total_pages > 1 %}
+      <p class="admin-hint" style="margin-top:1rem">
+        Page {{ page }} of {{ total_pages }}.
+        {% if page > 1 %}
+          <a class="admin-link" href="{{ url_for('plugin.mailing_list_plugin.subscribers.index', { id: mailing_list.id }) }}?page={{ page - 1 }}">← Previous</a>
+        {% endif %}
+        {% if page < total_pages %}
+          <a class="admin-link" href="{{ url_for('plugin.mailing_list_plugin.subscribers.index', { id: mailing_list.id }) }}?page={{ page + 1 }}">Next →</a>
+        {% endif %}
+      </p>
+    {% endif %}
+  {% endif %}
+{% endblock %}

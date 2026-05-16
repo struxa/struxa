@@ -1,0 +1,113 @@
+{
+    "catalog_version": 1,
+    "themes": [
+        {
+            "slug": "avios",
+            "name": "Avios",
+            "version": "1.0.8",
+            "description": "FL350 \u2014 smarter Avios, better journeys. Bright editorial layout with hero, deal ticker, calculator, redemptions, credit-card offers and travel articles. Extends Midnight Pulse for content fallbacks.",
+            "author": "Avios Studio",
+            "download_url": "https://struxapoint.com/struxa-dist/zips/avios.zip"
+        },
+        {
+            "slug": "default",
+            "name": "Midnight Pulse",
+            "version": "1.0.0",
+            "description": "Dark SaaS-style layout with gradient accents, header, footer, and content-focused typography. Uses global settings and menus.",
+            "author": "Studio CMS",
+            "download_url": "https://struxapoint.com/struxa-dist/zips/default.zip"
+        }
+    ],
+    "plugins": [
+        {
+            "slug": "analytics-widget-plugin",
+            "name": "Analytics snippet",
+            "version": "1.0.0",
+            "description": "Admin reference for pasting analytics or tag-manager snippets into your theme layout (head_extra / scripts_extra).",
+            "author": "Studio CMS",
+            "download_url": "https://struxapoint.com/struxa-dist/zips/analytics-widget-plugin.zip",
+            "requires_cms_version": "1.0.0"
+        },
+        {
+            "slug": "avios-destination-review-plugin",
+            "name": "Avios Destination Review",
+            "version": "1.0.2",
+            "description": "Generate SEO-friendly destination reviews via OpenAI for each British Airways destination on file in the How Many Avios \u00b7 Fare table. Editable rich-text reviews stored in self-contained adr_* tables.",
+            "author": "Avios Studio",
+            "download_url": "https://struxapoint.com/struxa-dist/zips/avios-destination-review-plugin.zip",
+            "requires_cms_version": "1.0.0"
+        },
+        {
+            "slug": "content-stream-plugin",
+            "name": "Content Stream",
+            "version": "1.0.2",
+            "description": "Admin OpenAI API settings and a public page to enter a domain and preview a short AI-generated content stream brief.",
+            "author": "Struxa",
+            "download_url": "https://struxapoint.com/struxa-dist/zips/content-stream-plugin.zip",
+            "requires_cms_version": "1.0.0"
+        },
+        {
+            "slug": "forum-plugin",
+            "name": "Forum",
+            "version": "1.0.2",
+            "description": "MyBB-inspired community forum for Struxa CMS. Categories \u2192 forums \u2192 threads \u2192 posts, with sticky/locked threads, post likes, thread subscriptions, user ranks, quote replies, Markdown rendering, online-now tracking, and a full admin moderation panel. Threads are also exposed as a 'Forum thread' CMS content type so they inherit SEO metadata, slugs and featured images.",
+            "author": "Studio CMS",
+            "download_url": "https://struxapoint.com/struxa-dist/zips/forum-plugin.zip",
+            "requires_cms_version": "1.0.0"
+        },
+        {
+            "slug": "forum-spin-import-plugin",
+            "name": "Forum spin import",
+            "version": "1.0.2",
+            "description": "Stage scraped forum TSV exports, then replay threads into a target forum with OpenAI paraphrasing (same meaning and tone, not a verbatim copy), synthetic users, and back-dated timestamps. Chunked admin AJAX with pause/stop/resume. Requires the Forum plugin and an OpenAI key under System \u2192 API keys.",
+            "author": "Avios Studio",
+            "download_url": "https://struxapoint.com/struxa-dist/zips/forum-spin-import-plugin.zip",
+            "requires_cms_version": "1.0.0"
+        },
+        {
+            "slug": "guides-plugin",
+            "name": "Guides",
+            "version": "1.0.2",
+            "description": "Imports AI-rewritten travel guides from a TSV export into the 'Guides' CMS content type. One entry per source article, with the article HTML stored as a richtext body and SEO fields seeded from the export. Idempotent \u2014 re-running the importer only adds rows it hasn't seen before (matched on legacy_id).",
+            "author": "Avios Studio",
+            "download_url": "https://struxapoint.com/struxa-dist/zips/guides-plugin.zip",
+            "requires_cms_version": "1.0.0"
+        },
+        {
+            "slug": "hello-plugin",
+            "name": "Hello Plugin",
+            "version": "1.0.0",
+            "description": "Sample Stage 8 plugin: admin page, public route, optional DB table via migration, and event subscription.",
+            "author": "Studio CMS",
+            "download_url": "https://struxapoint.com/struxa-dist/zips/hello-plugin.zip",
+            "requires_cms_version": "1.0.0"
+        },
+        {
+            "slug": "mailing-list-plugin",
+            "name": "Mailing list",
+            "version": "1.0.0",
+            "description": "Create mailing lists in the admin, validate subscriber emails, and collect sign-ups on the storefront.",
+            "author": "Struxa",
+            "download_url": "https://struxapoint.com/struxa-dist/zips/mailing-list-plugin.zip",
+            "requires_cms_version": "1.0.63"
+        },
+        {
+            "slug": "seo-helper-plugin",
+            "name": "SEO helper",
+            "version": "1.0.0",
+            "description": "Admin checklist for meta titles, descriptions, and sensible defaults \u2014 complements theme SEO blocks.",
+            "author": "Studio CMS",
+            "download_url": "https://struxapoint.com/struxa-dist/zips/seo-helper-plugin.zip",
+            "requires_cms_version": "1.0.0"
+        },
+        {
+            "slug": "stripe-store-plugin",
+            "name": "Stripe store",
+            "version": "1.0.0",
+            "description": "Stripe Checkout for purchasable content entries (e.g. products). No core code changes \u2014 enable the plugin, run its SQL migration, add a Stripe Price field, and include one script tag on product pages. After install: run composer plugin-deps at the CMS root (Stripe PHP SDK).",
+            "author": "Studio CMS",
+            "download_url": "https://struxapoint.com/struxa-dist/zips/stripe-store-plugin.zip",
+            "requires_cms_version": "1.0.0"
+        }
+    ]
+}

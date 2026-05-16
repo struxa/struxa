@@ -10,8 +10,10 @@ use App\Flash;
 use App\Http\Middleware\RequireCmsStaff;
 use App\Http\Middleware\RequirePermission;
 use App\Filesystem\SafeDirectoryRemoval;
+use App\Plugin\PluginCatalogLoader;
 use App\Plugin\PluginManager;
 use App\Plugin\PluginMigrationRunner;
+use App\Plugin\PluginRemoteInstaller;
 use App\Plugin\PluginRepository;
 use App\Plugin\PluginUninstaller;
 use App\Plugin\PluginScanner;
@@ -29,12 +31,15 @@ use Slim\Views\Twig;
 return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $viewData): void {
     $middleware = new RequireCmsStaff($auth, $pdo);
     $permPlugins = new RequirePermission($pdo, [PermissionSlug::MANAGE_PLUGINS]);
+    $root = dirname(__DIR__);
     $activity = new ActivityLogger($pdo);
     $repo = new PluginRepository($pdo);
-    $scanner = new PluginScanner(dirname(__DIR__));
+    $scanner = new PluginScanner($root);
     $validator = new PluginValidator();
-    $manager = new PluginManager(dirname(__DIR__), $repo, $scanner, $validator);
+    $manager = new PluginManager($root, $repo, $scanner, $validator);
     $migrationRunner = new PluginMigrationRunner($pdo);
+    $catalogLoader = new PluginCatalogLoader($root);
+    $remoteInstaller = new PluginRemoteInstaller($root . '/plugins', $scanner);
 
     $adminContext = static fn (): array => array_merge($viewData(), []);
     $withCmsUser = static function (Request $request, array $data): array {
@@ -63,7 +68,10 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
         $migrationRunner,
         $activity,
         $cmsUid,
-        $pdo
+        $pdo,
+        $catalogLoader,
+        $remoteInstaller,
+        $scanner
     ): void {
         $group->get('/extensions/plugins', function (Request $request, Response $response) use (
             $twig,
@@ -99,6 +107,58 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 'plugin_orphans' => $orphans,
             ])));
         })->setName('admin.extensions.plugins.index');
+
+        $group->get('/extensions/plugins/browse', function (Request $request, Response $response) use (
+            $twig,
+            $adminContext,
+            $withCmsUser,
+            $catalogLoader,
+            $scanner
+        ): Response {
+            $loaded = $catalogLoader->load();
+            $installed = [];
+            foreach ($scanner->discover() as $p) {
+                $installed[$p->manifest->slug] = true;
+            }
+
+            return $twig->render($response, 'admin/plugins/browse.twig', $withCmsUser($request, array_merge($adminContext(), [
+                'admin_nav' => 'extensions_plugins',
+                'catalog_ok' => $loaded['ok'],
+                'catalog_error' => $loaded['ok'] ? null : $loaded['error'],
+                'catalog_plugins' => $loaded['ok'] ? $loaded['entries'] : [],
+                'installed_plugin_slugs' => $installed,
+            ])));
+        })->setName('admin.extensions.plugins.browse');
+
+        $group->post('/extensions/plugins/install-from-catalog', function (Request $request, Response $response) use (
+            $catalogLoader,
+            $remoteInstaller,
+            $manager
+        ): Response {
+            $parser = RouteContext::fromRequest($request)->getRouteParser();
+            $backBrowse = $parser->urlFor('admin.extensions.plugins.browse');
+            $body = $request->getParsedBody();
+            $body = is_array($body) ? $body : [];
+            $slug = strtolower(trim((string) ($body['plugin_slug'] ?? '')));
+            $loaded = $catalogLoader->load();
+            if (!$loaded['ok']) {
+                Flash::set('error', 'Plugin catalog is unavailable: ' . $loaded['error']);
+
+                return $response->withHeader('Location', $backBrowse)->withStatus(302);
+            }
+            $err = $remoteInstaller->installFromCatalogSlug($slug, $loaded['entries']);
+            if ($err !== null) {
+                Flash::set('error', $err);
+
+                return $response->withHeader('Location', $backBrowse)->withStatus(302);
+            }
+            $manager->syncDiscoveredToDatabase();
+            Flash::set('success', 'Plugin installed. Activate it from the plugins list to load routes and run migrations.');
+
+            return $response
+                ->withHeader('Location', $parser->urlFor('admin.extensions.plugins.index'))
+                ->withStatus(302);
+        })->setName('admin.extensions.plugins.install_from_catalog');
 
         $group->post('/extensions/plugins/activate', function (Request $request, Response $response) use (
             $repo,

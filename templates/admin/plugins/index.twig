@@ -12,6 +12,10 @@
 {% endblock %}
 
 {% block admin_content %}
+  <div class="admin-toolbar admin-toolbar--spread" style="margin-bottom:1.25rem">
+    <a class="admin-btn-primary" href="{{ url_for('admin.extensions.plugins.browse') }}">Browse catalog</a>
+  </div>
+
   {% if plugin_orphans is not empty %}
     <div class="admin-flash admin-flash--error" role="alert" style="margin-bottom:1.25rem">
       <strong>Database only:</strong> these slugs have no matching folder under <code class="admin-inline-code">plugins/</code> —

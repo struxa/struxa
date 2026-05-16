@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.0.63",
-    "title": "Struxa 1.0.63",
-    "summary": "Plugin API to register reserved URL segments at boot; core RESERVED list is platform-only.",
+    "latest_version": "1.0.64",
+    "title": "Struxa 1.0.64",
+    "summary": "Browse and install plugins from struxapoint.com catalog; mailing list plugin; unified dist catalog URL.",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "minor"

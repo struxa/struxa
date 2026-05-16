@@ -1,0 +1,19 @@
+{% extends 'public/root.twig' %}
+
+{% block title %}{{ page_title|default('Subscribe')|e }}{% endblock %}
+
+{% block body %}
+  <main id="main-content" class="public-page" style="max-width:32rem;margin:2rem auto;padding:0 1rem">
+    <h1 style="margin:0 0 0.5rem;font-size:1.5rem">{{ mailing_list.name|e }}</h1>
+    {% if mailing_list.description %}
+      <p style="margin:0 0 1.25rem;opacity:0.85">{{ mailing_list.description|e }}</p>
+    {% endif %}
+
+    {% include '@plugin_mailing_list_plugin/public/partials/signup_form.twig' with {
+      list_slug: mailing_list.slug,
+      button_label: 'Subscribe',
+      return_to: '/mailing-list/subscribe/' ~ mailing_list.slug
+    } %}
+  </main>
+{% include 'partials/_footer.twig' %}
+{% endblock %}

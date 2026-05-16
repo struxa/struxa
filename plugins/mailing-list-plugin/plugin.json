@@ -1,0 +1,18 @@
+{
+  "name": "Mailing list",
+  "slug": "mailing-list-plugin",
+  "version": "1.0.0",
+  "author": "Struxa",
+  "description": "Create mailing lists in the admin, validate subscriber emails, and collect sign-ups on the storefront.",
+  "requires_cms_version": "1.0.63",
+  "requires_php": "8.2",
+  "category": "marketing",
+  "tags": ["email", "newsletter", "subscribers"],
+  "main_class": "MailingListPlugin\\MailingListServiceProvider",
+  "enabled_by_default": false,
+  "autoload": {
+    "psr4": {
+      "MailingListPlugin\\": "src/"
+    }
+  }
+}

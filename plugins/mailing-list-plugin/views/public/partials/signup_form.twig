@@ -1,0 +1,33 @@
+{# list_slug (required), button_label (optional), return_to (optional), form_class (optional) #}
+{% set _slug = list_slug|default('')|trim %}
+{% set _btn = button_label|default('Subscribe') %}
+{% set _return = return_to|default('')|trim %}
+<form
+  class="mailing-list-signup {{ form_class|default('')|e('html_attr') }}"
+  method="post"
+  action="/mailing-list/subscribe"
+  style="display:flex;flex-wrap:wrap;gap:0.5rem;align-items:flex-start"
+>
+  <input type="hidden" name="list" value="{{ _slug|e('html_attr') }}" />
+  {% if _return != '' %}
+    <input type="hidden" name="return_to" value="{{ _return|e('html_attr') }}" />
+  {% endif %}
+  {# Honeypot — leave empty #}
+  <div style="position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden" aria-hidden="true">
+    <label for="ml-hp-{{ _slug|e('html_attr') }}">Website</label>
+    <input type="text" id="ml-hp-{{ _slug|e('html_attr') }}" name="website_url" value="" tabindex="-1" autocomplete="off" />
+  </div>
+  <label class="mailing-list-signup-label" style="flex:1 1 12rem;min-width:0">
+    <span class="visually-hidden">Email</span>
+    <input
+      type="email"
+      name="email"
+      required
+      maxlength="190"
+      placeholder="you@example.com"
+      autocomplete="email"
+      style="width:100%;padding:0.5rem 0.65rem;border-radius:6px;border:1px solid rgba(255,255,255,0.2);background:rgba(0,0,0,0.2);color:inherit"
+    />
+  </label>
+  <button type="submit" style="padding:0.5rem 1rem;border-radius:6px;border:none;cursor:pointer;font-weight:600">{{ _btn|e }}</button>
+</form>
