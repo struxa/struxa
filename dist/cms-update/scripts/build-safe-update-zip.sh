@@ -15,7 +15,7 @@ trap 'rm -rf "$TMP"' EXIT
 DEST="$TMP/cms-update"
 mkdir -p "$DEST"
 
-echo "==> staging files (excludes .env, storage, uploads, git, tests, plugin vendor)"
+echo "==> staging files (excludes .env, storage, uploads, plugins, git, tests)"
 rsync -a \
   --exclude='.git' \
   --exclude='.github' \
@@ -24,10 +24,12 @@ rsync -a \
   --exclude='.env' \
   --exclude='storage' \
   --exclude='public/uploads' \
-  --exclude='plugins/*/vendor' \
+  --exclude='plugins' \
+  --exclude='themes/avios' \
   --exclude='tests' \
   --exclude='node_modules' \
   --exclude='dist' \
+  --exclude='struxa-dist/zips' \
   --exclude='*.zip' \
   "$ROOT/" "$DEST/"
 

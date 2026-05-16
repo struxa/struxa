@@ -20,6 +20,8 @@ final class TwigLayoutContractLinter
     /** @var list<string> */
     private array $loaderRoots = [];
 
+    private bool $lintPluginViews = true;
+
     public function __construct(
         private readonly string $projectRoot,
     ) {
@@ -30,8 +32,15 @@ final class TwigLayoutContractLinter
             $this->loaderRoots[] = $views;
         }
 
-        foreach (glob($root . DIRECTORY_SEPARATOR . 'plugins' . DIRECTORY_SEPARATOR . '*' . DIRECTORY_SEPARATOR . 'views', GLOB_ONLYDIR) ?: [] as $pViews) {
-            $this->loaderRoots[] = $pViews;
+        $pluginsRoot = $root . DIRECTORY_SEPARATOR . 'plugins';
+        $this->lintPluginViews = !(
+            is_file($pluginsRoot . DIRECTORY_SEPARATOR . '.gitkeep')
+            && !is_file($pluginsRoot . DIRECTORY_SEPARATOR . '.struxa-bundle-plugins')
+        );
+        if ($this->lintPluginViews) {
+            foreach (glob($pluginsRoot . DIRECTORY_SEPARATOR . '*' . DIRECTORY_SEPARATOR . 'views', GLOB_ONLYDIR) ?: [] as $pViews) {
+                $this->loaderRoots[] = $pViews;
+            }
         }
     }
 
@@ -261,12 +270,14 @@ final class TwigLayoutContractLinter
             $this->walkTwig($views, $out, static fn (): string => 'theme');
         }
 
-        foreach (glob($root . DIRECTORY_SEPARATOR . 'plugins' . DIRECTORY_SEPARATOR . '*' . DIRECTORY_SEPARATOR . 'views', GLOB_ONLYDIR) ?: [] as $pViews) {
-            $this->walkTwig($pViews, $out, function (string $abs) use ($pViews): string {
-                $rest = substr($abs, strlen($pViews) + 1);
+        if ($this->lintPluginViews) {
+            foreach (glob($root . DIRECTORY_SEPARATOR . 'plugins' . DIRECTORY_SEPARATOR . '*' . DIRECTORY_SEPARATOR . 'views', GLOB_ONLYDIR) ?: [] as $pViews) {
+                $this->walkTwig($pViews, $out, function (string $abs) use ($pViews): string {
+                    $rest = substr($abs, strlen($pViews) + 1);
 
-                return str_starts_with($rest, 'public' . DIRECTORY_SEPARATOR) ? 'plugin_public' : (str_starts_with($rest, 'admin' . DIRECTORY_SEPARATOR) ? 'plugin_admin' : 'plugin_other');
-            });
+                    return str_starts_with($rest, 'public' . DIRECTORY_SEPARATOR) ? 'plugin_public' : (str_starts_with($rest, 'admin' . DIRECTORY_SEPARATOR) ? 'plugin_admin' : 'plugin_other');
+                });
+            }
         }
 
         return $out;

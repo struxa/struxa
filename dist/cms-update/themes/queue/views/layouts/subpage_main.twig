@@ -1,9 +1,0 @@
-{# Queue — flat editorial shell (normal blog / listings). No homepage glow, grid, or rounded canvas. #}
-{% extends 'layouts/base.twig' %}
-
-{% block body %}
-{% block subpage_before_main %}{% endblock %}
-<main id="main-content" class="theme-fq-editorial{% block subpage_editorial_extra_class %}{% endblock %}" data-fq-subpage>
-  {% block subpage_main %}{% endblock %}
-</main>
-{% endblock %}

@@ -85,6 +85,7 @@ Run **`composer test`** (and **`composer phpstan`** locally) before pushing; CI 
 ## Deployment notes
 
 - Never commit **`.env`** or **`public/uploads/`** user media; use **`.env.example`** as a template.
+- **Plugins** and **non-default themes** are not in this git repo; install from **Admin → Browse catalog** (`struxa-dist/` + struxapoint.com). Only **`themes/default/`** ships with core.
 - For a file bundle aimed at FTP merges, see **`scripts/build-safe-update-zip.sh`** and **`scripts/FTP_UPDATE_README.txt`**.
 
 ## Documentation

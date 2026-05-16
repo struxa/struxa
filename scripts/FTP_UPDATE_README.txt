@@ -7,9 +7,13 @@ This ZIP is meant to MERGE into an existing install. It does NOT include:
   • storage/          (cache, locks, theme state — keep on server)
   • public/uploads/   (your media library files — not in this ZIP)
 
-It DOES include application code, themes, templates, migrations, composer.lock,
-and vendor/ (production dependencies) so shared hosting works without running
-Composer on the server.
+It DOES include application code, the default theme, templates, migrations,
+composer.lock, and vendor/ (production dependencies) so shared hosting works
+without running Composer on the server.
+
+It does NOT include plugins/ — install extensions from Admin → Plugins → Browse
+catalog (or copy plugin folders manually). Automatic CMS updates also skip
+plugins/ on your server so an update cannot overwrite or add bundled plugins.
 
 ------------------------------------------------------------
 Steps (FTP)

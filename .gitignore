@@ -35,6 +35,7 @@ storage/installed.lock
 storage/composer-home/
 storage/cache/*
 !storage/cache/.gitkeep
+storage/dist-catalog.json
 # Optional: composer render-marketing-preview
 public/marketing-preview.html
 public/uploads/*
@@ -43,7 +44,14 @@ public/uploads/*
 # Local cache from scripts/struxa-updates-json.php (vendor site generator)
 scripts/.struxa-updates-cache.json
 
-# Private themes — bundled locally for the source project but must never ship publicly
-themes/horse-racing/
-themes/cashback/
-themes/queue/
+# Extensions and extra themes — not in core git (install via Admin → Browse catalog / struxa-dist)
+/plugins/
+
+/themes/*
+!/themes/default/
+!/themes/.gitkeep
+
+# dist/cms-update mirror: same policy as repo root
+dist/cms-update/plugins/
+dist/cms-update/themes/*
+!dist/cms-update/themes/default/

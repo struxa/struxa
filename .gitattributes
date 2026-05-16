@@ -1,0 +1,3 @@
+# Backup for git archive / GitHub ZIP if paths exist locally (core repo omits plugins/ and non-default themes via .gitignore)
+/plugins/ export-ignore
+/themes/avios/ export-ignore

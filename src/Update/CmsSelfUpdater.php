@@ -11,7 +11,7 @@ use ZipArchive;
 
 /**
  * Applies a remote Struxa ZIP (GitHub archive or vendor-built package) over the install.
- * Preserves .env, storage/, public/uploads/, and each plugin's vendor/ tree.
+ * Preserves .env, storage/, public/uploads/, plugins/ (install via catalog), and each plugin's vendor/ tree.
  */
 final class CmsSelfUpdater
 {
@@ -325,6 +325,9 @@ final class CmsSelfUpdater
             return true;
         }
         if (str_starts_with($rel, 'public/uploads/')) {
+            return true;
+        }
+        if ($rel === 'plugins' || str_starts_with($rel, 'plugins/')) {
             return true;
         }
         if (preg_match('#^plugins/[^/]+/vendor($|/)#', $rel) === 1) {

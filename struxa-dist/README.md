@@ -8,6 +8,8 @@ This folder is the **source for the public theme and plugin registry** used by S
 
 The public catalog is controlled by **`publish.json`** in this folder (default: **default** theme only, **no plugins**). Run `./scripts/build-struxa-dist.sh` after changing themes/plugins in the CMS repo; only allowlisted ZIPs and `repo.json` entries are kept.
 
+**Note:** `publish.json` does **not** remove `plugins/` from the main git repo. CMS auto-updates and safe FTP ZIPs skip `plugins/` (see repo root `.gitattributes` and `CmsSelfUpdater`). Plugin source can stay in git for development; production sites install plugins from the catalog only.
+
 To publish more later, edit `publish.json` (e.g. add theme slugs or `"include_plugins": true`) and rebuild.
 
 ## Separate Git repository (optional)

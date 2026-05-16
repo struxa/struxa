@@ -29,6 +29,14 @@ final class PluginDependencyHealthCheck
      */
     public function run(bool $activeOnly = false, bool $warnPackagesNotInRoot = true): array
     {
+        $pluginsRoot = $this->projectRoot . DIRECTORY_SEPARATOR . 'plugins';
+        if (
+            is_file($pluginsRoot . DIRECTORY_SEPARATOR . '.gitkeep')
+            && !is_file($pluginsRoot . DIRECTORY_SEPARATOR . '.struxa-bundle-plugins')
+        ) {
+            return [];
+        }
+
         $issues = [];
         $scanner = new PluginScanner($this->projectRoot);
         $plugins = $scanner->discover();
