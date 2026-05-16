@@ -1,6 +1,19 @@
-# Publish this catalog to GitHub and struxapoint.com
+# Publish themes and plugins on struxapoint.com
 
-## 1. GitHub repository
+Themes and plugin ZIPs are **not** stored in the CMS git repo on customer servers. They live in a **static folder on struxapoint.com**:
+
+```
+struxa-dist/                 ← upload to site docroot (e.g. public_html/struxa-dist/)
+  repo.json                  ← catalog index (themes + plugins)
+  zips/
+    default.zip
+    mailing-list-plugin.zip
+    …
+```
+
+CMS sites download from `https://struxapoint.com/struxa-dist/repo.json` and install ZIPs from `https://struxapoint.com/struxa-dist/zips/{slug}.zip`.
+
+## 1. Build from the CMS repo
 
 From the **Struxa CMS** repo root, rebuild ZIPs and `repo.json` after changing themes/plugins:
 
@@ -8,7 +21,23 @@ From the **Struxa CMS** repo root, rebuild ZIPs and `repo.json` after changing t
 ./scripts/build-struxa-dist.sh
 ```
 
-### Option A — standalone `struxa-dist` repo (recommended)
+## 2. Deploy to struxapoint.com (required)
+
+Upload **`struxa-dist/`** (including `repo.json`, `zips/`, and `.htaccess`) to your hosting docroot:
+
+| Public URL | File on disk |
+|------------|----------------|
+| `https://struxapoint.com/struxa-dist/repo.json` | `struxa-dist/repo.json` |
+| `https://struxapoint.com/struxa-dist/zips/{slug}.zip` | `struxa-dist/zips/{slug}.zip` |
+
+```bash
+rsync -avz struxa-dist/ USER@HOST:public_html/struxa-dist/
+curl -sS https://struxapoint.com/struxa-dist/repo.json | head
+```
+
+## 3. Optional: GitHub mirror (`struxa/struxa-dist`)
+
+### Option A — standalone repo
 
 ```bash
 cd struxa-dist
@@ -28,24 +57,7 @@ rsync -av --delete struxa-dist/ ../struxa-dist-publish/
 cd ../struxa-dist-publish && git init && …
 ```
 
-## 2. Deploy to struxapoint.com
-
-Upload the **contents** of this folder so these URLs respond over HTTPS:
-
-| URL | File |
-|-----|------|
-| `https://struxapoint.com/struxa-dist/repo.json` | `repo.json` |
-| `https://struxapoint.com/struxa-dist/zips/{slug}.zip` | `zips/{slug}.zip` |
-
-Examples: SFTP/rsync to the site docroot, S3 + CloudFront, or GitHub Pages with a `struxa-dist/` path.
-
-After deploy, verify:
-
-```bash
-curl -sS https://struxapoint.com/struxa-dist/repo.json | head
-```
-
-## 3. CMS sites (.env)
+## 4. CMS sites (.env)
 
 On each Struxa install:
 

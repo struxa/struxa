@@ -20,7 +20,7 @@
       <h2 class="admin-settings-card-title">Catalog unavailable</h2>
       <p class="admin-settings-card-desc" style="margin-bottom:0">{{ catalog_error|e }}</p>
     </div>
-    <p class="admin-hint">Host your catalog JSON on HTTPS (e.g. GitHub raw) and set <code class="admin-inline-code">STRUXA_THEME_CATALOG_URL</code>, or edit <code class="admin-inline-code">storage/theme-catalog.json</code>. See <code class="admin-inline-code">storage/theme-catalog.example.json</code> for the format.</p>
+    <p class="admin-hint">Default catalog: <code class="admin-inline-code">https://struxapoint.com/struxa-dist/repo.json</code> (themes and ZIPs under <code class="admin-inline-code">/struxa-dist/zips/</code>). Local fallback: <code class="admin-inline-code">storage/dist-catalog.json</code>. Override with <code class="admin-inline-code">STRUXA_DIST_CATALOG_URL</code>.</p>
   {% elseif catalog_themes is empty %}
     {{ ui.empty_state(
       'No themes listed',
@@ -30,7 +30,7 @@
       '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><path d="M3.27 6.96L12 12.01l8.73-5.05M12 22.08V12"/></svg>'
     ) }}
   {% else %}
-    <p class="admin-hint" style="margin:0 0 1.25rem">Catalog loads from <code class="admin-inline-code">STRUXA_DIST_CATALOG_URL</code> or <code class="admin-inline-code">STRUXA_THEME_CATALOG_URL</code>, default <code class="admin-inline-code">https://struxapoint.com/struxa-dist/repo.json</code> (local fallback: <code class="admin-inline-code">storage/dist-catalog.json</code>). ZIP hosts: GitHub + struxapoint.com; extend with <code class="admin-inline-code">STRUXA_THEME_DOWNLOAD_HOSTS</code>.</p>
+    <p class="admin-hint" style="margin:0 0 1.25rem">Catalog and theme ZIPs are served from <strong>struxapoint.com</strong> (<code class="admin-inline-code">/struxa-dist/repo.json</code> and <code class="admin-inline-code">/struxa-dist/zips/*.zip</code>). Local fallback: <code class="admin-inline-code">storage/dist-catalog.json</code>.</p>
     <div class="admin-theme-grid admin-theme-grid--browse">
       {% for t in catalog_themes %}
         <article class="admin-card admin-theme-card admin-theme-card--browse">

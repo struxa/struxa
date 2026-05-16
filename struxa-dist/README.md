@@ -4,7 +4,13 @@ This folder is the **source for the public theme and plugin registry** used by S
 
 **Live URL (default in CMS):** `https://struxapoint.com/struxa-dist/repo.json`
 
-## Separate Git repository (recommended)
+## What gets published (GitHub / struxapoint.com)
+
+The public catalog is controlled by **`publish.json`** in this folder (default: **default** theme only, **no plugins**). Run `./scripts/build-struxa-dist.sh` after changing themes/plugins in the CMS repo; only allowlisted ZIPs and `repo.json` entries are kept.
+
+To publish more later, edit `publish.json` (e.g. add theme slugs or `"include_plugins": true`) and rebuild.
+
+## Separate Git repository (optional)
 
 Create a dedicated repo, e.g. `struxa/struxa-dist` or `struxapoint/struxa-dist`, containing:
 

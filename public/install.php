@@ -254,8 +254,8 @@ function install_build_env_file(array $vars): string
         $lines[] = $k . '=' . install_env_quote($v);
     }
     $lines[] = '';
-    $lines[] = '# Theme catalog (optional overrides)';
-        $lines[] = '# STRUXA_THEME_CATALOG_URL=https://struxapoint.com/struxa-dist/repo.json';
+    $lines[] = '# Theme and plugin catalog (struxapoint.com folder; optional override)';
+    $lines[] = 'STRUXA_DIST_CATALOG_URL=https://struxapoint.com/struxa-dist/repo.json';
 
     return implode("\n", $lines) . "\n";
 }

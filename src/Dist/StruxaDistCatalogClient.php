@@ -45,6 +45,9 @@ final class StruxaDistCatalogClient
             $json = $this->httpGetLimited($url, self::MAX_BYTES);
         }
         if ($json === null || $json === '') {
+            $json = $this->readPublishedCatalogFromDisk();
+        }
+        if ($json === null || $json === '') {
             $json = $this->readLocalFallback();
         }
         if ($json === null || $json === '') {
@@ -66,6 +69,27 @@ final class StruxaDistCatalogClient
         }
 
         return ['ok' => true, 'data' => $data];
+    }
+
+    /**
+     * When the CMS and catalog share a host, HTTP self-fetch often fails; read the published file instead.
+     */
+    private function readPublishedCatalogFromDisk(): ?string
+    {
+        foreach ([
+            $this->projectRoot . DIRECTORY_SEPARATOR . 'public' . DIRECTORY_SEPARATOR . 'struxa-dist' . DIRECTORY_SEPARATOR . 'repo.json',
+            $this->projectRoot . DIRECTORY_SEPARATOR . 'struxa-dist' . DIRECTORY_SEPARATOR . 'repo.json',
+        ] as $path) {
+            if (!is_readable($path)) {
+                continue;
+            }
+            $loaded = file_get_contents($path);
+            if ($loaded !== false && $loaded !== '') {
+                return $loaded;
+            }
+        }
+
+        return null;
     }
 
     private function readLocalFallback(): ?string

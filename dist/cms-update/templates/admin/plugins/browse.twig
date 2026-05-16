@@ -20,17 +20,17 @@
       <h2 class="admin-settings-card-title">Catalog unavailable</h2>
       <p class="admin-settings-card-desc" style="margin-bottom:0">{{ catalog_error|e }}</p>
     </div>
-    <p class="admin-hint">Publish <code class="admin-inline-code">repo.json</code> on HTTPS (see <code class="admin-inline-code">struxa-dist/</code> in the CMS repo) and set <code class="admin-inline-code">STRUXA_DIST_CATALOG_URL</code>, or add <code class="admin-inline-code">storage/dist-catalog.json</code>.</p>
+    <p class="admin-hint">Default catalog: <code class="admin-inline-code">https://struxapoint.com/struxa-dist/repo.json</code> (plugin ZIPs under <code class="admin-inline-code">/struxa-dist/zips/</code>). Local fallback: <code class="admin-inline-code">storage/dist-catalog.json</code>.</p>
   {% elseif catalog_plugins is empty %}
     {{ ui.empty_state(
       'No plugins listed',
-      'Add entries to the catalog "plugins" array (slug, download_url, metadata). ZIPs must contain plugin.json at the root or in a single top-level folder.',
+      'The catalog loaded but the plugins list is empty. If this site hosts the catalog, ensure public/struxa-dist/repo.json includes a plugins array (not only storage/theme-catalog.json). See struxa-dist/ in the CMS repo.',
       url_for('admin.extensions.plugins.index'),
       'Back to installed plugins',
       '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>'
     ) }}
   {% else %}
-    <p class="admin-hint" style="margin:0 0 1.25rem">Catalog URL: <code class="admin-inline-code">STRUXA_DIST_CATALOG_URL</code> or <code class="admin-inline-code">STRUXA_THEME_CATALOG_URL</code>, default <code class="admin-inline-code">https://struxapoint.com/struxa-dist/repo.json</code>. ZIP hosts: GitHub + struxapoint.com (<code class="admin-inline-code">STRUXA_THEME_DOWNLOAD_HOSTS</code> to extend).</p>
+    <p class="admin-hint" style="margin:0 0 1.25rem">Catalog and plugin ZIPs are served from <strong>struxapoint.com</strong> (<code class="admin-inline-code">/struxa-dist/repo.json</code> and <code class="admin-inline-code">/struxa-dist/zips/*.zip</code>). Same registry as themes.</p>
     <div class="admin-theme-grid admin-theme-grid--browse">
       {% for p in catalog_plugins %}
         <article class="admin-card admin-theme-card admin-theme-card--browse">

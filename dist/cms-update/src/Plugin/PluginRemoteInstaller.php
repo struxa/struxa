@@ -227,11 +227,17 @@ final class PluginRemoteInstaller
             new \RecursiveDirectoryIterator($source, \FilesystemIterator::SKIP_DOTS),
             \RecursiveIteratorIterator::SELF_FIRST
         );
-        foreach ($it as $sub => $item) {
-            if (!is_string($sub)) {
+        $sourcePrefix = $sourceReal . DIRECTORY_SEPARATOR;
+        foreach ($it as $item) {
+            if (!$item instanceof \SplFileInfo) {
                 continue;
             }
-            $target = $destReal . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $sub);
+            $pathname = $item->getPathname();
+            if (!str_starts_with($pathname, $sourcePrefix)) {
+                return 'Path error while copying plugin.';
+            }
+            $rel = substr($pathname, strlen($sourcePrefix));
+            $target = $destReal . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $rel);
             if ($item->isDir()) {
                 if (!@mkdir($target, 0755, true) && !is_dir($target)) {
                     return 'Could not copy plugin folders.';
@@ -241,7 +247,10 @@ final class PluginRemoteInstaller
                 if (!is_dir($parent) && !@mkdir($parent, 0755, true)) {
                     return 'Could not copy plugin files.';
                 }
-                if ($item->isLink() || !@copy($item->getPathname(), $target)) {
+                if ($item->isLink()) {
+                    return 'Plugin archive contains symbolic links.';
+                }
+                if (!@copy($item->getPathname(), $target)) {
                     return 'Could not copy plugin file.';
                 }
             }
