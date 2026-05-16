@@ -20,8 +20,36 @@ Each plugin is **`plugins/{slug}/`** where `{slug}` matches `^[a-z0-9]+(?:-[a-z0
 
 1. **Discovery** — `PluginScanner` reads valid `plugin.json` files.
 2. **Activation** — Rows in **`cms_plugins`** mark which slugs are active. Pending `migrations/*.sql` files are applied and recorded in **`cms_plugin_migrations`**.
-3. **Boot** — For each active plugin, autoload is registered, Twig paths added, routes loaded, then `main_class` (if present) is instantiated; if it implements `PluginServiceProviderInterface`, `boot()` runs (nav items, event listeners).
+3. **Boot** — For each active plugin, autoload is registered, Twig paths added, routes loaded, then `main_class` (if present) is instantiated; if it implements `PluginServiceProviderInterface`, `boot()` runs (nav items, event listeners, reserved URL segments).
 4. **Remove (delete from disk)** — If the plugin root contains **`uninstall.sql`**, it is executed (typically `DROP TABLE` for that plugin’s tables), then **`cms_plugin_migrations`** rows for that slug are deleted so a future reinstall can run migrations again.
+
+## Reserved URL segments (content type slugs)
+
+Struxa blocks certain first-path segments so they cannot be used as **content type** slugs (which would collide with `/{typeSlug}` and `/{typeSlug}/{entrySlug}` routes).
+
+| Layer | Responsibility |
+| --- | --- |
+| **Struxa CMS core** | `registerPluginReservedSlugs()` API, core `RESERVED` list (admin, api, login, search, theme-assets, media, robots.txt, …), docs, tests |
+| **Your site plugin** | Segments **your** plugin owns, e.g. `my-catalog` or (on a downstream project) `casino-review` — registered in **that plugin’s** `boot()`, never in core |
+
+**Principle:** Struxa provides `registerPluginReservedSlugs()`; each plugin registers the path segments it owns. Core never hardcodes application-specific routes.
+
+If your plugin adds public routes, implement `PluginServiceProviderInterface` and reserve matching segments in `boot()` (required when you use `routes/public.php`):
+
+```php
+// In *your* plugin's boot() — illustrative only; do not add these to CMS core:
+public function boot(PluginBootContext $context): void
+{
+    $context->registerPluginReservedSlugs([
+        'my-catalog',   // GET /my-catalog
+        'my-reviews',   // GET /my-reviews/{slug}
+    ]);
+}
+```
+
+`registerReservedContentSlugs()` is an alias with the same behavior. Invalid or empty segments are ignored. Segments must match `^[a-z0-9]+(?:-[a-z0-9]+)*$` (lowercase).
+
+**Bundled example:** `content-stream-plugin` registers `content-stream` for its staff tool at `/content-stream` (see `ContentStreamServiceProvider`).
 
 ## Example plugins
 

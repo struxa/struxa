@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.0.62",
-    "title": "Struxa 1.0.62",
-    "summary": "Content relationships: entry_refs fields link entries with validation and editor warnings before publish.",
+    "latest_version": "1.0.63",
+    "title": "Struxa 1.0.63",
+    "summary": "Plugin API to register reserved URL segments at boot; core RESERVED list is platform-only.",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "minor"

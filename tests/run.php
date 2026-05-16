@@ -201,6 +201,20 @@ if (!$cidrNorm['ok'] || $cidrNorm['pattern'] !== '192.0.2.0/24') {
 if (!ReservedContentSlugs::isReserved('search')) {
     $fail('ReservedContentSlugs should treat "search" as reserved.');
 }
+if (!ReservedContentSlugs::isReserved('admin')) {
+    $fail('ReservedContentSlugs should treat core segment "admin" as reserved.');
+}
+if (ReservedContentSlugs::isReserved('my-catalog')) {
+    $fail('ReservedContentSlugs should not treat unregistered plugin segment "my-catalog" as reserved.');
+}
+ReservedContentSlugs::registerPluginReservedSlugs(['my-catalog', 'my-reviews']);
+if (!ReservedContentSlugs::isReserved('my-catalog') || !ReservedContentSlugs::isReserved('my-reviews')) {
+    $fail('ReservedContentSlugs should treat plugin-registered segments as reserved.');
+}
+if (in_array('casino-review', ReservedContentSlugs::coreReservedSlugs(), true)) {
+    $fail('Core RESERVED must not contain application-specific slugs like casino-review.');
+}
+ReservedContentSlugs::resetPluginReservedSlugsForTesting();
 
 if (SafeRedirectPath::afterLogin('/admin', '/home') !== '/admin') {
     $fail('SafeRedirectPath should allow a simple absolute same-origin path.');

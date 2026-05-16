@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Plugin;
 
+use App\Content\ReservedContentSlugs;
 use App\Event\EventDispatcher;
 use PHPAuth\Auth;
 use Slim\App;
@@ -92,5 +93,26 @@ final class PluginBootContext
             $parentForNav,
             $nested,
         );
+    }
+
+    /**
+     * Reserve first-path URL segments so they cannot be used as content type slugs.
+     *
+     * Call for each segment your plugin serves publicly, e.g. ['my-catalog'] for GET /my-catalog.
+     * Do not add site-specific slugs to Struxa core — register them here in your plugin's boot().
+     *
+     * @param list<string> $slugs
+     */
+    public function registerPluginReservedSlugs(array $slugs): void
+    {
+        ReservedContentSlugs::registerPluginReservedSlugs($slugs);
+    }
+
+    /**
+     * @param list<string> $slugs
+     */
+    public function registerReservedContentSlugs(array $slugs): void
+    {
+        ReservedContentSlugs::registerReservedContentSlugs($slugs);
     }
 }
