@@ -70,8 +70,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
         $cmsUid,
         $pdo,
         $catalogLoader,
-        $remoteInstaller,
-        $scanner
+        $remoteInstaller
     ): void {
         $group->get('/extensions/plugins', function (Request $request, Response $response) use (
             $twig,
