@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.1.6",
-    "title": "Struxa 1.1.6",
-    "summary": "Moves Updates above AI in the admin sidebar navigation.",
+    "latest_version": "1.1.7",
+    "title": "Struxa 1.1.7",
+    "summary": "Dashboard refresh aligned with media library theme — gradient stat cards and panel layout.",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "minor"

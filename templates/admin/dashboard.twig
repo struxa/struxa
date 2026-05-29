@@ -13,7 +13,7 @@
 {% endblock %}
 
 {% block admin_hero_sub %}
-  <p class="admin-hero-sub">
+  <p class="admin-hero-sub admin-hero-sub--tight">
     Here’s what’s happening across <strong class="admin-hero-strong">{{ site|e }}</strong> today.
   </p>
 {% endblock %}
@@ -67,107 +67,99 @@
 {% block admin_content %}
   {% import 'admin/_ui_macros.twig' as ui %}
 
-  <div class="admin-dash">
+  <div class="admin-dash admin-media-page">
     {% set _up = cms_update_status|default({}) %}
     {% if _up.update_available|default(false) %}
-      <div class="admin-dash-update-callout" role="status">
-        <div class="admin-dash-update-callout-copy">
-          <strong class="admin-dash-update-callout-title">New CMS version available</strong>
-          <p class="admin-dash-update-callout-meta">
+      <div class="admin-dash-panel admin-dash-panel--update" role="status">
+        <div class="admin-dash-panel-glow" aria-hidden="true"></div>
+        <div class="admin-dash-panel-icon" aria-hidden="true">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+            <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+          </svg>
+        </div>
+        <div class="admin-dash-panel-copy">
+          <strong class="admin-dash-panel-title">New CMS version available</strong>
+          <p class="admin-dash-panel-meta">
             You’re on <code class="admin-inline-code">{{ _up.current_version|default(cms_version)|e }}</code>
             · latest is <code class="admin-inline-code">{{ _up.latest_version|e }}</code>
             {% if _up.summary|default('') != '' %} — {{ _up.summary|e }}{% endif %}
           </p>
         </div>
-        <div class="admin-dash-update-callout-actions">
+        <div class="admin-dash-panel-actions">
           {% if _up.release_url|default('') != '' %}
             <a class="admin-btn-ghost" href="{{ _up.release_url|e('html_attr') }}" rel="noopener noreferrer" target="_blank">Release notes</a>
           {% endif %}
-          <a class="admin-btn-primary admin-dash-update-callout-primary" href="{{ url_for('admin.updates.index') }}">View updates</a>
+          <a class="admin-btn-primary" href="{{ url_for('admin.updates.index') }}">View updates</a>
         </div>
       </div>
     {% elseif _up.ok|default(true) == false %}
-      <div class="admin-dash-update-callout admin-dash-update-callout--muted" role="status">
-        <p class="admin-dash-update-callout-meta" style="margin:0">
+      <div class="admin-dash-panel admin-dash-panel--update admin-dash-panel--muted" role="status">
+        <p class="admin-dash-panel-meta" style="margin:0">
           Could not verify CMS updates{% if _up.error|default('') != '' %}: {{ _up.error|e }}{% endif %}.
           <a class="admin-link" href="{{ url_for('admin.updates.index', {}, { fresh: 1 }) }}">Check now</a>
         </p>
       </div>
     {% endif %}
 
-    <section class="admin-dash-section" aria-labelledby="dash-metrics">
-      <div class="admin-dash-section-head">
-        <h2 class="admin-dash-section-heading-block" id="dash-metrics">
-          <span class="admin-dash-section-kicker">Overview</span>
-          At a glance
-        </h2>
-        <p class="admin-dash-section-lead">Live totals across pages, entries, and media.</p>
+    <section class="admin-media-hero" aria-labelledby="dash-metrics">
+      <div class="admin-media-toolbar-card admin-dash-overview-bar">
+        <h2 class="admin-dash-overview-title" id="dash-metrics">At a glance</h2>
+        <p class="admin-dash-overview-lead">Live totals across pages, entries, and media.</p>
       </div>
-      <div class="admin-metrics admin-metrics--dash" role="list">
-        <article class="admin-metric admin-metric--dash admin-metric--tone-pages" role="listitem">
-          <div class="admin-metric-dash-top">
-            <span class="admin-metric-dash-icon" aria-hidden="true">{% include 'admin/dashboard/_icon_page.twig' %}</span>
-            <p class="admin-metric-label">Pages</p>
-          </div>
-          <p class="admin-metric-value">{{ s.pages|default(0) }}</p>
-          <p class="admin-metric-meta">{{ s.pages_published|default(0) }} live · {{ s.pages_draft|default(0) }} draft</p>
+      <div class="admin-media-hero-stats admin-media-hero-stats--dash" role="list">
+        <article class="admin-media-stat admin-media-stat--dash" role="listitem">
+          <span class="admin-media-stat-icon" aria-hidden="true">{% include 'admin/dashboard/_icon_page.twig' %}</span>
+          <span class="admin-media-stat-value">{{ s.pages|default(0) }}</span>
+          <span class="admin-media-stat-label">Pages</span>
+          <span class="admin-media-stat-meta">{{ s.pages_published|default(0) }} live · {{ s.pages_draft|default(0) }} draft</span>
           {% if cms_can('manage_pages') %}
-            <a class="admin-metric-link" href="{{ url_for('admin.pages.index') }}">Open pages</a>
+            <a class="admin-media-stat-link" href="{{ url_for('admin.pages.index') }}">Open pages</a>
           {% endif %}
         </article>
-        <article class="admin-metric admin-metric--dash admin-metric--tone-entries" role="listitem">
-          <div class="admin-metric-dash-top">
-            <span class="admin-metric-dash-icon" aria-hidden="true">{% include 'admin/dashboard/_icon_layers.twig' %}</span>
-            <p class="admin-metric-label">Entries</p>
-          </div>
-          <p class="admin-metric-value">{{ s.entries|default(0) }}</p>
-          <p class="admin-metric-meta">{{ s.entries_published|default(0) }} published · {{ s.entries_draft|default(0) }} draft</p>
+        <article class="admin-media-stat admin-media-stat--dash" role="listitem">
+          <span class="admin-media-stat-icon" aria-hidden="true">{% include 'admin/dashboard/_icon_layers.twig' %}</span>
+          <span class="admin-media-stat-value">{{ s.entries|default(0) }}</span>
+          <span class="admin-media-stat-label">Entries</span>
+          <span class="admin-media-stat-meta">{{ s.entries_published|default(0) }} published · {{ s.entries_draft|default(0) }} draft</span>
           {% if cms_can('manage_content_types') or cms_can('create_content') %}
-            <a class="admin-metric-link" href="{{ url_for('admin.content_types.index') }}">Content types</a>
+            <a class="admin-media-stat-link" href="{{ url_for('admin.content_types.index') }}">Content types</a>
           {% endif %}
         </article>
-        <article class="admin-metric admin-metric--dash admin-metric--tone-review" role="listitem">
-          <div class="admin-metric-dash-top">
-            <span class="admin-metric-dash-icon" aria-hidden="true">{% include 'admin/dashboard/_icon_review.twig' %}</span>
-            <p class="admin-metric-label">In review</p>
-          </div>
-          <p class="admin-metric-value">{{ s.entries_in_review|default(0) }}</p>
-          <p class="admin-metric-meta">Awaiting editorial review</p>
+        <article class="admin-media-stat admin-media-stat--dash admin-media-stat--warn" role="listitem">
+          <span class="admin-media-stat-icon" aria-hidden="true">{% include 'admin/dashboard/_icon_review.twig' %}</span>
+          <span class="admin-media-stat-value">{{ s.entries_in_review|default(0) }}</span>
+          <span class="admin-media-stat-label">In review</span>
+          <span class="admin-media-stat-meta">Awaiting editorial review</span>
           {% if cms_can('review_content') %}
-            <a class="admin-metric-link" href="{{ url_for('admin.content_types.index') }}">Review queue</a>
+            <a class="admin-media-stat-link" href="{{ url_for('admin.content_types.index') }}">Review queue</a>
           {% endif %}
         </article>
-        <article class="admin-metric admin-metric--dash admin-metric--tone-media" role="listitem">
-          <div class="admin-metric-dash-top">
-            <span class="admin-metric-dash-icon" aria-hidden="true">{% include 'admin/dashboard/_icon_image.twig' %}</span>
-            <p class="admin-metric-label">Media</p>
-          </div>
-          <p class="admin-metric-value">{{ s.media|default(0) }}</p>
-          <p class="admin-metric-meta">Files in library</p>
+        <article class="admin-media-stat admin-media-stat--dash" role="listitem">
+          <span class="admin-media-stat-icon" aria-hidden="true">{% include 'admin/dashboard/_icon_image.twig' %}</span>
+          <span class="admin-media-stat-value">{{ s.media|default(0) }}</span>
+          <span class="admin-media-stat-label">Media</span>
+          <span class="admin-media-stat-meta">Files in library</span>
           {% if cms_can('manage_media') %}
-            <a class="admin-metric-link" href="{{ url_for('admin.media.index') }}">Media library</a>
+            <a class="admin-media-stat-link" href="{{ url_for('admin.media.index') }}">Media library</a>
           {% endif %}
         </article>
-        <article class="admin-metric admin-metric--dash admin-metric--tone-plugins" role="listitem">
-          <div class="admin-metric-dash-top">
-            <span class="admin-metric-dash-icon" aria-hidden="true">{% include 'admin/dashboard/_icon_plugin.twig' %}</span>
-            <p class="admin-metric-label">Plugins</p>
-          </div>
-          <p class="admin-metric-value">{{ s.active_plugins|default(0) }}</p>
-          <p class="admin-metric-meta">Active extensions</p>
+        <article class="admin-media-stat admin-media-stat--dash" role="listitem">
+          <span class="admin-media-stat-icon" aria-hidden="true">{% include 'admin/dashboard/_icon_plugin.twig' %}</span>
+          <span class="admin-media-stat-value">{{ s.active_plugins|default(0) }}</span>
+          <span class="admin-media-stat-label">Plugins</span>
+          <span class="admin-media-stat-meta">Active extensions</span>
           {% if cms_can('manage_plugins') %}
-            <a class="admin-metric-link" href="{{ url_for('admin.extensions.plugins.index') }}">Extensions</a>
+            <a class="admin-media-stat-link" href="{{ url_for('admin.extensions.plugins.index') }}">Extensions</a>
           {% endif %}
         </article>
-        <article class="admin-metric admin-metric--dash admin-metric--tone-types" role="listitem">
-          <div class="admin-metric-dash-top">
-            <span class="admin-metric-dash-icon" aria-hidden="true">{% include 'admin/dashboard/_icon_grid.twig' %}</span>
-            <p class="admin-metric-label">Content types</p>
-          </div>
-          <p class="admin-metric-value">{{ s.content_types|default(0) }}</p>
-          <p class="admin-metric-meta">Structured models</p>
+        <article class="admin-media-stat admin-media-stat--dash" role="listitem">
+          <span class="admin-media-stat-icon" aria-hidden="true">{% include 'admin/dashboard/_icon_grid.twig' %}</span>
+          <span class="admin-media-stat-value">{{ s.content_types|default(0) }}</span>
+          <span class="admin-media-stat-label">Content types</span>
+          <span class="admin-media-stat-meta">Structured models</span>
           {% if cms_can('manage_content_types') %}
-            <a class="admin-metric-link" href="{{ url_for('admin.content_types.index') }}">Type library</a>
+            <a class="admin-media-stat-link" href="{{ url_for('admin.content_types.index') }}">Type library</a>
           {% endif %}
         </article>
       </div>
@@ -182,7 +174,9 @@
           </h2>
           <p class="admin-dash-section-lead">Clean slate — add a page, a content type, or media to get moving.</p>
         </div>
-        <div class="admin-dash-onboarding">
+        <div class="admin-dash-panel admin-dash-panel--onboarding">
+          <div class="admin-dash-panel-glow" aria-hidden="true"></div>
+          <div class="admin-dash-panel-inner">
           <ul class="admin-dash-checklist">
             <li>
               <span class="admin-dash-check {{ (s.pages|default(0)) > 0 ? 'admin-dash-check--done' : '' }}" aria-hidden="true"></span>
@@ -215,12 +209,15 @@
               </div>
             </li>
           </ul>
+          </div>
         </div>
       </section>
     {% endif %}
 
     <div class="admin-dash-bento">
-      <section class="admin-dash-card admin-dash-card--elevated admin-dash-bento__workflow" aria-labelledby="dash-workflow">
+      <section class="admin-dash-panel admin-dash-panel--card admin-dash-bento__workflow" aria-labelledby="dash-workflow">
+        <div class="admin-dash-panel-glow" aria-hidden="true"></div>
+        <div class="admin-dash-panel-inner">
         <h3 class="admin-dash-card-title" id="dash-workflow">Drafts &amp; review</h3>
         <p class="admin-dash-card-lead">Open work across pages and structured content.</p>
         <ul class="admin-dash-pulse">
@@ -241,9 +238,12 @@
           <p class="admin-dash-card-foot">Open a type and filter by status to clear the queue.</p>
           <a class="admin-metric-link" href="{{ url_for('admin.content_types.index') }}">Go to content types →</a>
         {% endif %}
+        </div>
       </section>
 
-      <section class="admin-dash-card admin-dash-card--elevated admin-dash-bento__shortcuts" aria-labelledby="dash-quick">
+      <section class="admin-dash-panel admin-dash-panel--card admin-dash-bento__shortcuts" aria-labelledby="dash-quick">
+        <div class="admin-dash-panel-glow" aria-hidden="true"></div>
+        <div class="admin-dash-panel-inner">
         <h3 class="admin-dash-card-title" id="dash-quick">Shortcuts</h3>
         <p class="admin-dash-card-lead">Frequent admin destinations in one tap.</p>
         <div class="admin-dash-tiles">
@@ -267,9 +267,12 @@
         {% if not cms_can('manage_settings') and not cms_can('manage_menus') and not cms_can('manage_themes') and not cms_can('manage_portability') and not cms_can('view_activity') %}
           <p class="admin-hint admin-dash-tiles-empty">No shortcuts for your role — use the sidebar to navigate.</p>
         {% endif %}
+        </div>
       </section>
 
-      <section class="admin-dash-card admin-dash-card--elevated admin-dash-bento__activity" aria-labelledby="dash-activity">
+      <section class="admin-dash-panel admin-dash-panel--card admin-dash-bento__activity" aria-labelledby="dash-activity">
+        <div class="admin-dash-panel-glow" aria-hidden="true"></div>
+        <div class="admin-dash-panel-inner">
         <div class="admin-dash-card-head-row">
           <h3 class="admin-dash-card-title" id="dash-activity">Recent activity</h3>
           {% if cms_can('view_activity') %}
@@ -301,9 +304,12 @@
             </ol>
           </div>
         {% endif %}
+        </div>
       </section>
 
-      <section class="admin-dash-card admin-dash-card--elevated admin-dash-bento__entries" aria-labelledby="dash-recent-entries">
+      <section class="admin-dash-panel admin-dash-panel--card admin-dash-bento__entries" aria-labelledby="dash-recent-entries">
+        <div class="admin-dash-panel-glow" aria-hidden="true"></div>
+        <div class="admin-dash-panel-inner">
         <h3 class="admin-dash-card-title" id="dash-recent-entries">Latest entries</h3>
         {% if s.recent_entries is empty %}
           <p class="admin-dash-empty">Nothing edited yet.</p>
@@ -324,9 +330,12 @@
             {% endfor %}
           </ul>
         {% endif %}
+        </div>
       </section>
 
-      <section class="admin-dash-card admin-dash-card--elevated admin-dash-bento__types" aria-labelledby="dash-by-type">
+      <section class="admin-dash-panel admin-dash-panel--card admin-dash-bento__types" aria-labelledby="dash-by-type">
+        <div class="admin-dash-panel-glow" aria-hidden="true"></div>
+        <div class="admin-dash-panel-inner">
         <h3 class="admin-dash-card-title" id="dash-by-type">Entries by type</h3>
         {% if s.entries_by_type is empty %}
           <p class="admin-dash-empty">Create a content type to see entry counts.</p>
@@ -349,6 +358,7 @@
             {% endfor %}
           </ul>
         {% endif %}
+        </div>
       </section>
     </div>
 
