@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.0.70",
-    "title": "Struxa 1.0.70",
-    "summary": "Fix media library Gallery/List view toggle using reliable GET form buttons.",
+    "latest_version": "1.0.71",
+    "title": "Struxa 1.0.71",
+    "summary": "Media library: sort, per-page size, image lightbox, upload progress, sticky bulk bar, and desktop layout polish.",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "minor"

@@ -10,6 +10,7 @@ use App\Http\Middleware\RequireCmsStaff;
 use App\Http\Middleware\RequirePermission;
 use App\Media\MediaCompressionSettings;
 use App\Media\MediaDeletionService;
+use App\Media\MediaLibraryListOptions;
 use App\Media\MediaMetadataValidator;
 use App\Media\MediaRepository;
 use App\Media\MediaStorage;
@@ -66,21 +67,23 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
         $cmsUserId,
         $pdo
     ): void {
-        $perPage = 24;
+        $perPageDefault = 24;
 
-        $group->get('/media', function (Request $request, Response $response) use ($twig, $adminContext, $withCmsUser, $repo, $perPage): Response {
+        $group->get('/media', function (Request $request, Response $response) use ($twig, $adminContext, $withCmsUser, $repo, $perPageDefault): Response {
             $qp = $request->getQueryParams();
             $q = isset($qp['q']) && is_string($qp['q']) ? trim($qp['q']) : '';
             $page = isset($qp['page']) ? max(1, (int) $qp['page']) : 1;
             $viewRaw = isset($qp['view']) && is_string($qp['view']) ? strtolower(trim($qp['view'])) : '';
             $mediaView = $viewRaw === 'list' ? 'list' : 'gallery';
+            $listOpts = MediaLibraryListOptions::fromQueryParams($qp);
+            $perPage = $listOpts->perPage;
 
             $total = $repo->countSearch($q);
-            $rows = $repo->searchPaginated($q, $page, $perPage);
+            $rows = $repo->searchPaginated($q, $page, $perPage, $listOpts->sort);
             $totalPages = $total > 0 ? (int) ceil($total / $perPage) : 1;
             if ($page > $totalPages && $total > 0) {
                 $page = $totalPages;
-                $rows = $repo->searchPaginated($q, $page, $perPage);
+                $rows = $repo->searchPaginated($q, $page, $perPage, $listOpts->sort);
             }
 
             $stats = $repo->libraryStats();
@@ -91,8 +94,10 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 'media_rows' => $rows,
                 'search_q' => $q,
                 'media_view' => $mediaView,
+                'media_sort' => $listOpts->sort,
                 'page' => $page,
                 'per_page' => $perPage,
+                'per_page_choices' => MediaLibraryListOptions::perPageChoices(),
                 'total' => $total,
                 'total_pages' => $totalPages,
                 'max_upload_mb' => (int) round(MediaUploadService::maxBytesFromEnv() / 1024 / 1024),
@@ -273,7 +278,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 ->withStatus(302);
         })->setName('admin.media.delete');
 
-        $group->post('/media/bulk-delete', function (Request $request, Response $response) use ($deleteService, $repo, $perPage): Response {
+        $group->post('/media/bulk-delete', function (Request $request, Response $response) use ($deleteService, $repo): Response {
             $body = $request->getParsedBody();
             $body = is_array($body) ? $body : [];
             $raw = $body['ids'] ?? [];
@@ -291,6 +296,13 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             $returnQ = isset($body['return_q']) && is_string($body['return_q']) ? trim($body['return_q']) : '';
             $returnView = isset($body['return_view']) && is_string($body['return_view']) ? strtolower(trim($body['return_view'])) : '';
             $returnPage = isset($body['return_page']) && is_numeric($body['return_page']) ? max(1, (int) $body['return_page']) : 1;
+            $returnSort = isset($body['return_sort']) && is_string($body['return_sort']) ? $body['return_sort'] : MediaLibraryListOptions::SORT_NEWEST;
+            $returnPerPage = isset($body['return_per_page']) ? (int) $body['return_per_page'] : 24;
+            $listOpts = MediaLibraryListOptions::fromQueryParams([
+                'sort' => $returnSort,
+                'per_page' => (string) $returnPerPage,
+            ]);
+            $perPage = $listOpts->perPage;
 
             $total = $repo->countSearch($returnQ);
             $totalPages = $total > 0 ? (int) ceil($total / $perPage) : 1;
@@ -302,6 +314,12 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             }
             if ($returnView === 'list') {
                 $query['view'] = 'list';
+            }
+            if ($listOpts->sort !== MediaLibraryListOptions::SORT_NEWEST) {
+                $query['sort'] = $listOpts->sort;
+            }
+            if ($perPage !== 24) {
+                $query['per_page'] = $perPage;
             }
             if ($page > 1) {
                 $query['page'] = $page;

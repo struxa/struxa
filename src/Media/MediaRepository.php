@@ -109,10 +109,11 @@ final class MediaRepository
     /**
      * @return list<array<string, mixed>>
      */
-    public function searchPaginated(string $search, int $page, int $perPage): array
+    public function searchPaginated(string $search, int $page, int $perPage, string $sort = MediaLibraryListOptions::SORT_NEWEST): array
     {
+        $opts = new MediaLibraryListOptions($sort, $perPage);
         $page = max(1, $page);
-        $perPage = max(1, min(100, $perPage));
+        $perPage = $opts->perPage;
         $offset = ($page - 1) * $perPage;
 
         $where = '';
@@ -129,7 +130,8 @@ final class MediaRepository
                 FROM ' . self::TABLE . ' m
                 LEFT JOIN cms_users u ON u.id = m.uploaded_by'
             . $where
-            . ' ORDER BY m.created_at DESC LIMIT ' . (int) $perPage . ' OFFSET ' . (int) $offset;
+            . ' ORDER BY ' . $opts->orderBySql()
+            . ' LIMIT ' . (int) $perPage . ' OFFSET ' . (int) $offset;
 
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute($params);
