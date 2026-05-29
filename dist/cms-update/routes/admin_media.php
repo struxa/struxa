@@ -272,5 +272,49 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 ->withHeader('Location', RouteContext::fromRequest($request)->getRouteParser()->urlFor('admin.media.index'))
                 ->withStatus(302);
         })->setName('admin.media.delete');
+
+        $group->post('/media/bulk-delete', function (Request $request, Response $response) use ($deleteService, $repo, $perPage): Response {
+            $body = $request->getParsedBody();
+            $body = is_array($body) ? $body : [];
+            $raw = $body['ids'] ?? [];
+            if (!is_array($raw)) {
+                $raw = [];
+            }
+
+            $deleted = $deleteService->deleteMany($raw);
+            if ($deleted > 0) {
+                Flash::set('success', $deleted === 1 ? '1 file removed.' : $deleted . ' files removed.');
+            } else {
+                Flash::set('error', 'No files were selected.');
+            }
+
+            $returnQ = isset($body['return_q']) && is_string($body['return_q']) ? trim($body['return_q']) : '';
+            $returnView = isset($body['return_view']) && is_string($body['return_view']) ? strtolower(trim($body['return_view'])) : '';
+            $returnPage = isset($body['return_page']) && is_numeric($body['return_page']) ? max(1, (int) $body['return_page']) : 1;
+
+            $total = $repo->countSearch($returnQ);
+            $totalPages = $total > 0 ? (int) ceil($total / $perPage) : 1;
+            $page = min($returnPage, max(1, $totalPages));
+
+            $query = [];
+            if ($returnQ !== '') {
+                $query['q'] = $returnQ;
+            }
+            if ($returnView === 'list') {
+                $query['view'] = 'list';
+            }
+            if ($page > 1) {
+                $query['page'] = $page;
+            }
+
+            $url = RouteContext::fromRequest($request)->getRouteParser()->urlFor('admin.media.index');
+            if ($query !== []) {
+                $url .= '?' . http_build_query($query);
+            }
+
+            return $response
+                ->withHeader('Location', $url)
+                ->withStatus(302);
+        })->setName('admin.media.bulk_delete');
     })->add($permMedia)->add($middleware);
 };

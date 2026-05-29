@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.0.68",
-    "title": "Struxa 1.0.68",
-    "summary": "Docker image includes PHP GD (WebP/JPEG/PNG) so media compression and thumbnails work out of the box.",
+    "latest_version": "1.0.69",
+    "title": "Struxa 1.0.69",
+    "summary": "Media library polish: premium compression panel, bulk delete, and numbered pagination.",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "minor"

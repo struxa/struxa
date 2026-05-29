@@ -22,3 +22,28 @@
     {% endif %}
   </div>
 {% endmacro %}
+
+{% macro pagination(route_name, page, total_pages, query = {}, aria_label = 'Pagination') %}
+  {% if total_pages > 1 %}
+    <nav class="admin-pagination admin-pagination--numbered" aria-label="{{ aria_label|e('html_attr') }}">
+      {% if page > 1 %}
+        <a class="admin-pagination-btn" href="{{ url_for(route_name, {}, query|merge({ page: 1 })) }}" aria-label="First page">First</a>
+        <a class="admin-pagination-btn" href="{{ url_for(route_name, {}, query|merge({ page: page - 1 })) }}">Previous</a>
+      {% endif %}
+      {% for p in 1..total_pages %}
+        {% if total_pages <= 9 or p == 1 or p == total_pages or (p >= page - 2 and p <= page + 2) %}
+          {% if p == page %}
+            <span class="admin-pagination-num is-current" aria-current="page">{{ p }}</span>
+          {% else %}
+            <a class="admin-pagination-num" href="{{ url_for(route_name, {}, query|merge({ page: p })) }}">{{ p }}</a>
+          {% endif %}
+        {% endif %}
+      {% endfor %}
+      {% if page < total_pages %}
+        <a class="admin-pagination-btn" href="{{ url_for(route_name, {}, query|merge({ page: page + 1 })) }}">Next</a>
+        <a class="admin-pagination-btn" href="{{ url_for(route_name, {}, query|merge({ page: total_pages })) }}" aria-label="Last page">Last</a>
+      {% endif %}
+      <span class="admin-pagination-status">{{ page }} / {{ total_pages }}</span>
+    </nav>
+  {% endif %}
+{% endmacro %}

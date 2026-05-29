@@ -23,4 +23,26 @@ final class MediaDeletionService
         MediaStorage::unlinkManagedFile($this->projectRoot, $webPath);
         $this->repository->deleteById($id);
     }
+
+    /**
+     * @param list<int|string> $ids
+     */
+    public function deleteMany(array $ids): int
+    {
+        $deleted = 0;
+        foreach ($ids as $raw) {
+            $id = (int) $raw;
+            if ($id < 1) {
+                continue;
+            }
+            $before = $this->repository->findById($id);
+            if ($before === null) {
+                continue;
+            }
+            $this->delete($id);
+            $deleted++;
+        }
+
+        return $deleted;
+    }
 }

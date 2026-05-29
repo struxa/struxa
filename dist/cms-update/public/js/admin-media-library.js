@@ -153,6 +153,25 @@
     }
 
     if (compressToggle && cfg.compressUrl) {
+      var compressPanel = document.querySelector('.admin-media-compress-panel');
+      var compressBadge = document.getElementById('admin-media-compress-badge');
+
+      function setCompressUi(enabled, caps) {
+        if (compressPanel) compressPanel.classList.toggle('is-on', !!enabled);
+        if (compressBadge) compressBadge.textContent = enabled ? 'Active' : 'Off';
+        if (compressHint) {
+          if (enabled) {
+            compressHint.textContent = caps && caps.webp_encode
+              ? 'WebP re-encode on upload · max edge cap applied'
+              : 'JPEG/PNG re-encode on upload · max edge cap applied';
+          } else if (!cfg.gdAvailable) {
+            /* keep server-rendered unavailable hint */
+          } else {
+            compressHint.textContent = 'Shrink uploads with WebP and modern codecs — toggle on to optimize new files automatically.';
+          }
+        }
+      }
+
       compressToggle.addEventListener('change', function () {
         var enabled = compressToggle.checked;
         var token = csrfToken();
@@ -177,16 +196,7 @@
               }
               return;
             }
-            if (compressHint) {
-              var caps = data.capabilities || {};
-              if (data.enabled) {
-                compressHint.textContent = caps.webp_encode
-                  ? 'WebP re-encode · max edge cap applied on upload'
-                  : 'JPEG/PNG re-encode · max edge cap applied on upload';
-              } else {
-                compressHint.textContent = 'Off — uploads stored as uploaded';
-              }
-            }
+            setCompressUi(!!data.enabled, data.capabilities || {});
           })
           .catch(function () {
             compressToggle.checked = !enabled;
@@ -218,6 +228,68 @@
         }
       });
     });
+
+    var selectAll = document.getElementById('admin-media-select-all');
+    var bulkDelete = document.getElementById('admin-media-bulk-delete');
+    var bulkForm = document.getElementById('admin-media-bulk-form');
+    var bulkCount = document.getElementById('admin-media-bulk-count');
+    var rowCbs = document.querySelectorAll('.admin-media-row-cb');
+
+    function selectedCount() {
+      var n = 0;
+      rowCbs.forEach(function (cb) {
+        if (cb.checked) n += 1;
+      });
+      return n;
+    }
+
+    function syncBulkUi() {
+      var n = selectedCount();
+      if (bulkDelete) bulkDelete.disabled = n < 1;
+      if (bulkCount) {
+        bulkCount.hidden = n < 1;
+        bulkCount.textContent = n === 1 ? '1 selected' : n + ' selected';
+      }
+      if (selectAll) {
+        selectAll.indeterminate = n > 0 && n < rowCbs.length;
+        selectAll.checked = rowCbs.length > 0 && n === rowCbs.length;
+      }
+      rowCbs.forEach(function (cb) {
+        var card = cb.closest('.admin-media-gallery-card');
+        if (card) card.classList.toggle('is-selected', cb.checked);
+      });
+    }
+
+    if (selectAll) {
+      selectAll.addEventListener('change', function () {
+        rowCbs.forEach(function (cb) {
+          cb.checked = selectAll.checked;
+        });
+        syncBulkUi();
+      });
+    }
+
+    rowCbs.forEach(function (cb) {
+      cb.addEventListener('change', syncBulkUi);
+    });
+
+    if (bulkForm && bulkDelete) {
+      bulkForm.addEventListener('submit', function (e) {
+        var n = selectedCount();
+        if (n < 1) {
+          e.preventDefault();
+          return;
+        }
+        var msg = n === 1
+          ? 'Delete this file permanently?'
+          : 'Delete ' + n + ' files permanently?';
+        if (!window.confirm(msg)) {
+          e.preventDefault();
+        }
+      });
+    }
+
+    syncBulkUi();
   }
 
   if (document.readyState === 'loading') {
