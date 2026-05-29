@@ -2770,6 +2770,7 @@ body.admin-media-modal-open {
   border-radius: 10px;
   background: rgba(0, 0, 0, 0.22);
   border: 1px solid var(--admin-border);
+  margin: 0;
 }
 
 .admin-media-view-btn {
@@ -2777,12 +2778,18 @@ body.admin-media-modal-open {
   font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 0.02em;
+  font-family: inherit;
+  line-height: 1.2;
   text-decoration: none;
   color: var(--admin-muted);
+  border: none;
   border-radius: 8px;
+  background: transparent;
+  cursor: pointer;
   transition:
     color 0.15s ease,
-    background 0.15s ease;
+    background 0.15s ease,
+    box-shadow 0.15s ease;
 }
 
 .admin-media-view-btn:hover {
@@ -2794,6 +2801,12 @@ body.admin-media-modal-open {
   color: var(--admin-text);
   background: var(--admin-card);
   box-shadow: 0 1px 6px rgba(0, 0, 0, 0.25);
+  cursor: default;
+}
+
+.admin-media-view-btn:focus-visible {
+  outline: 2px solid var(--admin-blue);
+  outline-offset: 2px;
 }
 
 .admin-media-search {

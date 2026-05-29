@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.0.69",
-    "title": "Struxa 1.0.69",
-    "summary": "Media library polish: premium compression panel, bulk delete, and numbered pagination.",
+    "latest_version": "1.0.70",
+    "title": "Struxa 1.0.70",
+    "summary": "Fix media library Gallery/List view toggle using reliable GET form buttons.",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "minor"

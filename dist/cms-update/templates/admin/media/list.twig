@@ -126,16 +126,28 @@
     <div class="admin-media-toolbar-card">
     <div class="admin-media-toolbar admin-toolbar admin-toolbar--spread">
       <div class="admin-media-toolbar-start">
-        <div class="admin-media-view-toggle" role="group" aria-label="Library layout">
-          <a
-            href="{{ url_for('admin.media.index', {}, search_q ? { q: search_q, view: 'gallery' } : { view: 'gallery' }) }}"
+        <form class="admin-media-view-toggle" method="get" action="{{ url_for('admin.media.index') }}" aria-label="Library layout">
+          {% if search_q %}
+            <input type="hidden" name="q" value="{{ search_q|e('html_attr') }}" />
+          {% endif %}
+          {% if page > 1 %}
+            <input type="hidden" name="page" value="{{ page }}" />
+          {% endif %}
+          <button
+            type="submit"
+            name="view"
+            value="gallery"
             class="admin-media-view-btn{% if media_view != 'list' %} is-active{% endif %}"
-          >Gallery</a>
-          <a
-            href="{{ url_for('admin.media.index', {}, search_q ? { q: search_q, view: 'list' } : { view: 'list' }) }}"
+            {% if media_view != 'list' %}aria-current="page"{% endif %}
+          >Gallery</button>
+          <button
+            type="submit"
+            name="view"
+            value="list"
             class="admin-media-view-btn{% if media_view == 'list' %} is-active{% endif %}"
-          >List</a>
-        </div>
+            {% if media_view == 'list' %}aria-current="page"{% endif %}
+          >List</button>
+        </form>
       </div>
       <form class="admin-media-search" method="get" action="{{ url_for('admin.media.index') }}">
         {% if media_view == 'list' %}
