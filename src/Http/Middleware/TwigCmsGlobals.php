@@ -12,7 +12,7 @@ use App\Media\SiteBrandingResolver;
 use App\Menu\MenuPublicLoader;
 use App\Seo\ExternalLinkPolicy;
 use App\Settings\SettingsRepository;
-use App\Settings\SiteSettingsService;
+use App\Settings\SiteUrlResolver;
 use App\Plugin\PluginAdminNavGrouper;
 use App\Plugin\PluginAdminNavRegistry;
 use App\Plugin\PluginScanner;
@@ -99,7 +99,7 @@ final class TwigCmsGlobals implements MiddlewareInterface
             $manifestArr = $manifest !== null ? $manifest->toArray() : [];
             $themeSettings = $manifest !== null ? (new ThemeSettingsResolver())->resolvedValues($manifest) : [];
         }
-        $siteUrlGlobal = rtrim($_ENV['PHPAUTH_SITE_URL'] ?? 'http://localhost:8080', '/');
+        $siteUrlGlobal = SiteUrlResolver::resolve();
         $env->addGlobal('site_url', $siteUrlGlobal);
         $navRelHost = ExternalLinkPolicy::siteHostFromSiteUrl($siteUrlGlobal);
         $navNofollowExternal = ExternalLinkPolicy::isEnabled();

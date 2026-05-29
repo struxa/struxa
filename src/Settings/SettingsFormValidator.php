@@ -26,8 +26,19 @@ final class SettingsFormValidator
         $siteName = $this->str($body, 'site_name');
         if ($siteName === '') {
             $errors['site_name'] = 'Site name is required.';
-        } elseif (mb_strlen($siteName) > 120) {
+        } else        if (mb_strlen($siteName) > 120) {
             $errors['site_name'] = 'Site name must be 120 characters or fewer.';
+        }
+
+        $siteUrl = rtrim($this->str($body, 'site_url'), '/');
+        if ($siteUrl === '') {
+            $errors['site_url'] = 'Site URL is required (e.g. https://example.com).';
+        } elseif (!filter_var($siteUrl, FILTER_VALIDATE_URL)) {
+            $errors['site_url'] = 'Enter a valid URL including https:// or http://.';
+        } elseif (!preg_match('#^https?://#i', $siteUrl)) {
+            $errors['site_url'] = 'Site URL must start with http:// or https://.';
+        } elseif (mb_strlen($siteUrl) > 2000) {
+            $errors['site_url'] = 'Site URL is too long.';
         }
 
         $siteLanguage = SiteLocale::normalizeSetting($this->str($body, 'site_language'));
@@ -138,6 +149,7 @@ final class SettingsFormValidator
 
         $values = [
             'site_name' => $siteName,
+            'site_url' => $siteUrl,
             'site_language' => $siteLanguage,
             'site_tagline' => $siteTagline,
             'logo_path' => $logoPath,

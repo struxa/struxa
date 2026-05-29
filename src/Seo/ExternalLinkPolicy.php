@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Seo;
 
 use App\Settings;
+use App\Settings\SiteUrlResolver;
 use DOMDocument;
 use DOMElement;
 use DOMXPath;
@@ -24,14 +25,7 @@ final class ExternalLinkPolicy
      */
     public static function configuredSiteBaseUrl(): string
     {
-        $url = $_ENV['SITE_URL'] ?? getenv('SITE_URL');
-        $url = is_string($url) ? trim($url) : '';
-        if ($url === '') {
-            $url = $_ENV['PHPAUTH_SITE_URL'] ?? getenv('PHPAUTH_SITE_URL');
-            $url = is_string($url) ? trim($url) : '';
-        }
-
-        return rtrim($url, '/');
+        return SiteUrlResolver::resolve();
     }
 
     public static function configuredSiteHost(): ?string

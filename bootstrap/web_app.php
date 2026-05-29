@@ -223,7 +223,7 @@ $viewData = static function (array $extra = []) use ($auth, $pdo, $googleSso): a
         'user_username' => $userUsername,
         'flash_error' => Flash::pull('error'),
         'flash_success' => Flash::pull('success'),
-        'site_url' => rtrim($_ENV['PHPAUTH_SITE_URL'] ?? 'http://localhost:8080', '/'),
+        'site_url' => \App\Settings\SiteUrlResolver::resolve(),
         'google_sso_enabled' => $googleSso !== null,
     ], $extra);
 };

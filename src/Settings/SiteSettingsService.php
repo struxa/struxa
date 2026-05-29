@@ -14,6 +14,8 @@ final class SiteSettingsService
     /** @var array<string, string> */
     public const DEFAULTS = [
         'site_name' => 'Your Studio',
+        /** Public canonical base URL (https://example.com). Empty = PHPAUTH_SITE_URL from .env */
+        'site_url' => '',
         /** BCP 47 code for public HTML lang / OG locale (Admin → Site settings). */
         'site_language' => 'en',
         'site_tagline' => '',
@@ -53,6 +55,7 @@ final class SiteSettingsService
     /** @var list<string> */
     public const MANAGED_KEYS = [
         'site_name',
+        'site_url',
         'site_language',
         'site_tagline',
         'logo_path',
@@ -110,6 +113,12 @@ final class SiteSettingsService
         foreach (self::MANAGED_KEYS as $key) {
             if ($key === 'google_oauth_client_secret') {
                 $out[$key] = '';
+
+                continue;
+            }
+            if ($key === 'site_url') {
+                $v = trim($base[$key] ?? '');
+                $out[$key] = $v !== '' ? $v : SiteUrlResolver::resolve();
 
                 continue;
             }

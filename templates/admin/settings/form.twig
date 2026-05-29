@@ -50,12 +50,18 @@
         <div class="admin-settings-row2">
           <section id="settings-general" class="admin-card admin-settings-card admin-settings-section admin-settings-card--fill" tabindex="-1">
             <h2 class="admin-settings-card-title">General</h2>
-            <p class="admin-settings-card-desc">Site name, language (public HTML and social meta), tagline, footer, and contact.</p>
+            <p class="admin-settings-card-desc">Site name, public URL (domain), language, tagline, footer, and contact.</p>
             <div class="admin-form-grid">
               <div class="admin-field admin-field--full {{ errors.site_name is defined ? 'admin-field--error' : '' }}">
                 <label class="admin-label" for="site_name">Site name <span class="admin-req">*</span></label>
                 <input class="admin-input" type="text" id="site_name" name="site_name" value="{{ settings_values.site_name|default('')|e('html_attr') }}" maxlength="120" required />
                 {% if errors.site_name is defined %}<p class="admin-field-error">{{ errors.site_name|e }}</p>{% endif %}
+              </div>
+              <div class="admin-field admin-field--full {{ errors.site_url is defined ? 'admin-field--error' : '' }}">
+                <label class="admin-label" for="site_url">Site URL (public domain) <span class="admin-req">*</span></label>
+                <input class="admin-input" type="url" id="site_url" name="site_url" value="{{ settings_values.site_url|default('')|e('html_attr') }}" maxlength="2000" placeholder="https://example.com" required autocomplete="url" inputmode="url" />
+                <p class="admin-hint">Canonical public address for SEO, sitemaps, OAuth redirects, and live preview links. Use <code class="admin-inline-code">https://</code> and no trailing slash.</p>
+                {% if errors.site_url is defined %}<p class="admin-field-error">{{ errors.site_url|e }}</p>{% endif %}
               </div>
               <div class="admin-field admin-field--full {{ errors.site_language is defined ? 'admin-field--error' : '' }}">
                 <label class="admin-label" for="site_language">Site language</label>
@@ -105,8 +111,8 @@
           <h2 class="admin-settings-card-title">Google sign-in</h2>
           <p class="admin-settings-card-desc">
             OAuth 2.0 for <code class="admin-inline-code">/login</code> (“Continue with Google”). In Google Cloud Console, create a Web client and set the redirect URI to
-            <code class="admin-inline-code">{{ site_url|default('')|e }}/auth/google/callback</code> unless you override it below.
-            <code class="admin-inline-code">PHPAUTH_SITE_URL</code> in <code class="admin-inline-code">.env</code> must match your public site URL.
+            <code class="admin-inline-code">{{ settings_values.site_url|default(site_url|default(''))|e }}/auth/google/callback</code> unless you override it below.
+            The <strong>Site URL</strong> in General must match how visitors reach your site.
           </p>
           <div class="admin-form-grid">
             <div class="admin-field admin-field--full">

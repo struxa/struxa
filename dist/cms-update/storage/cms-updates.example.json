@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.1.3",
-    "title": "Struxa 1.1.3",
-    "summary": "Admin header stays sticky while scrolling; command palette search sits on the right beside actions.",
+    "latest_version": "1.1.4",
+    "title": "Struxa 1.1.4",
+    "summary": "Dashboard refresh aligned with the new admin header; Site URL (public domain) field in settings drives SEO, OAuth, and live links.",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "minor"

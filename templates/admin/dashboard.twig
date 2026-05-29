@@ -1,6 +1,10 @@
 {% extends 'admin/base.twig' %}
+{% set s = dashboard_stats|default({}) %}
+{% set site = settings.site_name|default('Studio') %}
 
 {% block admin_title %}Dashboard{% endblock %}
+
+{% block admin_body_class %}admin-body--dash-ref admin-body--dashboard{% endblock %}
 
 {% block admin_hero_title %}
   <h1 class="admin-hero-title">
@@ -10,62 +14,60 @@
 
 {% block admin_hero_sub %}
   <p class="admin-hero-sub">
-    <strong class="admin-hero-strong">{{ settings.site_name|default('Your site')|e }}</strong>
-    {% if cms_user.role_labels is defined and cms_user.role_labels is not empty %}
-      · {{ cms_user.role_labels|join(', ')|e }}
-    {% elseif cms_user.role is defined and cms_user.role %}
-      · {{ cms_user.role|capitalize }}
-    {% endif %}
+    Here’s what’s happening across <strong class="admin-hero-strong">{{ site|e }}</strong> today.
   </p>
-  <p class="admin-hero-sub admin-hero-sub--tight">{{ cms_user.email|default('')|e }}</p>
+{% endblock %}
+
+{% block admin_hero_meta %}
+  <div class="admin-hero-chips" aria-label="Session summary">
+    <span class="admin-hero-chip">{{ "now"|date("l, F j") }}</span>
+    {% if cms_user.role_labels is defined and cms_user.role_labels is not empty %}
+      <span class="admin-hero-chip">{{ cms_user.role_labels|join(', ')|e }}</span>
+    {% elseif cms_user.role is defined and cms_user.role %}
+      <span class="admin-hero-chip">{{ cms_user.role|capitalize|e }}</span>
+    {% endif %}
+    <span class="admin-hero-chip">Struxa v{{ cms_version|e }}</span>
+    {% set draft_total = (s.pages_draft|default(0)) + (s.entries_draft|default(0)) %}
+    {% if draft_total > 0 %}
+      <span class="admin-hero-chip admin-hero-chip--accent">{{ draft_total }} draft{{ draft_total == 1 ? '' : 's' }}</span>
+    {% endif %}
+    {% if (s.entries_in_review|default(0)) > 0 %}
+      <span class="admin-hero-chip admin-hero-chip--warn">{{ s.entries_in_review }} in review</span>
+    {% endif %}
+  </div>
 {% endblock %}
 
 {% block admin_hero_actions %}
-  <a class="admin-btn-ghost admin-btn-ghost--dash" href="{{ url_for('home') }}">View site</a>
-  {{ parent() }}
+  {% if cms_can('manage_pages') %}
+    <a class="admin-dash-cta admin-dash-cta--primary admin-dash-cta--hero" href="{{ url_for('admin.pages.new') }}">
+      <span class="admin-dash-cta-icon" aria-hidden="true">{% include 'admin/dashboard/_icon_page.twig' %}</span>
+      New page
+    </a>
+  {% endif %}
+  {% if cms_can('manage_media') %}
+    <a class="admin-dash-cta admin-dash-cta--hero" href="{{ url_for('admin.media.upload') }}">
+      <span class="admin-dash-cta-icon" aria-hidden="true">{% include 'admin/dashboard/_icon_upload.twig' %}</span>
+      Upload
+    </a>
+  {% endif %}
+  {% if cms_can('create_content') %}
+    <a class="admin-dash-cta admin-dash-cta--hero" href="{{ url_for('admin.content.entries.new_picker') }}">
+      <span class="admin-dash-cta-icon" aria-hidden="true">{% include 'admin/dashboard/_icon_pen.twig' %}</span>
+      New entry
+    </a>
+  {% endif %}
+  {% if cms_can('manage_content_types') %}
+    <a class="admin-dash-cta admin-dash-cta--hero" href="{{ url_for('admin.content_types.new') }}">
+      <span class="admin-dash-cta-icon" aria-hidden="true">{% include 'admin/dashboard/_icon_layers.twig' %}</span>
+      Content type
+    </a>
+  {% endif %}
 {% endblock %}
 
 {% block admin_content %}
   {% import 'admin/_ui_macros.twig' as ui %}
-  {% set s = dashboard_stats|default({}) %}
-  {% set site = settings.site_name|default('Studio') %}
 
   <div class="admin-dash">
-    <section class="admin-dash-spotlight" aria-label="Today">
-      <div class="admin-dash-spotlight-inner">
-        <div class="admin-dash-spotlight-copy">
-          <p class="admin-dash-dateline">{{ "now"|date("l · F j, Y") }}</p>
-          <p class="admin-dash-tagline">Here’s what’s happening across <strong>{{ site|e }}</strong>.</p>
-        </div>
-        <div class="admin-dash-ctas">
-          {% if cms_can('manage_pages') %}
-            <a class="admin-dash-cta admin-dash-cta--primary" href="{{ url_for('admin.pages.new') }}">
-              <span class="admin-dash-cta-icon" aria-hidden="true">{% include 'admin/dashboard/_icon_page.twig' %}</span>
-              New page
-            </a>
-          {% endif %}
-          {% if cms_can('manage_media') %}
-            <a class="admin-dash-cta" href="{{ url_for('admin.media.upload') }}">
-              <span class="admin-dash-cta-icon" aria-hidden="true">{% include 'admin/dashboard/_icon_upload.twig' %}</span>
-              Upload media
-            </a>
-          {% endif %}
-          {% if cms_can('manage_content_types') %}
-            <a class="admin-dash-cta" href="{{ url_for('admin.content_types.new') }}">
-              <span class="admin-dash-cta-icon" aria-hidden="true">{% include 'admin/dashboard/_icon_layers.twig' %}</span>
-              Content type
-            </a>
-          {% endif %}
-          {% if cms_can('create_content') %}
-            <a class="admin-dash-cta" href="{{ url_for('admin.content.entries.new_picker') }}">
-              <span class="admin-dash-cta-icon" aria-hidden="true">{% include 'admin/dashboard/_icon_pen.twig' %}</span>
-              New entry
-            </a>
-          {% endif %}
-        </div>
-      </div>
-    </section>
-
     {% set _up = cms_update_status|default({}) %}
     {% if _up.update_available|default(false) %}
       <div class="admin-dash-update-callout" role="status">
@@ -99,7 +101,7 @@
           <span class="admin-dash-section-kicker">Overview</span>
           At a glance
         </h2>
-        <p class="admin-dash-section-lead">Live totals — they change as you publish pages, entries, and media.</p>
+        <p class="admin-dash-section-lead">Live totals across pages, entries, and media.</p>
       </div>
       <div class="admin-metrics admin-metrics--dash" role="list">
         <article class="admin-metric admin-metric--dash admin-metric--tone-pages" role="listitem">

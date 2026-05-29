@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Page;
 
+use App\Settings\SiteUrlResolver;
 use HTMLPurifier;
 use HTMLPurifier_Config;
 
@@ -84,12 +85,7 @@ final class PageContentSanitizer
 
     public static function fromEnv(): self
     {
-        $url = $_ENV['SITE_URL'] ?? getenv('SITE_URL');
-        $url = is_string($url) ? trim($url) : '';
-        if ($url === '') {
-            $url = $_ENV['PHPAUTH_SITE_URL'] ?? getenv('PHPAUTH_SITE_URL');
-            $url = is_string($url) ? trim($url) : '';
-        }
+        $url = SiteUrlResolver::resolve();
 
         return new self($url !== '' ? $url : null);
     }

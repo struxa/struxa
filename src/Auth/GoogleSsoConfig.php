@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Auth;
 
 use App\Settings;
+use App\Settings\SiteUrlResolver;
 
 /**
  * Optional Google OAuth2 sign-in. Configured in Admin → Site settings (cms_settings), not .env.
@@ -35,7 +36,7 @@ final class GoogleSsoConfig
             return null;
         }
 
-        $site = rtrim((string) ($_ENV['PHPAUTH_SITE_URL'] ?? 'http://localhost:8080'), '/');
+        $site = SiteUrlResolver::resolve();
         $redirect = trim((string) (Settings::get('google_oauth_redirect_uri', '') ?? ''));
         if ($redirect === '') {
             $redirect = $site . '/auth/google/callback';
