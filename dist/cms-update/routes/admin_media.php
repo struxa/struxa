@@ -8,6 +8,7 @@ use App\Event\MediaUploadedEvent;
 use App\Flash;
 use App\Http\Middleware\RequireCmsStaff;
 use App\Http\Middleware\RequirePermission;
+use App\Media\MediaCompressionSettings;
 use App\Media\MediaDeletionService;
 use App\Media\MediaMetadataValidator;
 use App\Media\MediaRepository;
@@ -16,6 +17,8 @@ use App\Media\MediaUploadService;
 use PHPAuth\Auth;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
+use App\Settings;
+use App\Settings\SettingsRepository;
 use Slim\App;
 use Slim\Exception\HttpNotFoundException;
 use Slim\Routing\RouteContext;
@@ -60,7 +63,8 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
         $uploadService,
         $deleteService,
         $metaValidator,
-        $cmsUserId
+        $cmsUserId,
+        $pdo
     ): void {
         $perPage = 24;
 
@@ -69,7 +73,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             $q = isset($qp['q']) && is_string($qp['q']) ? trim($qp['q']) : '';
             $page = isset($qp['page']) ? max(1, (int) $qp['page']) : 1;
             $viewRaw = isset($qp['view']) && is_string($qp['view']) ? strtolower(trim($qp['view'])) : '';
-            $mediaView = $viewRaw === 'gallery' ? 'gallery' : 'list';
+            $mediaView = $viewRaw === 'list' ? 'list' : 'gallery';
 
             $total = $repo->countSearch($q);
             $rows = $repo->searchPaginated($q, $page, $perPage);
@@ -78,6 +82,8 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 $page = $totalPages;
                 $rows = $repo->searchPaginated($q, $page, $perPage);
             }
+
+            $stats = $repo->libraryStats();
 
             return $twig->render($response, 'admin/media/list.twig', $withCmsUser($request, array_merge($adminContext(), [
                 'admin_nav' => 'media',
@@ -89,8 +95,33 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 'total' => $total,
                 'total_pages' => $totalPages,
                 'max_upload_mb' => (int) round(MediaUploadService::maxBytesFromEnv() / 1024 / 1024),
+                'media_stats' => $stats,
+                'media_compress_enabled' => MediaCompressionSettings::isEnabled(),
+                'media_compress_gd' => MediaCompressionSettings::gdAvailable(),
+                'media_compress_max_edge' => MediaCompressionSettings::maxEdgePx(),
             ])));
         })->setName('admin.media.index');
+
+        $group->post('/media/compress-setting', function (Request $request, Response $response) use ($pdo): Response {
+            $body = $request->getParsedBody();
+            $body = is_array($body) ? $body : [];
+            $enabled = isset($body['enabled']) && (string) $body['enabled'] === '1';
+
+            (new SettingsRepository($pdo))->upsert(
+                MediaCompressionSettings::SETTING_KEY,
+                $enabled ? '1' : '0'
+            );
+            Settings::reload($pdo);
+
+            $payload = [
+                'ok' => true,
+                'enabled' => MediaCompressionSettings::isEnabled(),
+                'gd_available' => MediaCompressionSettings::gdAvailable(),
+            ];
+            $response->getBody()->write(json_encode($payload));
+
+            return $response->withHeader('Content-Type', 'application/json; charset=utf-8');
+        })->setName('admin.media.compress_setting');
 
         $group->get('/media/api/images', function (Request $request, Response $response) use ($repo): Response {
             $rows = $repo->listImagesForPicker(400);

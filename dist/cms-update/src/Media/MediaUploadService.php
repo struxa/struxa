@@ -63,6 +63,21 @@ final class MediaUploadService
             return ['ok' => false, 'error' => $first['error']];
         }
 
+        $width = (int) $first['width'];
+        $height = (int) $first['height'];
+        $mime = (string) $first['mime'];
+
+        if (MediaCompressionSettings::isEnabled()) {
+            $compressor = new MediaImageCompressor();
+            $optimized = $compressor->optimize($tmp, $ext);
+            if ($optimized['ok'] === true) {
+                $ext = $optimized['ext'];
+                $width = $optimized['width'];
+                $height = $optimized['height'];
+                $mime = $optimized['mime'];
+            }
+        }
+
         $unique = bin2hex(random_bytes(16)) . '.' . $ext;
         $subdir = date('Y/m');
         $webPath = MediaStorage::WEB_PREFIX . $subdir . '/' . $unique;
@@ -133,12 +148,12 @@ final class MediaUploadService
             $id = $this->repository->insert(
                 $unique,
                 $original,
-                $second['mime'],
+                $mime !== '' ? $mime : (string) $second['mime'],
                 $ext,
                 (int) $size,
                 $webPath,
-                $second['width'],
-                $second['height'],
+                $width > 0 ? $width : (int) $second['width'],
+                $height > 0 ? $height : (int) $second['height'],
                 $cmsUserId
             );
         } catch (\Throwable) {

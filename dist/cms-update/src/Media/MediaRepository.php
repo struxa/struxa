@@ -125,7 +125,7 @@ final class MediaRepository
         }
 
         $sql = 'SELECT m.id, m.filename, m.original_name, m.mime_type, m.extension, m.file_size, m.path,
-                       m.created_at, u.email AS uploader_email
+                       m.width, m.height, m.created_at, u.email AS uploader_email
                 FROM ' . self::TABLE . ' m
                 LEFT JOIN cms_users u ON u.id = m.uploaded_by'
             . $where
@@ -156,5 +156,25 @@ final class MediaRepository
         $stmt->execute($params);
 
         return (int) $stmt->fetchColumn();
+    }
+
+    /**
+     * @return array{total_files: int, total_bytes: int, image_files: int}
+     */
+    public function libraryStats(): array
+    {
+        $stmt = $this->pdo->query(
+            'SELECT COUNT(*) AS total_files,
+                    COALESCE(SUM(file_size), 0) AS total_bytes,
+                    SUM(CASE WHEN mime_type LIKE \'image/%\' THEN 1 ELSE 0 END) AS image_files
+             FROM ' . self::TABLE
+        );
+        $row = $stmt !== false ? $stmt->fetch(PDO::FETCH_ASSOC) : false;
+
+        return [
+            'total_files' => (int) ($row['total_files'] ?? 0),
+            'total_bytes' => (int) ($row['total_bytes'] ?? 0),
+            'image_files' => (int) ($row['image_files'] ?? 0),
+        ];
     }
 }
