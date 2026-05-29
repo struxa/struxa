@@ -12,6 +12,7 @@ use App\Media\SiteBrandingResolver;
 use App\Menu\MenuPublicLoader;
 use App\Seo\ExternalLinkPolicy;
 use App\Settings\SettingsRepository;
+use App\Settings\SiteSettingsService;
 use App\Settings\SiteUrlResolver;
 use App\Plugin\PluginAdminNavGrouper;
 use App\Plugin\PluginAdminNavRegistry;

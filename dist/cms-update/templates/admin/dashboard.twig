@@ -45,7 +45,7 @@
             </a>
           {% endif %}
           {% if cms_can('manage_media') %}
-            <a class="admin-dash-cta" href="{{ url_for('admin.media.upload') }}">
+            <a class="admin-dash-cta" href="{{ url_for('admin.media.index') }}">
               <span class="admin-dash-cta-icon" aria-hidden="true">{% include 'admin/dashboard/_icon_upload.twig' %}</span>
               Upload media
             </a>
@@ -208,7 +208,7 @@
                 <strong>Upload media</strong>
                 <div class="admin-dash-muted">Reuse assets across pages and entries.</div>
                 {% if cms_can('manage_media') and (s.media|default(0)) == 0 %}
-                  <a class="admin-link" href="{{ url_for('admin.media.upload') }}">Upload file</a>
+                  <a class="admin-link" href="{{ url_for('admin.media.index') }}">Media library</a>
                 {% endif %}
               </div>
             </li>

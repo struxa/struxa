@@ -188,42 +188,11 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             return $response->withHeader('Content-Type', 'application/json; charset=utf-8');
         })->setName('admin.media.api.upload');
 
-        $group->get('/media/upload', function (Request $request, Response $response) use ($twig, $adminContext, $withCmsUser, $uploadService): Response {
-            return $twig->render($response, 'admin/media/upload.twig', $withCmsUser($request, array_merge($adminContext(), [
-                'admin_nav' => 'media',
-                'upload_error' => null,
-                'max_mb' => (int) round(MediaUploadService::maxBytesFromEnv() / 1024 / 1024),
-            ])));
-        })->setName('admin.media.upload');
-
-        $group->post('/media/upload', function (Request $request, Response $response) use ($twig, $adminContext, $withCmsUser, $uploadService, $cmsUserId): Response {
-            $files = $request->getUploadedFiles();
-            $file = is_array($files) && isset($files['file']) ? $files['file'] : null;
-            if ($file === null) {
-                Flash::set('error', 'No file was uploaded.');
-
-                return $response
-                    ->withHeader('Location', RouteContext::fromRequest($request)->getRouteParser()->urlFor('admin.media.upload'))
-                    ->withStatus(302);
-            }
-
-            $result = $uploadService->handleUpload($file, $cmsUserId($request));
-            if ($result['ok'] !== true) {
-                return $twig->render($response, 'admin/media/upload.twig', $withCmsUser($request, array_merge($adminContext(), [
-                    'admin_nav' => 'media',
-                    'upload_error' => $result['error'],
-                    'max_mb' => (int) round(MediaUploadService::maxBytesFromEnv() / 1024 / 1024),
-                ])));
-            }
-
-            Events::dispatch(new MediaUploadedEvent((int) $result['id']));
-            Flash::set('success', 'File uploaded.');
-            $parser = RouteContext::fromRequest($request)->getRouteParser();
-
+        $group->get('/media/upload', function (Request $request, Response $response): Response {
             return $response
-                ->withHeader('Location', $parser->urlFor('admin.media.edit', ['id' => (string) $result['id']]))
-                ->withStatus(302);
-        })->setName('admin.media.store');
+                ->withHeader('Location', RouteContext::fromRequest($request)->getRouteParser()->urlFor('admin.media.index'))
+                ->withStatus(301);
+        });
 
         $group->get('/media/{id:[0-9]+}/edit', function (Request $request, Response $response, array $args) use ($twig, $adminContext, $withCmsUser, $repo): Response {
             $id = (int) $args['id'];

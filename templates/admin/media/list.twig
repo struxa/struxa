@@ -11,9 +11,7 @@
   <p class="admin-hero-sub admin-hero-sub--tight">Upload, browse, and reuse images across pages, entries, and theme settings.</p>
 {% endblock %}
 
-{% block admin_hero_actions %}
-  <a class="admin-btn-ghost" href="{{ url_for('admin.media.upload') }}">Classic upload</a>
-{% endblock %}
+{% block admin_hero_actions %}{% endblock %}
 
 {% block admin_body_class %}admin-body--media{% endblock %}
 
@@ -207,9 +205,9 @@
     {% if media_rows is empty %}
       {{ ui.empty_state(
         search_q ? 'No matches' : 'No files yet',
-        search_q ? 'Try another search term or clear filters.' : 'Drag images into the upload zone above or use classic upload.',
-        url_for('admin.media.upload'),
-        'Classic upload',
+        search_q ? 'Try another search term or clear filters.' : 'Drag images into the upload zone above.',
+        null,
+        null,
         '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>'
       ) }}
     {% else %}

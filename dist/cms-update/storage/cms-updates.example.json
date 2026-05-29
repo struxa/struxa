@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.1.7",
-    "title": "Struxa 1.1.7",
-    "summary": "Dashboard refresh aligned with media library theme — gradient stat cards and panel layout.",
+    "latest_version": "1.1.8",
+    "title": "Struxa 1.1.8",
+    "summary": "Fixes missing SiteSettingsService import in TwigCmsGlobals (500 after admin update); removes redundant media upload page.",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "minor"

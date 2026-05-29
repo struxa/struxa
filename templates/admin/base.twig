@@ -225,7 +225,7 @@
       <summary class="admin-fab-trigger" aria-label="Quick actions">＋</summary>
       <div class="admin-fab-panel">
         {% if cms_can('manage_pages') %}<a href="{{ url_for('admin.pages.new') }}">New page</a>{% endif %}
-        {% if cms_can('manage_media') %}<a href="{{ url_for('admin.media.upload') }}">Upload</a>{% endif %}
+        {% if cms_can('manage_media') %}<a href="{{ url_for('admin.media.index') }}">Media</a>{% endif %}
         {% if cms_can('create_content') %}
           <a href="{{ url_for('admin.content.entries.new_picker') }}">New entry</a>
         {% elseif cms_can('manage_content_types') %}
