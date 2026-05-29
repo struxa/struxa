@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.1.1",
-    "title": "Struxa 1.1.1",
-    "summary": "Minor release: redesigned media library with compression, bulk delete, lightbox, sort, and catalog-friendly plugin delivery.",
+    "latest_version": "1.1.2",
+    "title": "Struxa 1.1.2",
+    "summary": "Unified admin header with command palette (⌘K), cache tools menu, view-site shortcut, and card-style page hero.",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "minor"

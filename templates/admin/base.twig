@@ -20,66 +20,7 @@
 
     <div class="admin-app">
       {% block admin_banner %}
-        {% set admin_user_label = cms_user.display_name|default(cms_user.email|split('@')|first|default('Account')) %}
-        {% set admin_user_initial = (cms_user.display_name|default(cms_user.email|default('?')))|slice(0, 1)|upper %}
-        <div class="admin-top-bar">
-          <div class="admin-top-bar-spacer" aria-hidden="true"></div>
-          {% set _cms_up = cms_update_status|default({}) %}
-          <a
-            href="{{ url_for('admin.updates.index') }}"
-            class="admin-top-update-bell{% if _cms_up.update_available|default(false) %} admin-top-update-bell--alert{% endif %}"
-            title="{% if _cms_up.update_available|default(false) and _cms_up.latest_version|default('') != '' %}Struxa {{ _cms_up.latest_version|e }} available{% elseif _cms_up.update_available|default(false) %}CMS update available{% else %}CMS updates{% endif %}"
-            aria-label="{% if _cms_up.update_available|default(false) and _cms_up.latest_version|default('') != '' %}Struxa version {{ _cms_up.latest_version|e }} is available. Open updates.{% elseif _cms_up.update_available|default(false) %}CMS update available. Open updates.{% else %}Open CMS updates.{% endif %}"
-          >
-            <span class="admin-top-update-bell-inner">
-              <svg class="admin-top-update-bell-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-                <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-              </svg>
-              {% if _cms_up.update_available|default(false) and _cms_up.latest_version|default('') != '' %}
-                <span class="admin-top-update-version" aria-hidden="true">v{{ _cms_up.latest_version|e }}</span>
-              {% endif %}
-            </span>
-            {% if _cms_up.update_available|default(false) %}
-              <span class="admin-top-update-badge" aria-hidden="true"></span>
-            {% endif %}
-          </a>
-          <details class="admin-user-menu">
-            <summary class="admin-user-pill" aria-label="Account menu for {{ admin_user_label|e('html_attr') }}">
-              <span class="admin-user-pill-avatar" aria-hidden="true">{{ admin_user_initial|e }}</span>
-              <span class="admin-user-pill-label">
-                <span class="admin-user-pill-name">{{ admin_user_label|e }}</span>
-                <span class="admin-user-pill-email">{{ cms_user.email|default('')|e }}</span>
-              </span>
-              <svg class="admin-user-pill-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M6 9l6 6 6-6" />
-              </svg>
-            </summary>
-            <div class="admin-user-menu-panel" role="menu">
-              <div class="admin-user-menu-head">
-                <span class="admin-user-menu-head-name">{{ admin_user_label|e }}</span>
-                <span class="admin-user-menu-head-email">{{ cms_user.email|default('')|e }}</span>
-                {% if cms_user.role_labels is defined and cms_user.role_labels is not empty %}
-                  <span class="admin-user-menu-head-roles">{{ cms_user.role_labels|join(' · ')|e }}</span>
-                {% elseif cms_user.role is defined and cms_user.role %}
-                  <span class="admin-user-menu-head-roles">{{ cms_user.role|capitalize|e }}</span>
-                {% endif %}
-              </div>
-              <div class="admin-user-menu-actions">
-                <a class="admin-user-menu-link" role="menuitem" href="{{ url_for('admin.account.two_factor') }}">Two-factor authentication</a>
-                <form method="post" action="{{ url_for('logout') }}" style="display:inline;margin:0;padding:0">
-                  <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
-                  <button type="submit" class="admin-user-menu-signout" role="menuitem" style="background:none;border:none;font:inherit;cursor:pointer;color:inherit;padding:0;display:inline-flex;align-items:center;gap:0.35rem;width:100%;text-align:left">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
-                      <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9" />
-                    </svg>
-                    Sign out
-                  </button>
-                </form>
-              </div>
-            </div>
-          </details>
-        </div>
+        {% set _cms_up = cms_update_status|default({}) %}
         {% if _cms_up.update_available|default(false) and not (_cms_up.skipped|default(false)) %}
           <div
             class="admin-update-banner"
@@ -183,77 +124,35 @@
         </script>
 
         <div class="admin-main">
-          <div class="admin-main-toolbar">
-            <button type="button" class="admin-menu-toggle" id="admin-menu-toggle" aria-expanded="true" aria-controls="admin-primary-nav" title="Hide sidebar">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="16" y2="18"/></svg>
-            </button>
-            <div class="admin-toolbar-spacer"></div>
-            {% if cms_can('manage_pages') or cms_can('manage_media') or cms_can('manage_content_types') or cms_can('create_content') or cms_can('manage_portability') %}
-              <details class="admin-create-menu">
-                <summary class="admin-create-menu-trigger" title="Create">＋ Create</summary>
-                <div class="admin-create-menu-panel" role="menu">
-                  {% if cms_can('manage_pages') %}
-                    <a role="menuitem" href="{{ url_for('admin.pages.new') }}">New page</a>
-                  {% endif %}
-                  {% if cms_can('manage_media') %}
-                    <a role="menuitem" href="{{ url_for('admin.media.upload') }}">Upload media</a>
-                  {% endif %}
-                  {% if cms_can('manage_content_types') %}
-                    <a role="menuitem" href="{{ url_for('admin.content_types.new') }}">New content type</a>
-                  {% endif %}
-                  {% if cms_can('create_content') %}
-                    <a role="menuitem" href="{{ url_for('admin.content.entries.new_picker') }}">New entry…</a>
-                  {% endif %}
-                  {% if cms_can('manage_portability') %}
-                    <a role="menuitem" href="{{ url_for('admin.tools.blueprints') }}">Blueprints</a>
-                  {% endif %}
-                  {% if cms_can('manage_themes') %}
-                    <a role="menuitem" href="{{ url_for('admin.themes.index') }}">Themes</a>
-                  {% endif %}
-                </div>
-              </details>
-            {% endif %}
-            {% if cms_can('manage_settings') %}
-              <div class="admin-toolbar-cache-actions" role="group" aria-label="Cache">
-                {% if cms_public_page_cache_on %}
-                  <form class="admin-toolbar-cache-form" method="post" action="{{ url_for('admin.tools.cache.process') }}">
-                    <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
-                    <input type="hidden" name="action" value="toolbar_disable" />
-                    <button type="submit" class="admin-toolbar-btn">Disable cache</button>
-                  </form>
-                {% endif %}
-                <form class="admin-toolbar-cache-form" method="post" action="{{ url_for('admin.tools.cache.process') }}" onsubmit="return confirm('Clear all storefront file caches?\n\nPublic HTML/XML and internal Twig globals snapshots will be removed.');">
-                  <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
-                  <input type="hidden" name="action" value="toolbar_clear" />
-                  <button type="submit" class="admin-toolbar-btn admin-toolbar-btn--muted">Clear cache</button>
-                </form>
-              </div>
-            {% endif %}
-            <a class="admin-toolbar-link" href="{{ url_for('admin.dashboard') }}">Dashboard</a>
-          </div>
+          {% include 'admin/partials/header_toolbar.twig' %}
 
           <div class="admin-sidebar-backdrop" id="admin-sidebar-backdrop" hidden aria-hidden="true"></div>
 
           <div class="admin-main-inner">
-            <header class="admin-hero">
-              <div class="admin-hero-avatar" aria-hidden="true">{{ (cms_user.display_name|default(cms_user.email|default('?')))|slice(0, 1)|upper }}</div>
-              <div class="admin-hero-text">
-                {% block admin_hero_title %}
-                  <h1 class="admin-hero-title">Welcome back<span class="admin-hero-emoji" aria-hidden="true"> 👋</span></h1>
-                {% endblock %}
-                {% block admin_hero_sub %}
-                  <p class="admin-hero-sub">
-                    Signed in as <strong class="admin-hero-strong">{{ cms_user.email|default('') }}</strong>
-                    {% if cms_user.role_labels is defined and cms_user.role_labels is not empty %}
-                      · {{ cms_user.role_labels|join(', ')|e }}
-                    {% elseif cms_user.role is defined and cms_user.role %}
-                      · {{ cms_user.role|capitalize }}
-                    {% endif %}
-                  </p>
-                {% endblock %}
-              </div>
-              <div class="admin-hero-actions">
-                {% block admin_hero_actions %}{% endblock %}
+            <header class="admin-hero admin-hero--card">
+              <div class="admin-hero-card">
+                <div class="admin-hero-leading">
+                  {% block admin_hero_leading %}
+                    {% include 'admin/partials/hero_leading.twig' %}
+                  {% endblock %}
+                </div>
+                <div class="admin-hero-body">
+                  <div class="admin-hero-text">
+                    {% block admin_hero_title %}
+                      <h1 class="admin-hero-title">Welcome back<span class="admin-hero-emoji" aria-hidden="true"> 👋</span></h1>
+                    {% endblock %}
+                    {% block admin_hero_sub %}
+                      <p class="admin-hero-sub">
+                        <strong class="admin-hero-strong">{{ settings.site_name|default('Your site')|e }}</strong>
+                        · {{ "now"|date("l, F j") }}
+                      </p>
+                    {% endblock %}
+                    {% block admin_hero_meta %}{% endblock %}
+                  </div>
+                  <div class="admin-hero-actions">
+                    {% block admin_hero_actions %}{% endblock %}
+                  </div>
+                </div>
               </div>
             </header>
 
@@ -327,7 +226,10 @@
       </div>
     </details>
 
+    {% include 'admin/partials/command_palette.twig' %}
+
     <script src="{{ asset('js/admin-actions-menu.js') }}"></script>
+    <script src="{{ asset('js/admin-command-palette.js') }}" defer></script>
     <script src="{{ asset('js/admin-form-ux.js') }}" defer></script>
     {% if cms_user is defined and (cms_can('create_content') or cms_can('manage_settings')) %}
       <script src="{{ asset('js/admin-ai-chat.js') }}" defer></script>

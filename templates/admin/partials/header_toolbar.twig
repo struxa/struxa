@@ -1,0 +1,185 @@
+{% set admin_user_label = cms_user.display_name|default(cms_user.email|split('@')|first|default('Account')) %}
+{% set admin_user_initial = (cms_user.display_name|default(cms_user.email|default('?')))|slice(0, 1)|upper %}
+{% set _cms_up = cms_update_status|default({}) %}
+{% set _nav = admin_nav|default('') %}
+{% set nav_labels = {
+  'dashboard': 'Dashboard',
+  'pages': 'Pages',
+  'content_types': 'Content types',
+  'media': 'Media library',
+  'updates': 'Updates',
+  'settings': 'Settings',
+  'settings_search': 'Search settings',
+  'cache_tools': 'Performance',
+  'seo_redirects': 'Redirects',
+  'seo_not_found': '404 log',
+  'seo_sitemap': 'Sitemap',
+  'themes': 'Themes',
+  'menus': 'Menus',
+  'users': 'Users',
+  'roles': 'Roles',
+  'activity': 'Activity',
+  'comments': 'Comments',
+  'system_api_keys': 'API keys',
+  'extensions_plugins': 'Plugins',
+  'tools_blueprints': 'Blueprints',
+  'tools_import_export': 'Import / export',
+  'tools_api_keys': 'API keys',
+  'ai_blog': 'AI draft',
+  'ai_comments': 'AI comments',
+  'security_ip_block': 'IP blocking',
+  'analytics_external_links': 'External links',
+} %}
+
+<div class="admin-main-toolbar admin-header-bar">
+  <button type="button" class="admin-menu-toggle" id="admin-menu-toggle" aria-expanded="true" aria-controls="admin-primary-nav" title="Hide sidebar">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="16" y2="18"/></svg>
+  </button>
+
+  <div class="admin-header-context" aria-label="Current context">
+    <a class="admin-header-site" href="{{ url_for('admin.dashboard') }}" title="{{ settings.site_name|default('Site')|e('html_attr') }}">
+      <span class="admin-header-site-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <rect width="8" height="8" x="3" y="3" rx="1.5" />
+          <rect width="8" height="8" x="13" y="3" rx="1.5" />
+          <rect width="8" height="8" x="3" y="13" rx="1.5" />
+          <rect width="8" height="8" x="13" y="13" rx="1.5" />
+        </svg>
+      </span>
+      <span class="admin-header-site-name">{{ settings.site_name|default('Site')|e }}</span>
+    </a>
+    {% if _nav != '' %}
+      <span class="admin-header-context-sep" aria-hidden="true">/</span>
+      <span class="admin-header-section">{{ admin_nav_label|default(nav_labels[_nav]|default(_nav|replace({'_': ' '})|title))|e }}</span>
+    {% endif %}
+  </div>
+
+  <button type="button" class="admin-cmd-trigger" id="admin-cmd-trigger" aria-haspopup="dialog" aria-controls="admin-cmd-palette">
+    <svg class="admin-cmd-trigger-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+      <circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/>
+    </svg>
+    <span class="admin-cmd-trigger-label">Search or jump…</span>
+    <kbd class="admin-cmd-kbd admin-cmd-kbd--mod" aria-hidden="true">⌘K</kbd>
+  </button>
+
+  <div class="admin-toolbar-spacer"></div>
+
+  {% if cms_can('manage_pages') or cms_can('manage_media') or cms_can('manage_content_types') or cms_can('create_content') or cms_can('manage_portability') %}
+    <details class="admin-create-menu">
+      <summary class="admin-create-menu-trigger" title="Create">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+        <span class="admin-create-menu-trigger-text">Create</span>
+      </summary>
+      <div class="admin-create-menu-panel" role="menu">
+        {% if cms_can('manage_pages') %}
+          <a role="menuitem" href="{{ url_for('admin.pages.new') }}">New page</a>
+        {% endif %}
+        {% if cms_can('manage_media') %}
+          <a role="menuitem" href="{{ url_for('admin.media.upload') }}">Upload media</a>
+        {% endif %}
+        {% if cms_can('manage_content_types') %}
+          <a role="menuitem" href="{{ url_for('admin.content_types.new') }}">New content type</a>
+        {% endif %}
+        {% if cms_can('create_content') %}
+          <a role="menuitem" href="{{ url_for('admin.content.entries.new_picker') }}">New entry…</a>
+        {% endif %}
+        {% if cms_can('manage_portability') %}
+          <a role="menuitem" href="{{ url_for('admin.tools.blueprints') }}">Blueprints</a>
+        {% endif %}
+        {% if cms_can('manage_themes') %}
+          <a role="menuitem" href="{{ url_for('admin.themes.index') }}">Themes</a>
+        {% endif %}
+      </div>
+    </details>
+  {% endif %}
+
+  {% if cms_can('manage_settings') %}
+    <details class="admin-header-tools">
+      <summary class="admin-header-icon-btn" title="Cache tools" aria-label="Cache tools">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
+          <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+        </svg>
+      </summary>
+      <div class="admin-header-tools-panel" role="menu">
+        <p class="admin-header-tools-title">Performance</p>
+        {% if cms_public_page_cache_on %}
+          <form class="admin-toolbar-cache-form" method="post" action="{{ url_for('admin.tools.cache.process') }}">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+            <input type="hidden" name="action" value="toolbar_disable" />
+            <button type="submit" class="admin-header-tools-btn" role="menuitem">Disable page cache</button>
+          </form>
+        {% else %}
+          <p class="admin-header-tools-hint">Page cache is off.</p>
+        {% endif %}
+        <form class="admin-toolbar-cache-form" method="post" action="{{ url_for('admin.tools.cache.process') }}" onsubmit="return confirm('Clear all storefront file caches?\n\nPublic HTML/XML and internal Twig globals snapshots will be removed.');">
+          <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+          <input type="hidden" name="action" value="toolbar_clear" />
+          <button type="submit" class="admin-header-tools-btn admin-header-tools-btn--muted" role="menuitem">Clear all caches</button>
+        </form>
+        <a class="admin-header-tools-link" href="{{ url_for('admin.tools.cache') }}">Open performance settings</a>
+      </div>
+    </details>
+  {% endif %}
+
+  <a class="admin-header-icon-btn" href="{{ url_for('home') }}" target="_blank" rel="noopener noreferrer" title="View live site" aria-label="View live site">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
+      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
+    </svg>
+  </a>
+
+  <a
+    href="{{ url_for('admin.updates.index') }}"
+    class="admin-top-update-bell admin-header-icon-btn{% if _cms_up.update_available|default(false) %} admin-top-update-bell--alert{% endif %}"
+    title="{% if _cms_up.update_available|default(false) and _cms_up.latest_version|default('') != '' %}Struxa {{ _cms_up.latest_version|e }} available{% elseif _cms_up.update_available|default(false) %}CMS update available{% else %}CMS updates{% endif %}"
+    aria-label="{% if _cms_up.update_available|default(false) and _cms_up.latest_version|default('') != '' %}Struxa version {{ _cms_up.latest_version|e }} is available. Open updates.{% elseif _cms_up.update_available|default(false) %}CMS update available. Open updates.{% else %}Open CMS updates.{% endif %}"
+  >
+    <span class="admin-top-update-bell-inner">
+      <svg class="admin-top-update-bell-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+        <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+      </svg>
+      {% if _cms_up.update_available|default(false) and _cms_up.latest_version|default('') != '' %}
+        <span class="admin-top-update-version" aria-hidden="true">v{{ _cms_up.latest_version|e }}</span>
+      {% endif %}
+    </span>
+    {% if _cms_up.update_available|default(false) %}
+      <span class="admin-top-update-badge" aria-hidden="true"></span>
+    {% endif %}
+  </a>
+
+  <details class="admin-user-menu">
+    <summary class="admin-user-pill admin-user-pill--compact" aria-label="Account menu for {{ admin_user_label|e('html_attr') }}">
+      <span class="admin-user-pill-avatar" aria-hidden="true">{{ admin_user_initial|e }}</span>
+      <span class="admin-user-pill-label admin-user-pill-label--toolbar">
+        <span class="admin-user-pill-name">{{ admin_user_label|e }}</span>
+      </span>
+      <svg class="admin-user-pill-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M6 9l6 6 6-6" />
+      </svg>
+    </summary>
+    <div class="admin-user-menu-panel" role="menu">
+      <div class="admin-user-menu-head">
+        <span class="admin-user-menu-head-name">{{ admin_user_label|e }}</span>
+        <span class="admin-user-menu-head-email">{{ cms_user.email|default('')|e }}</span>
+        {% if cms_user.role_labels is defined and cms_user.role_labels is not empty %}
+          <span class="admin-user-menu-head-roles">{{ cms_user.role_labels|join(' · ')|e }}</span>
+        {% elseif cms_user.role is defined and cms_user.role %}
+          <span class="admin-user-menu-head-roles">{{ cms_user.role|capitalize|e }}</span>
+        {% endif %}
+      </div>
+      <div class="admin-user-menu-actions">
+        <a class="admin-user-menu-link" role="menuitem" href="{{ url_for('admin.dashboard') }}">Dashboard</a>
+        <a class="admin-user-menu-link" role="menuitem" href="{{ url_for('admin.account.two_factor') }}">Two-factor authentication</a>
+        <form method="post" action="{{ url_for('logout') }}" style="display:inline;margin:0;padding:0">
+          <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+          <button type="submit" class="admin-user-menu-signout" role="menuitem" style="background:none;border:none;font:inherit;cursor:pointer;color:inherit;padding:0;display:inline-flex;align-items:center;gap:0.35rem;width:100%;text-align:left">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+              <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9" />
+            </svg>
+            Sign out
+          </button>
+        </form>
+      </div>
+    </div>
+  </details>
+</div>
