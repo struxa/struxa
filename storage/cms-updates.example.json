@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.1.5",
-    "title": "Struxa 1.1.5",
-    "summary": "Refreshed admin sidebar with jump menu and active nav accents; fixes featured image preview on entry editor.",
+    "latest_version": "1.1.6",
+    "title": "Struxa 1.1.6",
+    "summary": "Moves Updates above AI in the admin sidebar navigation.",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "minor"
