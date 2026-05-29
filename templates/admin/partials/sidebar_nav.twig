@@ -3,6 +3,7 @@
 
 <nav class="admin-nav admin-nav--grouped" aria-label="Admin" id="admin-primary-nav">
   <div class="admin-nav-pins" aria-label="Quick access">
+    <p class="admin-nav-section-label">Pinned</p>
     <a href="{{ url_for('admin.dashboard') }}" class="admin-nav-pin {{ nav == 'dashboard' ? 'is-active' : '' }}">
       <svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="7" height="7" x="3" y="3" rx="1" /><rect width="7" height="7" x="14" y="3" rx="1" /><rect width="7" height="7" x="14" y="14" rx="1" /><rect width="7" height="7" x="3" y="14" rx="1" /></svg>
       Dashboard

@@ -74,20 +74,29 @@
 
       <div class="admin-shell admin-shell--nav-open" id="admin-shell">
         <aside class="admin-sidebar is-open" id="admin-sidebar" aria-label="Sidebar">
-          <a class="admin-brand" href="{{ url_for('admin.dashboard') }}">
-            <span class="admin-brand-mark" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <rect width="8" height="8" x="3" y="3" rx="1.5" />
-                <rect width="8" height="8" x="13" y="3" rx="1.5" />
-                <rect width="8" height="8" x="3" y="13" rx="1.5" />
-                <rect width="8" height="8" x="13" y="13" rx="1.5" />
+          <div class="admin-sidebar-head">
+            <a class="admin-brand admin-brand--card" href="{{ url_for('admin.dashboard') }}">
+              <span class="admin-brand-mark" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect width="8" height="8" x="3" y="3" rx="1.5" />
+                  <rect width="8" height="8" x="13" y="3" rx="1.5" />
+                  <rect width="8" height="8" x="3" y="13" rx="1.5" />
+                  <rect width="8" height="8" x="13" y="13" rx="1.5" />
+                </svg>
+              </span>
+              <span class="admin-brand-text">
+                <span class="admin-brand-title">{{ settings.cms_panel_title|default('Struxa') }}</span>
+                <span class="admin-brand-sub">{{ settings.site_name|default('struxapoint.com') }}</span>
+              </span>
+            </a>
+            <button type="button" class="admin-sidebar-jump" id="admin-sidebar-jump" aria-label="Search or jump to a page">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/>
               </svg>
-            </span>
-            <span class="admin-brand-text">
-              <span class="admin-brand-title">{{ settings.cms_panel_title|default('Struxa') }}</span>
-              <span class="admin-brand-sub">{{ settings.site_name|default('struxapoint.com') }}</span>
-            </span>
-          </a>
+              <span class="admin-sidebar-jump-label">Jump to…</span>
+              <kbd class="admin-sidebar-jump-kbd" aria-hidden="true">⌘K</kbd>
+            </button>
+          </div>
 
           {% include 'admin/partials/sidebar_nav.twig' %}
 
@@ -104,11 +113,11 @@
           </button>
 
           <div class="admin-sidebar-foot">
-            <a href="{{ url_for('home') }}">
+            <a class="admin-sidebar-foot-btn" href="{{ url_for('home') }}" target="_blank" rel="noopener noreferrer">
               <svg class="admin-foot-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                <path d="M19 12H5M12 19l-7-7 7-7" stroke-linecap="round" stroke-linejoin="round" />
+                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
               </svg>
-              View site
+              View live site
             </a>
             <p class="admin-sidebar-version" role="status">{{ settings.cms_panel_title|default('Struxa')|e }} v{{ cms_version|e }}</p>
           </div>

@@ -595,9 +595,22 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  padding: 1.15rem 0.65rem 1rem;
-  background: var(--admin-sidebar);
-  border-right: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 0.85rem 0.55rem 0.85rem;
+  background:
+    radial-gradient(ellipse 120% 80% at 0% 0%, rgba(168, 85, 247, 0.12), transparent 55%),
+    radial-gradient(ellipse 90% 60% at 100% 100%, rgba(59, 130, 246, 0.08), transparent 50%),
+    linear-gradient(180deg, rgba(12, 18, 32, 0.98) 0%, rgba(9, 14, 26, 0.99) 100%);
+  border-right: 1px solid rgba(255, 255, 255, 0.07);
+  box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.03);
+}
+
+.admin-sidebar-head {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  margin-bottom: 0.65rem;
+  padding: 0 0.2rem;
 }
 
 /* Mobile drawer: must follow base .admin-sidebar so display/flex don’t interact oddly with earlier rules. */
@@ -639,16 +652,29 @@
   display: flex;
   align-items: center;
   gap: 0.7rem;
-  margin: 0 0.25rem 1.35rem;
-  padding: 0.45rem 0.6rem;
+  margin: 0;
+  padding: 0.55rem 0.65rem;
   text-decoration: none;
   color: inherit;
-  border-radius: var(--admin-radius-sm);
-  transition: background 0.2s ease;
+  border-radius: calc(var(--admin-radius-sm) + 2px);
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
-.admin-brand:hover {
-  background: rgba(255, 255, 255, 0.04);
+.admin-brand--card {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(0, 0, 0, 0.22);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04) inset;
+}
+
+.admin-brand--card:hover {
+  border-color: rgba(168, 85, 247, 0.28);
+  background: rgba(168, 85, 247, 0.08);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.05) inset,
+    0 8px 24px -12px rgba(168, 85, 247, 0.25);
 }
 
 .admin-brand:focus-visible {
@@ -696,6 +722,55 @@
   font-size: 0.7rem;
   font-weight: 600;
   color: var(--admin-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-sidebar-jump {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  width: 100%;
+  margin: 0;
+  padding: 0.48rem 0.6rem;
+  font-family: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--admin-muted);
+  cursor: pointer;
+  border-radius: var(--admin-radius-sm);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(0, 0, 0, 0.28);
+  transition:
+    color 0.2s ease,
+    border-color 0.2s ease,
+    background 0.2s ease;
+}
+
+.admin-sidebar-jump:hover {
+  color: var(--admin-text);
+  border-color: rgba(168, 85, 247, 0.35);
+  background: rgba(168, 85, 247, 0.1);
+}
+
+.admin-sidebar-jump-label {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+}
+
+.admin-sidebar-jump-kbd {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.1rem 0.35rem;
+  font-family: inherit;
+  font-size: 0.625rem;
+  font-weight: 700;
+  color: var(--admin-dim);
+  border-radius: 5px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
 }
 
 .admin-nav {
@@ -707,6 +782,28 @@
   overflow-x: hidden;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
+  padding: 0 0.15rem;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.35) transparent;
+}
+
+.admin-nav::-webkit-scrollbar {
+  width: 6px;
+}
+
+.admin-nav::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.28);
+}
+
+.admin-nav-section-label {
+  margin: 0 0 0.35rem;
+  padding: 0 0.15rem;
+  font-size: 0.625rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--admin-dim);
 }
 
 .admin-nav-label {
@@ -732,18 +829,35 @@
   font-weight: 600;
   transition:
     color 0.2s var(--admin-ease),
-    background 0.2s var(--admin-ease);
+    background 0.2s var(--admin-ease),
+    transform 0.2s var(--admin-ease);
 }
 
 .admin-nav a:hover {
   color: #f1f5f9;
   background: rgba(255, 255, 255, 0.06);
+  transform: translateX(1px);
 }
 
-.admin-nav a.is-active {
+.admin-nav a.is-active,
+.admin-nav-pin.is-active {
   color: var(--admin-sidebar-accent-text);
-  background: var(--admin-sidebar-accent-soft);
-  box-shadow: none;
+  background: linear-gradient(90deg, rgba(168, 85, 247, 0.18) 0%, rgba(168, 85, 247, 0.06) 100%);
+  box-shadow: inset 0 0 0 1px rgba(168, 85, 247, 0.12);
+}
+
+.admin-nav a.is-active::before,
+.admin-nav-pin.is-active::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 1.25rem;
+  border-radius: 0 4px 4px 0;
+  background: linear-gradient(180deg, var(--admin-purple), #6366f1);
+  box-shadow: 0 0 14px var(--admin-purple-glow);
 }
 
 .admin-nav a.admin-nav-muted {
@@ -767,14 +881,44 @@
 .admin-sidebar-foot {
   flex-shrink: 0;
   margin-top: auto;
-  padding-top: 1rem;
-  border-top: 1px solid var(--admin-border);
+  padding: 0.75rem 0.2rem 0.15rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: 0.45rem;
 }
 
-.admin-sidebar-foot a {
+.admin-sidebar-foot-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  width: 100%;
+  font-family: inherit;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--admin-text);
+  text-decoration: none;
+  text-align: center;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--admin-radius-sm);
+  background: rgba(255, 255, 255, 0.04);
+  transition:
+    color 0.2s ease,
+    border-color 0.2s ease,
+    background 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.admin-sidebar-foot-btn:hover {
+  color: #fff;
+  border-color: rgba(168, 85, 247, 0.35);
+  background: rgba(168, 85, 247, 0.12);
+  box-shadow: 0 6px 20px -10px rgba(168, 85, 247, 0.35);
+}
+
+.admin-sidebar-foot a:not(.admin-sidebar-foot-btn) {
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -792,7 +936,7 @@
   transition: color 0.2s ease, background 0.2s ease;
 }
 
-.admin-sidebar-foot a:hover {
+.admin-sidebar-foot a:not(.admin-sidebar-foot-btn):hover {
   color: var(--admin-text);
   background: rgba(255, 255, 255, 0.05);
 }
@@ -2426,6 +2570,12 @@ body.admin-media-modal-open {
   max-height: 11rem;
   object-fit: cover;
   vertical-align: middle;
+}
+
+/* display:flex above beats native [hidden] — keep placeholder/preview in sync when picking */
+.admin-page-featured-placeholder[hidden],
+.admin-page-featured-preview[hidden] {
+  display: none !important;
 }
 
 .admin-page-featured-clear {
@@ -4356,6 +4506,7 @@ body.admin-media-lightbox-open {
 }
 
 .admin-nav-pin {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 0.7rem;
@@ -4368,29 +4519,29 @@ body.admin-media-lightbox-open {
   text-decoration: none;
   transition:
     color 0.2s ease,
-    background 0.2s ease;
+    background 0.2s ease,
+    transform 0.2s ease;
 }
 
 .admin-nav-pin:hover {
   color: #f1f5f9;
   background: rgba(255, 255, 255, 0.06);
-}
-
-.admin-nav-pin.is-active {
-  color: var(--admin-sidebar-accent-text);
-  background: var(--admin-sidebar-accent-soft);
-  box-shadow: none;
+  transform: translateX(1px);
 }
 
 .admin-nav-group {
   border-radius: 10px;
-  margin: 0 0 0.1rem;
-  border: none;
+  margin: 0 0 0.15rem;
+  border: 1px solid transparent;
   background: transparent;
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease;
 }
 
 .admin-nav-group[open] {
-  background: transparent;
+  border-color: rgba(255, 255, 255, 0.06);
+  background: rgba(0, 0, 0, 0.18);
 }
 
 .admin-nav-group-title {
@@ -6598,6 +6749,36 @@ body.admin-nav-open {
 .admin-body--dash-ref .admin-header-bar {
   background: rgba(15, 17, 35, 0.92);
   border-bottom-color: rgba(255, 255, 255, 0.06);
+}
+
+.admin-body--dash-ref .admin-sidebar {
+  background:
+    radial-gradient(ellipse 120% 80% at 0% 0%, rgba(123, 97, 255, 0.16), transparent 55%),
+    radial-gradient(ellipse 90% 60% at 100% 100%, rgba(45, 212, 191, 0.08), transparent 50%),
+    linear-gradient(180deg, rgba(10, 14, 34, 0.98) 0%, rgba(8, 11, 26, 0.99) 100%);
+  border-right-color: rgba(255, 255, 255, 0.07);
+}
+
+.admin-body--dash-ref .admin-brand--card {
+  border-color: rgba(123, 97, 255, 0.22);
+  background: rgba(0, 0, 0, 0.32);
+}
+
+.admin-body--dash-ref .admin-brand--card:hover {
+  border-color: rgba(123, 97, 255, 0.4);
+  background: rgba(123, 97, 255, 0.1);
+}
+
+.admin-body--dash-ref .admin-nav a.is-active,
+.admin-body--dash-ref .admin-nav-pin.is-active {
+  background: linear-gradient(90deg, rgba(123, 97, 255, 0.2) 0%, rgba(123, 97, 255, 0.06) 100%);
+  box-shadow: inset 0 0 0 1px rgba(123, 97, 255, 0.14);
+}
+
+.admin-body--dash-ref .admin-nav a.is-active::before,
+.admin-body--dash-ref .admin-nav-pin.is-active::before {
+  background: linear-gradient(180deg, #7b61ff, #6366f1);
+  box-shadow: 0 0 14px rgba(123, 97, 255, 0.45);
 }
 
 .admin-body--dash-ref .admin-main-toolbar {

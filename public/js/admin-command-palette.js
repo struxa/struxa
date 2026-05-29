@@ -146,6 +146,11 @@
     trigger.addEventListener("click", openPalette);
   }
 
+  var sidebarJump = document.getElementById("admin-sidebar-jump");
+  if (sidebarJump) {
+    sidebarJump.addEventListener("click", openPalette);
+  }
+
   if (backdrop) {
     backdrop.addEventListener("click", closePalette);
   }
@@ -213,5 +218,10 @@
   var footMod = document.querySelector(".admin-cmd-foot-mod .admin-cmd-kbd--mod");
   if (footMod && !isMac) {
     footMod.textContent = "Ctrl";
+  }
+
+  var sidebarJumpKbd = document.querySelector(".admin-sidebar-jump-kbd");
+  if (sidebarJumpKbd && !isMac) {
+    sidebarJumpKbd.textContent = "Ctrl+K";
   }
 })();

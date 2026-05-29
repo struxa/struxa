@@ -148,9 +148,8 @@
       if (prev && im && im.url) {
         prev.src = absUrl(im.url);
         prev.removeAttribute('hidden');
-        prev.hidden = false;
       }
-      if (ph) ph.hidden = true;
+      if (ph) ph.setAttribute('hidden', 'hidden');
       closeModal();
     }
 
@@ -241,9 +240,9 @@
           if (inp) inp.value = '';
           if (prev) {
             prev.removeAttribute('src');
-            prev.hidden = true;
+            prev.setAttribute('hidden', 'hidden');
           }
-          if (ph) ph.hidden = false;
+          if (ph) ph.removeAttribute('hidden');
           setStatus('');
         });
       }
