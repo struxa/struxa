@@ -54,6 +54,8 @@
     {% endif %}
   </div>
 
+  <div class="admin-toolbar-spacer"></div>
+
   <button type="button" class="admin-cmd-trigger" id="admin-cmd-trigger" aria-haspopup="dialog" aria-controls="admin-cmd-palette">
     <svg class="admin-cmd-trigger-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
       <circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/>
@@ -61,8 +63,6 @@
     <span class="admin-cmd-trigger-label">Search or jump…</span>
     <kbd class="admin-cmd-kbd admin-cmd-kbd--mod" aria-hidden="true">⌘K</kbd>
   </button>
-
-  <div class="admin-toolbar-spacer"></div>
 
   {% if cms_can('manage_pages') or cms_can('manage_media') or cms_can('manage_content_types') or cms_can('create_content') or cms_can('manage_portability') %}
     <details class="admin-create-menu">
