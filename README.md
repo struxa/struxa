@@ -1,12 +1,12 @@
 # Struxa CMS
 
-**Version:** 1.0.67 (canonical: `composer.json` → `version`)
+**Version:** 1.0.68 (canonical: `composer.json` → `version`)
 
 PHP content management on **Slim 4** and **Twig**: custom content types, storefront themes, admin UI, media library, SEO tools, optional **AI writing assistant**, headless **JSON/GraphQL** API, and **plugins**.
 
 ## Requirements
 
-- **PHP** 8.2+ with extensions: `mbstring`, `pdo_mysql`, `json`, `curl` (and typical CMS extensions)
+- **PHP** 8.2+ with extensions: `mbstring`, `pdo_mysql`, `json`, `curl`, and **`gd`** (JPEG/PNG/WebP; required for media compression and responsive thumbnails)
 - **MySQL** 8+ (or compatible)
 - **Composer** 2.x
 

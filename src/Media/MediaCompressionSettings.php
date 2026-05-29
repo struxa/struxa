@@ -46,7 +46,42 @@ final class MediaCompressionSettings
 
     public static function gdAvailable(): bool
     {
-        return extension_loaded('gd') && function_exists('imagecreatefromstring');
+        return self::capabilities()['available'];
+    }
+
+    /**
+     * @return array{
+     *     available: bool,
+     *     gd_loaded: bool,
+     *     can_encode: bool,
+     *     webp_encode: bool,
+     *     hint: string
+     * }
+     */
+    public static function capabilities(): array
+    {
+        $gdLoaded = extension_loaded('gd');
+        $canEncode = function_exists('imagecreatefromstring')
+            && (function_exists('imagejpeg') || function_exists('imagepng') || function_exists('imagewebp'));
+        $webpEncode = function_exists('imagewebp');
+        $available = $gdLoaded && $canEncode;
+
+        $hint = 'Re-encodes uploads as WebP when supported, otherwise optimized JPEG/PNG.';
+        if (!$gdLoaded) {
+            $hint = 'PHP GD is not loaded. Install the php-gd package on the server, or rebuild the Docker image (see Dockerfile).';
+        } elseif (!$canEncode) {
+            $hint = 'GD is loaded but image encode functions are missing. Reinstall php-gd with JPEG/PNG/WebP support.';
+        } elseif (!$webpEncode) {
+            $hint = 'GD is available without WebP; uploads will be re-encoded as JPEG/PNG only. Install libwebp for WebP output.';
+        }
+
+        return [
+            'available' => $available,
+            'gd_loaded' => $gdLoaded,
+            'can_encode' => $canEncode,
+            'webp_encode' => $webpEncode,
+            'hint' => $hint,
+        ];
     }
 
     private static function truthy(string $value): bool

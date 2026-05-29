@@ -19,6 +19,8 @@
   {% set stats = media_stats|default({ total_files: 0, total_bytes: 0, image_files: 0 }) %}
   {% set total_bytes = stats.total_bytes|default(0) %}
 
+  {% set compress_caps = media_compress_caps|default({ available: false, hint: 'Compression unavailable.' }) %}
+
   <div class="admin-media-page" id="admin-media-page">
     <script type="application/json" id="admin-media-library-config">
       {{- {
@@ -26,7 +28,7 @@
         compressUrl: url_for('admin.media.compress_setting'),
         maxMb: max_upload_mb,
         compressEnabled: media_compress_enabled|default(false),
-        gdAvailable: media_compress_gd|default(false)
+        gdAvailable: compress_caps.available|default(false)
       }|json_encode|raw -}}
     </script>
 
@@ -53,7 +55,7 @@
             <span class="admin-media-compress-title">Smart compression</span>
             <span class="admin-media-compress-hint" id="admin-media-compress-hint">
               {% if media_compress_enabled|default(false) %}
-                WebP re-encode · max {{ media_compress_max_edge|default(3840) }}px edge
+                {% if compress_caps.webp_encode|default(false) %}WebP re-encode{% else %}JPEG/PNG re-encode{% endif %} · max {{ media_compress_max_edge|default(3840) }}px edge
               {% else %}
                 Off — uploads stored as uploaded
               {% endif %}
@@ -64,14 +66,16 @@
               type="checkbox"
               id="admin-media-compress-toggle"
               {% if media_compress_enabled|default(false) %}checked{% endif %}
-              {% if not media_compress_gd|default(false) %}disabled{% endif %}
+              {% if not compress_caps.available|default(false) %}disabled{% endif %}
             />
             <span class="admin-switch-track" aria-hidden="true"><span class="admin-switch-thumb"></span></span>
             <span class="admin-switch-label">Compress on upload</span>
           </label>
         </div>
-        {% if not media_compress_gd|default(false) %}
-          <p class="admin-media-compress-warn">PHP GD extension required for compression.</p>
+        {% if not compress_caps.available|default(false) %}
+          <p class="admin-media-compress-warn" id="admin-media-compress-warn">{{ compress_caps.hint|default('PHP GD extension required for compression.')|e }}</p>
+        {% elseif not compress_caps.webp_encode|default(false) %}
+          <p class="admin-media-compress-warn admin-media-compress-warn--info" id="admin-media-compress-warn">{{ compress_caps.hint|e }}</p>
         {% endif %}
       </article>
     </section>

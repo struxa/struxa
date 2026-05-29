@@ -172,12 +172,20 @@
           .then(function (data) {
             if (!data || !data.ok) {
               compressToggle.checked = !enabled;
+              if (data && data.error && compressHint) {
+                compressHint.textContent = data.error;
+              }
               return;
             }
             if (compressHint) {
-              compressHint.textContent = data.enabled
-                ? 'WebP re-encode · max edge cap applied on upload'
-                : 'Off — uploads stored as uploaded';
+              var caps = data.capabilities || {};
+              if (data.enabled) {
+                compressHint.textContent = caps.webp_encode
+                  ? 'WebP re-encode · max edge cap applied on upload'
+                  : 'JPEG/PNG re-encode · max edge cap applied on upload';
+              } else {
+                compressHint.textContent = 'Off — uploads stored as uploaded';
+              }
             }
           })
           .catch(function () {

@@ -84,6 +84,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             }
 
             $stats = $repo->libraryStats();
+            $compressCaps = MediaCompressionSettings::capabilities();
 
             return $twig->render($response, 'admin/media/list.twig', $withCmsUser($request, array_merge($adminContext(), [
                 'admin_nav' => 'media',
@@ -97,12 +98,23 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 'max_upload_mb' => (int) round(MediaUploadService::maxBytesFromEnv() / 1024 / 1024),
                 'media_stats' => $stats,
                 'media_compress_enabled' => MediaCompressionSettings::isEnabled(),
-                'media_compress_gd' => MediaCompressionSettings::gdAvailable(),
+                'media_compress_caps' => $compressCaps,
                 'media_compress_max_edge' => MediaCompressionSettings::maxEdgePx(),
             ])));
         })->setName('admin.media.index');
 
         $group->post('/media/compress-setting', function (Request $request, Response $response) use ($pdo): Response {
+            $caps = MediaCompressionSettings::capabilities();
+            if (!$caps['available']) {
+                $response->getBody()->write(json_encode([
+                    'ok' => false,
+                    'error' => $caps['hint'],
+                    'capabilities' => $caps,
+                ]));
+
+                return $response->withStatus(422)->withHeader('Content-Type', 'application/json; charset=utf-8');
+            }
+
             $body = $request->getParsedBody();
             $body = is_array($body) ? $body : [];
             $enabled = isset($body['enabled']) && (string) $body['enabled'] === '1';
@@ -116,7 +128,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             $payload = [
                 'ok' => true,
                 'enabled' => MediaCompressionSettings::isEnabled(),
-                'gd_available' => MediaCompressionSettings::gdAvailable(),
+                'capabilities' => MediaCompressionSettings::capabilities(),
             ];
             $response->getBody()->write(json_encode($payload));
 

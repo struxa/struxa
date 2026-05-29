@@ -2456,6 +2456,11 @@ body.admin-media-modal-open {
   margin: 0;
   font-size: 0.72rem;
   color: #f0a060;
+  line-height: 1.4;
+}
+
+.admin-media-compress-warn--info {
+  color: var(--admin-dim);
 }
 
 .admin-switch {
