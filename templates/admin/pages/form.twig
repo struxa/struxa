@@ -240,7 +240,7 @@
             {% endif %}
           </div>
 
-          <div class="admin-card admin-page-edit-aside-card">
+          <div class="admin-card admin-page-edit-aside-card admin-page-edit-preview-card">
             <h2 class="admin-card-title admin-page-edit-revisions-title">Stakeholder preview</h2>
             <p class="admin-hint">Time-limited public link for this page (saved content only). The full URL appears once in the green banner after you generate it.</p>
             <form method="post" action="{{ url_for('admin.pages.preview_link', { id: page.id }) }}" style="margin-top:0.5rem">

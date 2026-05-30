@@ -1927,6 +1927,9 @@
 .admin-page-edit-aside {
   position: sticky;
   top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
 }
 
 @media (max-width: 900px) {
@@ -1970,7 +1973,7 @@
 }
 
 .admin-page-edit-revisions-card {
-  margin-top: 1rem;
+  margin-top: 0;
 }
 
 .admin-page-edit-revisions-title {

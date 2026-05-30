@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.1.11",
-    "title": "Struxa 1.1.11",
-    "summary": "Page builder block picker and section drawer now portal to document.body with z-index above sticky chrome.",
+    "latest_version": "1.1.12",
+    "title": "Struxa 1.1.12",
+    "summary": "Adds consistent vertical spacing between Recent revisions and Stakeholder preview cards in the page/entry editor sidebar.",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "patch"

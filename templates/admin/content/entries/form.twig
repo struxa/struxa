@@ -238,7 +238,7 @@
         </div>
 
         {% if content_type.hasPublicRoute %}
-          <div class="admin-card admin-page-edit-aside-card admin-page-edit-revisions-card">
+          <div class="admin-card admin-page-edit-aside-card admin-page-edit-preview-card">
             <h2 class="admin-card-title admin-page-edit-revisions-title">Stakeholder preview</h2>
             <p class="admin-hint">Time-limited public link (saved entry). Copy the URL from the green banner after generating.</p>
             <form method="post" action="{{ url_for('admin.content_types.entries.preview_link', { id: content_type.id, entryId: entry.id }) }}" style="margin-top:0.5rem">
