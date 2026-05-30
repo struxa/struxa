@@ -3,6 +3,7 @@
 
 <nav class="admin-nav admin-nav--grouped" aria-label="Admin" id="admin-primary-nav">
   <div class="admin-nav-pins" aria-label="Quick access">
+    <p class="admin-nav-section-label">Pinned</p>
     <a href="{{ url_for('admin.dashboard') }}" class="admin-nav-pin {{ nav == 'dashboard' ? 'is-active' : '' }}">
       <svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="7" height="7" x="3" y="3" rx="1" /><rect width="7" height="7" x="14" y="3" rx="1" /><rect width="7" height="7" x="14" y="14" rx="1" /><rect width="7" height="7" x="3" y="14" rx="1" /></svg>
       Dashboard
@@ -20,6 +21,14 @@
       </a>
     {% endif %}
   </div>
+
+  <a href="{{ url_for('admin.updates.index') }}" class="admin-nav-pin {{ nav == 'updates' ? 'is-active' : '' }}">
+    <svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+      <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+    </svg>
+    Updates
+  </a>
 
   {% if cms_can('create_content') or cms_can('manage_settings') or cms_can('manage_comments') %}
     <details class="admin-nav-group" {{ nav in ['ai_blog','ai_comments'] ? 'open' : '' }}>
@@ -40,14 +49,6 @@
       </div>
     </details>
   {% endif %}
-
-  <a href="{{ url_for('admin.updates.index') }}" class="admin-nav-pin {{ nav == 'updates' ? 'is-active' : '' }}">
-    <svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-      <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-    </svg>
-    Updates
-  </a>
 
   {% if cms_can('manage_security') %}
     <details class="admin-nav-group" {{ nav == 'security_ip_block' ? 'open' : '' }}>
@@ -125,7 +126,7 @@
   </details>
 
   {% if cms_can('manage_settings') or cms_can('view_link_analytics') %}
-    <details class="admin-nav-group" {{ nav in ['settings','seo_redirects','seo_not_found','cache_tools','analytics_external_links','settings_search'] ? 'open' : '' }}>
+    <details class="admin-nav-group" {{ nav in ['settings','seo_redirects','seo_not_found','cache_tools','maintenance_tools','analytics_external_links','settings_search'] ? 'open' : '' }}>
       <summary class="admin-nav-group-title">Site</summary>
       <div class="admin-nav-group-items">
         {% if cms_can('manage_settings') %}
@@ -144,6 +145,10 @@
           <a href="{{ url_for('admin.tools.cache') }}" class="{{ nav == 'cache_tools' ? 'is-active' : '' }}">
             <svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
             Performance
+          </a>
+          <a href="{{ url_for('admin.tools.maintenance') }}" class="{{ nav == 'maintenance_tools' ? 'is-active' : '' }}">
+            <svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/><circle cx="12" cy="12" r="3"/></svg>
+            Maintenance
           </a>
           <a href="{{ url_for('admin.settings.search') }}" class="{{ nav == 'settings_search' ? 'is-active' : '' }}">
             <svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>

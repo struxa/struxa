@@ -20,6 +20,9 @@
   {% set total_bytes = stats.total_bytes|default(0) %}
 
   {% set compress_caps = media_compress_caps|default({ available: false, hint: 'Compression unavailable.' }) %}
+  {% set current_filter = media_folder_filter|default(null) %}
+  {% set mq_base = media_mq_base|default({}) %}
+  {% set return_folder = current_filter and current_filter.mode == 'folder' ? current_filter.folderId : (current_filter and current_filter.mode == 'unfiled' ? 'unfiled' : '') %}
 
   <div class="admin-media-page" id="admin-media-page">
     <script type="application/json" id="admin-media-library-config">
@@ -28,7 +31,8 @@
         compressUrl: url_for('admin.media.compress_setting'),
         maxMb: max_upload_mb,
         compressEnabled: media_compress_enabled|default(false),
-        gdAvailable: compress_caps.available|default(false)
+        gdAvailable: compress_caps.available|default(false),
+        folderId: media_upload_folder_id|default(null)
       }|json_encode|raw -}}
     </script>
 
@@ -126,12 +130,75 @@
       </div>
     </section>
 
+    <div class="admin-media-library-layout">
+      <aside class="admin-media-folders" aria-label="Folders">
+        <div class="admin-media-folders-head">
+          <h2 class="admin-media-folders-title">Folders</h2>
+        </div>
+        <nav class="admin-media-folders-nav">
+          <a href="{{ url_for('admin.media.index', {}, media_mq_all|default({})) }}" class="admin-media-folder-link admin-media-folder-link--root{% if current_filter is null or current_filter.mode == 'all' %} is-active{% endif %}">
+            <svg class="admin-media-folder-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+            <span class="admin-media-folder-name">All files</span>
+          </a>
+          <a href="{{ url_for('admin.media.index', {}, mq_base|merge({ folder: 'unfiled' })) }}" class="admin-media-folder-link admin-media-folder-link--root{% if current_filter and current_filter.mode == 'unfiled' %} is-active{% endif %}">
+            <svg class="admin-media-folder-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+            <span class="admin-media-folder-name">Unfiled</span>
+            {% if media_unfiled_count|default(0) > 0 %}
+              <span class="admin-media-folder-count">{{ media_unfiled_count }}</span>
+            {% endif %}
+          </a>
+          {% if media_folder_tree|default([]) is not empty %}
+            <ul class="admin-media-folder-tree" role="list">
+              {% from 'admin/media/_folder_tree.twig' import folder_tree %}
+              {{ folder_tree(media_folder_tree, current_filter, mq_base, 0) }}
+            </ul>
+          {% endif %}
+        </nav>
+        <form class="admin-media-folder-create" method="post" action="{{ url_for('admin.media.folders.create') }}">
+          <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+          <input type="hidden" name="return_folder" value="{{ return_folder|e('html_attr') }}" />
+          <input type="hidden" name="return_q" value="{{ search_q|default('')|e('html_attr') }}" />
+          <input type="hidden" name="return_view" value="{{ media_view|default('gallery')|e('html_attr') }}" />
+          <input type="hidden" name="return_sort" value="{{ media_sort|default('newest')|e('html_attr') }}" />
+          <input type="hidden" name="return_per_page" value="{{ per_page|default(24) }}" />
+          <input type="hidden" name="return_page" value="{{ page|default(1) }}" />
+          {% if current_filter and current_filter.mode == 'folder' and current_filter.folderId %}
+            <input type="hidden" name="parent_id" value="{{ current_filter.folderId }}" />
+          {% endif %}
+          <label class="admin-media-folder-create-label">
+            <span class="admin-media-folder-create-name">New folder{% if media_current_folder %} in {{ media_current_folder.name|e }}{% endif %}</span>
+            <input class="admin-input admin-input--sm" type="text" name="name" placeholder="Folder name" maxlength="160" required />
+          </label>
+          <button type="submit" class="admin-btn-ghost admin-btn-ghost--sm">Create</button>
+        </form>
+      </aside>
+
+      <div class="admin-media-library-main">
+    {% if media_current_folder %}
+      <nav class="admin-media-folder-breadcrumbs" aria-label="Folder location">
+        <a class="admin-link" href="{{ url_for('admin.media.index', {}, media_mq_all|default({})) }}">All files</a>
+        {% for crumb in media_folder_breadcrumbs|default([]) %}
+          <span class="admin-media-folder-crumb-sep" aria-hidden="true">/</span>
+          {% if loop.last %}
+            <span class="admin-media-folder-crumb-current">{{ crumb.name|e }}</span>
+          {% else %}
+            <a class="admin-link" href="{{ url_for('admin.media.index', {}, mq_base|merge({ folder: crumb.id })) }}">{{ crumb.name|e }}</a>
+          {% endif %}
+        {% endfor %}
+      </nav>
+    {% endif %}
+
     <div class="admin-media-toolbar-card">
     <div class="admin-media-toolbar admin-toolbar admin-toolbar--spread">
       <div class="admin-media-toolbar-start">
         <form class="admin-media-view-toggle" method="get" action="{{ url_for('admin.media.index') }}" aria-label="Library layout">
           {% if search_q %}
             <input type="hidden" name="q" value="{{ search_q|e('html_attr') }}" />
+          {% endif %}
+          {% if current_filter and current_filter.mode == 'unfiled' %}
+            <input type="hidden" name="folder" value="unfiled" />
+          {% elseif current_filter and current_filter.mode == 'folder' and current_filter.folderId %}
+            <input type="hidden" name="folder" value="{{ current_filter.folderId }}" />
           {% endif %}
           {% if page > 1 %}
             <input type="hidden" name="page" value="{{ page }}" />
@@ -161,6 +228,11 @@
           {% if search_q %}
             <input type="hidden" name="q" value="{{ search_q|e('html_attr') }}" />
           {% endif %}
+          {% if current_filter and current_filter.mode == 'unfiled' %}
+            <input type="hidden" name="folder" value="unfiled" />
+          {% elseif current_filter and current_filter.mode == 'folder' and current_filter.folderId %}
+            <input type="hidden" name="folder" value="{{ current_filter.folderId }}" />
+          {% endif %}
           {% if media_view == 'list' %}
             <input type="hidden" name="view" value="list" />
           {% endif %}
@@ -184,6 +256,11 @@
         </form>
       </div>
       <form class="admin-media-search" method="get" action="{{ url_for('admin.media.index') }}">
+        {% if current_filter and current_filter.mode == 'unfiled' %}
+          <input type="hidden" name="folder" value="unfiled" />
+        {% elseif current_filter and current_filter.mode == 'folder' and current_filter.folderId %}
+          <input type="hidden" name="folder" value="{{ current_filter.folderId }}" />
+        {% endif %}
         {% if media_view == 'list' %}
           <input type="hidden" name="view" value="list" />
         {% endif %}
@@ -196,7 +273,7 @@
         <input class="admin-input admin-media-search-input admin-search-field" type="search" id="admin-media-search-input" name="q" value="{{ search_q|e('html_attr') }}" placeholder="Search filenames… (/)" autocomplete="off" />
         <button type="submit" class="admin-btn-ghost admin-media-search-btn">Search</button>
         {% if search_q %}
-          <a class="admin-link" href="{{ url_for('admin.media.index', {}, media_view == 'list' ? { view: 'list' } : {}) }}">Clear</a>
+          <a class="admin-link" href="{{ url_for('admin.media.index', {}, current_filter and current_filter.mode != 'all' ? mq_base : media_mq_all|default({})) }}">Clear</a>
         {% endif %}
       </form>
     </div>
@@ -211,11 +288,7 @@
         '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>'
       ) }}
     {% else %}
-      {% set mq = {} %}
-      {% if search_q != '' %}{% set mq = mq|merge({ q: search_q }) %}{% endif %}
-      {% if media_view == 'list' %}{% set mq = mq|merge({ view: 'list' }) %}{% endif %}
-      {% if media_sort|default('newest') != 'newest' %}{% set mq = mq|merge({ sort: media_sort }) %}{% endif %}
-      {% if per_page|default(24) != 24 %}{% set mq = mq|merge({ per_page: per_page }) %}{% endif %}
+      {% set mq = mq_base|default({}) %}
 
       <form id="admin-media-bulk-form" method="post" action="{{ url_for('admin.media.bulk_delete') }}" class="admin-media-bulk-form" hidden aria-hidden="true">
         <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
@@ -224,6 +297,18 @@
         <input type="hidden" name="return_view" value="{{ media_view|e('html_attr') }}" />
         <input type="hidden" name="return_sort" value="{{ media_sort|default('newest')|e('html_attr') }}" />
         <input type="hidden" name="return_per_page" value="{{ per_page|default(24) }}" />
+        <input type="hidden" name="return_folder" value="{{ return_folder|e('html_attr') }}" />
+      </form>
+
+      <form id="admin-media-bulk-move-form" method="post" action="{{ url_for('admin.media.bulk_move') }}" class="admin-media-bulk-form" hidden aria-hidden="true">
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+        <input type="hidden" name="return_page" value="{{ page }}" />
+        <input type="hidden" name="return_q" value="{{ search_q|e('html_attr') }}" />
+        <input type="hidden" name="return_view" value="{{ media_view|e('html_attr') }}" />
+        <input type="hidden" name="return_sort" value="{{ media_sort|default('newest')|e('html_attr') }}" />
+        <input type="hidden" name="return_per_page" value="{{ per_page|default(24) }}" />
+        <input type="hidden" name="return_folder" value="{{ return_folder|e('html_attr') }}" />
+        <input type="hidden" name="target_folder_id" id="admin-media-bulk-move-target" value="" />
       </form>
 
       <div class="admin-media-bulk-bar admin-toolbar admin-toolbar--spread" id="admin-media-bulk-bar">
@@ -241,6 +326,18 @@
           id="admin-media-bulk-delete"
           disabled
         >Delete selected</button>
+        <div class="admin-media-bulk-move">
+          <label class="admin-media-bulk-move-label">
+            <span class="admin-table-muted">Move to</span>
+            <select class="admin-select admin-select--sm" id="admin-media-bulk-move-select" disabled>
+              <option value="unfiled">Unfiled</option>
+              {% for opt in media_folder_options|default([]) %}
+                <option value="{{ opt.id }}">{{ opt.label|e }}</option>
+              {% endfor %}
+            </select>
+          </label>
+          <button type="button" class="admin-btn-ghost admin-media-bulk-move-btn" id="admin-media-bulk-move" disabled>Move</button>
+        </div>
       </div>
 
       <p class="admin-media-count">
@@ -395,6 +492,8 @@
 
       {{ ui.pagination('admin.media.index', page, total_pages, mq, 'Media library pages') }}
     {% endif %}
+      </div>{# .admin-media-library-main #}
+    </div>{# .admin-media-library-layout #}
 
     <div id="admin-media-lightbox" class="admin-media-lightbox" hidden role="dialog" aria-modal="true" aria-labelledby="admin-media-lightbox-title">
       <button type="button" class="admin-media-lightbox-backdrop" id="admin-media-lightbox-backdrop" aria-label="Close preview"></button>

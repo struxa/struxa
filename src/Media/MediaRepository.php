@@ -9,6 +9,8 @@ use PDO;
 final class MediaRepository
 {
     private const TABLE = 'cms_media';
+    private const SELECT_COLS = 'id, filename, original_name, mime_type, extension, file_size, path, alt_text, title, caption,
+                    width, height, uploaded_by, folder_id, created_at, updated_at';
 
     public function __construct(private readonly PDO $pdo)
     {
@@ -17,9 +19,7 @@ final class MediaRepository
     public function findById(int $id): ?Media
     {
         $stmt = $this->pdo->prepare(
-            'SELECT id, filename, original_name, mime_type, extension, file_size, path, alt_text, title, caption,
-                    width, height, uploaded_by, created_at, updated_at
-             FROM ' . self::TABLE . ' WHERE id = ? LIMIT 1'
+            'SELECT ' . self::SELECT_COLS . ' FROM ' . self::TABLE . ' WHERE id = ? LIMIT 1'
         );
         $stmt->execute([$id]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -54,14 +54,15 @@ final class MediaRepository
         string $path,
         ?int $width,
         ?int $height,
-        ?int $uploadedBy
+        ?int $uploadedBy,
+        ?int $folderId = null,
     ): int {
         $stmt = $this->pdo->prepare(
             'INSERT INTO ' . self::TABLE . '
-            (filename, original_name, mime_type, extension, file_size, path, width, height, uploaded_by)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
+            (filename, original_name, mime_type, extension, file_size, path, width, height, uploaded_by, folder_id)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
         );
-        $stmt->execute([$filename, $originalName, $mimeType, $extension, $fileSize, $path, $width, $height, $uploadedBy]);
+        $stmt->execute([$filename, $originalName, $mimeType, $extension, $fileSize, $path, $width, $height, $uploadedBy, $folderId]);
 
         return (int) $this->pdo->lastInsertId();
     }
@@ -72,6 +73,38 @@ final class MediaRepository
             'UPDATE ' . self::TABLE . ' SET alt_text = ?, title = ?, caption = ? WHERE id = ?'
         );
         $stmt->execute([$altText, $title, $caption, $id]);
+    }
+
+    public function updateFolderId(int $id, ?int $folderId): void
+    {
+        $stmt = $this->pdo->prepare('UPDATE ' . self::TABLE . ' SET folder_id = ? WHERE id = ?');
+        $stmt->execute([$folderId, $id]);
+    }
+
+    /**
+     * @param list<int|string> $ids
+     */
+    public function moveManyToFolder(array $ids, ?int $folderId): int
+    {
+        $clean = [];
+        foreach ($ids as $id) {
+            $n = (int) $id;
+            if ($n > 0) {
+                $clean[$n] = true;
+            }
+        }
+        if ($clean === []) {
+            return 0;
+        }
+
+        $placeholders = implode(',', array_fill(0, count($clean), '?'));
+        $params = array_merge([$folderId], array_map('intval', array_keys($clean)));
+        $stmt = $this->pdo->prepare(
+            'UPDATE ' . self::TABLE . ' SET folder_id = ? WHERE id IN (' . $placeholders . ')'
+        );
+        $stmt->execute($params);
+
+        return $stmt->rowCount();
     }
 
     public function updateFileRecord(
@@ -98,9 +131,7 @@ final class MediaRepository
     {
         $limit = max(1, min(50, $limit));
         $stmt = $this->pdo->prepare(
-            'SELECT id, filename, original_name, mime_type, extension, file_size, path, alt_text, title, caption,
-                    width, height, uploaded_by, created_at, updated_at
-             FROM ' . self::TABLE . "
+            'SELECT ' . self::SELECT_COLS . ' FROM ' . self::TABLE . "
              WHERE mime_type LIKE 'image/%' AND id > ?
              ORDER BY id ASC
              LIMIT " . $limit
@@ -149,24 +180,22 @@ final class MediaRepository
     /**
      * @return list<array<string, mixed>>
      */
-    public function searchPaginated(string $search, int $page, int $perPage, string $sort = MediaLibraryListOptions::SORT_NEWEST): array
-    {
+    public function searchPaginated(
+        string $search,
+        int $page,
+        int $perPage,
+        string $sort = MediaLibraryListOptions::SORT_NEWEST,
+        ?MediaFolderFilter $folderFilter = null,
+    ): array {
         $opts = new MediaLibraryListOptions($sort, $perPage);
         $page = max(1, $page);
         $perPage = $opts->perPage;
         $offset = ($page - 1) * $perPage;
 
-        $where = '';
-        $params = [];
-        $q = trim($search);
-        if ($q !== '') {
-            $where = ' WHERE m.filename LIKE ? OR m.original_name LIKE ?';
-            $like = '%' . $q . '%';
-            $params = [$like, $like];
-        }
+        [$where, $params] = $this->buildListWhere($search, $folderFilter);
 
         $sql = 'SELECT m.id, m.filename, m.original_name, m.mime_type, m.extension, m.file_size, m.path,
-                       m.width, m.height, m.created_at, u.email AS uploader_email
+                       m.width, m.height, m.folder_id, m.created_at, u.email AS uploader_email
                 FROM ' . self::TABLE . ' m
                 LEFT JOIN cms_users u ON u.id = m.uploaded_by'
             . $where
@@ -183,16 +212,9 @@ final class MediaRepository
         return $out;
     }
 
-    public function countSearch(string $search): int
+    public function countSearch(string $search, ?MediaFolderFilter $folderFilter = null): int
     {
-        $where = '';
-        $params = [];
-        $q = trim($search);
-        if ($q !== '') {
-            $where = ' WHERE filename LIKE ? OR original_name LIKE ?';
-            $like = '%' . $q . '%';
-            $params = [$like, $like];
-        }
+        [$where, $params] = $this->buildListWhere($search, $folderFilter, '');
 
         $stmt = $this->pdo->prepare('SELECT COUNT(*) FROM ' . self::TABLE . $where);
         $stmt->execute($params);
@@ -218,5 +240,41 @@ final class MediaRepository
             'total_bytes' => (int) ($row['total_bytes'] ?? 0),
             'image_files' => (int) ($row['image_files'] ?? 0),
         ];
+    }
+
+    /**
+     * @return array{0: string, 1: list<mixed>}
+     */
+    private function buildListWhere(string $search, ?MediaFolderFilter $folderFilter, string $alias = 'm'): array
+    {
+        $clauses = [];
+        $params = [];
+
+        $q = trim($search);
+        if ($q !== '') {
+            if ($alias !== '') {
+                $clauses[] = '(' . $alias . '.filename LIKE ? OR ' . $alias . '.original_name LIKE ?)';
+            } else {
+                $clauses[] = '(filename LIKE ? OR original_name LIKE ?)';
+            }
+            $like = '%' . $q . '%';
+            $params = [$like, $like];
+        }
+
+        if ($folderFilter !== null) {
+            $col = $alias !== '' ? $alias . '.folder_id' : 'folder_id';
+            if ($folderFilter->mode === MediaFolderFilter::MODE_UNFILED) {
+                $clauses[] = $col . ' IS NULL';
+            } elseif ($folderFilter->mode === MediaFolderFilter::MODE_FOLDER && $folderFilter->folderId !== null) {
+                $clauses[] = $col . ' = ?';
+                $params[] = $folderFilter->folderId;
+            }
+        }
+
+        if ($clauses === []) {
+            return ['', []];
+        }
+
+        return [' WHERE ' . implode(' AND ', $clauses), $params];
     }
 }

@@ -20,6 +20,7 @@ final class Media
         public readonly ?int $width,
         public readonly ?int $height,
         public readonly ?int $uploadedBy,
+        public readonly ?int $folderId,
         public readonly string $createdAt,
         public readonly string $updatedAt,
     ) {
@@ -44,6 +45,7 @@ final class Media
             isset($row['width']) && $row['width'] !== null && $row['width'] !== '' ? (int) $row['width'] : null,
             isset($row['height']) && $row['height'] !== null && $row['height'] !== '' ? (int) $row['height'] : null,
             isset($row['uploaded_by']) && $row['uploaded_by'] !== null && $row['uploaded_by'] !== '' ? (int) $row['uploaded_by'] : null,
+            isset($row['folder_id']) && $row['folder_id'] !== null && $row['folder_id'] !== '' ? (int) $row['folder_id'] : null,
             (string) ($row['created_at'] ?? ''),
             (string) ($row['updated_at'] ?? ''),
         );

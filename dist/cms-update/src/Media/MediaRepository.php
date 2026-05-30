@@ -74,6 +74,46 @@ final class MediaRepository
         $stmt->execute([$altText, $title, $caption, $id]);
     }
 
+    public function updateFileRecord(
+        int $id,
+        string $filename,
+        string $mimeType,
+        string $extension,
+        int $fileSize,
+        ?int $width,
+        ?int $height,
+        string $path
+    ): void {
+        $stmt = $this->pdo->prepare(
+            'UPDATE ' . self::TABLE . ' SET filename = ?, mime_type = ?, extension = ?, file_size = ?,
+             width = ?, height = ?, path = ? WHERE id = ?'
+        );
+        $stmt->execute([$filename, $mimeType, $extension, $fileSize, $width, $height, $path, $id]);
+    }
+
+    /**
+     * @return list<Media>
+     */
+    public function listImagesAfterId(int $afterId, int $limit): array
+    {
+        $limit = max(1, min(50, $limit));
+        $stmt = $this->pdo->prepare(
+            'SELECT id, filename, original_name, mime_type, extension, file_size, path, alt_text, title, caption,
+                    width, height, uploaded_by, created_at, updated_at
+             FROM ' . self::TABLE . "
+             WHERE mime_type LIKE 'image/%' AND id > ?
+             ORDER BY id ASC
+             LIMIT " . $limit
+        );
+        $stmt->execute([max(0, $afterId)]);
+        $out = [];
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            $out[] = Media::fromRow($row);
+        }
+
+        return $out;
+    }
+
     public function deleteById(int $id): void
     {
         $stmt = $this->pdo->prepare('DELETE FROM ' . self::TABLE . ' WHERE id = ?');

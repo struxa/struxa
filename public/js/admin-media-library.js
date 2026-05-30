@@ -62,6 +62,9 @@
       var fd = new FormData();
       fd.append('file', file, file.name);
       fd.append('_csrf_token', token);
+      if (cfg.folderId) {
+        fd.append('folder_id', String(cfg.folderId));
+      }
       return fetch(cfg.uploadUrl, {
         method: 'POST',
         body: fd,
@@ -247,6 +250,10 @@
     var selectAll = document.getElementById('admin-media-select-all');
     var bulkDelete = document.getElementById('admin-media-bulk-delete');
     var bulkForm = document.getElementById('admin-media-bulk-form');
+    var bulkMoveForm = document.getElementById('admin-media-bulk-move-form');
+    var bulkMoveBtn = document.getElementById('admin-media-bulk-move');
+    var bulkMoveSelect = document.getElementById('admin-media-bulk-move-select');
+    var bulkMoveTarget = document.getElementById('admin-media-bulk-move-target');
     var bulkCount = document.getElementById('admin-media-bulk-count');
     var rowCbs = document.querySelectorAll('.admin-media-row-cb');
 
@@ -262,6 +269,8 @@
       var n = selectedCount();
       var bulkBar = document.getElementById('admin-media-bulk-bar');
       if (bulkDelete) bulkDelete.disabled = n < 1;
+      if (bulkMoveBtn) bulkMoveBtn.disabled = n < 1;
+      if (bulkMoveSelect) bulkMoveSelect.disabled = n < 1;
       if (bulkBar) bulkBar.classList.toggle('is-sticky', n > 0);
       if (bulkCount) {
         bulkCount.hidden = n < 1;
@@ -302,6 +311,30 @@
           : 'Delete ' + n + ' files permanently?';
         if (!window.confirm(msg)) {
           e.preventDefault();
+        }
+      });
+    }
+
+    if (bulkMoveForm && bulkMoveBtn && bulkMoveSelect) {
+      bulkMoveBtn.addEventListener('click', function () {
+        var n = selectedCount();
+        if (n < 1) return;
+        var target = bulkMoveSelect.value || 'unfiled';
+        if (bulkMoveTarget) bulkMoveTarget.value = target;
+        bulkMoveForm.querySelectorAll('input[name="ids[]"]').forEach(function (el) {
+          el.remove();
+        });
+        rowCbs.forEach(function (cb) {
+          if (!cb.checked) return;
+          var input = document.createElement('input');
+          input.type = 'hidden';
+          input.name = 'ids[]';
+          input.value = cb.value;
+          bulkMoveForm.appendChild(input);
+        });
+        var msg = n === 1 ? 'Move 1 file to the selected folder?' : 'Move ' + n + ' files to the selected folder?';
+        if (window.confirm(msg)) {
+          bulkMoveForm.submit();
         }
       });
     }

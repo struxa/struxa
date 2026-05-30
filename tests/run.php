@@ -27,6 +27,7 @@ use App\Security\IpBlockPatternValidator;
 use App\Dev\PluginDependencyHealthCheck;
 use App\Dev\TwigLayoutContractLinter;
 use App\Maintenance\MaintenanceService;
+use App\Media\MediaFolderFilter;
 use App\Manifest\ManifestMeta;
 use Slim\Psr7\Factory\ServerRequestFactory;
 
@@ -309,6 +310,21 @@ if (MaintenanceService::formatBytes(512) !== '512 B') {
 }
 if (!str_contains(MaintenanceService::formatBytes(2048), 'KB')) {
     $fail('MaintenanceService::formatBytes should format kilobytes.');
+}
+
+if (MediaFolderFilter::fromQueryParams([])->mode !== MediaFolderFilter::MODE_ALL) {
+    $fail('MediaFolderFilter should default to all files.');
+}
+$unfiled = MediaFolderFilter::fromQueryParams(['folder' => 'unfiled']);
+if ($unfiled->mode !== MediaFolderFilter::MODE_UNFILED) {
+    $fail('MediaFolderFilter should parse unfiled.');
+}
+$inFolder = MediaFolderFilter::fromQueryParams(['folder' => '12']);
+if ($inFolder->mode !== MediaFolderFilter::MODE_FOLDER || $inFolder->folderId !== 12) {
+    $fail('MediaFolderFilter should parse folder id.');
+}
+if ($unfiled->toQueryParams() !== ['folder' => 'unfiled']) {
+    $fail('MediaFolderFilter::toQueryParams should emit unfiled.');
 }
 
 echo "All tests passed.\n";

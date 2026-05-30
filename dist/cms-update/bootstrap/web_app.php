@@ -43,6 +43,8 @@ use App\Settings\SettingsRepository;
 use App\Settings\SiteSettingsService;
 use App\Page\PageRepository;
 use App\Page\PublicCmsPageRenderer;
+use App\Section\CoreSectionDefinitionProvider;
+use App\Section\SectionDefinitionRegistry;
 use App\PhpAuthSettings;
 use App\Plugin\PluginManager;
 use App\Plugin\PluginRepository;
@@ -223,7 +225,7 @@ $viewData = static function (array $extra = []) use ($auth, $pdo, $googleSso): a
         'user_username' => $userUsername,
         'flash_error' => Flash::pull('error'),
         'flash_success' => Flash::pull('success'),
-        'site_url' => rtrim($_ENV['PHPAUTH_SITE_URL'] ?? 'http://localhost:8080', '/'),
+        'site_url' => \App\Settings\SiteUrlResolver::resolve(),
         'google_sso_enabled' => $googleSso !== null,
     ], $extra);
 };
@@ -646,10 +648,13 @@ $app->get('/logout', function (Request $request, Response $response) use ($twig,
 (require $root . '/routes/admin_activity.php')($app, $twig, $auth, $pdo, $viewData);
 (require $root . '/routes/admin_updates.php')($app, $twig, $auth, $pdo, $viewData);
 (require $root . '/routes/admin_tools.php')($app, $twig, $auth, $pdo, $viewData);
+SectionDefinitionRegistry::instance()->registerProvider(new CoreSectionDefinitionProvider());
+
 (require $root . '/routes/admin_pages.php')($app, $twig, $auth, $pdo, $viewData);
 (require $root . '/routes/admin_settings.php')($app, $twig, $auth, $pdo, $viewData);
 (require $root . '/routes/admin_search.php')($app, $twig, $auth, $pdo, $viewData);
 (require $root . '/routes/admin_cache.php')($app, $twig, $auth, $pdo, $viewData);
+(require $root . '/routes/admin_maintenance.php')($app, $twig, $auth, $pdo, $viewData);
 (require $root . '/routes/admin_seo.php')($app, $twig, $auth, $pdo, $viewData);
 (require $root . '/routes/admin_security.php')($app, $twig, $auth, $pdo, $viewData);
 (require $root . '/routes/admin_comments.php')($app, $twig, $auth, $pdo, $viewData);

@@ -18,7 +18,7 @@ final class MediaUploadService
     /**
      * @return array{ok: true, id: int}|array{ok: false, error: string}
      */
-    public function handleUpload(UploadedFileInterface $file, ?int $cmsUserId): array
+    public function handleUpload(UploadedFileInterface $file, ?int $cmsUserId, ?int $folderId = null): array
     {
         if ($file->getError() !== UPLOAD_ERR_OK) {
             return ['ok' => false, 'error' => $this->uploadErrorMessage($file->getError())];
@@ -154,7 +154,8 @@ final class MediaUploadService
                 $webPath,
                 $width > 0 ? $width : (int) $second['width'],
                 $height > 0 ? $height : (int) $second['height'],
-                $cmsUserId
+                $cmsUserId,
+                $folderId
             );
         } catch (\Throwable) {
             @unlink($absolute);

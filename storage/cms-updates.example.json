@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.1.16",
-    "title": "Struxa 1.1.16",
-    "summary": "Native Speed & maintenance tools: database housekeeping, batch image optimization, and scheduled retention purges.",
+    "latest_version": "1.1.17",
+    "title": "Struxa 1.1.17",
+    "summary": "Media library folders, refreshed content entry editor, and reliable multi-field rich text init on first load.",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "minor"

@@ -25,6 +25,14 @@ services:
       - "3439:80"
     volumes:
       - ./public/uploads:/var/www/html/public/uploads
+      # Mount core app paths from the host so admin/templates/routes changes apply without rebuild.
+      - ./templates:/var/www/html/templates
+      - ./routes:/var/www/html/routes
+      - ./bootstrap:/var/www/html/bootstrap
+      - ./src:/var/www/html/src
+      - ./bin:/var/www/html/bin
+      - ./public/js:/var/www/html/public/js
+      - ./public/css:/var/www/html/public/css
       # Mount themes from the host so CSS/JS changes apply without rebuilding the image
       # (otherwise /theme-assets/* may 404 or serve stale files from the last docker build).
       - ./themes:/var/www/html/themes

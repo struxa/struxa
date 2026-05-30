@@ -7,7 +7,10 @@
 
   var entryFormBaselineCleared = false;
   var bootAttempts = 0;
-  var MAX_BOOT_ATTEMPTS = 24;
+  var MAX_BOOT_ATTEMPTS = 40;
+  var bootInFlight = false;
+  /** @type {Set<string>} */
+  var initInFlight = new Set();
 
   function whenTinyMceReady(cb) {
     if (typeof tinymce !== 'undefined') {
@@ -52,6 +55,17 @@
     if (details && !details.open) return false;
     var rect = ta.getBoundingClientRect();
     return rect.width > 0 || rect.height > 0;
+  }
+
+  function markBaselineCleared() {
+    if (entryFormBaselineCleared) return;
+    entryFormBaselineCleared = true;
+    requestAnimationFrame(function () {
+      if (window.adminFormUx && typeof window.adminFormUx.clearDirtyForForm === 'function') {
+        var f = document.getElementById('entry-edit-form');
+        if (f) window.adminFormUx.clearDirtyForForm(f);
+      }
+    });
   }
 
   function getConfig(textareaId, autosavePrefix) {
@@ -170,14 +184,7 @@
         var el = editor.getElement && editor.getElement();
         var root = el && el.closest ? el.closest('[data-admin-rich-text]') : null;
         if (root) root.setAttribute('data-rich-text-bound', '1');
-        if (entryFormBaselineCleared) return;
-        entryFormBaselineCleared = true;
-        requestAnimationFrame(function () {
-          if (window.adminFormUx && typeof window.adminFormUx.clearDirtyForForm === 'function') {
-            var f = document.getElementById('entry-edit-form');
-            if (f) window.adminFormUx.clearDirtyForForm(f);
-          }
-        });
+        markBaselineCleared();
       },
       setup: function (editor) {
         editor.on('change input undo redo', function () {
@@ -187,133 +194,221 @@
     };
   }
 
-  function bindRichTextBlock(root) {
-    var taId = root.getAttribute('data-textarea-id');
-    var autosavePrefix = root.getAttribute('data-autosave-prefix') || 'cms-entry-field-';
-    if (!taId || typeof tinymce === 'undefined') return;
+  function waitForEditor(taId, attempts) {
+    attempts = attempts || 0;
+    return new Promise(function (resolve, reject) {
+      var ed = tinymce.get(taId);
+      if (ed) {
+        resolve(ed);
+        return;
+      }
+      if (attempts >= 80) {
+        reject(new Error('TinyMCE init timeout'));
+        return;
+      }
+      window.setTimeout(function () {
+        waitForEditor(taId, attempts + 1).then(resolve, reject);
+      }, 50);
+    });
+  }
 
-    var ta = document.getElementById(taId);
-    if (!ta || !textareaReady(ta)) return;
-
+  function initTinyMceEditor(taId, autosavePrefix) {
+    if (typeof tinymce === 'undefined') {
+      return Promise.reject(new Error('TinyMCE unavailable'));
+    }
     if (tinymce.get(taId)) {
-      root.setAttribute('data-rich-text-bound', '1');
-      return;
+      return Promise.resolve(tinymce.get(taId));
+    }
+    if (initInFlight.has(taId)) {
+      return waitForEditor(taId);
     }
 
+    initInFlight.add(taId);
+    var cfg = getConfig(taId, autosavePrefix);
+    var started = tinymce.init(cfg);
+    var done = function (editor) {
+      initInFlight.delete(taId);
+      return editor || tinymce.get(taId);
+    };
+
+    if (started && typeof started.then === 'function') {
+      return started
+        .then(function (editors) {
+          var editor = editors && editors.length ? editors[0] : tinymce.get(taId);
+          return done(editor);
+        })
+        .catch(function (err) {
+          initInFlight.delete(taId);
+          throw err;
+        });
+    }
+
+    return waitForEditor(taId).then(done);
+  }
+
+  function bindRichTextUi(root, taId, autosavePrefix) {
+    if (root.getAttribute('data-rich-text-ui-bound') === '1') return;
+
+    var ta = document.getElementById(taId);
     var surface = root.querySelector('.admin-page-editor-surface');
     var btnVisual = root.querySelector('[data-editor-mode="visual"]');
     var btnHtml = root.querySelector('[data-editor-mode="html"]');
     var hintVisual = root.querySelector('.admin-editor-hint-visual');
     var hintHtml = root.querySelector('.admin-editor-hint-html');
-    if (!surface || !btnVisual || !btnHtml) return;
+    if (!ta || !surface || !btnVisual || !btnHtml) return;
 
-    if (root.getAttribute('data-rich-text-ui-bound') !== '1') {
-      root.setAttribute('data-rich-text-ui-bound', '1');
+    root.setAttribute('data-rich-text-ui-bound', '1');
 
-      function showHints(isHtml) {
-        if (hintVisual) {
-          hintVisual.style.display = isHtml ? 'none' : '';
-          if (isHtml) hintVisual.setAttribute('hidden', '');
-          else hintVisual.removeAttribute('hidden');
-        }
-        if (hintHtml) {
-          hintHtml.style.display = isHtml ? '' : 'none';
-          if (isHtml) hintHtml.removeAttribute('hidden');
-          else hintHtml.setAttribute('hidden', '');
-        }
+    function showHints(isHtml) {
+      if (hintVisual) {
+        hintVisual.style.display = isHtml ? 'none' : '';
+        if (isHtml) hintVisual.setAttribute('hidden', '');
+        else hintVisual.removeAttribute('hidden');
       }
-
-      function setMode(mode) {
-        var isHtml = mode === 'html';
-        if (isHtml) {
-          var ed = tinymce.get(taId);
-          if (ed) {
-            ta.value = ed.getContent();
-            ed.remove();
-          }
-          ta.style.display = 'block';
-          ta.classList.add('admin-textarea--html-mode');
-          surface.classList.add('is-html-mode');
-          btnVisual.classList.remove('is-active');
-          btnHtml.classList.add('is-active');
-          btnVisual.setAttribute('aria-selected', 'false');
-          btnHtml.setAttribute('aria-selected', 'true');
-          showHints(true);
-          ta.focus();
-        } else {
-          surface.classList.remove('is-html-mode');
-          ta.classList.remove('admin-textarea--html-mode');
-          ta.style.display = '';
-          btnHtml.classList.remove('is-active');
-          btnVisual.classList.add('is-active');
-          btnVisual.setAttribute('aria-selected', 'true');
-          btnHtml.setAttribute('aria-selected', 'false');
-          showHints(false);
-          if (!tinymce.get(taId)) {
-            tinymce.init(getConfig(taId, autosavePrefix));
-          }
-        }
+      if (hintHtml) {
+        hintHtml.style.display = isHtml ? '' : 'none';
+        if (isHtml) hintHtml.removeAttribute('hidden');
+        else hintHtml.setAttribute('hidden', '');
       }
-
-      btnVisual.addEventListener('click', function () {
-        setMode('visual');
-      });
-      btnHtml.addEventListener('click', function () {
-        setMode('html');
-      });
-
-      showHints(false);
     }
 
-    if (!tinymce.get(taId)) {
-      tinymce.init(getConfig(taId, autosavePrefix));
+    function setMode(mode) {
+      var isHtml = mode === 'html';
+      if (isHtml) {
+        var ed = tinymce.get(taId);
+        if (ed) {
+          ta.value = ed.getContent();
+          ed.remove();
+        }
+        root.removeAttribute('data-rich-text-bound');
+        initInFlight.delete(taId);
+        ta.style.display = 'block';
+        ta.classList.add('admin-textarea--html-mode');
+        surface.classList.add('is-html-mode');
+        btnVisual.classList.remove('is-active');
+        btnHtml.classList.add('is-active');
+        btnVisual.setAttribute('aria-selected', 'false');
+        btnHtml.setAttribute('aria-selected', 'true');
+        showHints(true);
+        ta.focus();
+      } else {
+        surface.classList.remove('is-html-mode');
+        ta.classList.remove('admin-textarea--html-mode');
+        ta.style.display = '';
+        btnHtml.classList.remove('is-active');
+        btnVisual.classList.add('is-active');
+        btnVisual.setAttribute('aria-selected', 'true');
+        btnHtml.setAttribute('aria-selected', 'false');
+        showHints(false);
+        if (!tinymce.get(taId) && textareaReady(ta)) {
+          initTinyMceEditor(taId, autosavePrefix);
+        }
+      }
     }
+
+    btnVisual.addEventListener('click', function () {
+      setMode('visual');
+    });
+    btnHtml.addEventListener('click', function () {
+      setMode('html');
+    });
+
+    showHints(false);
+  }
+
+  function shouldInitVisual(root) {
+    var surface = root.querySelector('.admin-page-editor-surface');
+    return !(surface && surface.classList.contains('is-html-mode'));
   }
 
   function bootRichTextBlocks() {
-    if (typeof tinymce === 'undefined') return false;
+    if (typeof tinymce === 'undefined') return Promise.resolve(false);
 
     var roots = document.querySelectorAll('[data-admin-rich-text]');
-    if (!roots.length) return true;
+    if (!roots.length) return Promise.resolve(true);
 
-    var pending = 0;
+    var chain = Promise.resolve();
+    var pendingLater = false;
+
     roots.forEach(function (root) {
-      var taId = root.getAttribute('data-textarea-id');
-      var ta = taId ? document.getElementById(taId) : null;
-      if (taId && tinymce.get(taId)) {
-        root.setAttribute('data-rich-text-bound', '1');
-        return;
-      }
-      if (ta && !textareaReady(ta)) {
-        pending += 1;
-        return;
-      }
-      bindRichTextBlock(root);
-      if (taId && !tinymce.get(taId)) pending += 1;
+      chain = chain.then(function () {
+        var taId = root.getAttribute('data-textarea-id');
+        var autosavePrefix = root.getAttribute('data-autosave-prefix') || 'cms-entry-field-';
+        if (!taId) return;
+
+        bindRichTextUi(root, taId, autosavePrefix);
+
+        if (root.getAttribute('data-rich-text-bound') === '1' || tinymce.get(taId)) {
+          root.setAttribute('data-rich-text-bound', '1');
+          return;
+        }
+
+        var ta = document.getElementById(taId);
+        if (!ta || !textareaReady(ta)) {
+          pendingLater = true;
+          return;
+        }
+        if (!shouldInitVisual(root)) return;
+
+        return initTinyMceEditor(taId, autosavePrefix)
+          .then(function () {
+            root.setAttribute('data-rich-text-bound', '1');
+          })
+          .catch(function () {
+            pendingLater = true;
+          });
+      });
     });
 
-    return pending === 0;
+    return chain.then(function () {
+      return !pendingLater;
+    });
   }
 
-  function scheduleBoot(force) {
+  function scheduleBoot() {
+    if (bootInFlight) return;
+    bootInFlight = true;
+
     whenTinyMceReady(function () {
       afterLayout(function () {
-        var complete = bootRichTextBlocks();
-        if (!complete && bootAttempts < MAX_BOOT_ATTEMPTS) {
-          bootAttempts += 1;
-          window.setTimeout(scheduleBoot, 120);
-        }
+        bootRichTextBlocks()
+          .then(function (complete) {
+            bootInFlight = false;
+            if (!complete && bootAttempts < MAX_BOOT_ATTEMPTS) {
+              bootAttempts += 1;
+              window.setTimeout(scheduleBoot, 120);
+            }
+          })
+          .catch(function () {
+            bootInFlight = false;
+            if (bootAttempts < MAX_BOOT_ATTEMPTS) {
+              bootAttempts += 1;
+              window.setTimeout(scheduleBoot, 120);
+            }
+          });
       });
     });
   }
 
   function init() {
-    scheduleBoot(false);
+    scheduleBoot();
 
-    window.addEventListener('load', function () {
+    window.addEventListener(
+      'load',
+      function () {
+        bootAttempts = 0;
+        scheduleBoot();
+      },
+      { once: true }
+    );
+
+    document.addEventListener('toggle', function (e) {
+      var details = e.target;
+      if (!details || details.tagName !== 'DETAILS' || !details.open) return;
+      if (!details.querySelector('[data-admin-rich-text]')) return;
       bootAttempts = 0;
-      scheduleBoot(true);
-    }, { once: true });
+      window.setTimeout(scheduleBoot, 60);
+    });
 
     var form = document.getElementById('entry-edit-form') || document.querySelector('form.admin-form');
     if (form && !form.getAttribute('data-rich-text-submit-bound')) {

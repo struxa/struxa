@@ -68,6 +68,17 @@
           <textarea class="admin-textarea" id="caption" name="caption" rows="4" maxlength="5000">{{ cap|default('')|e }}</textarea>
           {% if errors.caption is defined %}<p class="admin-field-error">{{ errors.caption|e }}</p>{% endif %}
         </div>
+        <div class="admin-field admin-field--full {{ errors.folder_id is defined ? 'admin-field--error' : '' }}">
+          <label class="admin-label" for="folder_id">Folder</label>
+          {% set folder_val = o and o.folder_id is defined ? o.folder_id : media.folderId %}
+          <select class="admin-select" id="folder_id" name="folder_id">
+            <option value="unfiled" {{ folder_val ? '' : 'selected' }}>Unfiled</option>
+            {% for opt in media_folder_options|default([]) %}
+              <option value="{{ opt.id }}" {{ folder_val == opt.id ? 'selected' : '' }}>{{ opt.label|e }}</option>
+            {% endfor %}
+          </select>
+          {% if errors.folder_id is defined %}<p class="admin-field-error">{{ errors.folder_id|e }}</p>{% endif %}
+        </div>
       </div>
       <div class="admin-form-actions">
         <button type="submit" class="admin-btn-primary">Save changes</button>
