@@ -1,0 +1,16 @@
+---
+description: Push to origin after commits when shipping work on this repo
+alwaysApply: true
+---
+
+# Git: commit, bump, and push
+
+When the user finishes a shippable chunk of work (or asks to commit):
+
+1. **Commit** with a clear message (only when the user asks or has established “commit when done”).
+2. **Bump plugin versions** in `plugins/<slug>/plugin.json` for plugin/theme changes — not Struxa’s four version files unless merging an upstream release (see `version-bump-on-push.mdc`).
+3. **Push** to `origin` on the current branch after a successful commit — **do not wait** for a separate “push” request unless the user says to keep changes local.
+
+Use `git push -u origin HEAD` when the branch has no upstream yet.
+
+Do not force-push to `main`/`master` without explicit user approval.
