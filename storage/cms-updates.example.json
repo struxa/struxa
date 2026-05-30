@@ -1,11 +1,11 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.1.10",
-    "title": "Struxa 1.1.10",
-    "summary": "Content types index redesigned as clickable cards with entry counts; click a type to open its entries.",
+    "latest_version": "1.1.11",
+    "title": "Struxa 1.1.11",
+    "summary": "Page builder block picker and section drawer now portal to document.body with z-index above sticky chrome.",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
-    "severity": "minor"
+    "severity": "patch"
   }
 }

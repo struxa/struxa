@@ -16,6 +16,14 @@
   var dragEl = null;
   var reorderTimer = null;
 
+  function portalOverlay(el) {
+    if (!el || el.parentNode === document.body) return;
+    document.body.appendChild(el);
+  }
+
+  portalOverlay(palette);
+  portalOverlay(drawer);
+
   function setStatus(msg, isError) {
     if (!statusEl) return;
     if (!msg) {

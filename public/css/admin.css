@@ -2059,6 +2059,11 @@ details.admin-card.admin-seo-suite-panel {
   padding: 1.15rem 1.25rem 1.2rem;
 }
 
+/* Page builder overlays must not inherit card hover lift (creates a trapping stacking context). */
+.admin-page-edit-builder.admin-card:hover {
+  transform: none;
+}
+
 .admin-seo-suite-summary {
   list-style: none;
   cursor: pointer;
@@ -9025,7 +9030,7 @@ body.admin-cmd-open {
 .admin-pb-palette {
   position: fixed;
   inset: 0;
-  z-index: 120;
+  z-index: 10000;
   display: grid;
   place-items: center;
   padding: 1.25rem;
@@ -9176,7 +9181,7 @@ body.admin-pb-palette-open {
 .admin-pb-drawer {
   position: fixed;
   inset: 0;
-  z-index: 120;
+  z-index: 10000;
   display: flex;
   justify-content: flex-end;
 }
