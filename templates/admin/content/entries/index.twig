@@ -9,9 +9,9 @@
 
 {% block admin_hero_sub %}
   <p class="admin-hero-sub">
-    Slug <code class="admin-inline-code">{{ content_type.slug|e }}</code>
+    <a class="admin-link" href="{{ url_for('admin.content_types.index') }}">← Content types</a>
+    · Slug <code class="admin-inline-code">{{ content_type.slug|e }}</code>
     · {{ field_count }} field{{ field_count == 1 ? '' : 's' }}
-    · {{ taxonomy_count|default(0) }} taxonom{{ taxonomy_count|default(0) == 1 ? 'y' : 'ies' }}
     {% if content_type.hasPublicRoute %}
       · Public base: <code class="admin-inline-code">{{ site_url }}/{{ content_type.slug|e }}/…</code>
     {% endif %}
@@ -19,25 +19,40 @@
 {% endblock %}
 
 {% block admin_content %}
-  <div class="admin-toolbar" style="margin-bottom:1.5rem;flex-wrap:wrap;gap:0.75rem">
-    {% if content_type.hasPublicRoute %}
-      <a class="admin-btn-ghost" href="{{ url_for('public.content_type_index', { typeSlug: content_type.slug }) }}" target="_blank" rel="noopener noreferrer">View public index</a>
+  {% set summary = entry_summary|default({ total: 0, published: 0, draft: 0, in_review: 0 }) %}
+  {% set can_edit_entries = cms_can('edit_content') or cms_can('review_content') %}
+
+  <div class="admin-entry-toolbar">
+    {% if entry_rows is not empty %}
+      <div class="admin-ct-summary" aria-label="Entry overview">
+        <span class="admin-ct-summary-item"><strong>{{ summary.total }}</strong> entr{{ summary.total == 1 ? 'y' : 'ies' }}</span>
+        {% if summary.published > 0 %}
+          <span class="admin-ct-summary-sep" aria-hidden="true">·</span>
+          <span class="admin-ct-summary-item admin-ct-summary-item--live">{{ summary.published }} live</span>
+        {% endif %}
+        {% if summary.draft > 0 or summary.in_review > 0 %}
+          <span class="admin-ct-summary-sep" aria-hidden="true">·</span>
+          <span class="admin-ct-summary-item admin-ct-summary-item--draft">{{ summary.draft + summary.in_review }} draft</span>
+        {% endif %}
+      </div>
+    {% else %}
+      <span></span>
     {% endif %}
-    {% if cms_can('create_content') %}
-      <a class="admin-btn-primary" href="{{ url_for('admin.content_types.entries.new', { id: content_type.id }) }}">New entry</a>
-    {% endif %}
-    {% if cms_can('manage_content_types') %}
-      <a class="admin-btn-primary" href="{{ url_for('admin.content_types.fields.index', { id: content_type.id }) }}">Manage fields</a>
-    {% endif %}
-    {% if cms_can('manage_taxonomies') %}
-      <a class="admin-btn-primary" href="{{ url_for('admin.content_types.taxonomies.index', { id: content_type.id }) }}">Taxonomies</a>
-    {% endif %}
-    {% if cms_can('manage_content_types') %}
-      <a class="admin-btn-ghost" href="{{ url_for('admin.content_types.edit', { id: content_type.id }) }}">Edit type</a>
-      <form method="post" action="{{ url_for('admin.content_types.delete', { id: content_type.id }) }}" style="display:inline" onsubmit="return confirm('Delete this content type and all its fields and entries? This cannot be undone.');">
-        <button type="submit" class="admin-btn-ghost" style="color:var(--accent-rose)">Delete type</button>
-      </form>
-    {% endif %}
+    <div class="admin-entry-toolbar-actions">
+      {% if cms_can('create_content') %}
+        <a class="admin-btn-primary" href="{{ url_for('admin.content_types.entries.new', { id: content_type.id }) }}">New entry</a>
+      {% endif %}
+      {% if content_type.hasPublicRoute %}
+        <a class="admin-btn-ghost" href="{{ url_for('public.content_type_index', { typeSlug: content_type.slug }) }}" target="_blank" rel="noopener noreferrer">View public index</a>
+      {% endif %}
+      {% if cms_can('manage_content_types') %}
+        <a class="admin-btn-ghost" href="{{ url_for('admin.content_types.fields.index', { id: content_type.id }) }}">Fields</a>
+        <a class="admin-btn-ghost" href="{{ url_for('admin.content_types.edit', { id: content_type.id }) }}">Type settings</a>
+      {% endif %}
+      {% if cms_can('manage_taxonomies') and taxonomy_count|default(0) > 0 %}
+        <a class="admin-btn-ghost" href="{{ url_for('admin.content_types.taxonomies.index', { id: content_type.id }) }}">Taxonomies</a>
+      {% endif %}
+    </div>
   </div>
 
   {% if entry_rows is empty %}
@@ -49,41 +64,49 @@
       '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>'
     ) }}
   {% else %}
-    <div class="admin-table-wrap">
-      <table class="admin-table">
-        <thead>
-          <tr>
-            <th scope="col">Title</th>
-            <th scope="col">Slug</th>
-            <th scope="col">Status</th>
-            <th scope="col">Updated</th>
-            <th scope="col" class="admin-table-col-actions"><span class="admin-table-muted">Actions</span></th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for e in entry_rows %}
-            <tr>
-              <td><strong>{{ e.title|e }}</strong></td>
-              <td><code class="admin-inline-code">{{ e.slug|e }}</code></td>
-              <td>{{ ui.status_badge(e.status) }}</td>
-              <td class="admin-table-muted">{{ e.updated_at|e }}</td>
-              <td class="admin-table-actions">
-                <details class="admin-actions-menu">
-                  <summary class="admin-actions-menu-trigger" aria-label="Actions for {{ e.title|e('html_attr') }}">⋯</summary>
-                  <div class="admin-actions-menu-panel">
-                    {% if cms_can('edit_content') or cms_can('review_content') %}
-                      <a href="{{ url_for('admin.content_types.entries.edit', { id: content_type.id, entryId: e.id }) }}">Edit</a>
-                    {% endif %}
-                    {% if content_type.hasPublicRoute and e.status == 'published' %}
-                      <a href="{{ site_url }}/{{ content_type.slug|e }}/{{ e.slug|e }}" target="_blank" rel="noopener">View live</a>
-                    {% endif %}
-                  </div>
-                </details>
-              </td>
-            </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
+    <ul class="admin-entry-list" role="list">
+      {% for e in entry_rows %}
+        {% set edit_url = url_for('admin.content_types.entries.edit', { id: content_type.id, entryId: e.id }) %}
+        <li class="admin-entry-item">
+          {% if can_edit_entries %}
+            <a class="admin-entry-row" href="{{ edit_url|e('html_attr') }}">
+          {% else %}
+            <div class="admin-entry-row admin-entry-row--static">
+          {% endif %}
+            <span class="admin-entry-row-icon" aria-hidden="true">
+              {% include 'admin/content/_content_type_icon.twig' with { icon: '', slug: '', name: e.title } %}
+            </span>
+            <span class="admin-entry-row-body">
+              <span class="admin-entry-row-head">
+                <strong class="admin-entry-row-title">{{ e.title|e }}</strong>
+                {% if can_edit_entries %}
+                  <span class="admin-entry-row-go" aria-hidden="true">→</span>
+                {% endif %}
+              </span>
+              <code class="admin-entry-row-slug">{{ e.slug|e }}</code>
+              {% if e.author_email|default('') != '' %}
+                <span class="admin-entry-row-by">{{ e.author_email|e }}</span>
+              {% endif %}
+            </span>
+            <span class="admin-entry-row-meta">
+              {{ ui.status_badge(e.status) }}
+              <time class="admin-entry-row-date" datetime="{{ e.updated_at|e('html_attr') }}">{{ e.updated_at|e }}</time>
+            </span>
+          {% if can_edit_entries %}
+            </a>
+          {% else %}
+            </div>
+          {% endif %}
+          {% if content_type.hasPublicRoute and e.status == 'published' %}
+            <div class="admin-entry-item-actions">
+              <a class="admin-btn-ghost admin-btn-ghost--sm" href="{{ site_url }}/{{ content_type.slug|e }}/{{ e.slug|e }}" target="_blank" rel="noopener">View live</a>
+            </div>
+          {% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+    {% if can_edit_entries %}
+      <p class="admin-hint admin-entry-list-hint">Click any row to edit.</p>
+    {% endif %}
   {% endif %}
 {% endblock %}

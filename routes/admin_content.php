@@ -574,13 +574,26 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             }
             $fieldList = $fields->forTypeOrdered($id);
             $taxList = $taxonomyRepo->forContentTypeOrdered($id);
+            $entryRows = $entries->forTypeOrdered($id, 500);
+            $entrySummary = ['total' => count($entryRows), 'published' => 0, 'draft' => 0, 'in_review' => 0];
+            foreach ($entryRows as $row) {
+                $st = (string) ($row['status'] ?? '');
+                if ($st === 'published') {
+                    ++$entrySummary['published'];
+                } elseif ($st === 'in_review') {
+                    ++$entrySummary['in_review'];
+                } elseif ($st === 'draft') {
+                    ++$entrySummary['draft'];
+                }
+            }
 
             return $twig->render($response, 'admin/content/entries/index.twig', $withCmsUser($request, array_merge($adminContext(), [
                 'admin_nav' => 'content_types',
                 'content_type' => $t,
                 'field_count' => count($fieldList),
                 'taxonomy_count' => count($taxList),
-                'entry_rows' => $entries->forTypeOrdered($id, 500),
+                'entry_rows' => $entryRows,
+                'entry_summary' => $entrySummary,
             ])));
         })->setName('admin.content_types.entries.index')->add($permEntryBrowse);
 

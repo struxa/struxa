@@ -1,11 +1,11 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.1.13",
-    "title": "Struxa 1.1.13",
-    "summary": "Content type cards render SVG icons from icon slugs (e.g. post-outline, cube-outline) instead of invisible text.",
+    "latest_version": "1.1.14",
+    "title": "Struxa 1.1.14",
+    "summary": "Content entry list redesigned with clickable rows, status summary, and cleaner toolbar.",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
-    "severity": "patch"
+    "severity": "minor"
   }
 }
