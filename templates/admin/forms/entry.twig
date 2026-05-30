@@ -29,6 +29,9 @@
   <section class="admin-card">
     <dl class="admin-dl">
       <div><dt>Status</dt><dd>{{ entry_row.status|e }}</dd></div>
+      {% if entry_row.quiz_score is not null %}
+        <div><dt>Quiz score</dt><dd>{{ entry_row.quiz_score|e }}/{{ entry_row.quiz_max_score|e }}{% if entry_row.quiz_passed %} · passed{% else %} · not passed{% endif %}</dd></div>
+      {% endif %}
       <div><dt>IP</dt><dd><code class="admin-inline-code">{{ entry_row.ip_address|default('')|e }}</code></dd></div>
       <div><dt>Referrer</dt><dd>{{ entry_row.referrer|default('')|e }}</dd></div>
     </dl>
@@ -43,7 +46,13 @@
         {% for v in value_rows %}
           <div>
             <dt>{{ field_labels[v.field_key]|default(v.field_key)|e }}</dt>
-            <dd style="white-space:pre-wrap">{{ v.value_text|default('')|e }}</dd>
+            <dd style="white-space:pre-wrap">
+              {% if v.value_file_path|default('') != '' %}
+                <a href="{{ v.value_file_path|e('html_attr') }}" target="_blank" rel="noopener">{{ v.value_text|default(v.value_file_path)|e }}</a>
+              {% else %}
+                {{ v.value_text|default('')|e }}
+              {% endif %}
+            </dd>
           </div>
         {% endfor %}
       </dl>

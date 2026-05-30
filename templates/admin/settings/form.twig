@@ -311,7 +311,7 @@
               {% if errors.seo_default_twitter_image_media_id is defined %}<p class="admin-field-error">{{ errors.seo_default_twitter_image_media_id|e }}</p>{% endif %}
             </div>
           </div>
-          <p class="admin-hint admin-settings-card-footnote">SEO: <a class="admin-link" href="{{ url_for('admin.seo.redirects') }}">Redirects</a>, <a class="admin-link" href="{{ url_for('admin.seo.not_found') }}">404 log</a>, <a class="admin-link" href="{{ url_for('admin.seo.sitemap') }}">Sitemap</a></p>
+          <p class="admin-hint admin-settings-card-footnote">SEO: <a class="admin-link" href="{{ url_for('admin.seo.overview') }}">Overview</a>, <a class="admin-link" href="{{ url_for('admin.seo.redirects') }}">Redirects</a>, <a class="admin-link" href="{{ url_for('admin.seo.not_found') }}">404 log</a>, <a class="admin-link" href="{{ url_for('admin.seo.sitemap') }}">Sitemap</a></p>
         </section>
       </div>
 

@@ -68,21 +68,30 @@ final class FormEntryRepository
     }
 
     /**
-     * @param list<array{field_id: int|null, field_key: string, value_text: string|null}> $values
+     * @param list<array{field_id: int|null, field_key: string, value_text: string|null, value_file_path?: string|null}> $values
+     * @param array{score?: int, max_score?: int, passed?: bool}|null $quiz
      */
-    public function create(int $formId, string $ip, string $userAgent, string $referrer, array $values): int
+    public function create(int $formId, string $ip, string $userAgent, string $referrer, array $values, ?array $quiz = null): int
     {
         $this->pdo->beginTransaction();
         try {
             $stmt = $this->pdo->prepare(
-                'INSERT INTO cms_form_entries (form_id, status, ip_address, user_agent, referrer)
-                 VALUES (?, \'new\', ?, ?, ?)'
+                'INSERT INTO cms_form_entries (form_id, status, ip_address, user_agent, referrer, quiz_score, quiz_max_score, quiz_passed)
+                 VALUES (?, \'new\', ?, ?, ?, ?, ?, ?)'
             );
-            $stmt->execute([$formId, $ip !== '' ? $ip : null, $userAgent !== '' ? mb_substr($userAgent, 0, 500) : null, $referrer !== '' ? mb_substr($referrer, 0, 500) : null]);
+            $stmt->execute([
+                $formId,
+                $ip !== '' ? $ip : null,
+                $userAgent !== '' ? mb_substr($userAgent, 0, 500) : null,
+                $referrer !== '' ? mb_substr($referrer, 0, 500) : null,
+                $quiz['score'] ?? null,
+                $quiz['max_score'] ?? null,
+                isset($quiz['passed']) ? ($quiz['passed'] ? 1 : 0) : null,
+            ]);
             $entryId = (int) $this->pdo->lastInsertId();
 
             $valStmt = $this->pdo->prepare(
-                'INSERT INTO cms_form_entry_values (entry_id, field_id, field_key, value_text) VALUES (?, ?, ?, ?)'
+                'INSERT INTO cms_form_entry_values (entry_id, field_id, field_key, value_text, value_file_path) VALUES (?, ?, ?, ?, ?)'
             );
             foreach ($values as $v) {
                 $valStmt->execute([
@@ -90,6 +99,7 @@ final class FormEntryRepository
                     $v['field_id'],
                     $v['field_key'],
                     $v['value_text'],
+                    $v['value_file_path'] ?? null,
                 ]);
             }
 

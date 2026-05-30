@@ -219,6 +219,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             'twitter_description' => trim((string) ($body['twitter_description'] ?? '')),
             'twitter_image_id' => trim((string) ($body['twitter_image_id'] ?? '')),
             'schema_json' => (string) ($body['schema_json'] ?? ''),
+            'focus_keyphrase' => trim((string) ($body['focus_keyphrase'] ?? '')),
             'scheduled_publish_at' => trim((string) ($body['scheduled_publish_at'] ?? '')),
             'scheduled_unpublish_at' => trim((string) ($body['scheduled_unpublish_at'] ?? '')),
         ]);
@@ -864,6 +865,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 $v['featured_image_id'],
                 $v['seo_title'],
                 $v['seo_description'],
+                $seoParsed['focus_keyphrase'],
                 $seoParsed['canonical_url'],
                 $seoParsed['seo_noindex'],
                 $seoParsed['og_title'],
@@ -1077,6 +1079,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 $v['featured_image_id'],
                 $v['seo_title'],
                 $v['seo_description'],
+                $seoParsed['focus_keyphrase'],
                 $seoParsed['canonical_url'],
                 $seoParsed['seo_noindex'],
                 $seoParsed['og_title'],
@@ -1486,6 +1489,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             $featured = $fid !== null && $fid !== '' ? (int) $fid : null;
             $seoT = isset($er['seo_title']) && is_string($er['seo_title']) ? $er['seo_title'] : null;
             $seoD = isset($er['seo_description']) && is_string($er['seo_description']) ? $er['seo_description'] : null;
+            $focusKp = isset($er['focus_keyphrase']) && is_string($er['focus_keyphrase']) && trim($er['focus_keyphrase']) !== '' ? trim($er['focus_keyphrase']) : null;
             $canon = isset($er['canonical_url']) && (string) $er['canonical_url'] !== '' ? (string) $er['canonical_url'] : null;
             $noindex = !empty($er['seo_noindex']);
             $ogT = isset($er['og_title']) && (string) $er['og_title'] !== '' ? (string) $er['og_title'] : null;
@@ -1503,6 +1507,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 $featured,
                 $seoT,
                 $seoD,
+                $focusKp,
                 $canon,
                 $noindex,
                 $ogT,

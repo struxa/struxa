@@ -105,7 +105,12 @@ return static function (App $app, Twig $twig, \PDO $pdo, callable $viewData): vo
             $path,
             $siteUrl,
             $plain,
-            Settings::get('site_name') ?: null
+            Settings::get('site_name') ?: null,
+            [
+                ['name' => 'Home', 'url' => '/'],
+                ['name' => $type->name, 'url' => '/' . $typeSlug],
+                ['name' => $entry->title],
+            ]
         ));
 
         $tpl = ContentViewTemplates::resolve($twig->getEnvironment(), ContentViewTemplates::contentShow($type->slug));

@@ -32,7 +32,10 @@
   twitter_image_id: o.twitter_image_id|default(entry and entry.twitterImageId ? entry.twitterImageId : ''),
   schema_json: o.schema_json|default(entry ? (entry.schemaJson|default('')) : '')
 } %}
-{% set seo_errors_open = errors.seo_title is defined or errors.seo_description is defined or errors.canonical_url is defined or errors.seo_noindex is defined or errors.og_title is defined or errors.og_description is defined or errors.og_image_id is defined or errors.twitter_title is defined or errors.twitter_description is defined or errors.twitter_image_id is defined or errors.schema_json is defined or errors.published_at is defined or errors.scheduled_publish_at is defined or errors.scheduled_unpublish_at is defined %}
+{% set seo_ctx = seo_ctx|merge({
+  focus_keyphrase: o.focus_keyphrase|default(entry ? (entry.focusKeyphrase|default('')) : '')
+}) %}
+{% set seo_errors_open = errors.seo_title is defined or errors.seo_description is defined or errors.focus_keyphrase is defined or errors.canonical_url is defined or errors.seo_noindex is defined or errors.og_title is defined or errors.og_description is defined or errors.og_image_id is defined or errors.twitter_title is defined or errors.twitter_description is defined or errors.twitter_image_id is defined or errors.schema_json is defined or errors.published_at is defined or errors.scheduled_publish_at is defined or errors.scheduled_unpublish_at is defined %}
 {% set seo_extended_errors_open = errors.canonical_url is defined or errors.seo_noindex is defined or errors.og_title is defined or errors.og_description is defined or errors.og_image_id is defined or errors.twitter_title is defined or errors.twitter_description is defined or errors.twitter_image_id is defined or errors.schema_json is defined %}
 
 {% block admin_title %}{{ is_edit ? 'Edit entry' : 'New entry' }} — {{ content_type.name|e }}{% endblock %}
@@ -159,6 +162,17 @@
                   {% if errors.seo_description is defined %}<p class="admin-field-error">{{ errors.seo_description|e }}</p>{% endif %}
                 </div>
               </div>
+              {% include 'admin/seo/_analysis_panel.twig' with {
+                seo_ctx: seo_ctx,
+                errors: errors,
+                seo_analysis_ctx: {
+                  focus_keyphrase: seo_ctx.focus_keyphrase,
+                  site_url: site_url|default(''),
+                  path_prefix: '/' ~ content_type.slug|e('url') ~ '/' ~ (sl|default('')),
+                  entity_kind: 'entry',
+                  entity_id: is_edit ? entry.id : ''
+                }
+              } %}
               {% include 'admin/seo/_extended_panel.twig' with { seo_ctx: seo_ctx, errors: errors, media_images: seo_media_select|default(media_picker_images|default([])), include_basic_seo: false, panel_open: seo_extended_errors_open } %}
             </div>
           </details>

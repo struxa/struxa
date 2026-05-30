@@ -27,7 +27,7 @@ final class FormRepository
         );
         $stmt->execute();
 
-        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        return array_map([$this, 'decodeRow'], $stmt->fetchAll(PDO::FETCH_ASSOC) ?: []);
     }
 
     /**
@@ -39,7 +39,7 @@ final class FormRepository
         $stmt->execute([$id]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        return is_array($row) ? $row : null;
+        return is_array($row) ? $this->decodeRow($row) : null;
     }
 
     /**
@@ -53,7 +53,7 @@ final class FormRepository
         $stmt->execute([trim($slug)]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        return is_array($row) ? $row : null;
+        return is_array($row) ? $this->decodeRow($row) : null;
     }
 
     /**
@@ -63,16 +63,20 @@ final class FormRepository
     {
         $stmt = $this->pdo->prepare(
             'INSERT INTO cms_forms
-                (name, slug, description, status, submit_label, confirmation_type, confirmation_message,
-                 confirmation_redirect_url, honeypot_enabled, notify_enabled, notify_emails, notify_subject)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+                (name, slug, description, status, form_type, submit_label, next_label, prev_label,
+                 confirmation_type, confirmation_message, confirmation_redirect_url,
+                 honeypot_enabled, notify_enabled, notify_emails, notify_subject, settings_json)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
         );
         $stmt->execute([
             $data['name'],
             $data['slug'],
             $data['description'] ?? null,
             $data['status'] ?? 'draft',
+            $data['form_type'] ?? 'standard',
             $data['submit_label'] ?? 'Submit',
+            $data['next_label'] ?? 'Next',
+            $data['prev_label'] ?? 'Previous',
             $data['confirmation_type'] ?? 'message',
             $data['confirmation_message'] ?? null,
             $data['confirmation_redirect_url'] ?? null,
@@ -80,6 +84,7 @@ final class FormRepository
             !empty($data['notify_enabled']) ? 1 : 0,
             $data['notify_emails'] ?? null,
             $data['notify_subject'] ?? null,
+            $this->encodeJson($data['settings'] ?? $data['settings_json'] ?? null),
         ]);
 
         return (int) $this->pdo->lastInsertId();
@@ -92,9 +97,11 @@ final class FormRepository
     {
         $stmt = $this->pdo->prepare(
             'UPDATE cms_forms SET
-                name = ?, slug = ?, description = ?, status = ?, submit_label = ?,
+                name = ?, slug = ?, description = ?, status = ?, form_type = ?,
+                submit_label = ?, next_label = ?, prev_label = ?,
                 confirmation_type = ?, confirmation_message = ?, confirmation_redirect_url = ?,
-                honeypot_enabled = ?, notify_enabled = ?, notify_emails = ?, notify_subject = ?
+                honeypot_enabled = ?, notify_enabled = ?, notify_emails = ?, notify_subject = ?,
+                settings_json = ?
              WHERE id = ?'
         );
 
@@ -103,7 +110,10 @@ final class FormRepository
             $data['slug'],
             $data['description'] ?? null,
             $data['status'] ?? 'draft',
+            $data['form_type'] ?? 'standard',
             $data['submit_label'] ?? 'Submit',
+            $data['next_label'] ?? 'Next',
+            $data['prev_label'] ?? 'Previous',
             $data['confirmation_type'] ?? 'message',
             $data['confirmation_message'] ?? null,
             $data['confirmation_redirect_url'] ?? null,
@@ -111,6 +121,7 @@ final class FormRepository
             !empty($data['notify_enabled']) ? 1 : 0,
             $data['notify_emails'] ?? null,
             $data['notify_subject'] ?? null,
+            $this->encodeJson($data['settings'] ?? $data['settings_json'] ?? null),
             $id,
         ]);
     }
@@ -125,9 +136,9 @@ final class FormRepository
     /**
      * @param list<array<string, mixed>> $fields
      */
-    public function createFromTemplate(string $name, string $slug, string $templateKey, array $fields): int
+    public function createFromTemplate(string $name, string $slug, string $templateKey, array $fields, array $formExtras = []): int
     {
-        $formId = $this->create([
+        $formId = $this->create(array_merge([
             'name' => $name,
             'slug' => $slug,
             'status' => 'draft',
@@ -135,7 +146,7 @@ final class FormRepository
             'notify_subject' => 'New form submission: ' . $name,
             'honeypot_enabled' => 1,
             'notify_enabled' => 1,
-        ]);
+        ], $formExtras));
 
         if ($fields !== []) {
             $fieldRepo = new FormFieldRepository($this->pdo);
@@ -146,5 +157,45 @@ final class FormRepository
         }
 
         return $formId;
+    }
+
+    /**
+     * @param array<string, mixed> $row
+     *
+     * @return array<string, mixed>
+     */
+    private function decodeRow(array $row): array
+    {
+        $row['settings'] = $this->decodeJson($row['settings_json'] ?? null);
+
+        return $row;
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function decodeJson(?string $json): ?array
+    {
+        if ($json === null || trim($json) === '') {
+            return null;
+        }
+        $decoded = json_decode($json, true);
+
+        return is_array($decoded) ? $decoded : null;
+    }
+
+    private function encodeJson(mixed $data): ?string
+    {
+        if ($data === null || $data === '') {
+            return null;
+        }
+        if (is_string($data)) {
+            return trim($data) === '' ? null : $data;
+        }
+        if (!is_array($data)) {
+            return null;
+        }
+
+        return json_encode($data, JSON_THROW_ON_ERROR);
     }
 }

@@ -1,0 +1,88 @@
+{% extends 'admin/base.twig' %}
+
+{% block admin_title %}SEO overview{% endblock %}
+
+{% block admin_hero_title %}
+  <h1 class="admin-hero-title">SEO overview</h1>
+{% endblock %}
+
+{% block admin_hero_sub %}
+  <p class="admin-hero-sub admin-hint" style="margin-top:0">
+    <a class="admin-link" href="{{ url_for('admin.seo.sitemap') }}">Sitemap</a>
+    · <a class="admin-link" href="{{ url_for('admin.seo.redirects') }}">Redirects</a>
+    · <a class="admin-link" href="{{ url_for('admin.seo.not_found') }}">404 monitor</a>
+  </p>
+{% endblock %}
+
+{% block admin_breadcrumbs %}
+  {% include 'admin/partials/_breadcrumbs.twig' with {
+    breadcrumbs: [
+      { label: 'SEO overview' },
+    ],
+  } %}
+{% endblock %}
+
+{% block admin_content %}
+  {% set s = seo_overview|default({}) %}
+  <div class="admin-form-grid" style="margin-bottom:1.5rem">
+    <div class="admin-card">
+      <h2 class="admin-card-title">Pages</h2>
+      <p class="admin-hint" style="margin-top:0">{{ s.pages_published|default(0) }} published / {{ s.pages_total|default(0) }} total</p>
+      <ul class="admin-hint" style="margin:0.75rem 0 0 1.1rem;padding:0">
+        <li>{{ s.pages_missing_description|default(0) }} missing meta description</li>
+        <li>{{ s.pages_missing_keyphrase|default(0) }} without focus keyphrase</li>
+        <li>{{ s.pages_noindex|default(0) }} published with noindex</li>
+      </ul>
+    </div>
+    <div class="admin-card">
+      <h2 class="admin-card-title">Content entries</h2>
+      <p class="admin-hint" style="margin-top:0">{{ s.entries_published|default(0) }} published / {{ s.entries_total|default(0) }} total</p>
+      <ul class="admin-hint" style="margin:0.75rem 0 0 1.1rem;padding:0">
+        <li>{{ s.entries_missing_description|default(0) }} missing meta description</li>
+        <li>{{ s.entries_missing_keyphrase|default(0) }} without focus keyphrase</li>
+        <li>{{ s.entries_noindex|default(0) }} published with noindex</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="admin-card" style="margin-bottom:1.25rem">
+    <h2 class="admin-card-title">Pages needing attention</h2>
+    {% if s.recent_pages|default([])|length > 0 %}
+      <table class="admin-table" style="margin-top:0.75rem">
+        <thead><tr><th>Page</th><th>Issue</th><th></th></tr></thead>
+        <tbody>
+          {% for row in s.recent_pages %}
+            <tr>
+              <td>{{ row.title|e }}</td>
+              <td class="admin-hint">{{ row.issue|e }}</td>
+              <td><a class="admin-link" href="{{ url_for('admin.pages.edit', { id: row.id }) }}">Edit</a></td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p class="admin-hint" style="margin-top:0.75rem">All published pages have a meta description and focus keyphrase.</p>
+    {% endif %}
+  </div>
+
+  <div class="admin-card">
+    <h2 class="admin-card-title">Entries needing attention</h2>
+    {% if s.recent_entries|default([])|length > 0 %}
+      <table class="admin-table" style="margin-top:0.75rem">
+        <thead><tr><th>Entry</th><th>Type</th><th>Issue</th><th></th></tr></thead>
+        <tbody>
+          {% for row in s.recent_entries %}
+            <tr>
+              <td>{{ row.title|e }}</td>
+              <td class="admin-hint">{{ row.type_name|e }}</td>
+              <td class="admin-hint">{{ row.issue|e }}</td>
+              <td><a class="admin-link" href="{{ url_for('admin.content_types.entries.edit', { id: row.type_id, entryId: row.id }) }}">Edit</a></td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p class="admin-hint" style="margin-top:0.75rem">All published entries have a meta description and focus keyphrase.</p>
+    {% endif %}
+  </div>
+{% endblock %}

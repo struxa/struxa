@@ -314,6 +314,7 @@ final class ContentEntryRepository
         ?int $featuredImageId,
         ?string $seoTitle,
         ?string $seoDescription,
+        ?string $focusKeyphrase,
         ?string $canonicalUrl,
         bool $seoNoindex,
         ?string $ogTitle,
@@ -331,10 +332,10 @@ final class ContentEntryRepository
         $stmt = $this->pdo->prepare(
             'INSERT INTO ' . self::TABLE . ' (
                 content_type_id, title, slug, status, featured_image_id,
-                seo_title, seo_description, canonical_url, seo_noindex,
+                seo_title, seo_description, focus_keyphrase, canonical_url, seo_noindex,
                 og_title, og_description, og_image_id, twitter_title, twitter_description, twitter_image_id, schema_json,
                 published_at, scheduled_publish_at, scheduled_unpublish_at, created_by
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
         );
         $stmt->execute([
             $contentTypeId,
@@ -344,6 +345,7 @@ final class ContentEntryRepository
             $featuredImageId,
             $seoTitle,
             $seoDescription,
+            $focusKeyphrase,
             $canonicalUrl,
             $seoNoindex ? 1 : 0,
             $ogTitle,
@@ -370,6 +372,7 @@ final class ContentEntryRepository
         ?int $featuredImageId,
         ?string $seoTitle,
         ?string $seoDescription,
+        ?string $focusKeyphrase,
         ?string $canonicalUrl,
         bool $seoNoindex,
         ?string $ogTitle,
@@ -385,7 +388,7 @@ final class ContentEntryRepository
     ): void {
         $stmt = $this->pdo->prepare(
             'UPDATE ' . self::TABLE . ' SET title = ?, slug = ?, status = ?, featured_image_id = ?,
-             seo_title = ?, seo_description = ?, canonical_url = ?, seo_noindex = ?,
+             seo_title = ?, seo_description = ?, focus_keyphrase = ?, canonical_url = ?, seo_noindex = ?,
              og_title = ?, og_description = ?, og_image_id = ?, twitter_title = ?, twitter_description = ?, twitter_image_id = ?, schema_json = ?,
              published_at = ?, scheduled_publish_at = ?, scheduled_unpublish_at = ? WHERE id = ?'
         );
@@ -396,6 +399,7 @@ final class ContentEntryRepository
             $featuredImageId,
             $seoTitle,
             $seoDescription,
+            $focusKeyphrase,
             $canonicalUrl,
             $seoNoindex ? 1 : 0,
             $ogTitle,

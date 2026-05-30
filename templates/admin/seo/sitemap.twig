@@ -8,6 +8,8 @@
 
 {% block admin_hero_sub %}
   <p class="admin-hint" style="margin-top:0">
+    <a class="admin-link" href="{{ url_for('admin.seo.overview') }}">SEO overview</a>
+    ·
     <a class="admin-link" href="{{ url_for('admin.seo.redirects') }}">URL redirects</a>
     ·
     <a class="admin-link" href="{{ url_for('admin.seo.not_found') }}">404 monitor</a>

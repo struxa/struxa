@@ -55,7 +55,11 @@ final class PublicCmsPageRenderer
             $page,
             $pathForSeoFromRoot,
             $siteUrl,
-            Settings::get('site_name') ?: null
+            Settings::get('site_name') ?: null,
+            [
+                ['name' => 'Home', 'url' => '/'],
+                ['name' => $page->title],
+            ]
         ));
 
         $bodyHtml = ExternalLinkPolicy::maybeNofollowExternalAnchorsInHtml($page->content);

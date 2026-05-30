@@ -55,8 +55,73 @@
                 <input type="hidden" name="field_order[]" value="{{ field.id }}" />
                 <div class="forms-field-meta">
                   <strong>{{ field.label|e }}</strong>
-                  <span class="admin-hint">{{ field_types[field.field_type]|default(field.field_type)|e }} · <code>{{ field.field_key|e }}</code>{% if field.required %} · required{% endif %}</span>
+                  <span class="admin-hint">
+                    {{ field_types[field.field_type]|default(field.field_type)|e }}
+                    · <code>{{ field.field_key|e }}</code>
+                    · page {{ field.page_number|default(1) }}
+                    {% if field.required %} · required{% endif %}
+                    {% if field.conditional.enabled|default(false) %} · conditional{% endif %}
+                    {% if is_quiz and field.settings.quiz_points|default(0) > 0 %} · {{ field.settings.quiz_points }} pt{% endif %}
+                  </span>
                 </div>
+                <details class="forms-field-edit">
+                  <summary class="admin-btn admin-btn--ghost admin-btn--sm">Edit</summary>
+                  <form method="post" action="{{ url_for('admin.forms.fields.update', { id: form_row.id, fieldId: field.id }) }}" class="admin-form-stack forms-field-edit-form" id="field-{{ field.id }}">
+                    <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+                    <label class="admin-label"><span>Label</span><input class="admin-input" type="text" name="label" value="{{ field.label|e('html_attr') }}" required /></label>
+                    <label class="admin-label"><span>Page</span><input class="admin-input" type="number" name="page_number" min="1" value="{{ field.page_number|default(1) }}" /></label>
+                    <label class="admin-label"><span>Placeholder</span><input class="admin-input" type="text" name="placeholder" value="{{ field.placeholder|default('')|e('html_attr') }}" /></label>
+                    <label class="admin-label"><span>Help text</span><input class="admin-input" type="text" name="help_text" value="{{ field.help_text|default('')|e('html_attr') }}" /></label>
+                    {% if field.field_type in ['select','radio','checkboxes'] %}
+                      <label class="admin-label"><span>Options (one per line)</span><textarea class="admin-input" name="options" rows="3">{% for opt in field.options|default([]) %}{{ opt|e }}
+{% endfor %}</textarea></label>
+                    {% endif %}
+                    {% if field.field_type == 'file' %}
+                      <label class="admin-label"><span>Max size (MB)</span><input class="admin-input" type="number" name="file_max_mb" min="1" max="20" value="{{ field.settings.max_mb|default(5) }}" /></label>
+                      <label class="admin-label"><span>Allowed extensions</span><input class="admin-input" type="text" name="file_extensions" value="{{ field.settings.extensions|default(['pdf','jpg','png'])|join(',')|e('html_attr') }}" /></label>
+                    {% endif %}
+                    {% if is_quiz and field.field_type in ['select','radio','checkboxes'] %}
+                      <label class="admin-label"><span>Points</span><input class="admin-input" type="number" name="quiz_points" min="1" value="{{ field.settings.quiz_points|default(1) }}" /></label>
+                      <label class="admin-label"><span>Correct answer{% if field.field_type == 'checkboxes' %} (one per line){% endif %}</span>
+                        {% if field.field_type == 'checkboxes' %}
+                          <textarea class="admin-input" name="quiz_correct" rows="2">{% if field.settings.quiz_correct is iterable %}{% for c in field.settings.quiz_correct %}{{ c|e }}
+{% endfor %}{% else %}{{ field.settings.quiz_correct|default('')|e }}{% endif %}</textarea>
+                        {% else %}
+                          <input class="admin-input" type="text" name="quiz_correct" value="{{ field.settings.quiz_correct|default('')|e('html_attr') }}" />
+                        {% endif %}
+                      </label>
+                    {% endif %}
+                    {% if field.field_type != 'page_break' %}
+                      <label class="admin-checkbox"><input type="checkbox" name="required" value="1" {{ field.required ? 'checked' : '' }} /> Required</label>
+                    {% endif %}
+                    <fieldset class="forms-conditional-fieldset">
+                      <legend class="admin-hint">Conditional logic</legend>
+                      <label class="admin-checkbox"><input type="checkbox" name="conditional_enabled" value="1" {{ field.conditional.enabled|default(false) ? 'checked' : '' }} /> Enable</label>
+                      <label class="admin-label"><span>Show when field</span>
+                        <select class="admin-input" name="conditional_field_key">
+                          <option value="">—</option>
+                          {% for fk in field_key_options|default([]) %}
+                            {% if fk != field.field_key %}
+                              <option value="{{ fk|e('html_attr') }}" {{ field.conditional.rules[0].field_key|default('') == fk ? 'selected' : '' }}>{{ fk|e }}</option>
+                            {% endif %}
+                          {% endfor %}
+                        </select>
+                      </label>
+                      <label class="admin-label"><span>Operator</span>
+                        <select class="admin-input" name="conditional_operator">
+                          {% set cop = field.conditional.rules[0].operator|default('is') %}
+                          <option value="is" {{ cop == 'is' ? 'selected' : '' }}>equals</option>
+                          <option value="is_not" {{ cop == 'is_not' ? 'selected' : '' }}>does not equal</option>
+                          <option value="contains" {{ cop == 'contains' ? 'selected' : '' }}>contains</option>
+                          <option value="empty" {{ cop == 'empty' ? 'selected' : '' }}>is empty</option>
+                          <option value="not_empty" {{ cop == 'not_empty' ? 'selected' : '' }}>is not empty</option>
+                        </select>
+                      </label>
+                      <label class="admin-label"><span>Value</span><input class="admin-input" type="text" name="conditional_value" value="{{ field.conditional.rules[0].value|default('')|e('html_attr') }}" /></label>
+                    </fieldset>
+                    <button class="admin-btn admin-btn--primary admin-btn--sm" type="submit">Save field</button>
+                  </form>
+                </details>
                 <button class="admin-btn admin-btn--ghost admin-btn--sm" type="submit" form="delete-field-{{ field.id }}" onclick="return confirm('Remove this field?');">Remove</button>
               </li>
             {% endfor %}
@@ -101,6 +166,28 @@
           <span>Help text</span>
           <input class="admin-input" type="text" name="help_text" maxlength="500" />
         </label>
+        <label class="admin-label">
+          <span>Page number</span>
+          <input class="admin-input" type="number" name="page_number" min="1" value="{{ max_page_number|default(1) }}" />
+        </label>
+        <label class="admin-label forms-file-options" id="forms-file-options" hidden>
+          <span>Max file size (MB)</span>
+          <input class="admin-input" type="number" name="file_max_mb" min="1" max="20" value="5" />
+        </label>
+        <label class="admin-label forms-file-options" hidden>
+          <span>Allowed extensions (comma-separated)</span>
+          <input class="admin-input" type="text" name="file_extensions" value="pdf,jpg,png,doc,docx" />
+        </label>
+        {% if is_quiz %}
+          <label class="admin-label forms-quiz-options" id="forms-quiz-options" hidden>
+            <span>Quiz points</span>
+            <input class="admin-input" type="number" name="quiz_points" min="1" value="1" />
+          </label>
+          <label class="admin-label forms-quiz-options" hidden>
+            <span>Correct answer</span>
+            <input class="admin-input" type="text" name="quiz_correct" placeholder="Must match an option exactly" />
+          </label>
+        {% endif %}
         <label class="admin-checkbox">
           <input type="checkbox" name="required" value="1" />
           Required field
@@ -129,6 +216,13 @@
           </select>
         </label>
         <label class="admin-label">
+          <span>Form type</span>
+          <select class="admin-input" name="form_type" id="forms-form-type">
+            <option value="standard" {{ form_row.form_type|default('standard') == 'standard' ? 'selected' : '' }}>Standard</option>
+            <option value="quiz" {{ form_row.form_type|default('standard') == 'quiz' ? 'selected' : '' }}>Quiz (scored)</option>
+          </select>
+        </label>
+        <label class="admin-label">
           <span>Description (internal)</span>
           <textarea class="admin-input" name="description" rows="2">{{ form_row.description|default('')|e }}</textarea>
         </label>
@@ -136,6 +230,37 @@
           <span>Submit button label</span>
           <input class="admin-input" type="text" name="submit_label" value="{{ form_row.submit_label|default('Submit')|e('html_attr') }}" maxlength="80" />
         </label>
+        <div class="admin-form-row">
+          <label class="admin-label">
+            <span>Next page label</span>
+            <input class="admin-input" type="text" name="next_label" value="{{ form_row.next_label|default('Next')|e('html_attr') }}" maxlength="80" />
+          </label>
+          <label class="admin-label">
+            <span>Previous page label</span>
+            <input class="admin-input" type="text" name="prev_label" value="{{ form_row.prev_label|default('Previous')|e('html_attr') }}" maxlength="80" />
+          </label>
+        </div>
+
+        <div id="forms-quiz-settings" {% if not is_quiz %}hidden{% endif %}>
+          <h3 class="admin-card-title">Quiz settings</h3>
+          {% set qs = form_row.settings|default({}) %}
+          <label class="admin-label">
+            <span>Pass score (%)</span>
+            <input class="admin-input" type="number" name="quiz_pass_percent" min="0" max="100" value="{{ qs.quiz_pass_percent|default(70) }}" />
+          </label>
+          <label class="admin-checkbox">
+            <input type="checkbox" name="quiz_show_score" value="1" {{ qs.quiz_show_score|default(true) ? 'checked' : '' }} />
+            Show score in confirmation message
+          </label>
+          <label class="admin-label">
+            <span>Pass message</span>
+            <input class="admin-input" type="text" name="quiz_pass_message" value="{{ qs.quiz_pass_message|default('Well done!')|e('html_attr') }}" />
+          </label>
+          <label class="admin-label">
+            <span>Fail message</span>
+            <input class="admin-input" type="text" name="quiz_fail_message" value="{{ qs.quiz_fail_message|default('Try again.')|e('html_attr') }}" />
+          </label>
+        </div>
 
         <h3 class="admin-card-title">After submit</h3>
         <label class="admin-label">
@@ -191,5 +316,8 @@
     .forms-field-item.is-dragging { opacity: 0.55; }
     .forms-field-drag { cursor: grab; color: var(--admin-muted,#94a3b8); user-select: none; }
     .forms-field-meta { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.15rem; }
+    .forms-field-edit { margin-left: auto; }
+    .forms-field-edit-form { margin-top: 0.75rem; padding: 0.75rem; border: 1px solid var(--admin-border,rgba(255,255,255,.08)); border-radius: 0.5rem; }
+    .forms-conditional-fieldset { border: none; padding: 0; margin: 0.5rem 0; }
   </style>
 {% endblock %}

@@ -1,5 +1,8 @@
 {% set _return = return_to|default('') %}
-<section class="struxa-form-wrap" aria-labelledby="struxa-form-{{ form.id|default('x') }}-title">
+{% set _pages = form_pages|default([]) %}
+{% set _multipage = form_is_multipage|default(false) %}
+{% set _is_quiz = form_is_quiz|default(false) %}
+<section class="struxa-form-wrap" aria-labelledby="struxa-form-{{ form.id|default('x') }}-title" data-struxa-form-root>
   {% if section is defined and section.title|default('') != '' %}
     <h2 id="struxa-form-{{ form.id|default('x') }}-title" class="struxa-form-heading">{{ section.title|e }}</h2>
   {% endif %}
@@ -14,88 +17,54 @@
     <div class="struxa-form-flash struxa-form-flash--success" role="status">{{ flash_success|e }}</div>
   {% endif %}
 
-  <form class="struxa-form" method="post" action="{{ action_url|e('html_attr') }}" novalidate>
+  {% if _multipage %}
+    <div class="struxa-form-progress" data-struxa-form-progress aria-hidden="true">
+      {% for page in _pages %}
+        <span class="struxa-form-progress-dot{% if loop.first %} is-active{% endif %}" data-page="{{ page.page }}"></span>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <form class="struxa-form" method="post" action="{{ action_url|e('html_attr') }}" enctype="multipart/form-data" novalidate data-struxa-form>
     <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
     <input type="hidden" name="return_to" value="{{ _return|e('html_attr') }}" id="struxa-form-return-to" />
 
-    {% for field in fields %}
-      {% set type = field.field_type|default('text') %}
-      {% set key = field.field_key|default('field') %}
-      {% set req = field.required|default(false) %}
-      {% if type == 'honeypot' %}
-        <div class="struxa-form-hp" aria-hidden="true">
-          <label for="sf-{{ key|e('html_attr') }}">{{ field.label|default('Leave blank')|e }}</label>
-          <input type="text" id="sf-{{ key|e('html_attr') }}" name="{{ key|e('html_attr') }}" tabindex="-1" autocomplete="off" />
-        </div>
-      {% elseif type == 'hidden' %}
-        <input type="hidden" name="{{ key|e('html_attr') }}" value="{{ field.settings_json|default('')|e('html_attr') }}" />
-      {% elseif type == 'checkbox' %}
-        <div class="struxa-form-field struxa-form-field--checkbox">
-          <label class="struxa-form-checkbox">
-            <input type="checkbox" name="{{ key|e('html_attr') }}" value="1" {{ req ? 'required' : '' }} />
-            <span>{{ field.label|e }}{% if req %} <span class="struxa-form-req">*</span>{% endif %}</span>
-          </label>
-          {% if field.help_text|default('') != '' %}<p class="struxa-form-help">{{ field.help_text|e }}</p>{% endif %}
-        </div>
-      {% elseif type == 'checkboxes' %}
-        <fieldset class="struxa-form-field">
-          <legend>{{ field.label|e }}{% if req %} <span class="struxa-form-req">*</span>{% endif %}</legend>
-          {% for opt in field.options|default([]) %}
-            <label class="struxa-form-checkbox">
-              <input type="checkbox" name="{{ key|e('html_attr') }}[]" value="{{ opt|e('html_attr') }}" />
-              <span>{{ opt|e }}</span>
-            </label>
-          {% endfor %}
-          {% if field.help_text|default('') != '' %}<p class="struxa-form-help">{{ field.help_text|e }}</p>{% endif %}
-        </fieldset>
-      {% elseif type == 'radio' %}
-        <fieldset class="struxa-form-field">
-          <legend>{{ field.label|e }}{% if req %} <span class="struxa-form-req">*</span>{% endif %}</legend>
-          {% for opt in field.options|default([]) %}
-            <label class="struxa-form-radio">
-              <input type="radio" name="{{ key|e('html_attr') }}" value="{{ opt|e('html_attr') }}" {{ req ? 'required' : '' }} />
-              <span>{{ opt|e }}</span>
-            </label>
-          {% endfor %}
-          {% if field.help_text|default('') != '' %}<p class="struxa-form-help">{{ field.help_text|e }}</p>{% endif %}
-        </fieldset>
-      {% elseif type == 'select' %}
-        <div class="struxa-form-field">
-          <label for="sf-{{ key|e('html_attr') }}">{{ field.label|e }}{% if req %} <span class="struxa-form-req">*</span>{% endif %}</label>
-          <select id="sf-{{ key|e('html_attr') }}" name="{{ key|e('html_attr') }}" {{ req ? 'required' : '' }}>
-            <option value="">— Select —</option>
-            {% for opt in field.options|default([]) %}
-              <option value="{{ opt|e('html_attr') }}">{{ opt|e }}</option>
-            {% endfor %}
-          </select>
-          {% if field.help_text|default('') != '' %}<p class="struxa-form-help">{{ field.help_text|e }}</p>{% endif %}
-        </div>
-      {% elseif type == 'textarea' %}
-        <div class="struxa-form-field">
-          <label for="sf-{{ key|e('html_attr') }}">{{ field.label|e }}{% if req %} <span class="struxa-form-req">*</span>{% endif %}</label>
-          <textarea id="sf-{{ key|e('html_attr') }}" name="{{ key|e('html_attr') }}" rows="5" placeholder="{{ field.placeholder|default('')|e('html_attr') }}" {{ req ? 'required' : '' }}></textarea>
-          {% if field.help_text|default('') != '' %}<p class="struxa-form-help">{{ field.help_text|e }}</p>{% endif %}
-        </div>
-      {% else %}
-        {% set inputType = type in ['email','number','url','phone'] ? (type == 'phone' ? 'tel' : type) : 'text' %}
-        <div class="struxa-form-field">
-          <label for="sf-{{ key|e('html_attr') }}">{{ field.label|e }}{% if req %} <span class="struxa-form-req">*</span>{% endif %}</label>
-          <input type="{{ inputType|e('html_attr') }}" id="sf-{{ key|e('html_attr') }}" name="{{ key|e('html_attr') }}" placeholder="{{ field.placeholder|default('')|e('html_attr') }}" {{ req ? 'required' : '' }} />
-          {% if field.help_text|default('') != '' %}<p class="struxa-form-help">{{ field.help_text|e }}</p>{% endif %}
-        </div>
-      {% endif %}
+    {% for field in honeypot_fields|default([]) %}
+      {% include 'public/forms/_field.twig' with { field: field, form: form } only %}
     {% endfor %}
 
-    <div class="struxa-form-actions">
-      <button type="submit" class="struxa-form-submit">{{ form.submit_label|default('Submit')|e }}</button>
+    {% if _multipage %}
+      {% for page in _pages %}
+        <div class="struxa-form-page{% if loop.first %} is-active{% endif %}" data-struxa-form-page="{{ page.page }}" {% if not loop.first %}hidden{% endif %}>
+          <h3 class="struxa-form-page-title">{{ page.title|e }}</h3>
+          {% for field in page.fields %}
+            {% include 'public/forms/_field.twig' with { field: field, form: form } only %}
+          {% endfor %}
+        </div>
+      {% endfor %}
+    {% else %}
+      {% for field in fields %}
+        {% include 'public/forms/_field.twig' with { field: field, form: form } only %}
+      {% endfor %}
+    {% endif %}
+
+    <div class="struxa-form-actions" data-struxa-form-actions>
+      {% if _multipage %}
+        <button type="button" class="struxa-form-btn struxa-form-btn--ghost struxa-form-prev" data-struxa-form-prev hidden>{{ form.prev_label|default('Previous')|e }}</button>
+        <button type="button" class="struxa-form-btn struxa-form-submit struxa-form-next" data-struxa-form-next>{{ form.next_label|default('Next')|e }}</button>
+        <button type="submit" class="struxa-form-btn struxa-form-submit" data-struxa-form-submit hidden>{{ form.submit_label|default('Submit')|e }}</button>
+      {% else %}
+        <button type="submit" class="struxa-form-btn struxa-form-submit">{{ form.submit_label|default('Submit')|e }}</button>
+      {% endif %}
     </div>
   </form>
-  <script>
-    (function () {
-      var el = document.getElementById('struxa-form-return-to');
-      if (el && el.value === '' && location.pathname.charAt(0) === '/') {
-        el.value = location.pathname + location.search + location.hash;
-      }
-    })();
-  </script>
 </section>
+<script src="{{ asset('js/forms-public.js') }}" defer></script>
+<script>
+  (function () {
+    var el = document.getElementById('struxa-form-return-to');
+    if (el && el.value === '' && location.pathname.charAt(0) === '/') {
+      el.value = location.pathname + location.search + location.hash;
+    }
+  })();
+</script>

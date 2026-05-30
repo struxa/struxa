@@ -17,11 +17,11 @@ final class PageRevisionRepository
         $tagsJson = PageTagParser::toJson($page->tags);
         $stmt = $this->pdo->prepare(
             'INSERT INTO cms_page_revisions (
-                page_id, title, slug, seo_title, seo_description, tags_json, featured_image_id,
+                page_id, title, slug, seo_title, seo_description, focus_keyphrase, tags_json, featured_image_id,
                 canonical_url, seo_noindex, og_title, og_description, og_image_id,
                 twitter_title, twitter_description, twitter_image_id, schema_json,
                 content, sections_json, status, published_at, scheduled_publish_at, scheduled_unpublish_at, created_by
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
         );
         $stmt->execute([
             $page->id,
@@ -29,6 +29,7 @@ final class PageRevisionRepository
             $page->slug,
             $page->seoTitle,
             $page->seoDescription,
+            $page->focusKeyphrase,
             $tagsJson,
             $page->featuredImageId,
             $page->canonicalUrl,

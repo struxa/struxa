@@ -12,6 +12,9 @@ use App\Security\IpBlockMatcher;
 use App\Security\IpBlockRepository;
 use App\Seo\NotFoundLogRepository;
 use App\Seo\RedirectRepository;
+use App\Seo\SeoContentAnalyzer;
+use App\Seo\SeoInternalLinkSuggester;
+use App\Seo\SeoOverviewService;
 use App\Seo\SitemapOptions;
 use App\Seo\SitemapService;
 use App\Settings;
@@ -97,6 +100,36 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             'redirect_per_page' => $perPage,
         ];
     };
+
+    $staffMiddleware = new RequireCmsStaff($auth, $pdo);
+
+    $app->group('/admin', function (\Slim\Routing\RouteCollectorProxy $group) use ($jsonResponse, $pdo): void {
+        $group->post('/seo/analyze', function (Request $request, Response $response) use ($jsonResponse, $pdo): Response {
+            $body = $request->getParsedBody();
+            $body = is_array($body) ? $body : [];
+            $analyzer = new SeoContentAnalyzer();
+            $analysis = $analyzer->analyze([
+                'title' => (string) ($body['title'] ?? ''),
+                'slug' => (string) ($body['slug'] ?? ''),
+                'seo_title' => (string) ($body['seo_title'] ?? ''),
+                'seo_description' => (string) ($body['seo_description'] ?? ''),
+                'focus_keyphrase' => (string) ($body['focus_keyphrase'] ?? ''),
+                'content' => (string) ($body['content'] ?? ''),
+            ]);
+            $links = [];
+            $kp = trim((string) ($body['focus_keyphrase'] ?? ''));
+            if ($kp !== '') {
+                $kind = (string) ($body['entity_kind'] ?? '');
+                $eid = isset($body['entity_id']) && ctype_digit((string) $body['entity_id']) ? (int) $body['entity_id'] : null;
+                $suggester = new SeoInternalLinkSuggester($pdo);
+                $exceptPage = $kind === 'page' ? $eid : null;
+                $exceptEntry = $kind === 'entry' ? $eid : null;
+                $links = $suggester->suggest($kp, (string) ($body['content'] ?? ''), $exceptPage, $exceptEntry);
+            }
+
+            return $jsonResponse($response, ['ok' => true, 'analysis' => $analysis, 'internal_links' => $links]);
+        })->setName('admin.seo.analyze');
+    })->add($staffMiddleware);
 
     $app->group('/admin', function (\Slim\Routing\RouteCollectorProxy $group) use (
         $twig,
@@ -287,6 +320,15 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 ->withHeader('Location', $url)
                 ->withStatus(302);
         })->setName('admin.seo.not_found.bulk_delete');
+
+        $group->get('/seo/overview', function (Request $request, Response $response) use ($twig, $adminContext, $withCmsUser, $pdo): Response {
+            $overview = new SeoOverviewService($pdo);
+
+            return $twig->render($response, 'admin/seo/overview.twig', $withCmsUser($request, array_merge($adminContext(), [
+                'admin_nav' => 'seo_overview',
+                'seo_overview' => $overview->summary(),
+            ])));
+        })->setName('admin.seo.overview');
 
         $group->get('/seo/sitemap', function (Request $request, Response $response) use ($twig, $adminContext, $withCmsUser, $pdo, $viewData): Response {
             $siteUrl = rtrim((string) (($viewData())['site_url'] ?? ''), '/');

@@ -21,14 +21,19 @@ use App\Plugin\PluginScanner;
 use App\Search\ContentSearchService;
 use App\Seo\ExternalLinkPolicy;
 use App\Seo\MetaTagBuilder;
+use App\Seo\SeoContentAnalyzer;
 use App\Seo\SeoFormParser;
+use App\Seo\BreadcrumbSchemaBuilder;
+use App\Seo\SchemaJsonLdMerger;
 use App\Security\IpBlockMatcher;
 use App\Security\IpBlockPatternValidator;
 use App\Dev\PluginDependencyHealthCheck;
 use App\Dev\TwigLayoutContractLinter;
 use App\Maintenance\MaintenanceService;
 use App\Media\MediaFolderFilter;
+use App\Form\FormConditionalLogic;
 use App\Form\FormFieldType;
+use App\Form\FormQuizScorer;
 use App\Form\FormSlugger;
 use App\Form\FormValidator;
 use App\Manifest\ManifestMeta;
@@ -184,6 +189,33 @@ if ($goodLd['error'] !== null || $goodLd['value'] === null) {
 $safeScript = MetaTagBuilder::jsonLdSafeForScript($goodLd['value']);
 if ($safeScript === null || str_contains(strtolower($safeScript), '</script>')) {
     $fail('MetaTagBuilder::jsonLdSafeForScript should escape script breakout sequences.');
+}
+
+$seoAnalyze = (new SeoContentAnalyzer())->analyze([
+    'title' => 'WordPress SEO Guide',
+    'slug' => 'wordpress-seo-guide',
+    'seo_title' => 'WordPress SEO Guide for Beginners',
+    'seo_description' => 'Learn WordPress SEO with our beginner guide covering keyphrase research, titles, and meta descriptions for better rankings.',
+    'focus_keyphrase' => 'wordpress seo',
+    'content' => '<p>WordPress SEO starts with a focus keyphrase in your introduction.</p><p>WordPress SEO tools help you optimize titles and snippets.</p><h2>Next steps</h2><p>Keep improving wordpress seo over time with internal links like <a href="/blog/seo-tips">SEO tips</a>.</p>',
+]);
+if (($seoAnalyze['seo_score'] ?? 0) < 50) {
+    $fail('SeoContentAnalyzer should score well-optimized sample content.');
+}
+if (($seoAnalyze['readability_score'] ?? 0) <= 0) {
+    $fail('SeoContentAnalyzer should produce a readability score.');
+}
+
+$bc = BreadcrumbSchemaBuilder::build([
+    ['name' => 'Home', 'url' => '/'],
+    ['name' => 'Guide'],
+], 'https://example.com');
+if ($bc === null || !str_contains($bc, 'BreadcrumbList')) {
+    $fail('BreadcrumbSchemaBuilder should emit BreadcrumbList JSON-LD.');
+}
+$merged = SchemaJsonLdMerger::merge('{"@type":"WebPage","name":"Test"}', $bc);
+if ($merged === null || !str_contains($merged, '@graph')) {
+    $fail('SchemaJsonLdMerger should combine documents into @graph.');
 }
 
 if (IpBlockMatcher::isBlocked('192.0.2.1', ['192.0.2.2'])) {
@@ -348,6 +380,29 @@ if (($spam['ok'] ?? true) !== false) {
 }
 if (FormSlugger::fromName('Contact Us!') !== 'contact-us') {
     $fail('FormSlugger should slugify names.');
+}
+
+$condField = ['field_key' => 'x', 'conditional' => [
+    'enabled' => true,
+    'action' => 'show',
+    'operator' => 'all',
+    'rules' => [['field_key' => 'country', 'operator' => 'is', 'value' => 'US']],
+]];
+if (!FormConditionalLogic::isVisible($condField, ['country' => 'US'])) {
+    $fail('FormConditionalLogic should show field when rule matches.');
+}
+if (FormConditionalLogic::isVisible($condField, ['country' => 'UK'])) {
+    $fail('FormConditionalLogic should hide field when rule fails.');
+}
+
+$quizForm = ['form_type' => 'quiz', 'settings' => ['quiz_pass_percent' => 70]];
+$quizFields = [
+    ['field_key' => 'q1', 'field_type' => FormFieldType::RADIO, 'settings' => ['quiz_points' => 10, 'quiz_correct' => 'B']],
+];
+$quizValues = [['field_key' => 'q1', 'value_text' => 'B']];
+$quizResult = FormQuizScorer::score($quizForm, $quizFields, $quizValues);
+if ($quizResult['score'] !== 10 || !$quizResult['passed']) {
+    $fail('FormQuizScorer should score correct quiz answers.');
 }
 
 echo "All tests passed.\n";

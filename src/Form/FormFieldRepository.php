@@ -45,11 +45,11 @@ final class FormFieldRepository
      */
     public function create(array $data): int
     {
-        $optionsJson = $this->encodeOptions($data['options_json'] ?? null);
         $stmt = $this->pdo->prepare(
             'INSERT INTO cms_form_fields
-                (form_id, field_key, field_type, label, placeholder, help_text, required, options_json, sort_order, settings_json)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+                (form_id, field_key, field_type, label, placeholder, help_text, required,
+                 options_json, sort_order, page_number, settings_json, conditional_json)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
         );
         $stmt->execute([
             (int) $data['form_id'],
@@ -59,9 +59,11 @@ final class FormFieldRepository
             $data['placeholder'] ?? null,
             $data['help_text'] ?? null,
             !empty($data['required']) ? 1 : 0,
-            $optionsJson,
+            $this->encodeOptions($data['options_json'] ?? null),
             (int) ($data['sort_order'] ?? 0),
-            $data['settings_json'] ?? null,
+            max(1, (int) ($data['page_number'] ?? 1)),
+            $this->encodeJson($data['settings'] ?? $data['settings_json'] ?? null),
+            $this->encodeJson($data['conditional'] ?? $data['conditional_json'] ?? null),
         ]);
 
         return (int) $this->pdo->lastInsertId();
@@ -72,11 +74,11 @@ final class FormFieldRepository
      */
     public function update(int $fieldId, int $formId, array $data): bool
     {
-        $optionsJson = $this->encodeOptions($data['options_json'] ?? null);
         $stmt = $this->pdo->prepare(
             'UPDATE cms_form_fields SET
                 field_key = ?, field_type = ?, label = ?, placeholder = ?, help_text = ?,
-                required = ?, options_json = ?, sort_order = ?, settings_json = ?
+                required = ?, options_json = ?, sort_order = ?, page_number = ?,
+                settings_json = ?, conditional_json = ?
              WHERE id = ? AND form_id = ?'
         );
 
@@ -87,9 +89,11 @@ final class FormFieldRepository
             $data['placeholder'] ?? null,
             $data['help_text'] ?? null,
             !empty($data['required']) ? 1 : 0,
-            $optionsJson,
+            $this->encodeOptions($data['options_json'] ?? null),
             (int) ($data['sort_order'] ?? 0),
-            $data['settings_json'] ?? null,
+            max(1, (int) ($data['page_number'] ?? 1)),
+            $this->encodeJson($data['settings'] ?? $data['settings_json'] ?? null),
+            $this->encodeJson($data['conditional'] ?? $data['conditional_json'] ?? null),
             $fieldId,
             $formId,
         ]);
@@ -138,6 +142,7 @@ final class FormFieldRepository
             'label' => 'Leave blank',
             'required' => 0,
             'sort_order' => 9999,
+            'page_number' => 1,
         ]);
     }
 
@@ -155,7 +160,41 @@ final class FormFieldRepository
             $row['options'] = [];
         }
 
+        $row['settings'] = $this->decodeJson($row['settings_json'] ?? null) ?? [];
+        $row['conditional'] = $this->decodeJson($row['conditional_json'] ?? null) ?? [];
+
         return $row;
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function decodeJson(?string $json): ?array
+    {
+        if ($json === null || trim($json) === '') {
+            return null;
+        }
+        $decoded = json_decode($json, true);
+
+        return is_array($decoded) ? $decoded : null;
+    }
+
+    private function encodeJson(mixed $data): ?string
+    {
+        if ($data === null || $data === '') {
+            return null;
+        }
+        if (is_string($data)) {
+            return trim($data) === '' ? null : $data;
+        }
+        if (!is_array($data)) {
+            return null;
+        }
+        if ($data === []) {
+            return null;
+        }
+
+        return json_encode($data, JSON_THROW_ON_ERROR);
     }
 
     /**

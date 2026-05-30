@@ -10,7 +10,7 @@ final class PageRepository
 {
     private const TABLE = 'cms_pages';
 
-    private const SELECT = 'id, title, slug, seo_title, seo_description, tags_json, featured_image_id, canonical_url, seo_noindex, og_title, og_description, og_image_id, twitter_title, twitter_description, twitter_image_id, schema_json, content, status, published_at, scheduled_publish_at, scheduled_unpublish_at, created_at, updated_at';
+    private const SELECT = 'id, title, slug, seo_title, seo_description, focus_keyphrase, tags_json, featured_image_id, canonical_url, seo_noindex, og_title, og_description, og_image_id, twitter_title, twitter_description, twitter_image_id, schema_json, content, status, published_at, scheduled_publish_at, scheduled_unpublish_at, created_at, updated_at';
 
     private const PUBLIC_WHERE = "status = 'published' AND (published_at IS NULL OR published_at <= NOW(6))";
 
@@ -186,6 +186,7 @@ final class PageRepository
         string $slug,
         ?string $seoTitle,
         ?string $seoDescription,
+        ?string $focusKeyphrase,
         ?string $tagsJson,
         ?int $featuredImageId,
         ?string $canonicalUrl,
@@ -205,17 +206,18 @@ final class PageRepository
     ): int {
         $stmt = $this->pdo->prepare(
             'INSERT INTO ' . self::TABLE . ' (
-                title, slug, seo_title, seo_description, tags_json, featured_image_id,
+                title, slug, seo_title, seo_description, focus_keyphrase, tags_json, featured_image_id,
                 canonical_url, seo_noindex, og_title, og_description, og_image_id,
                 twitter_title, twitter_description, twitter_image_id, schema_json,
                 content, status, published_at, scheduled_publish_at, scheduled_unpublish_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
         );
         $stmt->execute([
             $title,
             $slug,
             $seoTitle,
             $seoDescription,
+            $focusKeyphrase,
             $tagsJson,
             $featuredImageId,
             $canonicalUrl,
@@ -243,6 +245,7 @@ final class PageRepository
         string $slug,
         ?string $seoTitle,
         ?string $seoDescription,
+        ?string $focusKeyphrase,
         ?string $tagsJson,
         ?int $featuredImageId,
         ?string $canonicalUrl,
@@ -262,7 +265,7 @@ final class PageRepository
         ?int $updatedBy = null
     ): void {
         $stmt = $this->pdo->prepare(
-            'UPDATE ' . self::TABLE . ' SET title = ?, slug = ?, seo_title = ?, seo_description = ?, tags_json = ?, featured_image_id = ?,
+            'UPDATE ' . self::TABLE . ' SET title = ?, slug = ?, seo_title = ?, seo_description = ?, focus_keyphrase = ?, tags_json = ?, featured_image_id = ?,
              canonical_url = ?, seo_noindex = ?, og_title = ?, og_description = ?, og_image_id = ?,
              twitter_title = ?, twitter_description = ?, twitter_image_id = ?, schema_json = ?,
              content = ?, status = ?, published_at = ?, scheduled_publish_at = ?, scheduled_unpublish_at = ?, updated_by = ? WHERE id = ?'
@@ -272,6 +275,7 @@ final class PageRepository
             $slug,
             $seoTitle,
             $seoDescription,
+            $focusKeyphrase,
             $tagsJson,
             $featuredImageId,
             $canonicalUrl,

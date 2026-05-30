@@ -34,14 +34,21 @@
 
   var typeSelect = document.getElementById('forms-new-field-type');
   var choiceWrap = document.getElementById('forms-choice-options');
+  var fileWraps = document.querySelectorAll('.forms-file-options');
+  var quizWraps = document.querySelectorAll('.forms-quiz-options');
   var choiceTypes = ['select', 'radio', 'checkboxes'];
-  function syncChoiceOptions() {
-    if (!typeSelect || !choiceWrap) return;
-    choiceWrap.hidden = choiceTypes.indexOf(typeSelect.value) === -1;
+  var quizTypes = ['select', 'radio', 'checkboxes'];
+
+  function syncFieldTypePanels() {
+    if (!typeSelect) return;
+    var val = typeSelect.value;
+    if (choiceWrap) choiceWrap.hidden = choiceTypes.indexOf(val) === -1;
+    fileWraps.forEach(function (el) { el.hidden = val !== 'file'; });
+    quizWraps.forEach(function (el) { el.hidden = quizTypes.indexOf(val) === -1; });
   }
   if (typeSelect) {
-    typeSelect.addEventListener('change', syncChoiceOptions);
-    syncChoiceOptions();
+    typeSelect.addEventListener('change', syncFieldTypePanels);
+    syncFieldTypePanels();
   }
 
   var confirmType = document.getElementById('forms-confirmation-type');
@@ -56,5 +63,13 @@
   if (confirmType) {
     confirmType.addEventListener('change', syncConfirm);
     syncConfirm();
+  }
+
+  var formType = document.getElementById('forms-form-type');
+  var quizSettings = document.getElementById('forms-quiz-settings');
+  if (formType && quizSettings) {
+    formType.addEventListener('change', function () {
+      quizSettings.hidden = formType.value !== 'quiz';
+    });
   }
 })();

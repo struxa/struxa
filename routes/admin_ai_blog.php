@@ -209,6 +209,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             $v['featured_image_id'],
             $v['seo_title'],
             $v['seo_description'],
+            $seoParsed['focus_keyphrase'],
             $seoParsed['canonical_url'],
             $seoParsed['seo_noindex'],
             $seoParsed['og_title'],

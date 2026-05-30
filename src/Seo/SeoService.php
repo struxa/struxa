@@ -22,7 +22,7 @@ final class SeoService
     ) {
     }
 
-    public function resolveForPage(Page $page, string $pathFromRoot, string $siteUrl, ?string $siteName = null): ResolvedSeoMeta
+    public function resolveForPage(Page $page, string $pathFromRoot, string $siteUrl, ?string $siteName = null, array $breadcrumbs = []): ResolvedSeoMeta
     {
         $siteUrl = rtrim($siteUrl, '/');
         $pathFromRoot = '/' . ltrim($pathFromRoot, '/');
@@ -54,6 +54,7 @@ final class SeoService
         }
 
         $schema = $page->schemaJson !== null && trim($page->schemaJson) !== '' ? trim($page->schemaJson) : null;
+        $schema = $this->withBreadcrumbSchema($schema, $breadcrumbs, $siteUrl);
 
         return new ResolvedSeoMeta(
             htmlTitle: $htmlTitle,
@@ -77,6 +78,7 @@ final class SeoService
         string $siteUrl,
         string $excerptOrBodyPlain,
         ?string $siteName = null,
+        array $breadcrumbs = [],
     ): ResolvedSeoMeta {
         $siteUrl = rtrim($siteUrl, '/');
         $pathFromRoot = '/' . ltrim($pathFromRoot, '/');
@@ -107,6 +109,7 @@ final class SeoService
         }
 
         $schema = $entry->schemaJson !== null && trim($entry->schemaJson) !== '' ? trim($entry->schemaJson) : null;
+        $schema = $this->withBreadcrumbSchema($schema, $breadcrumbs, $siteUrl);
 
         return new ResolvedSeoMeta(
             htmlTitle: $htmlTitle,
@@ -231,6 +234,19 @@ final class SeoService
             twitterImageAbsoluteUrl: $ogImg !== '' ? $ogImg : null,
             schemaJsonLd: null,
         );
+    }
+
+    /**
+     * @param list<array{name: string, url?: string}> $breadcrumbs
+     */
+    private function withBreadcrumbSchema(?string $schema, array $breadcrumbs, string $siteUrl): ?string
+    {
+        if ($breadcrumbs === []) {
+            return $schema;
+        }
+        $bc = BreadcrumbSchemaBuilder::build($breadcrumbs, $siteUrl);
+
+        return SchemaJsonLdMerger::merge($schema, $bc);
     }
 
     private function resolveImageUrl(string $siteUrl, ?int $primaryId, ?int $fallbackFeaturedId): string

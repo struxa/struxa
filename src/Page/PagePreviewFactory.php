@@ -41,6 +41,10 @@ final class PagePreviewFactory
 
         $seoTitle = isset($body['seo_title']) ? trim(strip_tags((string) $body['seo_title'])) : '';
         $seoDesc = isset($body['seo_description']) ? trim(strip_tags((string) $body['seo_description'])) : '';
+        $focusKeyphrase = isset($body['focus_keyphrase']) ? trim(strip_tags((string) $body['focus_keyphrase'])) : '';
+        if (mb_strlen($focusKeyphrase) > 120) {
+            $focusKeyphrase = mb_substr($focusKeyphrase, 0, 120);
+        }
         $tagsRaw = isset($body['tags']) ? trim((string) $body['tags']) : '';
         $tags = PageTagParser::parseCommaSeparated($tagsRaw);
 
@@ -82,6 +86,7 @@ final class PagePreviewFactory
             $slug,
             $seoTitle !== '' ? $seoTitle : null,
             $seoDesc !== '' ? $seoDesc : null,
+            $focusKeyphrase !== '' ? $focusKeyphrase : ($existing?->focusKeyphrase),
             $tags,
             $featuredImageId,
             $canonicalUrl,

@@ -42,6 +42,7 @@
             <tr>
               <th>When</th>
               <th>Status</th>
+              <th>Score</th>
               <th>IP</th>
               <th></th>
             </tr>
@@ -51,6 +52,7 @@
               <tr>
                 <td><code class="admin-inline-code">{{ row.created_at|e }}</code></td>
                 <td>{{ row.status|e }}</td>
+                <td>{% if row.quiz_score is not null %}{{ row.quiz_score|e }}/{{ row.quiz_max_score|e }}{% else %}—{% endif %}</td>
                 <td><code class="admin-inline-code">{{ row.ip_address|default('')|e }}</code></td>
                 <td><a class="admin-btn admin-btn--ghost admin-btn--sm" href="{{ url_for('admin.forms.entry', { id: form_row.id, entryId: row.id }) }}">View</a></td>
               </tr>

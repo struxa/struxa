@@ -115,6 +115,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             'twitter_description' => trim((string) ($body['twitter_description'] ?? '')),
             'twitter_image_id' => trim((string) ($body['twitter_image_id'] ?? '')),
             'schema_json' => (string) ($body['schema_json'] ?? ''),
+            'focus_keyphrase' => trim((string) ($body['focus_keyphrase'] ?? '')),
             'published_at' => trim((string) ($body['published_at'] ?? '')),
             'scheduled_publish_at' => trim((string) ($body['scheduled_publish_at'] ?? '')),
             'scheduled_unpublish_at' => trim((string) ($body['scheduled_unpublish_at'] ?? '')),
@@ -440,6 +441,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 $slug,
                 $seoTitle,
                 $seoDesc,
+                $seoParsed['focus_keyphrase'],
                 $tagsJson,
                 $v['featured_image_id'],
                 $seoParsed['canonical_url'],
@@ -557,6 +559,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 $slug,
                 $seoTitle,
                 $seoDesc,
+                $seoParsed['focus_keyphrase'],
                 $tagsJson,
                 $v['featured_image_id'],
                 $seoParsed['canonical_url'],
@@ -742,6 +745,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             $restoredBody = PageContentSanitizer::fromEnv()->sanitize((string) $rev['content']);
             $revSeoT = isset($rev['seo_title']) && (string) $rev['seo_title'] !== '' ? (string) $rev['seo_title'] : null;
             $revSeoD = isset($rev['seo_description']) && (string) $rev['seo_description'] !== '' ? (string) $rev['seo_description'] : null;
+            $revFocusKp = isset($rev['focus_keyphrase']) && (string) $rev['focus_keyphrase'] !== '' ? (string) $rev['focus_keyphrase'] : null;
             $revTags = $rev['tags_json'] ?? null;
             $revTagsJson = PageTagParser::toJson(PageTagParser::fromJson($revTags !== null && $revTags !== '' ? (string) $revTags : null));
             $revFid = isset($rev['featured_image_id']) && $rev['featured_image_id'] !== null && $rev['featured_image_id'] !== ''
@@ -776,6 +780,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 (string) $rev['slug'],
                 $revSeoT,
                 $revSeoD,
+                $revFocusKp,
                 $revTagsJson,
                 $revFid,
                 $revCanon,

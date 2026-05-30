@@ -123,6 +123,10 @@
         </a>
       {% endif %}
       {% if cms_can('manage_settings') %}
+        <a href="{{ url_for('admin.seo.overview') }}" class="{{ nav == 'seo_overview' ? 'is-active' : '' }}">
+          <svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
+          SEO overview
+        </a>
         <a href="{{ url_for('admin.seo.sitemap') }}" class="{{ nav == 'seo_sitemap' ? 'is-active' : '' }}">
           <svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
           Sitemap
@@ -132,7 +136,7 @@
   </details>
 
   {% if cms_can('manage_settings') or cms_can('view_link_analytics') %}
-    <details class="admin-nav-group" {{ nav in ['settings','seo_redirects','seo_not_found','cache_tools','maintenance_tools','analytics_external_links','settings_search'] ? 'open' : '' }}>
+    <details class="admin-nav-group" {{ nav in ['settings','seo_overview','seo_redirects','seo_not_found','cache_tools','maintenance_tools','analytics_external_links','settings_search'] ? 'open' : '' }}>
       <summary class="admin-nav-group-title">Site</summary>
       <div class="admin-nav-group-items">
         {% if cms_can('manage_settings') %}

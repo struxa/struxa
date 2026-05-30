@@ -5,7 +5,9 @@ declare(strict_types=1);
 use App\Flash;
 use App\Form\FormEntryRepository;
 use App\Form\FormFieldRepository;
+use App\Form\FormFileUploadService;
 use App\Form\FormNotificationService;
+use App\Form\FormQuizScorer;
 use App\Form\FormRenderer;
 use App\Form\FormRepository;
 use App\Form\FormValidator;
@@ -13,6 +15,7 @@ use App\Http\ClientIp;
 use App\Security\FileRateLimiter;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
+use Psr\Http\Message\UploadedFileInterface;
 use Slim\App;
 use Slim\Routing\RouteContext;
 use Slim\Views\Twig;
@@ -26,6 +29,7 @@ return static function (App $app, Twig $twig, \PDO $pdo, string $projectRoot, ca
     $entries = new FormEntryRepository($pdo);
     $notify = new FormNotificationService();
     $rate = new FileRateLimiter($projectRoot . '/storage/cache/forms_rate');
+    $uploader = new FormFileUploadService($projectRoot);
 
     $loadPublished = static function (string $slug) use ($forms, $fields): ?array {
         $form = $forms->findPublishedBySlug($slug);
@@ -54,7 +58,8 @@ return static function (App $app, Twig $twig, \PDO $pdo, string $projectRoot, ca
         $loadPublished,
         $entries,
         $notify,
-        $rate
+        $rate,
+        $uploader
     ): Response {
         $slug = (string) ($args['slug'] ?? '');
         $bundle = $loadPublished($slug);
@@ -83,10 +88,21 @@ return static function (App $app, Twig $twig, \PDO $pdo, string $projectRoot, ca
             return $response->withHeader('Location', $returnTo)->withStatus(302);
         }
 
+        /** @var array<string, UploadedFileInterface> $uploaded */
+        $uploaded = [];
+        foreach ($request->getUploadedFiles() as $key => $file) {
+            if (is_string($key) && $file instanceof UploadedFileInterface) {
+                $uploaded[$key] = $file;
+            }
+        }
+
         $validated = FormValidator::validateSubmission(
             $body,
             $fieldRows,
-            !empty($form['honeypot_enabled'])
+            !empty($form['honeypot_enabled']),
+            $uploaded,
+            $uploader,
+            (int) $form['id']
         );
         if ($validated['ok'] !== true) {
             Flash::set('error', $validated['error']);
@@ -94,13 +110,19 @@ return static function (App $app, Twig $twig, \PDO $pdo, string $projectRoot, ca
             return $response->withHeader('Location', $returnTo)->withStatus(302);
         }
 
+        $quizResult = FormQuizScorer::score($form, $fieldRows, $validated['clean']);
+        $quizPayload = ($form['form_type'] ?? 'standard') === 'quiz'
+            ? ['score' => $quizResult['score'], 'max_score' => $quizResult['max_score'], 'passed' => $quizResult['passed']]
+            : null;
+
         $referrer = $request->getHeaderLine('Referer');
         $entryId = $entries->create(
             (int) $form['id'],
             $ip,
             $request->getHeaderLine('User-Agent'),
             $referrer,
-            $validated['clean']
+            $validated['clean'],
+            $quizPayload
         );
 
         try {
@@ -113,10 +135,13 @@ return static function (App $app, Twig $twig, \PDO $pdo, string $projectRoot, ca
             return $response->withHeader('Location', (string) $form['confirmation_redirect_url'])->withStatus(302);
         }
 
-        $msg = trim((string) ($form['confirmation_message'] ?? ''));
-        Flash::set('success', $msg !== '' ? $msg : 'Thanks — your submission was received.');
+        if (($form['form_type'] ?? 'standard') === 'quiz') {
+            Flash::set('success', FormQuizScorer::confirmationMessage($form, $quizResult));
+        } else {
+            $msg = trim((string) ($form['confirmation_message'] ?? ''));
+            Flash::set('success', $msg !== '' ? $msg : 'Thanks — your submission was received.');
+        }
 
         return $response->withHeader('Location', $returnTo . (str_contains($returnTo, '#') ? '' : '#form-entry-' . $entryId))->withStatus(302);
     })->setName('public.forms.submit');
-
 };

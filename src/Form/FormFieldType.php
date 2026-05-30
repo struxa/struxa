@@ -17,8 +17,10 @@ final class FormFieldType
     public const NUMBER = 'number';
     public const PHONE = 'phone';
     public const URL = 'url';
+    public const FILE = 'file';
     public const HIDDEN = 'hidden';
     public const HONEYPOT = 'honeypot';
+    public const PAGE_BREAK = 'page_break';
 
     /**
      * @return array<string, string>
@@ -36,6 +38,8 @@ final class FormFieldType
             self::NUMBER => 'Number',
             self::PHONE => 'Phone',
             self::URL => 'Website / URL',
+            self::FILE => 'File upload',
+            self::PAGE_BREAK => 'Page break',
             self::HIDDEN => 'Hidden field',
         ];
     }
@@ -48,8 +52,21 @@ final class FormFieldType
         return [self::SELECT, self::RADIO, self::CHECKBOXES];
     }
 
+    /**
+     * @return list<string>
+     */
+    public static function quizScorableTypes(): array
+    {
+        return [self::SELECT, self::RADIO, self::CHECKBOXES];
+    }
+
     public static function isValid(string $type): bool
     {
         return array_key_exists($type, self::labels()) || $type === self::HONEYPOT;
+    }
+
+    public static function isInputType(string $type): bool
+    {
+        return !in_array($type, [self::HONEYPOT, self::PAGE_BREAK, self::HIDDEN], true);
     }
 }

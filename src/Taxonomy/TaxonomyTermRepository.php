@@ -98,6 +98,7 @@ final class TaxonomyTermRepository
         int $sortOrder,
         ?string $seoTitle = null,
         ?string $seoDescription = null,
+        ?string $focusKeyphrase = null,
         ?string $canonicalUrl = null,
         bool $seoNoindex = false,
         ?string $ogTitle = null,
@@ -111,9 +112,9 @@ final class TaxonomyTermRepository
         $stmt = $this->pdo->prepare(
             'INSERT INTO ' . self::TABLE . '
             (taxonomy_id, name, slug, description, parent_id, sort_order,
-             seo_title, seo_description, canonical_url, seo_noindex,
+             seo_title, seo_description, focus_keyphrase, canonical_url, seo_noindex,
              og_title, og_description, og_image_id, twitter_title, twitter_description, twitter_image_id, schema_json)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
         );
         $stmt->execute([
             $taxonomyId,
@@ -124,6 +125,7 @@ final class TaxonomyTermRepository
             $sortOrder,
             $seoTitle,
             $seoDescription,
+            $focusKeyphrase,
             $canonicalUrl,
             $seoNoindex ? 1 : 0,
             $ogTitle,
@@ -147,6 +149,7 @@ final class TaxonomyTermRepository
         int $sortOrder,
         ?string $seoTitle = null,
         ?string $seoDescription = null,
+        ?string $focusKeyphrase = null,
         ?string $canonicalUrl = null,
         bool $seoNoindex = false,
         ?string $ogTitle = null,
@@ -159,7 +162,7 @@ final class TaxonomyTermRepository
     ): void {
         $stmt = $this->pdo->prepare(
             'UPDATE ' . self::TABLE . ' SET name = ?, slug = ?, description = ?, parent_id = ?, sort_order = ?,
-             seo_title = ?, seo_description = ?, canonical_url = ?, seo_noindex = ?,
+             seo_title = ?, seo_description = ?, focus_keyphrase = ?, canonical_url = ?, seo_noindex = ?,
              og_title = ?, og_description = ?, og_image_id = ?, twitter_title = ?, twitter_description = ?, twitter_image_id = ?, schema_json = ?
              WHERE id = ?'
         );
@@ -171,6 +174,7 @@ final class TaxonomyTermRepository
             $sortOrder,
             $seoTitle,
             $seoDescription,
+            $focusKeyphrase,
             $canonicalUrl,
             $seoNoindex ? 1 : 0,
             $ogTitle,

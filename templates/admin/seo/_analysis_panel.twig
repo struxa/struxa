@@ -1,0 +1,56 @@
+{# Yoast-style SEO analysis: focus keyphrase, SERP preview, scores, internal links.
+   Expects: seo_analysis_ctx (focus_keyphrase, site_url, path_prefix, entity_kind, entity_id) #}
+{% set sac = seo_analysis_ctx|default({}) %}
+{% set fk = sac.focus_keyphrase|default(seo_ctx.focus_keyphrase|default('')) %}
+<div
+  class="admin-seo-analysis"
+  id="admin-seo-analysis-root"
+  data-analyze-url="{{ url_for('admin.seo.analyze')|e('html_attr') }}"
+  data-csrf="{{ csrf_token()|e('html_attr') }}"
+  data-site-url="{{ sac.site_url|default(site_url|default(''))|e('html_attr') }}"
+  data-path-prefix="{{ sac.path_prefix|default('/')|e('html_attr') }}"
+  data-entity-kind="{{ sac.entity_kind|default('page')|e('html_attr') }}"
+  data-entity-id="{{ sac.entity_id|default('')|e('html_attr') }}"
+>
+  <div class="admin-seo-analysis-scores">
+    <div class="admin-seo-score-ring" data-score-kind="seo">
+      <span class="admin-seo-score-value" id="seo-score-value">—</span>
+      <span class="admin-seo-score-label">SEO</span>
+    </div>
+    <div class="admin-seo-score-ring" data-score-kind="readability">
+      <span class="admin-seo-score-value" id="readability-score-value">—</span>
+      <span class="admin-seo-score-label">Readability</span>
+    </div>
+  </div>
+
+  <div class="admin-field admin-field--full {{ errors.focus_keyphrase is defined ? 'admin-field--error' : '' }}">
+    <label class="admin-label" for="seo-focus-keyphrase">Focus keyphrase</label>
+    <input class="admin-input" id="seo-focus-keyphrase" name="focus_keyphrase" type="text" maxlength="120" value="{{ fk|e }}" placeholder="e.g. wordpress seo guide" autocomplete="off" />
+    <p class="admin-hint">Primary keyword or phrase you want this content to rank for.</p>
+    {% if errors.focus_keyphrase is defined %}<p class="admin-field-error">{{ errors.focus_keyphrase|e }}</p>{% endif %}
+  </div>
+
+  <div class="admin-seo-serp-preview" aria-label="Google search preview">
+    <p class="admin-label" style="margin-bottom:0.35rem">Search appearance</p>
+    <div class="admin-seo-serp-card">
+      <p class="admin-seo-serp-site" id="seo-serp-site">{{ sac.site_url|default(site_url|default('example.com'))|replace({'https://': '', 'http://': ''})|trim('/')|e }}</p>
+      <p class="admin-seo-serp-breadcrumb" id="seo-serp-breadcrumb">Home › …</p>
+      <p class="admin-seo-serp-title" id="seo-serp-title">Page title preview</p>
+      <p class="admin-seo-serp-desc" id="seo-serp-desc">Meta description preview will appear here as you type.</p>
+    </div>
+  </div>
+
+  <div class="admin-seo-analysis-tabs" role="tablist" aria-label="SEO analysis">
+    <button type="button" class="admin-seo-analysis-tab is-active" role="tab" data-tab="seo" aria-selected="true">SEO analysis</button>
+    <button type="button" class="admin-seo-analysis-tab" role="tab" data-tab="readability" aria-selected="false">Readability</button>
+    <button type="button" class="admin-seo-analysis-tab" role="tab" data-tab="links" aria-selected="false">Internal links</button>
+  </div>
+
+  <ul class="admin-seo-checklist" id="seo-checklist-seo" data-panel="seo"></ul>
+  <ul class="admin-seo-checklist" id="seo-checklist-readability" data-panel="readability" hidden></ul>
+  <div id="seo-checklist-links" data-panel="links" hidden>
+    <p class="admin-hint" id="seo-internal-links-empty">Set a focus keyphrase to see internal linking suggestions.</p>
+    <ul class="admin-seo-checklist" id="seo-internal-links-list"></ul>
+  </div>
+</div>
+<script src="{{ asset_url('js/admin-seo-analysis.js') }}" defer></script>

@@ -7,6 +7,7 @@ use App\Flash;
 use App\Form\FormEntryRepository;
 use App\Form\FormFieldRepository;
 use App\Form\FormFieldType;
+use App\Form\FormPageGrouper;
 use App\Form\FormRepository;
 use App\Form\FormSlugger;
 use App\Form\FormTemplateCatalog;
@@ -74,7 +75,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 return $response->withHeader('Location', RouteContext::fromRequest($request)->getRouteParser()->urlFor('admin.forms.new'))->withStatus(302);
             }
             $slug = FormSlugger::ensureUnique($pdo, FormSlugger::fromName($name));
-            $formId = $forms->createFromTemplate($name, $slug, $templateKey, $template['fields']);
+            $formId = $forms->createFromTemplate($name, $slug, $templateKey, $template['fields'], $template['form'] ?? []);
             $fields->ensureHoneypot($formId);
             Flash::set('success', 'Form created. Add fields and publish when ready.');
 
@@ -89,11 +90,16 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 return $response->withHeader('Location', RouteContext::fromRequest($request)->getRouteParser()->urlFor('admin.forms.index'))->withStatus(302);
             }
             $fieldRows = $fields->listForForm($id);
+            $visibleFields = array_values(array_filter($fieldRows, static fn (array $f): bool => ($f['field_type'] ?? '') !== FormFieldType::HONEYPOT));
+            $fieldKeys = array_values(array_filter(array_map(static fn (array $f): string => (string) ($f['field_key'] ?? ''), $visibleFields)));
 
             return $twig->render($response, 'admin/forms/edit.twig', $withCmsUser($request, array_merge($adminContext(), [
                 'form_row' => $form,
-                'field_rows' => array_values(array_filter($fieldRows, static fn (array $f): bool => ($f['field_type'] ?? '') !== FormFieldType::HONEYPOT)),
+                'field_rows' => $visibleFields,
                 'field_types' => FormFieldType::labels(),
+                'field_key_options' => $fieldKeys,
+                'max_page_number' => FormPageGrouper::maxPageNumber($fieldRows),
+                'is_quiz' => ($form['form_type'] ?? 'standard') === 'quiz',
                 'public_url' => '/forms/' . rawurlencode((string) $form['slug']),
             ])));
         })->setName('admin.forms.edit');
@@ -123,13 +129,15 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
 
         $group->post('/{id:[0-9]+}/fields/add', function (Request $request, Response $response, array $args) use ($forms, $fields): Response {
             $id = (int) ($args['id'] ?? 0);
-            if ($forms->findById($id) === null) {
+            $form = $forms->findById($id);
+            if ($form === null) {
                 Flash::set('error', 'Form not found.');
                 return $response->withHeader('Location', RouteContext::fromRequest($request)->getRouteParser()->urlFor('admin.forms.index'))->withStatus(302);
             }
             $body = $request->getParsedBody();
             $body = is_array($body) ? $body : [];
-            $validated = FormValidator::validateFieldInput($body, $id);
+            $isQuiz = ($form['form_type'] ?? 'standard') === 'quiz';
+            $validated = FormValidator::validateFieldInput($body, $id, $isQuiz);
             if ($validated['ok'] !== true) {
                 Flash::set('error', $validated['error']);
                 return $response->withHeader('Location', RouteContext::fromRequest($request)->getRouteParser()->urlFor('admin.forms.edit', ['id' => $id]) . '#add-field')->withStatus(302);
@@ -145,6 +153,32 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
 
             return $response->withHeader('Location', RouteContext::fromRequest($request)->getRouteParser()->urlFor('admin.forms.edit', ['id' => $id]))->withStatus(302);
         })->setName('admin.forms.fields.add');
+
+        $group->post('/{id:[0-9]+}/fields/{fieldId:[0-9]+}/update', function (Request $request, Response $response, array $args) use ($forms, $fields): Response {
+            $id = (int) ($args['id'] ?? 0);
+            $fieldId = (int) ($args['fieldId'] ?? 0);
+            $form = $forms->findById($id);
+            $existing = $fields->findById($fieldId, $id);
+            if ($form === null || $existing === null) {
+                Flash::set('error', 'Field not found.');
+                return $response->withHeader('Location', RouteContext::fromRequest($request)->getRouteParser()->urlFor('admin.forms.edit', ['id' => $id]))->withStatus(302);
+            }
+            $body = $request->getParsedBody();
+            $body = is_array($body) ? $body : [];
+            $body['field_key'] = $existing['field_key'];
+            $body['field_type'] = $existing['field_type'];
+            $body['sort_order'] = $existing['sort_order'];
+            $isQuiz = ($form['form_type'] ?? 'standard') === 'quiz';
+            $validated = FormValidator::validateFieldInput($body, $id, $isQuiz);
+            if ($validated['ok'] !== true) {
+                Flash::set('error', $validated['error']);
+                return $response->withHeader('Location', RouteContext::fromRequest($request)->getRouteParser()->urlFor('admin.forms.edit', ['id' => $id]) . '#field-' . $fieldId)->withStatus(302);
+            }
+            $fields->update($fieldId, $id, $validated['clean']);
+            Flash::set('success', 'Field updated.');
+
+            return $response->withHeader('Location', RouteContext::fromRequest($request)->getRouteParser()->urlFor('admin.forms.edit', ['id' => $id]) . '#field-' . $fieldId)->withStatus(302);
+        })->setName('admin.forms.fields.update');
 
         $group->post('/{id:[0-9]+}/fields/reorder', function (Request $request, Response $response, array $args) use ($forms, $fields): Response {
             $id = (int) ($args['id'] ?? 0);

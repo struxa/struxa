@@ -76,6 +76,13 @@ final class SeoFormParser
         }
         $schemaJson = $norm['value'];
 
+        $focusKeyphrase = self::str($body, $p . 'focus_keyphrase');
+        if ($focusKeyphrase !== '' && mb_strlen($focusKeyphrase) > 120) {
+            $errors[$p . 'focus_keyphrase'] = 'Focus keyphrase must be 120 characters or fewer.';
+            $focusKeyphrase = '';
+        }
+        $focusKeyphrase = $focusKeyphrase !== '' ? $focusKeyphrase : null;
+
         return [
             'errors' => $errors,
             'canonical_url' => $canonical,
@@ -87,6 +94,7 @@ final class SeoFormParser
             'twitter_description' => $twDesc,
             'twitter_image_id' => $twImg,
             'schema_json' => $schemaJson,
+            'focus_keyphrase' => $focusKeyphrase,
         ];
     }
 
