@@ -1,0 +1,39 @@
+{% extends 'admin/base.twig' %}
+
+{% block admin_title %}Block builder — {{ entry.title|e }}{% endblock %}
+
+{% block admin_hero_title %}
+  <h1 class="admin-hero-title">Block builder</h1>
+{% endblock %}
+
+{% block admin_hero_sub %}
+  <p class="admin-hero-sub admin-hero-sub--tight">{{ entry.title|e }} · {{ content_type.name|e }}</p>
+{% endblock %}
+
+{% block admin_breadcrumbs %}
+  {% set _et = entry.title|length > 40 ? entry.title|slice(0, 37) ~ '…' : entry.title %}
+  {% include 'admin/partials/_breadcrumbs.twig' with {
+    breadcrumbs: [
+      { label: 'Content types', url: url_for('admin.content_types.index') },
+      { label: content_type.name, url: url_for('admin.content_types.entries.index', { id: content_type.id }) },
+      { label: _et, url: url_for('admin.content_types.entries.edit', { id: content_type.id, entryId: entry.id }) },
+      { label: 'Block builder' },
+    ],
+  } %}
+{% endblock %}
+
+{% block admin_content %}
+  {% include 'admin/content/entries/_builder_panel.twig' with {
+    content_type: content_type,
+    entry: entry,
+    section_rows: section_rows,
+    section_palette_grouped: section_palette_grouped,
+    section_labels: section_labels,
+    section_icons: section_icons,
+    builder_panel_standalone: builder_panel_standalone|default(true),
+  } %}
+{% endblock %}
+
+{% block admin_scripts %}
+  <script src="{{ asset('js/admin-page-builder.js') }}" defer></script>
+{% endblock %}

@@ -190,13 +190,15 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             ];
         };
 
+        $pageHost = \App\Section\BlockBuilderHost::PAGE;
+
         $sectionLabels = [];
-        foreach ($sectionManager->palette() as $p) {
+        foreach ($sectionManager->palette($pageHost) as $p) {
             $sectionLabels[$p['key']] = $p['label'];
         }
 
-        $pageBuilderPayload = static function (int $pageId) use ($pageSections, $sectionManager, $sectionLabels): array {
-            $palette = $sectionManager->palette();
+        $pageBuilderPayload = static function (int $pageId) use ($pageSections, $sectionManager, $sectionLabels, $pageHost): array {
+            $palette = $sectionManager->palette($pageHost);
             $icons = [];
             foreach ($palette as $p) {
                 $icons[$p['key']] = $p['icon'];
@@ -205,7 +207,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             return [
                 'page_builder_section_rows' => $pageSections->listForPage($pageId),
                 'page_builder_section_palette' => $palette,
-                'page_builder_section_palette_grouped' => $sectionManager->paletteGrouped(),
+                'page_builder_section_palette_grouped' => $sectionManager->paletteGrouped($pageHost),
                 'page_builder_section_icons' => $icons,
                 'page_builder_section_labels' => $sectionLabels,
             ];
@@ -961,10 +963,10 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 'admin_nav' => 'pages',
                 'page' => $page,
                 'section_rows' => $pageSections->listForPage($id),
-                'section_palette' => $sectionManager->palette(),
-                'section_palette_grouped' => $sectionManager->paletteGrouped(),
+                'section_palette' => $sectionManager->palette($pageHost),
+                'section_palette_grouped' => $sectionManager->paletteGrouped($pageHost),
                 'section_labels' => $sectionLabels,
-                'section_icons' => array_column($sectionManager->palette(), 'icon', 'key'),
+                'section_icons' => array_column($sectionManager->palette($pageHost), 'icon', 'key'),
                 'builder_panel_standalone' => true,
             ])));
         })->setName('admin.pages.builder');

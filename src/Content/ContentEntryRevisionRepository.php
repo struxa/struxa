@@ -15,12 +15,14 @@ final class ContentEntryRevisionRepository
     /**
      * @param array<string, mixed> $entryRow raw cms_content_entries row
      * @param array<int, string|null> $valuesByFieldId
+     * @param list<array{type: string, sort_order: int, data: array<string, mixed>, options: array<string, mixed>}> $sections
      */
-    public function capture(int $entryId, array $entryRow, array $valuesByFieldId, ?int $createdBy): void
+    public function capture(int $entryId, array $entryRow, array $valuesByFieldId, ?int $createdBy, array $sections = []): void
     {
         $payload = [
             'entry' => $entryRow,
             'values' => $valuesByFieldId,
+            'sections' => $sections,
         ];
         $json = json_encode($payload, JSON_THROW_ON_ERROR);
         $stmt = $this->pdo->prepare(

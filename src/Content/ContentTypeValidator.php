@@ -44,6 +44,7 @@ final class ContentTypeValidator
         $hasPublic = !empty($body['has_public_route']);
         $supportsSeo = !empty($body['supports_seo']);
         $supportsFeatured = !empty($body['supports_featured_image']);
+        $supportsBlockBuilder = !empty($body['supports_block_builder']);
 
         return [
             'errors' => $errors,
@@ -55,6 +56,7 @@ final class ContentTypeValidator
                 'has_public_route' => $hasPublic,
                 'supports_seo' => $supportsSeo,
                 'supports_featured_image' => $supportsFeatured,
+                'supports_block_builder' => $supportsBlockBuilder,
             ],
         ];
     }

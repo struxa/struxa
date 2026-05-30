@@ -1,0 +1,20 @@
+{# Content entry block builder panel #}
+{% include 'admin/sections/_builder_panel.twig' with {
+  builder_title: 'Block builder',
+  builder_lead: 'Compose this entry with reusable blocks. Drag to reorder — order saves automatically.',
+  builder_action_url: url_for('admin.content_types.entries.builder', { id: content_type.id, entryId: entry.id }),
+  builder_section_edit_route: 'admin.content_types.entries.builder.section_edit',
+  builder_route_params: { id: content_type.id, entryId: entry.id },
+  builder_settings_url: builder_panel_standalone|default(false) ? url_for('admin.content_types.entries.edit', { id: content_type.id, entryId: entry.id }) ~ '#entry-builder' : null,
+  builder_settings_label: 'Entry settings',
+  builder_full_builder_url: builder_panel_standalone|default(false) ? null : url_for('admin.content_types.entries.builder', { id: content_type.id, entryId: entry.id }),
+  builder_view_live_url: entry.status == 'published' and content_type.hasPublicRoute ? '/' ~ content_type.slug ~ '/' ~ entry.slug : null,
+  builder_empty_text: 'Add blocks below the entry header. Custom fields still render when present.',
+  builder_list_id: 'entry-builder-list',
+  builder_root_id: 'admin-block-builder',
+  section_rows: section_rows,
+  section_palette_grouped: section_palette_grouped|default([]),
+  section_labels: section_labels,
+  section_icons: section_icons,
+  builder_panel_standalone: builder_panel_standalone|default(false),
+} %}

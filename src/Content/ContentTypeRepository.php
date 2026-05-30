@@ -86,12 +86,13 @@ final class ContentTypeRepository
         ?string $description,
         bool $hasPublicRoute,
         bool $supportsSeo,
-        bool $supportsFeaturedImage
+        bool $supportsFeaturedImage,
+        bool $supportsBlockBuilder = true
     ): int {
         $stmt = $this->pdo->prepare(
             'INSERT INTO ' . self::TABLE . '
-            (name, slug, icon, description, has_public_route, supports_seo, supports_featured_image)
-            VALUES (?, ?, ?, ?, ?, ?, ?)'
+            (name, slug, icon, description, has_public_route, supports_seo, supports_featured_image, supports_block_builder)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
         );
         $stmt->execute([
             $name,
@@ -101,6 +102,7 @@ final class ContentTypeRepository
             $hasPublicRoute ? 1 : 0,
             $supportsSeo ? 1 : 0,
             $supportsFeaturedImage ? 1 : 0,
+            $supportsBlockBuilder ? 1 : 0,
         ]);
 
         return (int) $this->pdo->lastInsertId();
@@ -114,11 +116,12 @@ final class ContentTypeRepository
         ?string $description,
         bool $hasPublicRoute,
         bool $supportsSeo,
-        bool $supportsFeaturedImage
+        bool $supportsFeaturedImage,
+        bool $supportsBlockBuilder
     ): void {
         $stmt = $this->pdo->prepare(
             'UPDATE ' . self::TABLE . ' SET name = ?, slug = ?, icon = ?, description = ?,
-             has_public_route = ?, supports_seo = ?, supports_featured_image = ? WHERE id = ?'
+             has_public_route = ?, supports_seo = ?, supports_featured_image = ?, supports_block_builder = ? WHERE id = ?'
         );
         $stmt->execute([
             $name,
@@ -128,6 +131,7 @@ final class ContentTypeRepository
             $hasPublicRoute ? 1 : 0,
             $supportsSeo ? 1 : 0,
             $supportsFeaturedImage ? 1 : 0,
+            $supportsBlockBuilder ? 1 : 0,
             $id,
         ]);
     }

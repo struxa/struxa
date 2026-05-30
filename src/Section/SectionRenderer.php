@@ -24,6 +24,14 @@ final class SectionRenderer
      */
     public function renderPage(Environment $env, array $rows): string
     {
+        return $this->renderBlocks($env, $rows);
+    }
+
+    /**
+     * @param list<PageSection|ContentEntrySection> $rows
+     */
+    public function renderBlocks(Environment $env, array $rows): string
+    {
         $html = '';
         foreach ($rows as $row) {
             $html .= $this->renderOne($env, $row);
@@ -34,7 +42,7 @@ final class SectionRenderer
         return ExternalLinkPolicy::maybeNofollowExternalAnchorsInHtml($out);
     }
 
-    public function renderOne(Environment $env, PageSection $row): string
+    public function renderOne(Environment $env, PageSection|ContentEntrySection $row): string
     {
         $def = $this->sections->definition($row->sectionKey);
         $label = $def['label'] ?? $row->sectionKey;

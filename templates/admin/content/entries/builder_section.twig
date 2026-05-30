@@ -1,0 +1,47 @@
+{% extends 'admin/base.twig' %}
+
+{% block admin_title %}Edit section — {{ entry.title|e }}{% endblock %}
+
+{% block admin_hero_title %}
+  <h1 class="admin-hero-title">Edit section</h1>
+{% endblock %}
+
+{% block admin_hero_sub %}
+  <p class="admin-hero-sub">
+    <code class="admin-inline-code">{{ section_row.sectionKey|e }}</code>
+    · {{ section_def.label|default('')|e }}
+  </p>
+{% endblock %}
+
+{% block admin_breadcrumbs %}
+  {% set _et = entry.title|length > 36 ? entry.title|slice(0, 33) ~ '…' : entry.title %}
+  {% include 'admin/partials/_breadcrumbs.twig' with {
+    breadcrumbs: [
+      { label: 'Content types', url: url_for('admin.content_types.index') },
+      { label: content_type.name, url: url_for('admin.content_types.entries.index', { id: content_type.id }) },
+      { label: _et, url: url_for('admin.content_types.entries.edit', { id: content_type.id, entryId: entry.id }) },
+      { label: 'Builder', url: url_for('admin.content_types.entries.builder', { id: content_type.id, entryId: entry.id }) },
+      { label: section_def.label|default(section_row.sectionKey) },
+    ],
+  } %}
+{% endblock %}
+
+{% block admin_content %}
+  {% if errors is defined and errors is not empty %}
+    <div class="admin-card admin-field--error" style="padding:1rem;margin-bottom:1rem">
+      <p class="admin-field-error" style="margin:0">Fix the following:</p>
+      <ul style="margin:0.5rem 0 0 1rem">
+        {% for e in errors %}<li>{{ e|e }}</li>{% endfor %}
+      </ul>
+    </div>
+  {% endif %}
+
+  {% include 'admin/pages/_builder_section_form.twig' %}
+
+  <div class="admin-sticky-save-bar admin-sticky-save-bar--section" role="region" aria-label="Save section">
+    <div class="admin-sticky-save-inner">
+      <button type="submit" form="section-edit-form" class="admin-btn-primary" data-admin-save-primary>Save section</button>
+      <a class="admin-btn-ghost" href="{{ url_for('admin.content_types.entries.edit', { id: content_type.id, entryId: entry.id }) }}#entry-builder">Back to editor</a>
+    </div>
+  </div>
+{% endblock %}

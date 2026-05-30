@@ -60,11 +60,14 @@ final class SectionDefinitionRegistry
     /**
      * @return list<array{key: string, label: string, sort_order: int, category: string, category_label: string, icon: string, description: string}>
      */
-    public function palette(): array
+    public function palette(?string $host = null): array
     {
         $defs = $this->mergedDefinitions();
         $out = [];
         foreach ($defs as $key => $d) {
+            if ($host !== null && !self::definitionSupportsHost($d, $host)) {
+                continue;
+            }
             $cat = (string) ($d['category'] ?? 'content');
             $out[] = [
                 'key' => $key,
@@ -84,10 +87,10 @@ final class SectionDefinitionRegistry
     /**
      * @return list<array{category: string, label: string, blocks: list<array<string, mixed>>}>
      */
-    public function paletteGrouped(): array
+    public function paletteGrouped(?string $host = null): array
     {
         $groups = [];
-        foreach ($this->palette() as $item) {
+        foreach ($this->palette($host) as $item) {
             $cat = $item['category'];
             if (!isset($groups[$cat])) {
                 $groups[$cat] = [
@@ -151,5 +154,18 @@ final class SectionDefinitionRegistry
         $this->definitionsCache = SectionBlockCatalog::enrichDefinitions($merged);
 
         return $this->definitionsCache;
+    }
+
+    /**
+     * @param array<string, mixed> $def
+     */
+    private static function definitionSupportsHost(array $def, string $host): bool
+    {
+        $hosts = $def['hosts'] ?? BlockBuilderHost::ALL;
+        if (!is_array($hosts)) {
+            return true;
+        }
+
+        return in_array($host, $hosts, true);
     }
 }

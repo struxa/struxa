@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.1.14",
-    "title": "Struxa 1.1.14",
-    "summary": "Content entry list redesigned with clickable rows, status summary, and cleaner toolbar.",
+    "latest_version": "1.1.15",
+    "title": "Struxa 1.1.15",
+    "summary": "Block builder for content entries with plugin host filtering, revision snapshots, and public rendering.",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "minor"

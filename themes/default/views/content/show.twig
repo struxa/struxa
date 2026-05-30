@@ -52,6 +52,10 @@
       </figure>
     {% endif %}
 
+    {% if content_entry_has_sections|default(false) and content_entry_sections_html|default('')|trim != '' %}
+      <div class="theme-cms-sections theme-content-entry-sections" data-strux-sections>{{ content_entry_sections_html|raw }}</div>
+    {% endif %}
+
     <div class="theme-cms-body">
       {% for row in content_field_rows %}
         <section class="theme-field-block" data-field-key="{{ row.field_key|e('html_attr') }}">

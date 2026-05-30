@@ -119,7 +119,11 @@ final class PluginBootContext
     }
 
     /**
-     * Register page builder block types from this plugin.
+     * Register block builder types from this plugin.
+     *
+     * Implement {@see \App\Section\SectionDefinitionProviderInterface} and pass it here.
+     * Block definitions may include {@code hosts} (e.g. {@code ['page', 'content_entry']})
+     * to limit where a block appears; omit {@code hosts} to show on pages and content entries.
      */
     public function registerSectionProvider(SectionDefinitionProviderInterface $provider): void
     {

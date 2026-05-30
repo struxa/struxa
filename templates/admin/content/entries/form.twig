@@ -137,6 +137,26 @@
           </details>
         {% endif %}
       </form>
+
+      {% if is_edit and content_type.supportsBlockBuilder %}
+      <details id="entry-builder" class="admin-card admin-seo-suite-panel admin-page-edit-builder admin-page-edit--order-builder" open aria-label="Block builder">
+        <summary class="admin-seo-suite-summary">
+          <span class="admin-card-title" style="margin:0;display:inline">Block builder</span>
+          <span class="admin-hint" style="margin-left:0.5rem;font-weight:400">Blocks &amp; layout</span>
+        </summary>
+        <div class="admin-seo-suite-body" style="margin-top:1rem">
+          {% include 'admin/content/entries/_builder_panel.twig' with {
+            content_type: content_type,
+            entry: entry,
+            section_rows: entry_builder_section_rows|default([]),
+            section_palette_grouped: entry_builder_section_palette_grouped|default([]),
+            section_labels: entry_builder_section_labels|default({}),
+            section_icons: entry_builder_section_icons|default({}),
+            builder_panel_standalone: false,
+          } %}
+        </div>
+      </details>
+      {% endif %}
     </div>
 
     <aside class="admin-page-edit-aside" aria-label="Entry details">
@@ -320,5 +340,8 @@
   {% endif %}
   {% if media_picker_enabled|default(false) %}
     <script src="/js/admin-page-media-picker.js" defer></script>
+  {% endif %}
+  {% if is_edit and content_type.supportsBlockBuilder %}
+    <script src="{{ asset('js/admin-page-builder.js') }}" defer></script>
   {% endif %}
 {% endblock %}

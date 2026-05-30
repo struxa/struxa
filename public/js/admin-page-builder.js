@@ -2,8 +2,8 @@
  * Page builder: drag-reorder with auto-save, visual block palette modal, inline section drawer.
  */
 (function () {
-  var root = document.getElementById("admin-page-builder");
-  var list = document.getElementById("page-builder-list");
+  var root = document.getElementById("admin-block-builder") || document.getElementById("admin-page-builder");
+  var list = document.getElementById("entry-builder-list") || document.getElementById("block-builder-list") || document.getElementById("page-builder-list");
   if (!root) return;
 
   var builderUrl = root.getAttribute("data-builder-url") || "";

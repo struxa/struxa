@@ -17,6 +17,10 @@ use App\Seo\MetaTagBuilder;
 use App\Seo\SeoService;
 use App\Settings;
 use App\Taxonomy\ContentEntryTaxonomyRepository;
+use App\Section\ContentEntrySectionRepository;
+use App\Section\SectionManager;
+use App\Section\SectionRenderer;
+use App\Section\SectionTemplateResolver;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\App;
@@ -126,6 +130,17 @@ return static function (App $app, Twig $twig, \PDO $pdo, callable $viewData): vo
             'base_path' => $basePath,
         ];
 
+        $sectionsHtml = '';
+        $hasSections = false;
+        if ($type->supportsBlockBuilder) {
+            $entrySections = new ContentEntrySectionRepository($pdo);
+            $sectionManager = new SectionManager();
+            $sectionRenderer = new SectionRenderer($sectionManager, new SectionTemplateResolver($sectionManager));
+            $sectionRows = $entrySections->listForEntry($entry->id);
+            $hasSections = $sectionRows !== [];
+            $sectionsHtml = $hasSections ? $sectionRenderer->renderBlocks($twig->getEnvironment(), $sectionRows) : '';
+        }
+
         return $twig->render($response, $tpl, array_merge($vd, $seoTwig, [
             'content_type' => $type,
             'content_entry' => $entry,
@@ -133,6 +148,8 @@ return static function (App $app, Twig $twig, \PDO $pdo, callable $viewData): vo
             'content_featured_url' => $featuredUrl,
             'content_page_title' => $pageTitle,
             'content_meta_description' => $metaDesc,
+            'content_entry_has_sections' => $hasSections,
+            'content_entry_sections_html' => $sectionsHtml,
             'entry_taxonomy_groups' => $entryTaxonomies->termsGroupedForEntry($entry->id),
             'comments_thread_key' => $threadKey,
             'comments_return_to' => $returnTo,

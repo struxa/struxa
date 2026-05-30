@@ -117,7 +117,11 @@ final class SectionBlockCatalog
                 'icon' => 'block',
                 'description' => 'Reusable page block.',
             ];
-            $definitions[$key] = array_merge($def, $m);
+            $merged = array_merge($def, $m);
+            if (!isset($merged['hosts'])) {
+                $merged['hosts'] = BlockBuilderHost::ALL;
+            }
+            $definitions[$key] = $merged;
         }
 
         return $definitions;

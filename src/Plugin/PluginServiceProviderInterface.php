@@ -11,7 +11,8 @@ namespace App\Plugin;
  * {@see PluginBootContext::registerPluginReservedSlugs()} so content types cannot claim that segment.
  *
  * Page builder blocks: implement {@see \App\Section\SectionDefinitionProviderInterface} and call
- * {@see PluginBootContext::registerSectionProvider()} from boot().
+ * {@see PluginBootContext::registerSectionProvider()} from boot(). Optional {@code hosts} on each
+ * definition limits blocks to {@code page}, {@code content_entry}, or both (default: both).
  */
 interface PluginServiceProviderInterface
 {

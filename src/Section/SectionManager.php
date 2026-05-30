@@ -42,17 +42,17 @@ final class SectionManager
     /**
      * @return list<array{key: string, label: string, sort_order: int, category: string, category_label: string, icon: string, description: string}>
      */
-    public function palette(): array
+    public function palette(?string $host = null): array
     {
-        return $this->registry->palette();
+        return $this->registry->palette($host);
     }
 
     /**
      * @return list<array{category: string, label: string, blocks: list<array<string, mixed>>}>
      */
-    public function paletteGrouped(): array
+    public function paletteGrouped(?string $host = null): array
     {
-        return $this->registry->paletteGrouped();
+        return $this->registry->paletteGrouped($host);
     }
 
     /**

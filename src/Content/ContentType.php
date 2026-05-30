@@ -15,6 +15,7 @@ final class ContentType
         public readonly bool $hasPublicRoute,
         public readonly bool $supportsSeo,
         public readonly bool $supportsFeaturedImage,
+        public readonly bool $supportsBlockBuilder,
         public readonly string $createdAt,
         public readonly string $updatedAt,
     ) {
@@ -34,6 +35,7 @@ final class ContentType
             (bool) ((int) ($row['has_public_route'] ?? 0)),
             (bool) ((int) ($row['supports_seo'] ?? 0)),
             (bool) ((int) ($row['supports_featured_image'] ?? 0)),
+            (bool) ((int) ($row['supports_block_builder'] ?? 1)),
             (string) ($row['created_at'] ?? ''),
             (string) ($row['updated_at'] ?? ''),
         );

@@ -37,6 +37,13 @@ use App\Media\MediaUrlHelper;
 use App\Menu\MenuItemRepository;
 use App\Seo\RedirectRepository;
 use App\Seo\SeoFormParser;
+use App\Section\BlockBuilderActionHandler;
+use App\Section\BlockBuilderHost;
+use App\Section\ContentEntrySection;
+use App\Section\ContentEntrySectionRepository;
+use App\Section\ContentEntrySectionStore;
+use App\Section\SectionManager;
+use App\Section\SectionSchemaValidator;
 use PHPAuth\Auth;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
@@ -65,6 +72,10 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
     $entryTaxonomyValidator = new EntryTaxonomyValidator();
     $workflow = new WorkflowService();
     $entryRevRepo = new ContentEntryRevisionRepository($pdo);
+    $entrySections = new ContentEntrySectionRepository($pdo);
+    $sectionManager = new SectionManager();
+    $sectionValidator = new SectionSchemaValidator($sectionManager);
+    $builderHandler = new BlockBuilderActionHandler($sectionManager);
     $activity = new ActivityLogger($pdo);
     $permDelete = new RequirePermission($pdo, [PermissionSlug::DELETE_CONTENT]);
     $permTypes = new RequirePermission($pdo, [PermissionSlug::MANAGE_CONTENT_TYPES]);
@@ -91,6 +102,109 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
         $id = isset($u['id']) ? (int) $u['id'] : 0;
 
         return $id > 0 ? $id : null;
+    };
+
+    $entryBuilderHost = BlockBuilderHost::CONTENT_ENTRY;
+
+    $sectionLabelsForHost = static function (?string $host = null) use ($sectionManager): array {
+        $labels = [];
+        foreach ($sectionManager->palette($host) as $p) {
+            $labels[$p['key']] = $p['label'];
+        }
+
+        return $labels;
+    };
+
+    $entryBuilderPayload = static function (int $entryId) use ($entrySections, $sectionManager, $entryBuilderHost, $sectionLabelsForHost): array {
+        $palette = $sectionManager->palette($entryBuilderHost);
+        $icons = [];
+        foreach ($palette as $p) {
+            $icons[$p['key']] = $p['icon'];
+        }
+        $labels = $sectionLabelsForHost($entryBuilderHost);
+
+        return [
+            'entry_builder_section_rows' => $entrySections->listForEntry($entryId),
+            'entry_builder_section_palette_grouped' => $sectionManager->paletteGrouped($entryBuilderHost),
+            'entry_builder_section_labels' => $labels,
+            'entry_builder_section_icons' => $icons,
+        ];
+    };
+
+    $captureEntryRevision = static function (int $entryId, ?int $uid) use ($entries, $values, $entryRevRepo, $entrySections): void {
+        $row = $entries->fetchRowById($entryId);
+        if ($row === null) {
+            return;
+        }
+        $entryRevRepo->capture(
+            $entryId,
+            $row,
+            $values->valuesByFieldIdForEntry($entryId),
+            $uid,
+            $entrySections->exportBlocksForEntry($entryId)
+        );
+    };
+
+    $restoreEntrySectionsFromRevision = static function (int $entryId, array $snap) use ($entrySections, $sectionValidator): void {
+        if (!array_key_exists('sections', $snap)) {
+            return;
+        }
+        $blocks = $snap['sections'];
+        if (!is_array($blocks)) {
+            return;
+        }
+        usort(
+            $blocks,
+            static fn (array $a, array $b): int => ((int) ($a['sort_order'] ?? 0)) <=> ((int) ($b['sort_order'] ?? 0))
+        );
+        $validated = [];
+        foreach ($blocks as $block) {
+            if (!is_array($block)) {
+                continue;
+            }
+            $key = trim((string) ($block['type'] ?? $block['section_key'] ?? ''));
+            if ($key === '') {
+                continue;
+            }
+            $data = isset($block['data']) && is_array($block['data']) ? $block['data'] : [];
+            $opts = isset($block['options']) && is_array($block['options']) ? $block['options'] : [];
+            $r = $sectionValidator->validate($key, $data, $opts);
+            if ($r['errors'] !== []) {
+                continue;
+            }
+            $validated[] = [
+                'type' => $key,
+                'sort_order' => (int) ($block['sort_order'] ?? 0),
+                'data' => $r['data'],
+                'options' => $r['options'],
+            ];
+        }
+        $entrySections->replaceAllForEntry($entryId, $validated);
+    };
+
+    $wantsJsonResponse = static function (Request $request): bool {
+        $q = $request->getQueryParams();
+        if (($q['_format'] ?? '') === 'json') {
+            return true;
+        }
+
+        return str_contains(strtolower($request->getHeaderLine('Accept')), 'application/json');
+    };
+
+    $wantsPartialHtml = static function (Request $request): bool {
+        $q = $request->getQueryParams();
+
+        return ($q['_format'] ?? '') === 'partial';
+    };
+
+    $sectionPreviewText = static function (array $data): string {
+        foreach (['headline', 'title', 'eyebrow'] as $key) {
+            if (isset($data[$key]) && is_string($data[$key]) && trim($data[$key]) !== '') {
+                return trim($data[$key]);
+            }
+        }
+
+        return '';
     };
 
     $mergeEntrySeoOld = static function (array $values, array $body): array {
@@ -181,6 +295,16 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
         $entryTaxonomyValidator,
         $workflow,
         $entryRevRepo,
+        $entrySections,
+        $sectionManager,
+        $sectionValidator,
+        $builderHandler,
+        $entryBuilderPayload,
+        $captureEntryRevision,
+        $restoreEntrySectionsFromRevision,
+        $wantsJsonResponse,
+        $wantsPartialHtml,
+        $sectionPreviewText,
         $activity,
         $permDelete,
         $permTypes,
@@ -266,6 +390,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                     'has_public_route' => false,
                     'supports_seo' => false,
                     'supports_featured_image' => false,
+                    'supports_block_builder' => true,
                 ],
             ])));
         })->setName('admin.content_types.new');
@@ -292,7 +417,8 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 $v['description'],
                 $v['has_public_route'],
                 $v['supports_seo'],
-                $v['supports_featured_image']
+                $v['supports_featured_image'],
+                $v['supports_block_builder']
             );
             Flash::set('success', 'Content type created.');
             Events::dispatch(new StorefrontCachesInvalidateEvent('content_type_created'));
@@ -346,7 +472,8 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 $v['description'],
                 $v['has_public_route'],
                 $v['supports_seo'],
-                $v['supports_featured_image']
+                $v['supports_featured_image'],
+                $v['supports_block_builder']
             );
             Flash::set('success', 'Content type updated.');
             Events::dispatch(new StorefrontCachesInvalidateEvent('content_type_updated'));
@@ -758,7 +885,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             EntryTaxonomySync::sync($eid, $taxResult['term_ids'], $entryTaxonomyRepo);
             $row = $entries->fetchRowById($eid);
             if ($row !== null) {
-                $entryRevRepo->capture($eid, $row, $values->valuesByFieldIdForEntry($eid), $cmsUserId($request));
+                $captureEntryRevision($eid, $cmsUserId($request));
             }
             $activity->log($cmsUserId($request), 'content_entry.created', 'content_entry', $eid, ['content_type_id' => $id]);
             Events::dispatch(new ContentEntrySavedEvent($eid, $id, true));
@@ -781,7 +908,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 ->withStatus(302);
         })->setName('admin.content_types.entries.store')->add($permEntryCreate);
 
-        $group->get('/content-types/{id:[0-9]+}/entries/{entryId:[0-9]+}/edit', function (Request $request, Response $response, array $args) use ($twig, $adminContext, $withCmsUser, $types, $fields, $entries, $values, $mediaRepo, $taxonomyRepo, $taxonomyTermRepo, $entryTaxonomyRepo, $workflow, $entryRevRepo, $pdo, $entryFormMediaContext, $entryPrimaryRichtextTextareaId): Response {
+        $group->get('/content-types/{id:[0-9]+}/entries/{entryId:[0-9]+}/edit', function (Request $request, Response $response, array $args) use ($twig, $adminContext, $withCmsUser, $types, $fields, $entries, $values, $mediaRepo, $taxonomyRepo, $taxonomyTermRepo, $entryTaxonomyRepo, $workflow, $entryRevRepo, $pdo, $entryFormMediaContext, $entryPrimaryRichtextTextareaId, $entryBuilderPayload): Response {
             $id = (int) $args['id'];
             $entryId = (int) $args['entryId'];
             $t = $types->findById($id);
@@ -808,7 +935,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             $cmsUser = $request->getAttribute('cms_user') ?? [];
             $perms = $cmsUser['permission_slugs'] ?? [];
 
-            return $twig->render($response, 'admin/content/entries/form.twig', $withCmsUser($request, array_merge($adminContext(), [
+            $payload = array_merge($adminContext(), [
                 'admin_nav' => 'content_types',
                 'content_type' => $t,
                 'fields' => $fieldList,
@@ -825,7 +952,13 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 'entry_revision_rows' => $entryRevRepo->listForEntry($entryId, 15),
                 'entry_primary_richtext_textarea_id' => $entryPrimaryRichtextTextareaId($fieldList),
                 'entry_link_warnings' => $entryLinkWarnings,
-            ], $entryFormMediaContext($request, $mediaRepo, $pdo, $entry, null))));
+            ], $entryFormMediaContext($request, $mediaRepo, $pdo, $entry, null));
+
+            if ($t->supportsBlockBuilder) {
+                $payload = array_merge($payload, $entryBuilderPayload($entryId));
+            }
+
+            return $twig->render($response, 'admin/content/entries/form.twig', $withCmsUser($request, $payload));
         })->setName('admin.content_types.entries.edit')->add($permEntryEdit);
 
         $group->post('/content-types/{id:[0-9]+}/entries/{entryId:[0-9]+}/edit', function (Request $request, Response $response, array $args) use (
@@ -933,7 +1066,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             $slug = ContentSlugger::ensureUniqueEntry($entries, $id, $v['slug'], $entryId);
             $prevRow = $entries->fetchRowById($entryId);
             if ($prevRow !== null) {
-                $entryRevRepo->capture($entryId, $prevRow, $values->valuesByFieldIdForEntry($entryId), $cmsUserId($request));
+                $captureEntryRevision($entryId, $cmsUserId($request));
             }
             $oldSlug = $entry->slug;
             $entries->update(
@@ -989,6 +1122,224 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 ->withHeader('Location', $parser->urlFor('admin.content_types.entries.edit', ['id' => (string) $id, 'entryId' => (string) $entryId]))
                 ->withStatus(302);
         })->setName('admin.content_types.entries.update')->add($permEntryEdit);
+
+        $redirectEntryEditBuilder = static function (Request $request, int $typeId, int $entryId): string {
+            return RouteContext::fromRequest($request)->getRouteParser()->urlFor(
+                'admin.content_types.entries.edit',
+                ['id' => (string) $typeId, 'entryId' => (string) $entryId]
+            ) . '#entry-builder';
+        };
+
+        $redirectAfterEntryBuilderAction = static function (Request $request, int $typeId, int $entryId) use ($redirectEntryEditBuilder): string {
+            $q = $request->getQueryParams();
+            if (($q['embed'] ?? '') === 'standalone') {
+                return RouteContext::fromRequest($request)->getRouteParser()->urlFor(
+                    'admin.content_types.entries.builder',
+                    ['id' => (string) $typeId, 'entryId' => (string) $entryId]
+                );
+            }
+
+            return $redirectEntryEditBuilder($request, $typeId, $entryId);
+        };
+
+        $assertEntryBuilderContext = static function (Request $request, int $typeId, int $entryId) use ($types, $entries): array {
+            $t = $types->findById($typeId);
+            if ($t === null || !$t->supportsBlockBuilder) {
+                throw new HttpNotFoundException($request);
+            }
+            $entry = $entries->findById($entryId);
+            if ($entry === null || $entry->contentTypeId !== $typeId) {
+                throw new HttpNotFoundException($request);
+            }
+
+            return [$t, $entry];
+        };
+
+        $group->get('/content-types/{id:[0-9]+}/entries/{entryId:[0-9]+}/builder/section/{sectionId:[0-9]+}', function (Request $request, Response $response, array $args) use (
+            $twig,
+            $adminContext,
+            $withCmsUser,
+            $entrySections,
+            $sectionManager,
+            $mediaRepo,
+            $wantsPartialHtml,
+            $assertEntryBuilderContext
+        ): Response {
+            $id = (int) $args['id'];
+            $entryId = (int) $args['entryId'];
+            $sectionId = (int) $args['sectionId'];
+            [$t, $entry] = $assertEntryBuilderContext($request, $id, $entryId);
+            $row = $entrySections->findById($sectionId);
+            if ($row === null || $row->contentEntryId !== $entryId) {
+                throw new HttpNotFoundException($request);
+            }
+            $def = $sectionManager->definition($row->sectionKey);
+            if ($def === null) {
+                throw new HttpNotFoundException($request);
+            }
+
+            $payload = array_merge($adminContext(), [
+                'admin_nav' => 'content_types',
+                'content_type' => $t,
+                'entry' => $entry,
+                'section_row' => $row,
+                'section_def' => $def,
+                'errors' => [],
+                'media_picker_images' => $mediaRepo->listImagesForPicker(200),
+                'section_save_url' => RouteContext::fromRequest($request)->getRouteParser()->urlFor(
+                    'admin.content_types.entries.builder.section_save',
+                    ['id' => (string) $id, 'entryId' => (string) $entryId, 'sectionId' => (string) $sectionId]
+                ) . '?_format=json',
+            ]);
+
+            if ($wantsPartialHtml($request)) {
+                return $twig->render($response, 'admin/pages/_builder_section_drawer_body.twig', $withCmsUser($request, $payload));
+            }
+
+            return $twig->render($response, 'admin/content/entries/builder_section.twig', $withCmsUser($request, $payload));
+        })->setName('admin.content_types.entries.builder.section_edit')->add($permEntryEdit);
+
+        $group->post('/content-types/{id:[0-9]+}/entries/{entryId:[0-9]+}/builder/section/{sectionId:[0-9]+}', function (Request $request, Response $response, array $args) use (
+            $twig,
+            $adminContext,
+            $withCmsUser,
+            $entrySections,
+            $sectionManager,
+            $sectionValidator,
+            $mediaRepo,
+            $redirectEntryEditBuilder,
+            $wantsJsonResponse,
+            $wantsPartialHtml,
+            $sectionPreviewText,
+            $assertEntryBuilderContext
+        ): Response {
+            $id = (int) $args['id'];
+            $entryId = (int) $args['entryId'];
+            $sectionId = (int) $args['sectionId'];
+            [$t, $entry] = $assertEntryBuilderContext($request, $id, $entryId);
+            $row = $entrySections->findById($sectionId);
+            if ($row === null || $row->contentEntryId !== $entryId) {
+                throw new HttpNotFoundException($request);
+            }
+            $def = $sectionManager->definition($row->sectionKey);
+            if ($def === null) {
+                throw new HttpNotFoundException($request);
+            }
+
+            $body = $request->getParsedBody();
+            $body = is_array($body) ? $body : [];
+            $data = isset($body['data']) && is_array($body['data']) ? $body['data'] : [];
+            $options = isset($body['options']) && is_array($body['options']) ? $body['options'] : [];
+
+            $result = $sectionValidator->validate($row->sectionKey, $data, $options);
+            $saveUrl = RouteContext::fromRequest($request)->getRouteParser()->urlFor(
+                'admin.content_types.entries.builder.section_save',
+                ['id' => (string) $id, 'entryId' => (string) $entryId, 'sectionId' => (string) $sectionId]
+            ) . '?_format=json';
+
+            if ($result['errors'] !== []) {
+                $patched = new ContentEntrySection(
+                    $row->id,
+                    $row->contentEntryId,
+                    $row->sortOrder,
+                    $row->sectionKey,
+                    array_merge($row->data, $data),
+                    array_merge($row->options, $options)
+                );
+
+                $payload = array_merge($adminContext(), [
+                    'admin_nav' => 'content_types',
+                    'content_type' => $t,
+                    'entry' => $entry,
+                    'section_row' => $patched,
+                    'section_def' => $def,
+                    'errors' => $result['errors'],
+                    'media_picker_images' => $mediaRepo->listImagesForPicker(200),
+                    'section_save_url' => $saveUrl,
+                ]);
+
+                if ($wantsJsonResponse($request) || $wantsPartialHtml($request)) {
+                    $html = $twig->getEnvironment()->render('admin/pages/_builder_section_drawer_body.twig', $withCmsUser($request, $payload));
+                    $response->getBody()->write(json_encode([
+                        'ok' => false,
+                        'errors' => $result['errors'],
+                        'html' => $html,
+                    ], JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE));
+
+                    return $response->withHeader('Content-Type', 'application/json; charset=utf-8');
+                }
+
+                return $twig->render($response, 'admin/content/entries/builder_section.twig', $withCmsUser($request, $payload));
+            }
+
+            $entrySections->update($sectionId, $row->sortOrder, $row->sectionKey, $result['data'], $result['options']);
+            Events::dispatch(new StorefrontCachesInvalidateEvent('content_entry_section_saved'));
+
+            if ($wantsJsonResponse($request)) {
+                $response->getBody()->write(json_encode([
+                    'ok' => true,
+                    'preview' => $sectionPreviewText($result['data']),
+                ], JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE));
+
+                return $response->withHeader('Content-Type', 'application/json; charset=utf-8');
+            }
+
+            Flash::set('success', 'Section saved.');
+
+            return $response
+                ->withHeader('Location', $redirectEntryEditBuilder($request, $id, $entryId))
+                ->withStatus(302);
+        })->setName('admin.content_types.entries.builder.section_save')->add($permEntryEdit);
+
+        $group->get('/content-types/{id:[0-9]+}/entries/{entryId:[0-9]+}/builder', function (Request $request, Response $response, array $args) use (
+            $twig,
+            $adminContext,
+            $withCmsUser,
+            $entryBuilderPayload,
+            $assertEntryBuilderContext
+        ): Response {
+            $id = (int) $args['id'];
+            $entryId = (int) $args['entryId'];
+            [$t, $entry] = $assertEntryBuilderContext($request, $id, $entryId);
+            $builderData = $entryBuilderPayload($entryId);
+
+            return $twig->render($response, 'admin/content/entries/builder.twig', $withCmsUser($request, array_merge($adminContext(), [
+                'admin_nav' => 'content_types',
+                'content_type' => $t,
+                'entry' => $entry,
+                'section_rows' => $builderData['entry_builder_section_rows'],
+                'section_palette_grouped' => $builderData['entry_builder_section_palette_grouped'],
+                'section_labels' => $builderData['entry_builder_section_labels'],
+                'section_icons' => $builderData['entry_builder_section_icons'],
+                'builder_panel_standalone' => true,
+            ])));
+        })->setName('admin.content_types.entries.builder')->add($permEntryEdit);
+
+        $group->post('/content-types/{id:[0-9]+}/entries/{entryId:[0-9]+}/builder', function (Request $request, Response $response, array $args) use (
+            $builderHandler,
+            $entrySections,
+            $redirectAfterEntryBuilderAction,
+            $assertEntryBuilderContext
+        ): Response {
+            $id = (int) $args['id'];
+            $entryId = (int) $args['entryId'];
+            $assertEntryBuilderContext($request, $id, $entryId);
+            $body = $request->getParsedBody();
+            $body = is_array($body) ? $body : [];
+            $url = $redirectAfterEntryBuilderAction($request, $id, $entryId);
+            $wantsJson = str_contains(strtolower($request->getHeaderLine('Accept')), 'application/json')
+                || (string) ($body['_format'] ?? '') === 'json';
+            $store = new ContentEntrySectionStore($entrySections);
+            $result = $builderHandler->handle($body, $entryId, $store, $url, $wantsJson, 'content_entry_section');
+            BlockBuilderActionHandler::applyFlash($result);
+            if ($result['kind'] === 'json') {
+                $response->getBody()->write(json_encode($result['json'] ?? ['ok' => false], JSON_THROW_ON_ERROR));
+
+                return $response->withHeader('Content-Type', 'application/json; charset=utf-8');
+            }
+
+            return $response->withHeader('Location', $result['url'] ?? $url)->withStatus(302);
+        })->add($permEntryEdit);
 
         $group->get('/content-types/{id:[0-9]+}/entries/{entryId:[0-9]+}/revisions', function (Request $request, Response $response, array $args) use ($twig, $adminContext, $withCmsUser, $types, $entries, $entryRevRepo): Response {
             $id = (int) $args['id'];
@@ -1094,7 +1445,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 ->withStatus(302);
         })->setName('admin.content_types.entries.preview_link')->add($permEntryEdit);
 
-        $group->post('/content-types/{id:[0-9]+}/entries/{entryId:[0-9]+}/revisions/{revId:[0-9]+}/restore', function (Request $request, Response $response, array $args) use ($types, $entries, $values, $entryRevRepo, $workflow, $activity, $cmsUserId): Response {
+        $group->post('/content-types/{id:[0-9]+}/entries/{entryId:[0-9]+}/revisions/{revId:[0-9]+}/restore', function (Request $request, Response $response, array $args) use ($types, $entries, $values, $entryRevRepo, $workflow, $activity, $cmsUserId, $captureEntryRevision, $restoreEntrySectionsFromRevision): Response {
             $id = (int) $args['id'];
             $entryId = (int) $args['entryId'];
             $revId = (int) $args['revId'];
@@ -1126,7 +1477,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             }
             $prevRow = $entries->fetchRowById($entryId);
             if ($prevRow !== null) {
-                $entryRevRepo->capture($entryId, $prevRow, $values->valuesByFieldIdForEntry($entryId), $cmsUserId($request));
+                $captureEntryRevision($entryId, $cmsUserId($request));
             }
             $pub = isset($er['published_at']) && $er['published_at'] !== '' && $er['published_at'] !== null
                 ? (string) $er['published_at']
@@ -1173,8 +1524,12 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 $str = $val === null ? null : (is_string($val) ? $val : (string) $val);
                 $values->upsert($entryId, (int) $fieldId, $str);
             }
+            if ($t->supportsBlockBuilder) {
+                $restoreEntrySectionsFromRevision($entryId, $snap);
+            }
             $activity->log($cmsUserId($request), 'content_entry.revision_restored', 'content_entry', $entryId, ['revision_id' => $revId]);
             Flash::set('success', 'Revision restored.');
+            Events::dispatch(new StorefrontCachesInvalidateEvent('content_entry_revision_restored'));
 
             return $response
                 ->withHeader('Location', RouteContext::fromRequest($request)->getRouteParser()->urlFor('admin.content_types.entries.edit', ['id' => (string) $id, 'entryId' => (string) $entryId]))

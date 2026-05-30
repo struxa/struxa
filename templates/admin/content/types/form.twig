@@ -9,6 +9,7 @@
 {% set hpr = o.has_public_route is defined ? o.has_public_route : (content_type ? content_type.hasPublicRoute : false) %}
 {% set sse = o.supports_seo is defined ? o.supports_seo : (content_type ? content_type.supportsSeo : false) %}
 {% set sfi = o.supports_featured_image is defined ? o.supports_featured_image : (content_type ? content_type.supportsFeaturedImage : false) %}
+{% set sbb = o.supports_block_builder is defined ? o.supports_block_builder : (content_type ? content_type.supportsBlockBuilder : true) %}
 
 {% block admin_title %}{{ is_edit ? 'Edit content type' : 'New content type' }}{% endblock %}
 
@@ -65,6 +66,13 @@
         <label class="admin-check">
           <input type="checkbox" name="supports_featured_image" value="1" {{ sfi ? 'checked' : '' }} />
           <span>Support featured image (media library)</span>
+        </label>
+      </div>
+
+      <div class="admin-field admin-field--full">
+        <label class="admin-check">
+          <input type="checkbox" name="supports_block_builder" value="1" {{ sbb ? 'checked' : '' }} />
+          <span>Enable block builder on entries</span>
         </label>
       </div>
     </div>
