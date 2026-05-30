@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.1.21",
-    "title": "Struxa 1.1.21",
-    "summary": "Media library UI polish and folder rename; SEO score donuts; page edit save bar layout fix; folder action menus render above the library grid.",
+    "latest_version": "1.1.22",
+    "title": "Struxa 1.1.22",
+    "summary": "Expandable content-type tree sidebar on admin content types, entries, and fields screens for faster navigation between types and their sections.",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "minor"

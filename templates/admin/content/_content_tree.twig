@@ -1,0 +1,101 @@
+{# Expandable content-type tree for admin content section.
+   Expects: content_type_cards, content_tree_section (overview|entries|fields|settings|taxonomies), content_tree_type_id (int|null), taxonomy_count (optional, for active type) #}
+{% set tree_section = content_tree_section|default('overview') %}
+{% set tree_type_id = content_tree_type_id|default(null) %}
+{% set tree_cards = content_type_cards|default([]) %}
+
+<aside class="admin-content-tree" aria-label="Content structure">
+  <div class="admin-content-tree-head">
+    <h2 class="admin-content-tree-title">Content</h2>
+    {% if cms_can('manage_content_types') %}
+      <a class="admin-content-tree-new" href="{{ url_for('admin.content_types.new') }}" title="New content type">+</a>
+    {% endif %}
+  </div>
+  <nav class="admin-content-tree-nav">
+    <a
+      href="{{ url_for('admin.content_types.index') }}"
+      class="admin-content-tree-link admin-content-tree-link--root{% if tree_section == 'overview' %} is-active{% endif %}"
+    >
+      <svg class="admin-content-tree-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      <span class="admin-content-tree-link-label">All types</span>
+      {% if tree_cards is not empty %}
+        <span class="admin-content-tree-count">{{ tree_cards|length }}</span>
+      {% endif %}
+    </a>
+
+    {% if tree_cards is not empty %}
+      <ul class="admin-content-tree-list" role="list">
+        {% for card in tree_cards %}
+          {% set t = card.type %}
+          {% set is_type_active = tree_type_id == t.id %}
+          {% set entries_url = url_for('admin.content_types.entries.index', { id: t.id }) %}
+          <li class="admin-content-tree-item">
+            <details class="admin-content-tree-folder"{% if is_type_active %} open{% endif %}>
+              <summary class="admin-content-tree-folder-summary">
+                <span class="admin-content-tree-folder-chevron" aria-hidden="true"></span>
+                <span class="admin-content-tree-folder-icon">
+                  {% include 'admin/content/_content_type_icon.twig' with { icon: t.icon, slug: t.slug, name: t.name } %}
+                </span>
+                <span class="admin-content-tree-folder-name">{{ t.name|e }}</span>
+                {% if card.entry_total > 0 %}
+                  <span class="admin-content-tree-count">{{ card.entry_total }}</span>
+                {% endif %}
+              </summary>
+              <ul class="admin-content-tree-children" role="list">
+                <li>
+                  <a
+                    href="{{ entries_url|e('html_attr') }}"
+                    class="admin-content-tree-child{% if tree_section == 'entries' and is_type_active %} is-active{% endif %}"
+                  >
+                    <span class="admin-content-tree-child-label">Entries</span>
+                    <span class="admin-content-tree-count">{{ card.entry_total }}</span>
+                  </a>
+                </li>
+                {% if cms_can('manage_content_types') %}
+                  <li>
+                    <a
+                      href="{{ url_for('admin.content_types.fields.index', { id: t.id }) }}"
+                      class="admin-content-tree-child{% if tree_section == 'fields' and is_type_active %} is-active{% endif %}"
+                    >
+                      <span class="admin-content-tree-child-label">Fields</span>
+                      <span class="admin-content-tree-count">{{ card.field_count }}</span>
+                    </a>
+                  </li>
+                  <li>
+                    <a
+                      href="{{ url_for('admin.content_types.edit', { id: t.id }) }}"
+                      class="admin-content-tree-child{% if tree_section == 'settings' and is_type_active %} is-active{% endif %}"
+                    >
+                      <span class="admin-content-tree-child-label">Settings</span>
+                    </a>
+                  </li>
+                {% endif %}
+                {% if cms_can('manage_taxonomies') and is_type_active and taxonomy_count|default(0) > 0 %}
+                  <li>
+                    <a
+                      href="{{ url_for('admin.content_types.taxonomies.index', { id: t.id }) }}"
+                      class="admin-content-tree-child{% if tree_section == 'taxonomies' and is_type_active %} is-active{% endif %}"
+                    >
+                      <span class="admin-content-tree-child-label">Taxonomies</span>
+                      <span class="admin-content-tree-count">{{ taxonomy_count }}</span>
+                    </a>
+                  </li>
+                {% endif %}
+                {% if cms_can('create_content') %}
+                  <li>
+                    <a href="{{ url_for('admin.content_types.entries.new', { id: t.id }) }}" class="admin-content-tree-child admin-content-tree-child--action">
+                      <span class="admin-content-tree-child-label">New entry</span>
+                      <span aria-hidden="true">+</span>
+                    </a>
+                  </li>
+                {% endif %}
+              </ul>
+            </details>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="admin-content-tree-empty">No content types yet.</p>
+    {% endif %}
+  </nav>
+</aside>

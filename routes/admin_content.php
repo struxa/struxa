@@ -6,6 +6,7 @@ use App\Admin\AfterSaveRedirect;
 use App\Access\ActivityLogger;
 use App\Access\PermissionSlug;
 use App\Access\WorkflowService;
+use App\Content\ContentAdminTree;
 use App\Content\ContentEntry;
 use App\Content\ContentEntryFormValidator;
 use App\Content\ContentEntryRefsGuard;
@@ -319,31 +320,16 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
         $entryPrimaryRichtextTextareaId
     ): void {
         $group->get('/content-types', function (Request $request, Response $response) use ($twig, $adminContext, $withCmsUser, $types, $entries, $fields): Response {
-            $typeRows = $types->allOrdered();
-            $entryStats = $entries->statsByContentType();
-            $fieldCounts = $fields->countsByContentType();
-            $cards = [];
-            $summary = ['types' => count($typeRows), 'entries' => 0, 'published' => 0, 'draft' => 0];
-            foreach ($typeRows as $t) {
-                $stats = $entryStats[$t->id] ?? ['total' => 0, 'published' => 0, 'draft' => 0, 'in_review' => 0];
-                $summary['entries'] += $stats['total'];
-                $summary['published'] += $stats['published'];
-                $summary['draft'] += $stats['draft'] + $stats['in_review'];
-                $cards[] = [
-                    'type' => $t,
-                    'entry_total' => $stats['total'],
-                    'entry_published' => $stats['published'],
-                    'entry_draft' => $stats['draft'],
-                    'entry_in_review' => $stats['in_review'],
-                    'field_count' => $fieldCounts[$t->id] ?? 0,
-                ];
-            }
+            $cards = ContentAdminTree::cards($types, $entries, $fields);
+            $summary = ContentAdminTree::summary($cards);
 
             return $twig->render($response, 'admin/content/types/index.twig', $withCmsUser($request, array_merge($adminContext(), [
                 'admin_nav' => 'content_types',
-                'content_types' => $typeRows,
+                'content_types' => array_map(static fn (array $c) => $c['type'], $cards),
                 'content_type_cards' => $cards,
                 'content_types_summary' => $summary,
+                'content_tree_section' => 'overview',
+                'content_tree_type_id' => null,
             ])));
         })->setName('admin.content_types.index')->add($permEntryBrowse);
 
@@ -501,7 +487,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
         })->setName('admin.content_types.delete');
 
         /* —— Fields —— */
-        $g->get('/content-types/{id:[0-9]+}/fields', function (Request $request, Response $response, array $args) use ($twig, $adminContext, $withCmsUser, $types, $fields): Response {
+        $g->get('/content-types/{id:[0-9]+}/fields', function (Request $request, Response $response, array $args) use ($twig, $adminContext, $withCmsUser, $types, $fields, $entries): Response {
             $id = (int) $args['id'];
             $t = $types->findById($id);
             if ($t === null) {
@@ -512,6 +498,9 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 'admin_nav' => 'content_types',
                 'content_type' => $t,
                 'fields' => $fields->forTypeOrdered($id),
+                'content_type_cards' => ContentAdminTree::cards($types, $entries, $fields),
+                'content_tree_section' => 'fields',
+                'content_tree_type_id' => $id,
             ])));
         })->setName('admin.content_types.fields.index');
 
@@ -722,6 +711,9 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 'taxonomy_count' => count($taxList),
                 'entry_rows' => $entryRows,
                 'entry_summary' => $entrySummary,
+                'content_type_cards' => ContentAdminTree::cards($types, $entries, $fields),
+                'content_tree_section' => 'entries',
+                'content_tree_type_id' => $id,
             ])));
         })->setName('admin.content_types.entries.index')->add($permEntryBrowse);
 

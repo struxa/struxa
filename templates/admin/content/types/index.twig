@@ -11,10 +11,16 @@
   <p class="admin-hero-sub">Structured content models — blog posts, products, team members — each with custom fields and optional public URLs.</p>
 {% endblock %}
 
+{% block admin_body_class %}admin-body--content-types{% endblock %}
+
 {% block admin_content %}
   {% set summary = content_types_summary|default({ types: 0, entries: 0, published: 0, draft: 0 }) %}
   {% set cards = content_type_cards|default([]) %}
 
+  <div class="admin-content-layout">
+    {% include 'admin/content/_content_tree.twig' %}
+
+    <div class="admin-content-main">
   <div class="admin-ct-toolbar">
     {% if cards is not empty %}
       <div class="admin-ct-summary" aria-label="Content overview">
@@ -100,4 +106,6 @@
       {% endfor %}
     </div>
   {% endif %}
+    </div>
+  </div>
 {% endblock %}

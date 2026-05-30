@@ -13,7 +13,13 @@
   </p>
 {% endblock %}
 
+{% block admin_body_class %}admin-body--content-types{% endblock %}
+
 {% block admin_content %}
+  <div class="admin-content-layout">
+    {% include 'admin/content/_content_tree.twig' %}
+
+    <div class="admin-content-main">
   <div class="admin-toolbar" style="margin-bottom:1.25rem;flex-wrap:wrap;gap:0.75rem">
     <a class="admin-btn-primary" href="{{ url_for('admin.content_types.fields.new', { id: content_type.id }) }}">Add field</a>
     <button class="admin-btn-primary" type="submit" form="content-fields-reorder">Save order</button>
@@ -64,4 +70,6 @@
       </table>
     </div>
   {% endif %}
+    </div>
+  </div>
 {% endblock %}
