@@ -68,40 +68,42 @@
       {% for e in entry_rows %}
         {% set edit_url = url_for('admin.content_types.entries.edit', { id: content_type.id, entryId: e.id }) %}
         <li class="admin-entry-item">
-          {% if can_edit_entries %}
-            <a class="admin-entry-row" href="{{ edit_url|e('html_attr') }}">
-          {% else %}
-            <div class="admin-entry-row admin-entry-row--static">
-          {% endif %}
-            <span class="admin-entry-row-icon" aria-hidden="true">
-              {% include 'admin/content/_content_type_icon.twig' with { icon: '', slug: '', name: e.title } %}
-            </span>
-            <span class="admin-entry-row-body">
-              <span class="admin-entry-row-head">
-                <strong class="admin-entry-row-title">{{ e.title|e }}</strong>
-                {% if can_edit_entries %}
-                  <span class="admin-entry-row-go" aria-hidden="true">→</span>
+          <div class="admin-entry-card">
+            {% if can_edit_entries %}
+              <a class="admin-entry-row" href="{{ edit_url|e('html_attr') }}">
+            {% else %}
+              <div class="admin-entry-row admin-entry-row--static">
+            {% endif %}
+              <span class="admin-entry-row-icon" aria-hidden="true">
+                {% include 'admin/content/_content_type_icon.twig' with { icon: '', slug: '', name: e.title } %}
+              </span>
+              <span class="admin-entry-row-body">
+                <span class="admin-entry-row-head">
+                  <strong class="admin-entry-row-title">{{ e.title|e }}</strong>
+                  {% if can_edit_entries %}
+                    <span class="admin-entry-row-go" aria-hidden="true">→</span>
+                  {% endif %}
+                </span>
+                <code class="admin-entry-row-slug">{{ e.slug|e }}</code>
+                {% if e.author_email|default('') != '' %}
+                  <span class="admin-entry-row-by">{{ e.author_email|e }}</span>
                 {% endif %}
               </span>
-              <code class="admin-entry-row-slug">{{ e.slug|e }}</code>
-              {% if e.author_email|default('') != '' %}
-                <span class="admin-entry-row-by">{{ e.author_email|e }}</span>
-              {% endif %}
-            </span>
-            <span class="admin-entry-row-meta">
-              {{ ui.status_badge(e.status) }}
-              <time class="admin-entry-row-date" datetime="{{ e.updated_at|e('html_attr') }}">{{ e.updated_at|e }}</time>
-            </span>
-          {% if can_edit_entries %}
-            </a>
-          {% else %}
-            </div>
-          {% endif %}
-          {% if content_type.hasPublicRoute and e.status == 'published' %}
-            <div class="admin-entry-item-actions">
-              <a class="admin-btn-ghost admin-btn-ghost--sm" href="{{ site_url }}/{{ content_type.slug|e }}/{{ e.slug|e }}" target="_blank" rel="noopener">View live</a>
-            </div>
-          {% endif %}
+              <span class="admin-entry-row-meta">
+                {{ ui.status_badge(e.status) }}
+                <time class="admin-entry-row-date" datetime="{{ e.updated_at|e('html_attr') }}">{{ e.updated_at|e }}</time>
+              </span>
+            {% if can_edit_entries %}
+              </a>
+            {% else %}
+              </div>
+            {% endif %}
+            {% if content_type.hasPublicRoute and e.status == 'published' %}
+              <div class="admin-entry-item-actions">
+                <a class="admin-btn-ghost admin-btn-ghost--sm" href="{{ site_url }}/{{ content_type.slug|e }}/{{ e.slug|e }}" target="_blank" rel="noopener noreferrer">View live</a>
+              </div>
+            {% endif %}
+          </div>
         </li>
       {% endfor %}
     </ul>

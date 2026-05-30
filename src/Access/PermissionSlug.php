@@ -26,5 +26,6 @@ final class PermissionSlug
     public const MANAGE_PORTABILITY = 'manage_portability';
     public const MANAGE_SECURITY = 'manage_security';
     public const MANAGE_COMMENTS = 'manage_comments';
+    public const MANAGE_FORMS = 'manage_forms';
     public const VIEW_LINK_ANALYTICS = 'view_link_analytics';
 }

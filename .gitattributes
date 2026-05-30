@@ -1,3 +1,4 @@
-# Backup for git archive / GitHub ZIP if paths exist locally (core repo omits plugins/ and non-default themes via .gitignore)
+# Git archives / GitHub ZIP: omit local extensions (core repo ships CMS + default theme only)
 /plugins/ export-ignore
-/themes/avios/ export-ignore
+/themes/* export-ignore
+!/themes/default/

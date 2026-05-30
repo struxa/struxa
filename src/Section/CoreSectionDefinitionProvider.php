@@ -360,6 +360,32 @@ final class CoreSectionDefinitionProvider implements SectionDefinitionProviderIn
                 ],
                 'option_defaults' => [],
             ],
+            'forms_embed' => [
+                'label' => 'Form embed',
+                'sort_order' => 46,
+                'category' => 'Forms',
+                'description' => 'Embed a Struxa form by slug.',
+                'template' => 'sections/form_embed.twig',
+                'schema' => [
+                    ['key' => 'form_slug', 'type' => 'string', 'label' => 'Form slug', 'required' => true, 'max' => 120],
+                    ['key' => 'title', 'type' => 'string', 'label' => 'Heading (optional)', 'required' => false, 'max' => 200],
+                    ['key' => 'lead', 'type' => 'text', 'label' => 'Intro text (optional)', 'required' => false, 'max' => 500],
+                ],
+                'option_schema' => [
+                    ['key' => 'padding', 'type' => 'string', 'label' => 'Vertical padding', 'required' => false, 'enum' => ['comfortable', 'compact', 'spacious']],
+                    ['key' => 'background', 'type' => 'string', 'label' => 'Background', 'required' => false, 'enum' => ['default', 'muted', 'contrast']],
+                ],
+                'defaults' => [
+                    'form_slug' => '',
+                    'title' => '',
+                    'lead' => '',
+                ],
+                'option_defaults' => [
+                    'padding' => 'comfortable',
+                    'background' => 'default',
+                ],
+                'hosts' => ['page', 'content_entry'],
+            ],
         ];
 
         return $cache;

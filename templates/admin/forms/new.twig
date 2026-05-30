@@ -1,0 +1,52 @@
+{% extends 'admin/base.twig' %}
+
+{% block admin_title %}Add form{% endblock %}
+
+{% block admin_hero_title %}
+  <h1 class="admin-hero-title">Add form</h1>
+{% endblock %}
+
+{% block admin_hero_sub %}
+  <p class="admin-hero-sub">Pick a starter template or start blank — you can customize fields after creation.</p>
+{% endblock %}
+
+{% block admin_content %}
+  <form method="post" action="{{ url_for('admin.forms.create') }}" class="admin-form-grid">
+    <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+
+    <section class="admin-card">
+      <h2 class="admin-card-title">Form details</h2>
+      <label class="admin-label">
+        <span>Name</span>
+        <input class="admin-input" type="text" name="name" required maxlength="200" placeholder="Contact form" />
+      </label>
+    </section>
+
+    <section class="admin-card">
+      <h2 class="admin-card-title">Template</h2>
+      <div class="admin-form-template-grid">
+        {% for key, tpl in templates %}
+          <label class="admin-template-card">
+            <input type="radio" name="template" value="{{ key|e('html_attr') }}" {{ key == 'contact' ? 'checked' : '' }} />
+            <span class="admin-template-card-body">
+              <strong>{{ tpl.name|e }}</strong>
+              <span class="admin-hint">{{ tpl.description|e }}</span>
+            </span>
+          </label>
+        {% endfor %}
+      </div>
+    </section>
+
+    <div class="admin-form-actions">
+      <a class="admin-btn admin-btn--ghost" href="{{ url_for('admin.forms.index') }}">Cancel</a>
+      <button class="admin-btn admin-btn--primary" type="submit">Create form</button>
+    </div>
+  </form>
+
+  <style>
+    .admin-form-template-grid { display: grid; gap: 0.75rem; grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr)); }
+    .admin-template-card { display: flex; gap: 0.6rem; align-items: flex-start; padding: 0.85rem; border: 1px solid var(--admin-border, rgba(255,255,255,.08)); border-radius: 0.65rem; cursor: pointer; }
+    .admin-template-card:has(input:checked) { border-color: var(--admin-accent, #6ee7b7); background: rgba(110,231,183,.06); }
+    .admin-template-card-body { display: flex; flex-direction: column; gap: 0.25rem; }
+  </style>
+{% endblock %}

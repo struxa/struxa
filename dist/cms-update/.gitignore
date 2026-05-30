@@ -42,3 +42,11 @@ public/uploads/*
 
 # Local cache from scripts/struxa-updates-json.php (vendor site generator)
 scripts/.struxa-updates-cache.json
+
+# Extensions and extra themes — not in core git
+/plugins/*
+!/plugins/.gitkeep
+/themes/*
+!/themes/.gitkeep
+!/themes/default/
+!/themes/default/**

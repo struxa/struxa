@@ -28,6 +28,9 @@ use App\Dev\PluginDependencyHealthCheck;
 use App\Dev\TwigLayoutContractLinter;
 use App\Maintenance\MaintenanceService;
 use App\Media\MediaFolderFilter;
+use App\Form\FormFieldType;
+use App\Form\FormSlugger;
+use App\Form\FormValidator;
 use App\Manifest\ManifestMeta;
 use Slim\Psr7\Factory\ServerRequestFactory;
 
@@ -325,6 +328,26 @@ if ($inFolder->mode !== MediaFolderFilter::MODE_FOLDER || $inFolder->folderId !=
 }
 if ($unfiled->toQueryParams() !== ['folder' => 'unfiled']) {
     $fail('MediaFolderFilter::toQueryParams should emit unfiled.');
+}
+
+if (!ReservedContentSlugs::isReserved('forms')) {
+    $fail('ReservedContentSlugs should treat core segment "forms" as reserved.');
+}
+
+$fields = [
+    ['id' => 1, 'field_key' => 'email', 'field_type' => FormFieldType::EMAIL, 'label' => 'Email', 'required' => 1],
+    ['id' => 2, 'field_key' => '_hp_url', 'field_type' => FormFieldType::HONEYPOT, 'label' => 'HP', 'required' => 0],
+];
+$ok = FormValidator::validateSubmission(['email' => 'a@b.com'], $fields, true);
+if (($ok['ok'] ?? false) !== true) {
+    $fail('FormValidator should accept valid email submission.');
+}
+$spam = FormValidator::validateSubmission(['email' => 'a@b.com', '_hp_url' => 'bot'], $fields, true);
+if (($spam['ok'] ?? true) !== false) {
+    $fail('FormValidator should reject honeypot hits.');
+}
+if (FormSlugger::fromName('Contact Us!') !== 'contact-us') {
+    $fail('FormSlugger should slugify names.');
 }
 
 echo "All tests passed.\n";

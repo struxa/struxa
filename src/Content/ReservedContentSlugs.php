@@ -27,6 +27,7 @@ final class ReservedContentSlugs
         'logout',
         'search',
         'comments',
+        'forms',
         'uploads',
         'css',
         'js',

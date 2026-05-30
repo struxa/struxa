@@ -1,0 +1,25 @@
+{% set slug = section.form_slug|default('')|trim %}
+{% if slug == '' %}
+  <p class="struxa-form-missing">Choose a form slug in the block settings.</p>
+{% else %}
+  {% set bundle = forms_embed_bundle(slug) %}
+  {% if bundle is null %}
+    <p class="struxa-form-missing">Form <code>{{ slug|e }}</code> was not found or is not published.</p>
+  {% else %}
+    <link rel="stylesheet" href="{{ asset('css/forms-public.css') }}" />
+    <div class="struxa-form-embed">
+      {% if section.title|default('') != '' %}
+        <h2 class="struxa-form-heading">{{ section.title|e }}</h2>
+      {% endif %}
+      {% if section.lead|default('') != '' %}
+        <p class="struxa-form-lead">{{ section.lead|e|nl2br }}</p>
+      {% endif %}
+      {% include 'public/forms/_form_fields.twig' with {
+        form: bundle.form,
+        fields: bundle.fields,
+        action_url: url_for('public.forms.submit', { slug: slug }),
+        return_to: ''
+      } only %}
+    </div>
+  {% endif %}
+{% endif %}

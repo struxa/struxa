@@ -67,6 +67,7 @@ use App\Theme\ThemeHttpConfig;
 use App\Theme\ThemeManager;
 use App\Theme\ThemeViewResolver;
 use App\Twig\CmsTwigExtension;
+use App\Twig\FormTwigExtension;
 use App\Twig\ContentTypeCardsTwigExtension;
 use App\Twig\TaxonomyTwigExtension;
 use App\Twig\ThemeTwigExtension;
@@ -149,6 +150,7 @@ $twigLoaderPaths = ThemeViewResolver::twigLoaderPaths($themeManager, $root . '/t
 $twig = Twig::create($twigLoaderPaths, ['cache' => false]);
 $mediaUrlHelper = new MediaUrlHelper($pdo);
 $twig->getEnvironment()->addExtension(new CmsTwigExtension($mediaUrlHelper));
+$twig->getEnvironment()->addExtension(new FormTwigExtension($pdo));
 $twig->getEnvironment()->addExtension(new ContentTypeCardsTwigExtension(
     new ContentTypeRepository($pdo),
     new ContentEntryRepository($pdo),
@@ -639,6 +641,7 @@ $app->get('/logout', function (Request $request, Response $response) use ($twig,
 
 (require $root . '/routes/public_api.php')($app, $twig, $pdo, $viewData);
 (require $root . '/routes/public_comments.php')($app, $pdo, $root, $auth);
+(require $root . '/routes/public_forms.php')($app, $twig, $pdo, $root, $viewData);
 (require $root . '/routes/public_external_link_tracking.php')($app, $pdo, $root, $auth);
 
 (require $root . '/routes/admin.php')($app, $twig, $auth, $pdo, $viewData);
@@ -658,6 +661,7 @@ SectionDefinitionRegistry::instance()->registerProvider(new CoreSectionDefinitio
 (require $root . '/routes/admin_seo.php')($app, $twig, $auth, $pdo, $viewData);
 (require $root . '/routes/admin_security.php')($app, $twig, $auth, $pdo, $viewData);
 (require $root . '/routes/admin_comments.php')($app, $twig, $auth, $pdo, $viewData);
+(require $root . '/routes/admin_forms.php')($app, $twig, $auth, $pdo, $viewData);
 (require $root . '/routes/admin_system_api_keys.php')($app, $twig, $auth, $pdo, $viewData);
 (require $root . '/routes/admin_account.php')($app, $twig, $auth, $pdo, $viewData);
 (require $root . '/routes/admin_menus.php')($app, $twig, $auth, $pdo, $viewData);

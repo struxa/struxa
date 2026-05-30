@@ -1,0 +1,101 @@
+{% set _return = return_to|default('') %}
+<section class="struxa-form-wrap" aria-labelledby="struxa-form-{{ form.id|default('x') }}-title">
+  {% if section is defined and section.title|default('') != '' %}
+    <h2 id="struxa-form-{{ form.id|default('x') }}-title" class="struxa-form-heading">{{ section.title|e }}</h2>
+  {% endif %}
+  {% if section is defined and section.lead|default('') != '' %}
+    <p class="struxa-form-lead">{{ section.lead|e|nl2br }}</p>
+  {% endif %}
+
+  {% if flash_error|default('') != '' %}
+    <div class="struxa-form-flash struxa-form-flash--error" role="alert">{{ flash_error|e }}</div>
+  {% endif %}
+  {% if flash_success|default('') != '' %}
+    <div class="struxa-form-flash struxa-form-flash--success" role="status">{{ flash_success|e }}</div>
+  {% endif %}
+
+  <form class="struxa-form" method="post" action="{{ action_url|e('html_attr') }}" novalidate>
+    <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+    <input type="hidden" name="return_to" value="{{ _return|e('html_attr') }}" id="struxa-form-return-to" />
+
+    {% for field in fields %}
+      {% set type = field.field_type|default('text') %}
+      {% set key = field.field_key|default('field') %}
+      {% set req = field.required|default(false) %}
+      {% if type == 'honeypot' %}
+        <div class="struxa-form-hp" aria-hidden="true">
+          <label for="sf-{{ key|e('html_attr') }}">{{ field.label|default('Leave blank')|e }}</label>
+          <input type="text" id="sf-{{ key|e('html_attr') }}" name="{{ key|e('html_attr') }}" tabindex="-1" autocomplete="off" />
+        </div>
+      {% elseif type == 'hidden' %}
+        <input type="hidden" name="{{ key|e('html_attr') }}" value="{{ field.settings_json|default('')|e('html_attr') }}" />
+      {% elseif type == 'checkbox' %}
+        <div class="struxa-form-field struxa-form-field--checkbox">
+          <label class="struxa-form-checkbox">
+            <input type="checkbox" name="{{ key|e('html_attr') }}" value="1" {{ req ? 'required' : '' }} />
+            <span>{{ field.label|e }}{% if req %} <span class="struxa-form-req">*</span>{% endif %}</span>
+          </label>
+          {% if field.help_text|default('') != '' %}<p class="struxa-form-help">{{ field.help_text|e }}</p>{% endif %}
+        </div>
+      {% elseif type == 'checkboxes' %}
+        <fieldset class="struxa-form-field">
+          <legend>{{ field.label|e }}{% if req %} <span class="struxa-form-req">*</span>{% endif %}</legend>
+          {% for opt in field.options|default([]) %}
+            <label class="struxa-form-checkbox">
+              <input type="checkbox" name="{{ key|e('html_attr') }}[]" value="{{ opt|e('html_attr') }}" />
+              <span>{{ opt|e }}</span>
+            </label>
+          {% endfor %}
+          {% if field.help_text|default('') != '' %}<p class="struxa-form-help">{{ field.help_text|e }}</p>{% endif %}
+        </fieldset>
+      {% elseif type == 'radio' %}
+        <fieldset class="struxa-form-field">
+          <legend>{{ field.label|e }}{% if req %} <span class="struxa-form-req">*</span>{% endif %}</legend>
+          {% for opt in field.options|default([]) %}
+            <label class="struxa-form-radio">
+              <input type="radio" name="{{ key|e('html_attr') }}" value="{{ opt|e('html_attr') }}" {{ req ? 'required' : '' }} />
+              <span>{{ opt|e }}</span>
+            </label>
+          {% endfor %}
+          {% if field.help_text|default('') != '' %}<p class="struxa-form-help">{{ field.help_text|e }}</p>{% endif %}
+        </fieldset>
+      {% elseif type == 'select' %}
+        <div class="struxa-form-field">
+          <label for="sf-{{ key|e('html_attr') }}">{{ field.label|e }}{% if req %} <span class="struxa-form-req">*</span>{% endif %}</label>
+          <select id="sf-{{ key|e('html_attr') }}" name="{{ key|e('html_attr') }}" {{ req ? 'required' : '' }}>
+            <option value="">— Select —</option>
+            {% for opt in field.options|default([]) %}
+              <option value="{{ opt|e('html_attr') }}">{{ opt|e }}</option>
+            {% endfor %}
+          </select>
+          {% if field.help_text|default('') != '' %}<p class="struxa-form-help">{{ field.help_text|e }}</p>{% endif %}
+        </div>
+      {% elseif type == 'textarea' %}
+        <div class="struxa-form-field">
+          <label for="sf-{{ key|e('html_attr') }}">{{ field.label|e }}{% if req %} <span class="struxa-form-req">*</span>{% endif %}</label>
+          <textarea id="sf-{{ key|e('html_attr') }}" name="{{ key|e('html_attr') }}" rows="5" placeholder="{{ field.placeholder|default('')|e('html_attr') }}" {{ req ? 'required' : '' }}></textarea>
+          {% if field.help_text|default('') != '' %}<p class="struxa-form-help">{{ field.help_text|e }}</p>{% endif %}
+        </div>
+      {% else %}
+        {% set inputType = type in ['email','number','url','phone'] ? (type == 'phone' ? 'tel' : type) : 'text' %}
+        <div class="struxa-form-field">
+          <label for="sf-{{ key|e('html_attr') }}">{{ field.label|e }}{% if req %} <span class="struxa-form-req">*</span>{% endif %}</label>
+          <input type="{{ inputType|e('html_attr') }}" id="sf-{{ key|e('html_attr') }}" name="{{ key|e('html_attr') }}" placeholder="{{ field.placeholder|default('')|e('html_attr') }}" {{ req ? 'required' : '' }} />
+          {% if field.help_text|default('') != '' %}<p class="struxa-form-help">{{ field.help_text|e }}</p>{% endif %}
+        </div>
+      {% endif %}
+    {% endfor %}
+
+    <div class="struxa-form-actions">
+      <button type="submit" class="struxa-form-submit">{{ form.submit_label|default('Submit')|e }}</button>
+    </div>
+  </form>
+  <script>
+    (function () {
+      var el = document.getElementById('struxa-form-return-to');
+      if (el && el.value === '' && location.pathname.charAt(0) === '/') {
+        el.value = location.pathname + location.search + location.hash;
+      }
+    })();
+  </script>
+</section>

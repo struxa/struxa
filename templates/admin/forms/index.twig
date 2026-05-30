@@ -1,0 +1,69 @@
+{% extends 'admin/base.twig' %}
+
+{% block admin_title %}Forms{% endblock %}
+
+{% block admin_hero_title %}
+  <h1 class="admin-hero-title">Forms</h1>
+{% endblock %}
+
+{% block admin_hero_sub %}
+  <p class="admin-hero-sub">Build contact forms, collect submissions, and embed forms on pages.</p>
+{% endblock %}
+
+{% block admin_content %}
+  <div class="admin-toolbar admin-toolbar--spread" style="margin-bottom:1rem">
+    <p class="admin-hint">{{ form_rows|length }} form{{ form_rows|length == 1 ? '' : 's' }}</p>
+    <a class="admin-btn admin-btn--primary" href="{{ url_for('admin.forms.new') }}">Add form</a>
+  </div>
+
+  {% if form_rows is empty %}
+    <section class="admin-card">
+      <p class="admin-hint">No forms yet. Start with a template or a blank form.</p>
+      <a class="admin-btn admin-btn--primary" href="{{ url_for('admin.forms.new') }}">Create your first form</a>
+    </section>
+  {% else %}
+    <div class="admin-table-wrap">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Slug</th>
+            <th>Status</th>
+            <th>Entries</th>
+            <th>Updated</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in form_rows %}
+            <tr>
+              <td><strong>{{ row.name|e }}</strong></td>
+              <td><code class="admin-inline-code">{{ row.slug|e }}</code></td>
+              <td>
+                {% if row.status == 'published' %}
+                  <span class="admin-badge admin-badge--success">Published</span>
+                {% else %}
+                  <span class="admin-badge">Draft</span>
+                {% endif %}
+              </td>
+              <td>
+                {{ row.entry_count|default(0) }}
+                {% if row.new_entry_count|default(0) > 0 %}
+                  <span class="admin-badge admin-badge--warn">{{ row.new_entry_count }} new</span>
+                {% endif %}
+              </td>
+              <td><code class="admin-inline-code">{{ row.updated_at|e }}</code></td>
+              <td style="white-space:nowrap">
+                <a class="admin-btn admin-btn--ghost admin-btn--sm" href="{{ url_for('admin.forms.edit', { id: row.id }) }}">Edit</a>
+                <a class="admin-btn admin-btn--ghost admin-btn--sm" href="{{ url_for('admin.forms.entries', { id: row.id }) }}">Entries</a>
+                {% if row.status == 'published' %}
+                  <a class="admin-btn admin-btn--ghost admin-btn--sm" href="/forms/{{ row.slug|e('url') }}" target="_blank" rel="noopener">View</a>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% endif %}
+{% endblock %}

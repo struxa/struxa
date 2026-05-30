@@ -76,6 +76,10 @@ final class CsrfProtectionMiddleware implements MiddlewareInterface
             return true;
         }
 
+        if (preg_match('#^/forms/[a-z0-9]+(?:-[a-z0-9]+)*/submit$#', $path) === 1) {
+            return true;
+        }
+
         return false;
     }
 

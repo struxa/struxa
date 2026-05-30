@@ -1,0 +1,52 @@
+{% extends 'admin/base.twig' %}
+
+{% block admin_title %}Entry #{{ entry_row.id }}{% endblock %}
+
+{% block admin_hero_title %}
+  <h1 class="admin-hero-title">Entry #{{ entry_row.id }}</h1>
+{% endblock %}
+
+{% block admin_hero_sub %}
+  <p class="admin-hero-sub">{{ form_row.name|e }} · {{ entry_row.created_at|e }}</p>
+{% endblock %}
+
+{% block admin_content %}
+  <div class="admin-toolbar admin-toolbar--spread" style="margin-bottom:1rem;flex-wrap:wrap;gap:0.5rem">
+    <a class="admin-btn admin-btn--ghost" href="{{ url_for('admin.forms.entries', { id: form_row.id }) }}">Back to entries</a>
+    <div style="display:flex;gap:0.4rem;flex-wrap:wrap">
+      <form method="post" action="{{ url_for('admin.forms.entry.status', { id: form_row.id, entryId: entry_row.id }) }}">
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+        <input type="hidden" name="status" value="spam" />
+        <button class="admin-btn admin-btn--ghost admin-btn--sm" type="submit">Mark spam</button>
+      </form>
+      <form method="post" action="{{ url_for('admin.forms.entry.delete', { id: form_row.id, entryId: entry_row.id }) }}" onsubmit="return confirm('Delete this entry permanently?');">
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+        <button class="admin-btn admin-btn--danger admin-btn--sm" type="submit">Delete</button>
+      </form>
+    </div>
+  </div>
+
+  <section class="admin-card">
+    <dl class="admin-dl">
+      <div><dt>Status</dt><dd>{{ entry_row.status|e }}</dd></div>
+      <div><dt>IP</dt><dd><code class="admin-inline-code">{{ entry_row.ip_address|default('')|e }}</code></dd></div>
+      <div><dt>Referrer</dt><dd>{{ entry_row.referrer|default('')|e }}</dd></div>
+    </dl>
+  </section>
+
+  <section class="admin-card" style="margin-top:1rem">
+    <h2 class="admin-card-title">Submitted values</h2>
+    {% if value_rows is empty %}
+      <p class="admin-hint">No stored values.</p>
+    {% else %}
+      <dl class="admin-dl">
+        {% for v in value_rows %}
+          <div>
+            <dt>{{ field_labels[v.field_key]|default(v.field_key)|e }}</dt>
+            <dd style="white-space:pre-wrap">{{ v.value_text|default('')|e }}</dd>
+          </div>
+        {% endfor %}
+      </dl>
+    {% endif %}
+  </section>
+{% endblock %}

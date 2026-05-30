@@ -1,0 +1,63 @@
+{% extends 'admin/base.twig' %}
+
+{% block admin_title %}Entries — {{ form_row.name|e }}{% endblock %}
+
+{% block admin_hero_title %}
+  <h1 class="admin-hero-title">{{ form_row.name|e }} entries</h1>
+{% endblock %}
+
+{% block admin_hero_sub %}
+  <p class="admin-hero-sub">Review submissions, mark spam, and export to CSV.</p>
+{% endblock %}
+
+{% block admin_content %}
+  <div class="admin-toolbar admin-toolbar--spread" style="margin-bottom:0.75rem;flex-wrap:wrap;gap:0.5rem">
+    <div style="display:flex;gap:0.4rem;flex-wrap:wrap">
+      <a class="admin-btn admin-btn--ghost" href="{{ url_for('admin.forms.edit', { id: form_row.id }) }}">Edit form</a>
+      <a class="admin-btn admin-btn--ghost" href="{{ url_for('admin.forms.entries.export', { id: form_row.id }) }}">Export CSV</a>
+    </div>
+    <div class="admin-hint">
+      New {{ entry_new_count }} · Read {{ entry_read_count }} · Spam {{ entry_spam_count }}
+    </div>
+  </div>
+
+  <section class="admin-card">
+    <div class="admin-toolbar admin-toolbar--spread" style="margin-bottom:0.75rem;flex-wrap:wrap;gap:0.5rem">
+      <span class="admin-hint">Filter</span>
+      <div style="display:flex;gap:0.4rem;flex-wrap:wrap">
+        {% set _status = entry_status|default('all') %}
+        <a class="admin-btn {{ _status == 'all' ? 'admin-btn--primary' : 'admin-btn--ghost' }}" href="{{ url_for('admin.forms.entries', { id: form_row.id }, { status: 'all' }) }}">All</a>
+        <a class="admin-btn {{ _status == 'new' ? 'admin-btn--primary' : 'admin-btn--ghost' }}" href="{{ url_for('admin.forms.entries', { id: form_row.id }, { status: 'new' }) }}">New</a>
+        <a class="admin-btn {{ _status == 'read' ? 'admin-btn--primary' : 'admin-btn--ghost' }}" href="{{ url_for('admin.forms.entries', { id: form_row.id }, { status: 'read' }) }}">Read</a>
+        <a class="admin-btn {{ _status == 'spam' ? 'admin-btn--primary' : 'admin-btn--ghost' }}" href="{{ url_for('admin.forms.entries', { id: form_row.id }, { status: 'spam' }) }}">Spam</a>
+      </div>
+    </div>
+
+    {% if entry_rows is empty %}
+      <p class="admin-hint">No entries in this queue.</p>
+    {% else %}
+      <div class="admin-table-wrap">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>When</th>
+              <th>Status</th>
+              <th>IP</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in entry_rows %}
+              <tr>
+                <td><code class="admin-inline-code">{{ row.created_at|e }}</code></td>
+                <td>{{ row.status|e }}</td>
+                <td><code class="admin-inline-code">{{ row.ip_address|default('')|e }}</code></td>
+                <td><a class="admin-btn admin-btn--ghost admin-btn--sm" href="{{ url_for('admin.forms.entry', { id: form_row.id, entryId: row.id }) }}">View</a></td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% endif %}
+  </section>
+{% endblock %}

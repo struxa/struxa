@@ -1,0 +1,19 @@
+{% extends 'pages/plugin_public_theme_shell.twig' %}
+
+{% block plugin_public_body %}
+  <link rel="stylesheet" href="{{ asset('css/forms-public.css') }}" />
+  <main class="struxa-form-page">
+    <div class="struxa-form-page-inner">
+      <h1>{{ form.name|e }}</h1>
+      {% if form.description %}
+        <p class="struxa-form-lead">{{ form.description|e|nl2br }}</p>
+      {% endif %}
+      {% include 'public/forms/_form_fields.twig' with {
+        form: form,
+        fields: fields,
+        action_url: action_url,
+        return_to: return_to|default(null)
+      } only %}
+    </div>
+  </main>
+{% endblock %}
