@@ -1,0 +1,13 @@
+{# Rename a media folder. Expects: folder (id + name), return_folder, optional compact (bool) #}
+<form
+  method="post"
+  action="{{ url_for('admin.media.folders.edit', { id: folder.id }) }}"
+  class="admin-media-folder-rename-form{% if compact|default(false) %} admin-media-folder-rename-form--compact{% endif %}"
+>
+  {% include 'admin/media/_folder_return_fields.twig' %}
+  <label class="admin-media-folder-rename-label">
+    <span class="admin-media-folder-rename-label-text">{% if compact|default(false) %}Folder name{% else %}Rename{% endif %}</span>
+    <input class="admin-input admin-input--sm" type="text" name="name" value="{{ folder.name|e('html_attr') }}" maxlength="160" required autocomplete="off" />
+  </label>
+  <button type="submit" class="admin-btn-ghost admin-btn-ghost--sm">Save name</button>
+</form>

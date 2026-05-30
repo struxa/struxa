@@ -163,6 +163,13 @@
           {% endif %}
         </div>
       </details>
+
+      <div class="admin-sticky-save-bar" role="region" aria-label="Save page">
+        <div class="admin-sticky-save-inner">
+          <button type="submit" form="page-edit-form" class="admin-btn-primary" data-admin-save-primary name="after_save" value="stay">{{ is_edit ? 'Save changes' : 'Create page' }}</button>
+          <button type="submit" form="page-edit-form" class="admin-btn-ghost admin-sticky-save-view" name="after_save" value="view" title="Save and open the live page when published">Save &amp; view</button>
+        </div>
+      </div>
     </div>
 
       <aside class="admin-page-edit-aside" aria-label="Page details">
@@ -269,14 +276,7 @@
           </div>
         {% endif %}
       </aside>
-
-    <div class="admin-sticky-save-bar" role="region" aria-label="Save page">
-      <div class="admin-sticky-save-inner">
-        <button type="submit" form="page-edit-form" class="admin-btn-primary" data-admin-save-primary name="after_save" value="stay">{{ is_edit ? 'Save changes' : 'Create page' }}</button>
-        <button type="submit" form="page-edit-form" class="admin-btn-ghost admin-sticky-save-view" name="after_save" value="view" title="Save and open the live page when published">Save &amp; view</button>
-      </div>
-    </div>
-    </div>
+  </div>
 
   {% if media_picker_enabled|default(false) %}
     <script type="application/json" id="admin-page-media-picker-config">{{ {

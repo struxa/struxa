@@ -5,10 +5,27 @@
 (function () {
   'use strict';
 
-  function clearPanel(menu) {
+  var FOLDER_MENU_Z = 10000;
+  var DEFAULT_MENU_Z = 300;
+
+  function panelFor(menu) {
+    if (menu._actionsPanelEl) {
+      return menu._actionsPanelEl;
+    }
     var panel = menu.querySelector('.admin-actions-menu-panel');
     if (panel) {
+      menu._actionsPanelEl = panel;
+    }
+    return panel;
+  }
+
+  function clearPanel(menu) {
+    var panel = panelFor(menu);
+    if (panel) {
       panel.style.cssText = '';
+      if (menu.classList.contains('admin-media-folder-menu') && panel.parentElement === document.body) {
+        menu.appendChild(panel);
+      }
     }
   }
 
@@ -20,7 +37,7 @@
   }
 
   function positionPanel(menu) {
-    var panel = menu.querySelector('.admin-actions-menu-panel');
+    var panel = panelFor(menu);
     var trig = menu.querySelector('.admin-actions-menu-trigger');
     if (!panel || !trig) {
       return;
@@ -31,16 +48,22 @@
       return;
     }
 
+    if (menu.classList.contains('admin-media-folder-menu') && panel.parentElement !== document.body) {
+      document.body.appendChild(panel);
+    }
+
     function apply() {
       var r = trig.getBoundingClientRect();
       var gap = 6;
+      var isFolderMenu = menu.classList.contains('admin-media-folder-menu');
       panel.style.cssText = '';
       panel.style.position = 'fixed';
       panel.style.right = Math.max(8, window.innerWidth - r.right) + 'px';
       panel.style.left = 'auto';
       panel.style.top = r.bottom + gap + 'px';
-      panel.style.zIndex = '300';
-      panel.style.minWidth = Math.max(152, r.width) + 'px';
+      panel.style.zIndex = String(isFolderMenu ? FOLDER_MENU_Z : DEFAULT_MENU_Z);
+      var minW = isFolderMenu ? 216 : Math.max(152, r.width);
+      panel.style.minWidth = minW + 'px';
 
       var pr = panel.getBoundingClientRect();
       if (pr.bottom > window.innerHeight - 10) {

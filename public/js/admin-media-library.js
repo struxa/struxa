@@ -271,7 +271,12 @@
       if (bulkDelete) bulkDelete.disabled = n < 1;
       if (bulkMoveBtn) bulkMoveBtn.disabled = n < 1;
       if (bulkMoveSelect) bulkMoveSelect.disabled = n < 1;
-      if (bulkBar) bulkBar.classList.toggle('is-sticky', n > 0);
+      if (bulkBar) {
+        bulkBar.hidden = n < 1;
+        bulkBar.setAttribute('aria-hidden', n < 1 ? 'true' : 'false');
+        bulkBar.classList.toggle('is-active', n > 0);
+        bulkBar.classList.toggle('is-sticky', n > 0);
+      }
       if (bulkCount) {
         bulkCount.hidden = n < 1;
         bulkCount.textContent = n === 1 ? '1 selected' : n + ' selected';

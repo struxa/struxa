@@ -198,6 +198,13 @@
         </div>
       </details>
       {% endif %}
+
+      <div class="admin-sticky-save-bar" role="region" aria-label="Save entry">
+        <div class="admin-sticky-save-inner">
+          <button type="submit" form="entry-edit-form" class="admin-btn-primary" data-admin-save-primary name="after_save" value="stay">{{ is_edit ? 'Save entry' : 'Create entry' }}</button>
+          <button type="submit" form="entry-edit-form" class="admin-btn-ghost admin-sticky-save-view" name="after_save" value="view" title="Save and open the public page (when published with a public route)">Save &amp; view</button>
+        </div>
+      </div>
     </div>
 
     <aside class="admin-page-edit-aside" aria-label="Entry details">
@@ -333,13 +340,6 @@
         </div>
       {% endif %}
     </aside>
-
-    <div class="admin-sticky-save-bar" role="region" aria-label="Save entry">
-      <div class="admin-sticky-save-inner">
-        <button type="submit" form="entry-edit-form" class="admin-btn-primary" data-admin-save-primary name="after_save" value="stay">{{ is_edit ? 'Save entry' : 'Create entry' }}</button>
-        <button type="submit" form="entry-edit-form" class="admin-btn-ghost admin-sticky-save-view" name="after_save" value="view" title="Save and open the public page (when published with a public route)">Save &amp; view</button>
-      </div>
-    </div>
   </div>
 
   {% if media_picker_enabled|default(false) %}

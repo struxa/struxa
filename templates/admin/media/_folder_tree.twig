@@ -1,8 +1,8 @@
-{% macro folder_tree(nodes, current_filter, mq_base, depth) %}
+{% macro folder_tree(nodes, current_filter, mq_base, depth, return_folder, search_q, media_view, media_sort, per_page, page) %}
   {% import _self as folders %}
   {% for node in nodes %}
     {% set folder_mq = mq_base|merge({ folder: node.id }) %}
-    {% set is_active = current_filter.mode == 'folder' and current_filter.folderId == node.id %}
+    {% set is_active = current_filter and current_filter.mode == 'folder' and current_filter.folderId == node.id %}
     <li class="admin-media-folder-item" style="--folder-depth: {{ depth }}">
       <div class="admin-media-folder-row{% if is_active %} is-active{% endif %}">
         <a href="{{ url_for('admin.media.index', {}, folder_mq) }}" class="admin-media-folder-link">
@@ -14,24 +14,25 @@
         </a>
         <details class="admin-actions-menu admin-media-folder-menu">
           <summary class="admin-actions-menu-trigger" aria-label="Folder actions for {{ node.name|e('html_attr') }}">⋯</summary>
-          <div class="admin-actions-menu-panel">
-            <form method="post" action="{{ url_for('admin.media.folders.edit', { id: node.id }) }}" class="admin-media-folder-rename-form">
-              <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
-              <input type="hidden" name="return_folder" value="{{ current_filter.mode == 'folder' ? current_filter.folderId : (current_filter.mode == 'unfiled' ? 'unfiled' : '') }}" />
-              <input type="hidden" name="return_q" value="{{ search_q|default('')|e('html_attr') }}" />
-              <input type="hidden" name="return_view" value="{{ media_view|default('gallery')|e('html_attr') }}" />
-              <input type="hidden" name="return_sort" value="{{ media_sort|default('newest')|e('html_attr') }}" />
-              <input type="hidden" name="return_per_page" value="{{ per_page|default(24) }}" />
-              <input type="hidden" name="return_page" value="{{ page|default(1) }}" />
-              <label class="admin-media-folder-rename-label">
-                <span>Rename</span>
-                <input class="admin-input admin-input--sm" type="text" name="name" value="{{ node.name|e('html_attr') }}" maxlength="160" required />
-              </label>
-              <button type="submit" class="admin-btn-ghost admin-btn-ghost--sm">Save name</button>
-            </form>
-            <form method="post" action="{{ url_for('admin.media.folders.delete', { id: node.id }) }}" onsubmit="return confirm('Delete folder “{{ node.name|e('js') }}”?\n\nSubfolders are removed. Files inside become unfiled.');">
-              <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
-              <input type="hidden" name="return_folder" value="{{ current_filter.mode == 'folder' ? current_filter.folderId : (current_filter.mode == 'unfiled' ? 'unfiled' : '') }}" />
+          <div class="admin-actions-menu-panel admin-media-folder-menu-panel">
+            {% include 'admin/media/_folder_rename_form.twig' with {
+              folder: node,
+              return_folder: return_folder,
+              search_q: search_q,
+              media_view: media_view,
+              media_sort: media_sort,
+              per_page: per_page,
+              page: page
+            } %}
+            <form method="post" action="{{ url_for('admin.media.folders.delete', { id: node.id }) }}" class="admin-media-folder-delete-form" onsubmit="return confirm('Delete folder “{{ node.name|e('js') }}”?\n\nSubfolders are removed. Files inside become unfiled.');">
+              {% include 'admin/media/_folder_return_fields.twig' with {
+                return_folder: return_folder,
+                search_q: search_q,
+                media_view: media_view,
+                media_sort: media_sort,
+                per_page: per_page,
+                page: page
+              } %}
               <button type="submit" class="admin-actions-danger">Delete folder</button>
             </form>
           </div>
@@ -39,7 +40,7 @@
       </div>
       {% if node.children|default([]) is not empty %}
         <ul class="admin-media-folder-children" role="list">
-          {{ folders.folder_tree(node.children, current_filter, mq_base, depth + 1) }}
+          {{ folders.folder_tree(node.children, current_filter, mq_base, depth + 1, return_folder, search_q, media_view, media_sort, per_page, page) }}
         </ul>
       {% endif %}
     </li>

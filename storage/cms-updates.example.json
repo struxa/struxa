@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.1.20",
-    "title": "Struxa 1.1.20",
-    "summary": "Form builder UI overhaul (drag-and-drop reorder, field palette, preview canvas, settings sidebar) and fix for page/entry edit failing on the SEO analysis panel.",
+    "latest_version": "1.1.21",
+    "title": "Struxa 1.1.21",
+    "summary": "Media library UI polish and folder rename; SEO score donuts; page edit save bar layout fix; folder action menus render above the library grid.",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "minor"

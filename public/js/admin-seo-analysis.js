@@ -81,13 +81,33 @@
     if (descEl) descEl.textContent = desc || 'Meta description preview will appear here as you type.';
   }
 
+  function scoreStatusLabel(n) {
+    if (n >= 70) return 'Good';
+    if (n >= 40) return 'OK';
+    return 'Needs work';
+  }
+
   function setScore(kind, value) {
     var valEl = el(kind === 'seo' ? 'seo-score-value' : 'readability-score-value');
-    var ring = document.querySelector('.admin-seo-score-ring[data-score-kind="' + kind + '"]');
+    var statusEl = el(kind === 'seo' ? 'seo-score-status' : 'readability-score-status');
+    var card = document.querySelector('.admin-seo-score-card[data-score-kind="' + kind + '"]');
+    var donut = card ? card.querySelector('.admin-seo-score-donut') : null;
     if (valEl) valEl.textContent = value > 0 ? String(value) : '—';
-    if (ring) {
-      ring.classList.remove('is-good', 'is-ok', 'is-bad');
-      if (value > 0) ring.classList.add(scoreClass(value));
+    if (card) {
+      card.classList.remove('is-good', 'is-ok', 'is-bad');
+      if (value > 0) card.classList.add(scoreClass(value));
+    }
+    if (donut) {
+      donut.style.setProperty('--score-p', value > 0 ? (Math.min(100, value) / 100).toFixed(4) : '0');
+    }
+    if (statusEl) {
+      if (value > 0) {
+        statusEl.textContent = scoreStatusLabel(value);
+        statusEl.hidden = false;
+      } else {
+        statusEl.textContent = '';
+        statusEl.hidden = true;
+      }
     }
   }
 

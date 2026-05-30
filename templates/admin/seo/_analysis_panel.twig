@@ -13,13 +13,23 @@
   data-entity-id="{{ sac.entity_id|default('')|e('html_attr') }}"
 >
   <div class="admin-seo-analysis-scores">
-    <div class="admin-seo-score-ring" data-score-kind="seo">
-      <span class="admin-seo-score-value" id="seo-score-value">—</span>
+    <div class="admin-seo-score-card" data-score-kind="seo">
+      <div class="admin-seo-score-donut" aria-hidden="true">
+        <div class="admin-seo-score-donut-inner">
+          <span class="admin-seo-score-value" id="seo-score-value" aria-label="SEO score">—</span>
+        </div>
+      </div>
       <span class="admin-seo-score-label">SEO</span>
+      <span class="admin-seo-score-status" id="seo-score-status" hidden></span>
     </div>
-    <div class="admin-seo-score-ring" data-score-kind="readability">
-      <span class="admin-seo-score-value" id="readability-score-value">—</span>
+    <div class="admin-seo-score-card" data-score-kind="readability">
+      <div class="admin-seo-score-donut" aria-hidden="true">
+        <div class="admin-seo-score-donut-inner">
+          <span class="admin-seo-score-value" id="readability-score-value" aria-label="Readability score">—</span>
+        </div>
+      </div>
       <span class="admin-seo-score-label">Readability</span>
+      <span class="admin-seo-score-status" id="readability-score-status" hidden></span>
     </div>
   </div>
 

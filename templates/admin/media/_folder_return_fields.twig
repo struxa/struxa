@@ -1,0 +1,7 @@
+<input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+<input type="hidden" name="return_folder" value="{{ return_folder|default('')|e('html_attr') }}" />
+<input type="hidden" name="return_q" value="{{ search_q|default('')|e('html_attr') }}" />
+<input type="hidden" name="return_view" value="{{ media_view|default('gallery')|e('html_attr') }}" />
+<input type="hidden" name="return_sort" value="{{ media_sort|default('newest')|e('html_attr') }}" />
+<input type="hidden" name="return_per_page" value="{{ per_page|default(24) }}" />
+<input type="hidden" name="return_page" value="{{ page|default(1) }}" />
