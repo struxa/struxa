@@ -52,11 +52,7 @@
         <article class="admin-ct-card" role="listitem">
           <a class="admin-ct-card-main" href="{{ entries_url|e('html_attr') }}">
             <span class="admin-ct-card-icon" aria-hidden="true">
-              {% if t.icon %}
-                <span class="admin-ct-card-icon-glyph">{{ t.icon|e }}</span>
-              {% else %}
-                <span class="admin-ct-card-icon-letter">{{ t.name|slice(0, 1)|upper }}</span>
-              {% endif %}
+              {% include 'admin/content/_content_type_icon.twig' with { icon: t.icon, slug: t.slug, name: t.name } %}
             </span>
             <span class="admin-ct-card-body">
               <span class="admin-ct-card-head">

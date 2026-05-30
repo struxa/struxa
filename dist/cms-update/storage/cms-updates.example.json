@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.1.12",
-    "title": "Struxa 1.1.12",
-    "summary": "Adds consistent vertical spacing between Recent revisions and Stakeholder preview cards in the page/entry editor sidebar.",
+    "latest_version": "1.1.13",
+    "title": "Struxa 1.1.13",
+    "summary": "Content type cards render SVG icons from icon slugs (e.g. post-outline, cube-outline) instead of invisible text.",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "patch"
