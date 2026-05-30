@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.1.19",
-    "title": "Struxa 1.1.19",
-    "summary": "Yoast-style SEO analysis (focus keyphrase, readability scores, overview dashboard, breadcrumb schema) and advanced forms (conditional logic, multi-page, uploads, quizzes).",
+    "latest_version": "1.1.20",
+    "title": "Struxa 1.1.20",
+    "summary": "Form builder UI overhaul (drag-and-drop reorder, field palette, preview canvas, settings sidebar) and fix for page/entry edit failing on the SEO analysis panel.",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "minor"

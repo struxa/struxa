@@ -1,0 +1,128 @@
+{# Form settings sidebar — expects: form_row, is_quiz #}
+<form method="post" action="{{ url_for('admin.forms.update', { id: form_row.id }) }}" class="admin-form-stack admin-fb-settings-form" id="forms-settings-form">
+  <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+
+  <details class="admin-fb-settings-section" open>
+    <summary class="admin-fb-settings-summary">General</summary>
+    <div class="admin-fb-settings-body">
+      <label class="admin-label">
+        <span>Name</span>
+        <input class="admin-input" type="text" name="name" value="{{ form_row.name|e('html_attr') }}" required maxlength="200" />
+      </label>
+      <label class="admin-label">
+        <span>Slug</span>
+        <input class="admin-input" type="text" name="slug" value="{{ form_row.slug|e('html_attr') }}" required maxlength="120" />
+      </label>
+      <label class="admin-label">
+        <span>Status</span>
+        <select class="admin-select" name="status">
+          <option value="draft" {{ form_row.status == 'draft' ? 'selected' : '' }}>Draft</option>
+          <option value="published" {{ form_row.status == 'published' ? 'selected' : '' }}>Published</option>
+        </select>
+      </label>
+      <label class="admin-label">
+        <span>Form type</span>
+        <select class="admin-select" name="form_type" id="forms-form-type">
+          <option value="standard" {{ form_row.form_type|default('standard') == 'standard' ? 'selected' : '' }}>Standard</option>
+          <option value="quiz" {{ form_row.form_type|default('standard') == 'quiz' ? 'selected' : '' }}>Quiz (scored)</option>
+        </select>
+      </label>
+      <label class="admin-label">
+        <span>Description (internal)</span>
+        <textarea class="admin-textarea" name="description" rows="2">{{ form_row.description|default('')|e }}</textarea>
+      </label>
+    </div>
+  </details>
+
+  <details class="admin-fb-settings-section" open>
+    <summary class="admin-fb-settings-summary">Buttons &amp; pages</summary>
+    <div class="admin-fb-settings-body">
+      <label class="admin-label">
+        <span>Submit button label</span>
+        <input class="admin-input" type="text" name="submit_label" value="{{ form_row.submit_label|default('Submit')|e('html_attr') }}" maxlength="80" />
+      </label>
+      <div class="admin-form-grid admin-form-grid--2col-tight">
+        <label class="admin-label">
+          <span>Next page label</span>
+          <input class="admin-input" type="text" name="next_label" value="{{ form_row.next_label|default('Next')|e('html_attr') }}" maxlength="80" />
+        </label>
+        <label class="admin-label">
+          <span>Previous page label</span>
+          <input class="admin-input" type="text" name="prev_label" value="{{ form_row.prev_label|default('Previous')|e('html_attr') }}" maxlength="80" />
+        </label>
+      </div>
+    </div>
+  </details>
+
+  <details class="admin-fb-settings-section" id="forms-quiz-settings" {% if not is_quiz %}hidden{% endif %}>
+    <summary class="admin-fb-settings-summary">Quiz</summary>
+    <div class="admin-fb-settings-body">
+      {% set qs = form_row.settings|default({}) %}
+      <label class="admin-label">
+        <span>Pass score (%)</span>
+        <input class="admin-input" type="number" name="quiz_pass_percent" min="0" max="100" value="{{ qs.quiz_pass_percent|default(70) }}" />
+      </label>
+      <label class="admin-checkbox">
+        <input type="checkbox" name="quiz_show_score" value="1" {{ qs.quiz_show_score|default(true) ? 'checked' : '' }} />
+        Show score in confirmation message
+      </label>
+      <label class="admin-label">
+        <span>Pass message</span>
+        <input class="admin-input" type="text" name="quiz_pass_message" value="{{ qs.quiz_pass_message|default('Well done!')|e('html_attr') }}" />
+      </label>
+      <label class="admin-label">
+        <span>Fail message</span>
+        <input class="admin-input" type="text" name="quiz_fail_message" value="{{ qs.quiz_fail_message|default('Try again.')|e('html_attr') }}" />
+      </label>
+    </div>
+  </details>
+
+  <details class="admin-fb-settings-section">
+    <summary class="admin-fb-settings-summary">After submit</summary>
+    <div class="admin-fb-settings-body">
+      <label class="admin-label">
+        <span>Confirmation</span>
+        <select class="admin-select" name="confirmation_type" id="forms-confirmation-type">
+          <option value="message" {{ form_row.confirmation_type|default('message') == 'message' ? 'selected' : '' }}>Show message</option>
+          <option value="redirect" {{ form_row.confirmation_type|default('message') == 'redirect' ? 'selected' : '' }}>Redirect</option>
+        </select>
+      </label>
+      <label class="admin-label" id="forms-confirmation-message-wrap">
+        <span>Message</span>
+        <textarea class="admin-textarea" name="confirmation_message" rows="3">{{ form_row.confirmation_message|default('Thanks — your submission was received.')|e }}</textarea>
+      </label>
+      <label class="admin-label" id="forms-confirmation-redirect-wrap" hidden>
+        <span>Redirect URL</span>
+        <input class="admin-input" type="text" name="confirmation_redirect_url" value="{{ form_row.confirmation_redirect_url|default('')|e('html_attr') }}" placeholder="/thank-you" />
+      </label>
+    </div>
+  </details>
+
+  <details class="admin-fb-settings-section">
+    <summary class="admin-fb-settings-summary">Notifications</summary>
+    <div class="admin-fb-settings-body">
+      <label class="admin-checkbox">
+        <input type="checkbox" name="notify_enabled" value="1" {{ form_row.notify_enabled|default(1) ? 'checked' : '' }} />
+        Email admins on new submission
+      </label>
+      <label class="admin-label">
+        <span>Notification emails</span>
+        <input class="admin-input" type="text" name="notify_emails" value="{{ form_row.notify_emails|default('')|e('html_attr') }}" placeholder="you@example.com, team@example.com" />
+      </label>
+      <label class="admin-label">
+        <span>Email subject</span>
+        <input class="admin-input" type="text" name="notify_subject" value="{{ form_row.notify_subject|default('')|e('html_attr') }}" maxlength="255" />
+      </label>
+    </div>
+  </details>
+
+  <details class="admin-fb-settings-section">
+    <summary class="admin-fb-settings-summary">Spam protection</summary>
+    <div class="admin-fb-settings-body">
+      <label class="admin-checkbox">
+        <input type="checkbox" name="honeypot_enabled" value="1" {{ form_row.honeypot_enabled|default(1) ? 'checked' : '' }} />
+        Honeypot field (recommended)
+      </label>
+    </div>
+  </details>
+</form>

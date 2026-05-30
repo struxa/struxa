@@ -1,0 +1,67 @@
+{# Inline field editor — expects: form_id, field, field_key_options, field_types, is_quiz #}
+<form method="post" action="{{ url_for('admin.forms.fields.update', { id: form_id, fieldId: field.id }) }}" class="admin-fb-field-edit-form admin-form-stack" id="field-{{ field.id }}">
+  <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+  <div class="admin-form-grid admin-form-grid--2col-tight">
+    <label class="admin-label"><span>Label</span><input class="admin-input" type="text" name="label" value="{{ field.label|e('html_attr') }}" required /></label>
+    <label class="admin-label"><span>Page</span><input class="admin-input" type="number" name="page_number" min="1" value="{{ field.page_number|default(1) }}" /></label>
+    <label class="admin-label"><span>Placeholder</span><input class="admin-input" type="text" name="placeholder" value="{{ field.placeholder|default('')|e('html_attr') }}" /></label>
+    <label class="admin-label"><span>Help text</span><input class="admin-input" type="text" name="help_text" value="{{ field.help_text|default('')|e('html_attr') }}" /></label>
+  </div>
+  {% if field.field_type in ['select','radio','checkboxes'] %}
+    <label class="admin-label"><span>Options (one per line)</span><textarea class="admin-textarea" name="options" rows="3">{% for opt in field.options|default([]) %}{{ opt|e }}
+{% endfor %}</textarea></label>
+  {% endif %}
+  {% if field.field_type == 'file' %}
+    <div class="admin-form-grid admin-form-grid--2col-tight">
+      <label class="admin-label"><span>Max size (MB)</span><input class="admin-input" type="number" name="file_max_mb" min="1" max="20" value="{{ field.settings.max_mb|default(5) }}" /></label>
+      <label class="admin-label"><span>Allowed extensions</span><input class="admin-input" type="text" name="file_extensions" value="{{ field.settings.extensions|default(['pdf','jpg','png'])|join(',')|e('html_attr') }}" /></label>
+    </div>
+  {% endif %}
+  {% if is_quiz and field.field_type in ['select','radio','checkboxes'] %}
+    <div class="admin-form-grid admin-form-grid--2col-tight">
+      <label class="admin-label"><span>Points</span><input class="admin-input" type="number" name="quiz_points" min="1" value="{{ field.settings.quiz_points|default(1) }}" /></label>
+      <label class="admin-label"><span>Correct answer{% if field.field_type == 'checkboxes' %} (one per line){% endif %}</span>
+        {% if field.field_type == 'checkboxes' %}
+          <textarea class="admin-textarea" name="quiz_correct" rows="2">{% if field.settings.quiz_correct is iterable %}{% for c in field.settings.quiz_correct %}{{ c|e }}
+{% endfor %}{% else %}{{ field.settings.quiz_correct|default('')|e }}{% endif %}</textarea>
+        {% else %}
+          <input class="admin-input" type="text" name="quiz_correct" value="{{ field.settings.quiz_correct|default('')|e('html_attr') }}" />
+        {% endif %}
+      </label>
+    </div>
+  {% endif %}
+  {% if field.field_type != 'page_break' %}
+    <label class="admin-checkbox"><input type="checkbox" name="required" value="1" {{ field.required ? 'checked' : '' }} /> Required field</label>
+  {% endif %}
+  <fieldset class="admin-fb-conditional-fieldset">
+    <legend class="admin-label">Conditional logic</legend>
+    <label class="admin-checkbox"><input type="checkbox" name="conditional_enabled" value="1" {{ field.conditional.enabled|default(false) ? 'checked' : '' }} /> Show only when conditions match</label>
+    <div class="admin-form-grid admin-form-grid--2col-tight">
+      <label class="admin-label"><span>When field</span>
+        <select class="admin-select" name="conditional_field_key">
+          <option value="">—</option>
+          {% for fk in field_key_options|default([]) %}
+            {% if fk != field.field_key %}
+              <option value="{{ fk|e('html_attr') }}" {{ field.conditional.rules[0].field_key|default('') == fk ? 'selected' : '' }}>{{ fk|e }}</option>
+            {% endif %}
+          {% endfor %}
+        </select>
+      </label>
+      <label class="admin-label"><span>Operator</span>
+        <select class="admin-select" name="conditional_operator">
+          {% set cop = field.conditional.rules[0].operator|default('is') %}
+          <option value="is" {{ cop == 'is' ? 'selected' : '' }}>equals</option>
+          <option value="is_not" {{ cop == 'is_not' ? 'selected' : '' }}>does not equal</option>
+          <option value="contains" {{ cop == 'contains' ? 'selected' : '' }}>contains</option>
+          <option value="empty" {{ cop == 'empty' ? 'selected' : '' }}>is empty</option>
+          <option value="not_empty" {{ cop == 'not_empty' ? 'selected' : '' }}>is not empty</option>
+        </select>
+      </label>
+    </div>
+    <label class="admin-label"><span>Value</span><input class="admin-input" type="text" name="conditional_value" value="{{ field.conditional.rules[0].value|default('')|e('html_attr') }}" /></label>
+  </fieldset>
+  <div class="admin-fb-field-edit-actions">
+    <button class="admin-btn admin-btn--primary admin-btn--sm" type="submit">Save field</button>
+    <button class="admin-btn admin-btn--ghost admin-btn--sm" type="button" data-fb-close-edit>Close</button>
+  </div>
+</form>

@@ -1,6 +1,8 @@
 {% extends 'admin/base.twig' %}
+{% import 'admin/_ui_macros.twig' as ui %}
 
 {% block admin_title %}Edit form — {{ form_row.name|e }}{% endblock %}
+{% block admin_body_class %}admin-body--form-edit{% endblock %}
 
 {% block admin_head %}
   <script src="{{ asset('js/admin-forms-builder.js') }}" defer></script>
@@ -10,314 +12,197 @@
   <h1 class="admin-hero-title">{{ form_row.name|e }}</h1>
 {% endblock %}
 
+{% block admin_breadcrumbs %}
+  {% include 'admin/partials/_breadcrumbs.twig' with {
+    breadcrumbs: [
+      { label: 'Forms', url: url_for('admin.forms.index') },
+      { label: form_row.name|length > 42 ? form_row.name|slice(0, 39) ~ '…' : form_row.name },
+    ],
+  } %}
+{% endblock %}
+
 {% block admin_hero_sub %}
-  <p class="admin-hero-sub">
-    Slug <code class="admin-inline-code">{{ form_row.slug|e }}</code>
+  <p class="admin-hero-sub admin-fb-hero-meta">
     {% if form_row.status == 'published' %}
-      · <a href="{{ public_url|e('html_attr') }}" target="_blank" rel="noopener">Public URL</a>
+      {{ ui.status_badge('published') }}
+    {% else %}
+      {{ ui.status_badge('draft') }}
     {% endif %}
+    <span class="admin-fb-hero-chip">{{ field_rows|length }} field{% if field_rows|length != 1 %}s{% endif %}</span>
+    {% if is_quiz %}<span class="admin-fb-hero-chip admin-fb-hero-chip--quiz">Quiz</span>{% endif %}
+    <span class="admin-fb-hero-slug">/{{ form_row.slug|e }}</span>
+    <span class="admin-fb-hero-links">
+      <a class="admin-link" href="{{ url_for('admin.forms.entries', { id: form_row.id }) }}">Entries</a>
+      {% if form_row.status == 'published' %}
+        · <a class="admin-link" href="{{ public_url|e('html_attr') }}" target="_blank" rel="noopener">View live</a>
+      {% endif %}
+    </span>
   </p>
 {% endblock %}
 
 {% block admin_content %}
-  <div class="admin-toolbar admin-toolbar--spread" style="margin-bottom:1rem;flex-wrap:wrap;gap:0.5rem">
-    <div style="display:flex;gap:0.4rem;flex-wrap:wrap">
-      <a class="admin-btn admin-btn--ghost" href="{{ url_for('admin.forms.index') }}">All forms</a>
-      <a class="admin-btn admin-btn--ghost" href="{{ url_for('admin.forms.entries', { id: form_row.id }) }}">Entries</a>
-    </div>
-    <form method="post" action="{{ url_for('admin.forms.delete', { id: form_row.id }) }}" onsubmit="return confirm('Delete this form and all entries?');">
-      <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
-      <button class="admin-btn admin-btn--danger admin-btn--sm" type="submit">Delete form</button>
-    </form>
-  </div>
+  <div class="admin-page-edit-layout admin-fb-layout">
+    <div class="admin-page-edit-main admin-fb-main">
+      <section
+        class="admin-card admin-fb-shell"
+        id="admin-forms-builder"
+        data-reorder-url="{{ url_for('admin.forms.fields.reorder', { id: form_row.id })|e('html_attr') }}"
+        data-csrf="{{ csrf_token()|e('html_attr') }}"
+      >
+        <header class="admin-fb-shell-head">
+          <div class="admin-fb-shell-head-text">
+            <h2 class="admin-fb-shell-title">Form builder</h2>
+            <p class="admin-hint admin-fb-shell-lead">Drag fields to reorder. Pick a type below to add more.</p>
+          </div>
+          <p class="admin-fb-status" id="admin-fb-status" hidden aria-live="polite"></p>
+        </header>
 
-  <div class="admin-forms-layout">
-    <section class="admin-card admin-forms-builder">
-      <div class="admin-toolbar admin-toolbar--spread" style="margin-bottom:0.75rem">
-        <h2 class="admin-card-title" style="margin:0">Fields</h2>
-        <span class="admin-hint">Drag to reorder</span>
-      </div>
-
-      {% if field_rows is empty %}
-        <p class="admin-hint">No fields yet. Add your first field below.</p>
-      {% else %}
-        {% for field in field_rows %}
-          <form id="delete-field-{{ field.id }}" method="post" action="{{ url_for('admin.forms.fields.delete', { id: form_row.id, fieldId: field.id }) }}" hidden>
-            <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
-          </form>
-        {% endfor %}
-        <form method="post" action="{{ url_for('admin.forms.fields.reorder', { id: form_row.id }) }}" id="forms-field-reorder-form">
-          <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
-          <ul class="forms-field-list" id="forms-field-list" data-reorder-form="forms-field-reorder-form">
-            {% for field in field_rows %}
-              <li class="forms-field-item" draggable="true" data-field-id="{{ field.id }}">
-                <span class="forms-field-drag" aria-hidden="true">⋮⋮</span>
-                <input type="hidden" name="field_order[]" value="{{ field.id }}" />
-                <div class="forms-field-meta">
-                  <strong>{{ field.label|e }}</strong>
-                  <span class="admin-hint">
-                    {{ field_types[field.field_type]|default(field.field_type)|e }}
-                    · <code>{{ field.field_key|e }}</code>
-                    · page {{ field.page_number|default(1) }}
-                    {% if field.required %} · required{% endif %}
-                    {% if field.conditional.enabled|default(false) %} · conditional{% endif %}
-                    {% if is_quiz and field.settings.quiz_points|default(0) > 0 %} · {{ field.settings.quiz_points }} pt{% endif %}
-                  </span>
-                </div>
-                <details class="forms-field-edit">
-                  <summary class="admin-btn admin-btn--ghost admin-btn--sm">Edit</summary>
-                  <form method="post" action="{{ url_for('admin.forms.fields.update', { id: form_row.id, fieldId: field.id }) }}" class="admin-form-stack forms-field-edit-form" id="field-{{ field.id }}">
-                    <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
-                    <label class="admin-label"><span>Label</span><input class="admin-input" type="text" name="label" value="{{ field.label|e('html_attr') }}" required /></label>
-                    <label class="admin-label"><span>Page</span><input class="admin-input" type="number" name="page_number" min="1" value="{{ field.page_number|default(1) }}" /></label>
-                    <label class="admin-label"><span>Placeholder</span><input class="admin-input" type="text" name="placeholder" value="{{ field.placeholder|default('')|e('html_attr') }}" /></label>
-                    <label class="admin-label"><span>Help text</span><input class="admin-input" type="text" name="help_text" value="{{ field.help_text|default('')|e('html_attr') }}" /></label>
-                    {% if field.field_type in ['select','radio','checkboxes'] %}
-                      <label class="admin-label"><span>Options (one per line)</span><textarea class="admin-input" name="options" rows="3">{% for opt in field.options|default([]) %}{{ opt|e }}
-{% endfor %}</textarea></label>
-                    {% endif %}
-                    {% if field.field_type == 'file' %}
-                      <label class="admin-label"><span>Max size (MB)</span><input class="admin-input" type="number" name="file_max_mb" min="1" max="20" value="{{ field.settings.max_mb|default(5) }}" /></label>
-                      <label class="admin-label"><span>Allowed extensions</span><input class="admin-input" type="text" name="file_extensions" value="{{ field.settings.extensions|default(['pdf','jpg','png'])|join(',')|e('html_attr') }}" /></label>
-                    {% endif %}
-                    {% if is_quiz and field.field_type in ['select','radio','checkboxes'] %}
-                      <label class="admin-label"><span>Points</span><input class="admin-input" type="number" name="quiz_points" min="1" value="{{ field.settings.quiz_points|default(1) }}" /></label>
-                      <label class="admin-label"><span>Correct answer{% if field.field_type == 'checkboxes' %} (one per line){% endif %}</span>
-                        {% if field.field_type == 'checkboxes' %}
-                          <textarea class="admin-input" name="quiz_correct" rows="2">{% if field.settings.quiz_correct is iterable %}{% for c in field.settings.quiz_correct %}{{ c|e }}
-{% endfor %}{% else %}{{ field.settings.quiz_correct|default('')|e }}{% endif %}</textarea>
-                        {% else %}
-                          <input class="admin-input" type="text" name="quiz_correct" value="{{ field.settings.quiz_correct|default('')|e('html_attr') }}" />
-                        {% endif %}
-                      </label>
-                    {% endif %}
-                    {% if field.field_type != 'page_break' %}
-                      <label class="admin-checkbox"><input type="checkbox" name="required" value="1" {{ field.required ? 'checked' : '' }} /> Required</label>
-                    {% endif %}
-                    <fieldset class="forms-conditional-fieldset">
-                      <legend class="admin-hint">Conditional logic</legend>
-                      <label class="admin-checkbox"><input type="checkbox" name="conditional_enabled" value="1" {{ field.conditional.enabled|default(false) ? 'checked' : '' }} /> Enable</label>
-                      <label class="admin-label"><span>Show when field</span>
-                        <select class="admin-input" name="conditional_field_key">
-                          <option value="">—</option>
-                          {% for fk in field_key_options|default([]) %}
-                            {% if fk != field.field_key %}
-                              <option value="{{ fk|e('html_attr') }}" {{ field.conditional.rules[0].field_key|default('') == fk ? 'selected' : '' }}>{{ fk|e }}</option>
-                            {% endif %}
-                          {% endfor %}
-                        </select>
-                      </label>
-                      <label class="admin-label"><span>Operator</span>
-                        <select class="admin-input" name="conditional_operator">
-                          {% set cop = field.conditional.rules[0].operator|default('is') %}
-                          <option value="is" {{ cop == 'is' ? 'selected' : '' }}>equals</option>
-                          <option value="is_not" {{ cop == 'is_not' ? 'selected' : '' }}>does not equal</option>
-                          <option value="contains" {{ cop == 'contains' ? 'selected' : '' }}>contains</option>
-                          <option value="empty" {{ cop == 'empty' ? 'selected' : '' }}>is empty</option>
-                          <option value="not_empty" {{ cop == 'not_empty' ? 'selected' : '' }}>is not empty</option>
-                        </select>
-                      </label>
-                      <label class="admin-label"><span>Value</span><input class="admin-input" type="text" name="conditional_value" value="{{ field.conditional.rules[0].value|default('')|e('html_attr') }}" /></label>
-                    </fieldset>
-                    <button class="admin-btn admin-btn--primary admin-btn--sm" type="submit">Save field</button>
-                  </form>
-                </details>
-                <button class="admin-btn admin-btn--ghost admin-btn--sm" type="submit" form="delete-field-{{ field.id }}" onclick="return confirm('Remove this field?');">Remove</button>
-              </li>
+        <div class="admin-fb-palette-bar" aria-label="Field types">
+          <p class="admin-fb-palette-bar-label">Add</p>
+          <div class="admin-fb-palette-scroll">
+            {% for typeKey, typeLabel in field_types %}
+              {% if typeKey not in ['honeypot'] %}
+                <button type="button" class="admin-fb-palette-chip" data-fb-palette-type="{{ typeKey|e('html_attr') }}" data-fb-palette-label="{{ typeLabel|e('html_attr') }}">
+                  {% include 'admin/forms/_field_type_icon.twig' with { type: typeKey } %}
+                  <span>{{ typeLabel|e }}</span>
+                </button>
+              {% endif %}
             {% endfor %}
-          </ul>
+          </div>
+        </div>
+
+        <form method="post" action="{{ url_for('admin.forms.fields.reorder', { id: form_row.id }) }}" id="forms-field-reorder-form" hidden>
+          <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
         </form>
-      {% endif %}
 
-      <hr style="margin:1.25rem 0;border:none;border-top:1px solid var(--admin-border,rgba(255,255,255,.08))" />
+        <div class="admin-fb-sheet-wrap">
+          <div class="admin-fb-sheet">
+            <div class="admin-fb-sheet-header">
+              <span class="admin-fb-sheet-kicker">Preview</span>
+              <strong class="admin-fb-sheet-title">{{ form_row.name|e }}</strong>
+              {% if form_row.description|default('')|trim != '' %}
+                <p class="admin-fb-sheet-desc">{{ form_row.description|e }}</p>
+              {% endif %}
+            </div>
 
-      <h3 class="admin-card-title" id="add-field">Add field</h3>
-      <form method="post" action="{{ url_for('admin.forms.fields.add', { id: form_row.id }) }}" class="admin-form-stack">
-        <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
-        <div class="admin-form-row">
-          <label class="admin-label">
-            <span>Label</span>
-            <input class="admin-input" type="text" name="label" required maxlength="200" />
-          </label>
-          <label class="admin-label">
-            <span>Type</span>
-            <select class="admin-input" name="field_type" id="forms-new-field-type">
-              {% for typeKey, typeLabel in field_types %}
-                <option value="{{ typeKey|e('html_attr') }}">{{ typeLabel|e }}</option>
+            {% if field_rows is empty %}
+              <div class="admin-fb-empty" id="admin-fb-empty">
+                <div class="admin-fb-empty-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 9h8M8 13h5"/></svg>
+                </div>
+                <p class="admin-fb-empty-title">Your form is empty</p>
+                <p class="admin-fb-empty-text">Choose a field type above, then name it in the panel below.</p>
+              </div>
+            {% endif %}
+
+            <ul class="admin-fb-list" id="forms-field-list" role="list"{% if field_rows is empty %} hidden{% endif %}>
+              {% for field in field_rows %}
+                {% include 'admin/forms/_field_row.twig' with {
+                  form_id: form_row.id,
+                  field: field,
+                  field_types: field_types,
+                  field_key_options: field_key_options,
+                  is_quiz: is_quiz
+                } %}
               {% endfor %}
-            </select>
-          </label>
-        </div>
-        <div class="admin-form-row">
-          <label class="admin-label">
-            <span>Field key (optional)</span>
-            <input class="admin-input" type="text" name="field_key" maxlength="80" placeholder="email" />
-          </label>
-          <label class="admin-label">
-            <span>Placeholder</span>
-            <input class="admin-input" type="text" name="placeholder" maxlength="255" />
-          </label>
-        </div>
-        <label class="admin-label forms-choice-options" id="forms-choice-options" hidden>
-          <span>Options (one per line)</span>
-          <textarea class="admin-input" name="options" rows="4" placeholder="Option A&#10;Option B"></textarea>
-        </label>
-        <label class="admin-label">
-          <span>Help text</span>
-          <input class="admin-input" type="text" name="help_text" maxlength="500" />
-        </label>
-        <label class="admin-label">
-          <span>Page number</span>
-          <input class="admin-input" type="number" name="page_number" min="1" value="{{ max_page_number|default(1) }}" />
-        </label>
-        <label class="admin-label forms-file-options" id="forms-file-options" hidden>
-          <span>Max file size (MB)</span>
-          <input class="admin-input" type="number" name="file_max_mb" min="1" max="20" value="5" />
-        </label>
-        <label class="admin-label forms-file-options" hidden>
-          <span>Allowed extensions (comma-separated)</span>
-          <input class="admin-input" type="text" name="file_extensions" value="pdf,jpg,png,doc,docx" />
-        </label>
-        {% if is_quiz %}
-          <label class="admin-label forms-quiz-options" id="forms-quiz-options" hidden>
-            <span>Quiz points</span>
-            <input class="admin-input" type="number" name="quiz_points" min="1" value="1" />
-          </label>
-          <label class="admin-label forms-quiz-options" hidden>
-            <span>Correct answer</span>
-            <input class="admin-input" type="text" name="quiz_correct" placeholder="Must match an option exactly" />
-          </label>
-        {% endif %}
-        <label class="admin-checkbox">
-          <input type="checkbox" name="required" value="1" />
-          Required field
-        </label>
-        <button class="admin-btn admin-btn--primary" type="submit">Add field</button>
-      </form>
-    </section>
+            </ul>
 
-    <aside class="admin-card admin-forms-settings">
-      <h2 class="admin-card-title">Settings</h2>
-      <form method="post" action="{{ url_for('admin.forms.update', { id: form_row.id }) }}" class="admin-form-stack">
-        <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
-        <label class="admin-label">
-          <span>Name</span>
-          <input class="admin-input" type="text" name="name" value="{{ form_row.name|e('html_attr') }}" required maxlength="200" />
-        </label>
-        <label class="admin-label">
-          <span>Slug</span>
-          <input class="admin-input" type="text" name="slug" value="{{ form_row.slug|e('html_attr') }}" required maxlength="120" />
-        </label>
-        <label class="admin-label">
-          <span>Status</span>
-          <select class="admin-input" name="status">
-            <option value="draft" {{ form_row.status == 'draft' ? 'selected' : '' }}>Draft</option>
-            <option value="published" {{ form_row.status == 'published' ? 'selected' : '' }}>Published</option>
-          </select>
-        </label>
-        <label class="admin-label">
-          <span>Form type</span>
-          <select class="admin-input" name="form_type" id="forms-form-type">
-            <option value="standard" {{ form_row.form_type|default('standard') == 'standard' ? 'selected' : '' }}>Standard</option>
-            <option value="quiz" {{ form_row.form_type|default('standard') == 'quiz' ? 'selected' : '' }}>Quiz (scored)</option>
-          </select>
-        </label>
-        <label class="admin-label">
-          <span>Description (internal)</span>
-          <textarea class="admin-input" name="description" rows="2">{{ form_row.description|default('')|e }}</textarea>
-        </label>
-        <label class="admin-label">
-          <span>Submit button label</span>
-          <input class="admin-input" type="text" name="submit_label" value="{{ form_row.submit_label|default('Submit')|e('html_attr') }}" maxlength="80" />
-        </label>
-        <div class="admin-form-row">
-          <label class="admin-label">
-            <span>Next page label</span>
-            <input class="admin-input" type="text" name="next_label" value="{{ form_row.next_label|default('Next')|e('html_attr') }}" maxlength="80" />
-          </label>
-          <label class="admin-label">
-            <span>Previous page label</span>
-            <input class="admin-input" type="text" name="prev_label" value="{{ form_row.prev_label|default('Previous')|e('html_attr') }}" maxlength="80" />
-          </label>
+            <div class="admin-fb-sheet-submit" aria-hidden="true">
+              <span class="admin-fb-mock admin-fb-mock--button">{{ form_row.submit_label|default('Submit')|e }}</span>
+            </div>
+          </div>
         </div>
 
-        <div id="forms-quiz-settings" {% if not is_quiz %}hidden{% endif %}>
-          <h3 class="admin-card-title">Quiz settings</h3>
-          {% set qs = form_row.settings|default({}) %}
-          <label class="admin-label">
-            <span>Pass score (%)</span>
-            <input class="admin-input" type="number" name="quiz_pass_percent" min="0" max="100" value="{{ qs.quiz_pass_percent|default(70) }}" />
-          </label>
-          <label class="admin-checkbox">
-            <input type="checkbox" name="quiz_show_score" value="1" {{ qs.quiz_show_score|default(true) ? 'checked' : '' }} />
-            Show score in confirmation message
-          </label>
-          <label class="admin-label">
-            <span>Pass message</span>
-            <input class="admin-input" type="text" name="quiz_pass_message" value="{{ qs.quiz_pass_message|default('Well done!')|e('html_attr') }}" />
-          </label>
-          <label class="admin-label">
-            <span>Fail message</span>
-            <input class="admin-input" type="text" name="quiz_fail_message" value="{{ qs.quiz_fail_message|default('Try again.')|e('html_attr') }}" />
-          </label>
+        <div class="admin-fb-add-panel" id="admin-fb-add-panel">
+          <div class="admin-fb-add-panel-head">
+            <div class="admin-fb-add-type-chip" id="admin-fb-add-type-chip">
+              {% include 'admin/forms/_field_type_icon.twig' with { type: 'text' } %}
+              <span id="admin-fb-add-type-label">Single line text</span>
+            </div>
+            <h3 class="admin-fb-add-panel-title" id="admin-fb-add-title">New field</h3>
+          </div>
+          <form method="post" action="{{ url_for('admin.forms.fields.add', { id: form_row.id }) }}" class="admin-fb-add-form" id="forms-add-field-form">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+            <input type="hidden" name="field_type" id="forms-new-field-type" value="text" />
+            <div class="admin-form-grid admin-form-grid--2col-tight">
+              <label class="admin-label">
+                <span>Field label</span>
+                <input class="admin-input" type="text" name="label" id="forms-new-field-label" required maxlength="200" placeholder="e.g. Email address" />
+              </label>
+              <label class="admin-label">
+                <span>Field key (optional)</span>
+                <input class="admin-input" type="text" name="field_key" maxlength="80" placeholder="email" />
+              </label>
+              <label class="admin-label">
+                <span>Placeholder</span>
+                <input class="admin-input" type="text" name="placeholder" maxlength="255" />
+              </label>
+              <label class="admin-label">
+                <span>Page number</span>
+                <input class="admin-input" type="number" name="page_number" min="1" value="{{ max_page_number|default(1) }}" />
+              </label>
+            </div>
+            <label class="admin-label forms-choice-options" id="forms-choice-options" hidden>
+              <span>Options (one per line)</span>
+              <textarea class="admin-textarea" name="options" rows="4" placeholder="Option A&#10;Option B"></textarea>
+            </label>
+            <label class="admin-label">
+              <span>Help text</span>
+              <input class="admin-input" type="text" name="help_text" maxlength="500" />
+            </label>
+            <div class="admin-form-grid admin-form-grid--2col-tight forms-file-options" id="forms-file-options-wrap" hidden>
+              <label class="admin-label">
+                <span>Max file size (MB)</span>
+                <input class="admin-input" type="number" name="file_max_mb" min="1" max="20" value="5" />
+              </label>
+              <label class="admin-label">
+                <span>Allowed extensions</span>
+                <input class="admin-input" type="text" name="file_extensions" value="pdf,jpg,png,doc,docx" />
+              </label>
+            </div>
+            {% if is_quiz %}
+              <div class="admin-form-grid admin-form-grid--2col-tight forms-quiz-options" id="forms-quiz-options-wrap" hidden>
+                <label class="admin-label">
+                  <span>Quiz points</span>
+                  <input class="admin-input" type="number" name="quiz_points" min="1" value="1" />
+                </label>
+                <label class="admin-label">
+                  <span>Correct answer</span>
+                  <input class="admin-input" type="text" name="quiz_correct" placeholder="Must match an option exactly" />
+                </label>
+              </div>
+            {% endif %}
+            <div class="admin-fb-add-actions">
+              <label class="admin-checkbox">
+                <input type="checkbox" name="required" value="1" />
+                Required field
+              </label>
+              <button class="admin-btn admin-btn--primary" type="submit">Add to form</button>
+            </div>
+          </form>
         </div>
+      </section>
+    </div>
 
-        <h3 class="admin-card-title">After submit</h3>
-        <label class="admin-label">
-          <span>Confirmation</span>
-          <select class="admin-input" name="confirmation_type" id="forms-confirmation-type">
-            <option value="message" {{ form_row.confirmation_type|default('message') == 'message' ? 'selected' : '' }}>Show message</option>
-            <option value="redirect" {{ form_row.confirmation_type|default('message') == 'redirect' ? 'selected' : '' }}>Redirect</option>
-          </select>
-        </label>
-        <label class="admin-label" id="forms-confirmation-message-wrap">
-          <span>Message</span>
-          <textarea class="admin-input" name="confirmation_message" rows="3">{{ form_row.confirmation_message|default('Thanks — your submission was received.')|e }}</textarea>
-        </label>
-        <label class="admin-label" id="forms-confirmation-redirect-wrap" hidden>
-          <span>Redirect URL</span>
-          <input class="admin-input" type="text" name="confirmation_redirect_url" value="{{ form_row.confirmation_redirect_url|default('')|e('html_attr') }}" placeholder="/thank-you" />
-        </label>
-
-        <h3 class="admin-card-title">Notifications</h3>
-        <label class="admin-checkbox">
-          <input type="checkbox" name="notify_enabled" value="1" {{ form_row.notify_enabled|default(1) ? 'checked' : '' }} />
-          Email admins on new submission
-        </label>
-        <label class="admin-label">
-          <span>Notification emails</span>
-          <input class="admin-input" type="text" name="notify_emails" value="{{ form_row.notify_emails|default('')|e('html_attr') }}" placeholder="you@example.com, team@example.com" />
-        </label>
-        <label class="admin-label">
-          <span>Email subject</span>
-          <input class="admin-input" type="text" name="notify_subject" value="{{ form_row.notify_subject|default('')|e('html_attr') }}" maxlength="255" />
-        </label>
-
-        <h3 class="admin-card-title">Spam protection</h3>
-        <label class="admin-checkbox">
-          <input type="checkbox" name="honeypot_enabled" value="1" {{ form_row.honeypot_enabled|default(1) ? 'checked' : '' }} />
-          Honeypot field (recommended)
-        </label>
-
-        <button class="admin-btn admin-btn--primary" type="submit">Save settings</button>
-      </form>
-
-      <div class="admin-hint" style="margin-top:1rem">
-        Embed on a page: add a <strong>Form embed</strong> block and set slug to <code>{{ form_row.slug|e }}</code>.
+    <aside class="admin-page-edit-aside admin-fb-aside" aria-label="Form settings">
+      <div class="admin-card admin-page-edit-aside-card admin-fb-settings-card">
+        <div class="admin-fb-settings-head">
+          <h2 class="admin-card-title">Settings</h2>
+          <p class="admin-hint">Publish, confirmations, and notifications</p>
+        </div>
+        {% include 'admin/forms/_settings_panel.twig' with { form_row: form_row, is_quiz: is_quiz } %}
+        <div class="admin-page-edit-aside-actions admin-fb-settings-actions">
+          <button class="admin-btn admin-btn--primary" type="submit" form="forms-settings-form">Save settings</button>
+          <form method="post" action="{{ url_for('admin.forms.delete', { id: form_row.id }) }}" onsubmit="return confirm('Delete this form and all entries?');">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+            <button class="admin-btn admin-btn--danger admin-btn--sm" type="submit">Delete form</button>
+          </form>
+        </div>
+        <div class="admin-fb-embed-callout">
+          <p class="admin-fb-embed-callout-title">Embed this form</p>
+          <p class="admin-hint">Add a <strong>Form embed</strong> block on any page and set slug to <code>{{ form_row.slug|e }}</code>.</p>
+        </div>
       </div>
     </aside>
   </div>
-
-  <style>
-    .admin-forms-layout { display: grid; gap: 1rem; grid-template-columns: minmax(0, 1.4fr) minmax(18rem, 0.9fr); align-items: start; }
-    @media (max-width: 960px) { .admin-forms-layout { grid-template-columns: 1fr; } }
-    .forms-field-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.5rem; }
-    .forms-field-item { display: flex; align-items: center; gap: 0.65rem; padding: 0.75rem; border: 1px solid var(--admin-border,rgba(255,255,255,.08)); border-radius: 0.55rem; background: rgba(255,255,255,.02); }
-    .forms-field-item.is-dragging { opacity: 0.55; }
-    .forms-field-drag { cursor: grab; color: var(--admin-muted,#94a3b8); user-select: none; }
-    .forms-field-meta { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.15rem; }
-    .forms-field-edit { margin-left: auto; }
-    .forms-field-edit-form { margin-top: 0.75rem; padding: 0.75rem; border: 1px solid var(--admin-border,rgba(255,255,255,.08)); border-radius: 0.5rem; }
-    .forms-conditional-fieldset { border: none; padding: 0; margin: 0.5rem 0; }
-  </style>
 {% endblock %}

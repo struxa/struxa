@@ -40,6 +40,15 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
         return array_merge($data, ['cms_user' => $cmsUser]);
     };
 
+    $jsonResponse = static function (Response $response, array $payload, int $status = 200): Response {
+        $response->getBody()->write(json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR));
+
+        return $response
+            ->withStatus($status)
+            ->withHeader('Content-Type', 'application/json; charset=utf-8')
+            ->withHeader('Cache-Control', 'no-store');
+    };
+
     $app->group('/admin/forms', function (\Slim\Routing\RouteCollectorProxy $group) use (
         $twig,
         $forms,
@@ -47,7 +56,8 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
         $entries,
         $adminContext,
         $withCmsUser,
-        $pdo
+        $pdo,
+        $jsonResponse
     ): void {
         $group->get('', function (Request $request, Response $response) use ($twig, $forms, $adminContext, $withCmsUser): Response {
             return $twig->render($response, 'admin/forms/index.twig', $withCmsUser($request, array_merge($adminContext(), [
@@ -180,7 +190,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             return $response->withHeader('Location', RouteContext::fromRequest($request)->getRouteParser()->urlFor('admin.forms.edit', ['id' => $id]) . '#field-' . $fieldId)->withStatus(302);
         })->setName('admin.forms.fields.update');
 
-        $group->post('/{id:[0-9]+}/fields/reorder', function (Request $request, Response $response, array $args) use ($forms, $fields): Response {
+        $group->post('/{id:[0-9]+}/fields/reorder', function (Request $request, Response $response, array $args) use ($forms, $fields, $jsonResponse): Response {
             $id = (int) ($args['id'] ?? 0);
             if ($forms->findById($id) === null) {
                 return $response->withStatus(404);
@@ -190,6 +200,13 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             $order = isset($body['field_order']) && is_array($body['field_order']) ? $body['field_order'] : [];
             $ids = array_map('intval', $order);
             $fields->reorder($id, $ids);
+
+            $wantsJson = ($body['_format'] ?? '') === 'json'
+                || str_contains($request->getHeaderLine('Accept'), 'application/json');
+            if ($wantsJson) {
+                return $jsonResponse($response, ['ok' => true]);
+            }
+
             Flash::set('success', 'Field order updated.');
 
             return $response->withHeader('Location', RouteContext::fromRequest($request)->getRouteParser()->urlFor('admin.forms.edit', ['id' => $id]))->withStatus(302);

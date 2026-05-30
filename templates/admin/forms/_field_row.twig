@@ -1,0 +1,77 @@
+{# Single builder field row — expects: form_id, field, field_types, field_key_options, is_quiz #}
+<li class="admin-fb-field" data-fb-field-row data-field-id="{{ field.id }}" data-field-type="{{ field.field_type|e('html_attr') }}">
+  <form id="delete-field-{{ field.id }}" method="post" action="{{ url_for('admin.forms.fields.delete', { id: form_id, fieldId: field.id }) }}" hidden>
+    <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+  </form>
+  <input type="hidden" name="field_order[]" value="{{ field.id }}" form="forms-field-reorder-form" />
+
+  <div class="admin-fb-field-chrome">
+    <button type="button" class="admin-fb-drag-handle" data-fb-drag-handle aria-label="Drag to reorder">
+      <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="9" cy="7" r="1.4"/><circle cx="15" cy="7" r="1.4"/><circle cx="9" cy="12" r="1.4"/><circle cx="15" cy="12" r="1.4"/><circle cx="9" cy="17" r="1.4"/><circle cx="15" cy="17" r="1.4"/></svg>
+    </button>
+    <div class="admin-fb-field-icon">
+      {% include 'admin/forms/_field_type_icon.twig' with { type: field.field_type } %}
+    </div>
+    <div class="admin-fb-field-actions">
+      <button type="button" class="admin-fb-icon-btn" data-fb-toggle-edit aria-expanded="false" aria-controls="field-panel-{{ field.id }}" title="Edit field">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>
+      </button>
+      <button class="admin-fb-icon-btn admin-fb-icon-btn--danger" type="submit" form="delete-field-{{ field.id }}" title="Remove field" onclick="return confirm('Remove this field?');">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <div class="admin-fb-field-preview-wrap">
+    <div class="admin-fb-field-head">
+      <span class="admin-fb-field-label">
+        {{ field.label|e }}
+        {% if field.required %}<span class="admin-fb-req" aria-hidden="true">*</span>{% endif %}
+      </span>
+      {% if field.help_text|default('')|trim != '' %}
+        <span class="admin-fb-field-help">{{ field.help_text|e }}</span>
+      {% endif %}
+    </div>
+
+    <div class="admin-fb-field-preview" aria-hidden="true">
+      {% if field.field_type == 'textarea' %}
+        <div class="admin-fb-mock admin-fb-mock--area">{{ field.placeholder|default('')|e }}</div>
+      {% elseif field.field_type == 'page_break' %}
+        <div class="admin-fb-mock admin-fb-mock--break">
+          <span>Page break</span>
+          <small>Page {{ field.page_number|default(1) }} → {{ (field.page_number|default(1)) + 1 }}</small>
+        </div>
+      {% elseif field.field_type == 'select' %}
+        <div class="admin-fb-mock admin-fb-mock--select">{{ field.placeholder|default('Select an option')|e }}</div>
+      {% elseif field.field_type == 'radio' or field.field_type == 'checkboxes' %}
+        <div class="admin-fb-mock admin-fb-mock--choices">
+          {% for opt in field.options|default(['Option A', 'Option B'])|slice(0, 3) %}
+            <span class="admin-fb-mock-choice"><i></i>{{ opt|e }}</span>
+          {% endfor %}
+        </div>
+      {% elseif field.field_type == 'checkbox' %}
+        <div class="admin-fb-mock admin-fb-mock--choices">
+          <span class="admin-fb-mock-choice"><i></i>{{ field.label|e }}</span>
+        </div>
+      {% elseif field.field_type == 'file' %}
+        <div class="admin-fb-mock admin-fb-mock--file">Choose file or drop here</div>
+      {% else %}
+        <div class="admin-fb-mock">{{ field.placeholder|default('')|e }}</div>
+      {% endif %}
+    </div>
+
+    <div class="admin-fb-field-foot">
+      <span class="admin-fb-field-type-pill">{{ field_types[field.field_type]|default(field.field_type)|e }}</span>
+      <code>{{ field.field_key|e }}</code>
+      {% if field.page_number|default(1) > 1 or field.field_type == 'page_break' %}
+        <span class="admin-fb-badge">Page {{ field.page_number|default(1) }}</span>
+      {% endif %}
+      {% if field.conditional.enabled|default(false) %}<span class="admin-fb-badge admin-fb-badge--cond">Conditional</span>{% endif %}
+      {% if is_quiz and field.settings.quiz_points|default(0) > 0 %}<span class="admin-fb-badge admin-fb-badge--quiz">{{ field.settings.quiz_points }} pt</span>{% endif %}
+    </div>
+  </div>
+
+  <div class="admin-fb-field-panel" id="field-panel-{{ field.id }}" hidden>
+    {% include 'admin/forms/_field_edit_form.twig' with { form_id: form_id, field: field, field_key_options: field_key_options, field_types: field_types, is_quiz: is_quiz } %}
+  </div>
+</li>
