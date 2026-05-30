@@ -22,6 +22,7 @@
             <tr>
               <th>When</th>
               <th>Status</th>
+              <th>Blocks</th>
               <th>By</th>
               <th></th>
             </tr>
@@ -31,6 +32,13 @@
               <tr>
                 <td>{{ row.created_at|e }}</td>
                 <td><span class="admin-badge admin-badge--muted">{{ row.status|e }}</span></td>
+                <td class="admin-table-muted">
+                  {% if row.section_count is not null %}
+                    {{ row.section_count }} block{{ row.section_count == 1 ? '' : 's' }}
+                  {% else %}
+                    —
+                  {% endif %}
+                </td>
                 <td class="admin-table-muted">{{ row.author_email|default('—')|e }}</td>
                 <td>
                   <a class="admin-link" href="{{ url_for('admin.pages.revision_compare', { id: page.id, revId: row.id }) }}">Compare</a>

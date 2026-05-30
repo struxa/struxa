@@ -12,7 +12,7 @@ final class PageRevisionRepository
     {
     }
 
-    public function captureFromPage(Page $page, ?int $createdBy): void
+    public function captureFromPage(Page $page, ?int $createdBy, ?string $sectionsJson = null): void
     {
         $tagsJson = PageTagParser::toJson($page->tags);
         $stmt = $this->pdo->prepare(
@@ -20,8 +20,8 @@ final class PageRevisionRepository
                 page_id, title, slug, seo_title, seo_description, tags_json, featured_image_id,
                 canonical_url, seo_noindex, og_title, og_description, og_image_id,
                 twitter_title, twitter_description, twitter_image_id, schema_json,
-                content, status, published_at, scheduled_publish_at, scheduled_unpublish_at, created_by
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+                content, sections_json, status, published_at, scheduled_publish_at, scheduled_unpublish_at, created_by
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
         );
         $stmt->execute([
             $page->id,
@@ -41,6 +41,7 @@ final class PageRevisionRepository
             $page->twitterImageId,
             $page->schemaJson,
             $page->content,
+            $sectionsJson,
             $page->status,
             $page->publishedAt,
             $page->scheduledPublishAt,
@@ -96,5 +97,22 @@ final class PageRevisionRepository
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
         return $row === false ? null : $row;
+    }
+
+    public static function sectionCountFromJson(?string $sectionsJson): ?int
+    {
+        if ($sectionsJson === null || trim($sectionsJson) === '') {
+            return null;
+        }
+        try {
+            $decoded = json_decode($sectionsJson, true, 512, JSON_THROW_ON_ERROR);
+        } catch (\JsonException) {
+            return null;
+        }
+        if (!is_array($decoded)) {
+            return null;
+        }
+
+        return count($decoded);
     }
 }

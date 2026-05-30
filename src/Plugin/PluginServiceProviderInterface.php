@@ -9,6 +9,9 @@ namespace App\Plugin;
  *
  * Plugins with public routes under /{segment}/… should call
  * {@see PluginBootContext::registerPluginReservedSlugs()} so content types cannot claim that segment.
+ *
+ * Page builder blocks: implement {@see \App\Section\SectionDefinitionProviderInterface} and call
+ * {@see PluginBootContext::registerSectionProvider()} from boot().
  */
 interface PluginServiceProviderInterface
 {

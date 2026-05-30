@@ -43,6 +43,8 @@ use App\Settings\SettingsRepository;
 use App\Settings\SiteSettingsService;
 use App\Page\PageRepository;
 use App\Page\PublicCmsPageRenderer;
+use App\Section\CoreSectionDefinitionProvider;
+use App\Section\SectionDefinitionRegistry;
 use App\PhpAuthSettings;
 use App\Plugin\PluginManager;
 use App\Plugin\PluginRepository;
@@ -646,6 +648,8 @@ $app->get('/logout', function (Request $request, Response $response) use ($twig,
 (require $root . '/routes/admin_activity.php')($app, $twig, $auth, $pdo, $viewData);
 (require $root . '/routes/admin_updates.php')($app, $twig, $auth, $pdo, $viewData);
 (require $root . '/routes/admin_tools.php')($app, $twig, $auth, $pdo, $viewData);
+SectionDefinitionRegistry::instance()->registerProvider(new CoreSectionDefinitionProvider());
+
 (require $root . '/routes/admin_pages.php')($app, $twig, $auth, $pdo, $viewData);
 (require $root . '/routes/admin_settings.php')($app, $twig, $auth, $pdo, $viewData);
 (require $root . '/routes/admin_search.php')($app, $twig, $auth, $pdo, $viewData);

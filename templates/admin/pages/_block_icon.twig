@@ -1,0 +1,31 @@
+{# Icon for page builder block palette. Expects: icon (string key) #}
+{% set icon = icon|default('block') %}
+<span class="admin-pb-icon admin-pb-icon--{{ icon|e('html_attr') }}" aria-hidden="true">
+  {% if icon == 'hero' %}
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M4 20V4"/><path d="M4 12h16"/><path d="m14 6 6 6-6 6"/></svg>
+  {% elseif icon == 'grid' %}
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+  {% elseif icon == 'cards' %}
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18"/></svg>
+  {% elseif icon == 'pricing' %}
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M12 2v20"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+  {% elseif icon == 'quote' %}
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M3 11c0-2.5 1.5-4 4-4 .5 0 1 .1 1.4.3"/><path d="M13 11c0-2.5 1.5-4 4-4 .5 0 1 .1 1.4.3"/><path d="M5 15c1.2 1.5 2.8 2 4 2"/><path d="M15 15c1.2 1.5 2.8 2 4 2"/></svg>
+  {% elseif icon == 'faq' %}
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 0 1 4.2 1.8c0 2-2.7 2.2-2.7 3.7"/><path d="M12 17h.01"/></svg>
+  {% elseif icon == 'cta' %}
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg>
+  {% elseif icon == 'text' %}
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M4 7V4h16v3"/><path d="M9 20h6"/><path d="M12 4v16"/></svg>
+  {% elseif icon == 'image-text' %}
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="3" y="5" width="8" height="14" rx="1"/><path d="M14 8h7M14 12h5M14 16h7"/></svg>
+  {% elseif icon == 'stats' %}
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M4 20V10"/><path d="M10 20V4"/><path d="M16 20v-6"/><path d="M22 20V8"/></svg>
+  {% elseif icon == 'table' %}
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18M3 14h18M9 5v14"/></svg>
+  {% elseif icon == 'spacer' %}
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M12 5v14"/><path d="m8 9 4-4 4 4"/><path d="m8 15 4 4 4-4"/></svg>
+  {% else %}
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="4" y="4" width="16" height="16" rx="2"/></svg>
+  {% endif %}
+</span>

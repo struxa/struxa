@@ -196,15 +196,23 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
         }
 
         $pageBuilderPayload = static function (int $pageId) use ($pageSections, $sectionManager, $sectionLabels): array {
+            $palette = $sectionManager->palette();
+            $icons = [];
+            foreach ($palette as $p) {
+                $icons[$p['key']] = $p['icon'];
+            }
+
             return [
                 'page_builder_section_rows' => $pageSections->listForPage($pageId),
-                'page_builder_section_palette' => $sectionManager->palette(),
+                'page_builder_section_palette' => $palette,
+                'page_builder_section_palette_grouped' => $sectionManager->paletteGrouped(),
+                'page_builder_section_icons' => $icons,
                 'page_builder_section_labels' => $sectionLabels,
             ];
         };
 
         $redirectPageEditBuilder = static function (Request $request, int $id): string {
-            return RouteContext::fromRequest($request)->getRouteParser()->urlFor('admin.pages.edit', ['id' => (string) $id]) . '#page-visual-builder';
+            return RouteContext::fromRequest($request)->getRouteParser()->urlFor('admin.pages.edit', ['id' => (string) $id]) . '#page-builder';
         };
 
         $redirectAfterBuilderAction = static function (Request $request, int $id) use ($redirectPageEditBuilder): string {
@@ -214,6 +222,84 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             }
 
             return $redirectPageEditBuilder($request, $id);
+        };
+
+        $capturePageRevision = static function (Page $page, ?int $uid) use ($revisions, $pageSections): void {
+            $sectionsJson = json_encode(
+                $page->id > 0 ? $pageSections->exportBlocksForPage($page->id) : [],
+                JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE
+            );
+            $revisions->captureFromPage($page, $uid, $sectionsJson);
+        };
+
+        $restoreSectionsFromRevision = static function (int $pageId, ?string $sectionsJson) use ($pageSections, $sectionValidator): void {
+            if ($sectionsJson === null) {
+                return;
+            }
+            if (trim($sectionsJson) === '') {
+                $pageSections->replaceAllForPage($pageId, []);
+
+                return;
+            }
+            try {
+                $blocks = json_decode($sectionsJson, true, 512, JSON_THROW_ON_ERROR);
+            } catch (\JsonException) {
+                return;
+            }
+            if (!is_array($blocks)) {
+                return;
+            }
+            usort(
+                $blocks,
+                static fn (array $a, array $b): int => ((int) ($a['sort_order'] ?? 0)) <=> ((int) ($b['sort_order'] ?? 0))
+            );
+            $validated = [];
+            foreach ($blocks as $block) {
+                if (!is_array($block)) {
+                    continue;
+                }
+                $key = trim((string) ($block['type'] ?? $block['section_key'] ?? ''));
+                if ($key === '') {
+                    continue;
+                }
+                $data = isset($block['data']) && is_array($block['data']) ? $block['data'] : [];
+                $opts = isset($block['options']) && is_array($block['options']) ? $block['options'] : [];
+                $r = $sectionValidator->validate($key, $data, $opts);
+                if ($r['errors'] !== []) {
+                    continue;
+                }
+                $validated[] = [
+                    'type' => $key,
+                    'data' => $r['data'],
+                    'options' => $r['options'],
+                ];
+            }
+            $pageSections->replaceAllForPage($pageId, $validated);
+        };
+
+        $wantsJsonResponse = static function (Request $request): bool {
+            $q = $request->getQueryParams();
+            if (($q['_format'] ?? '') === 'json') {
+                return true;
+            }
+
+            return str_contains(strtolower($request->getHeaderLine('Accept')), 'application/json');
+        };
+
+        $wantsPartialHtml = static function (Request $request): bool {
+            $q = $request->getQueryParams();
+
+            return ($q['_format'] ?? '') === 'partial';
+        };
+
+        $sectionPreviewText = static function (array $data): string {
+            foreach (['headline', 'title', 'eyebrow'] as $key) {
+                if (isset($data[$key]) && is_string($data[$key]) && trim($data[$key]) !== '') {
+                    return trim($data[$key]);
+                }
+            }
+
+            return '';
         };
 
         $group->get('/pages', function (Request $request, Response $response) use ($twig, $adminContext, $withCmsUser, $repo): Response {
@@ -371,7 +457,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             );
             $page = $repo->findById($newId);
             if ($page !== null) {
-                $revisions->captureFromPage($page, $cmsUid($request));
+                $capturePageRevision($page, $cmsUid($request));
             }
             $activity->log($cmsUid($request), 'page.created', 'page', $newId, ['title' => $v['title']]);
             Events::dispatch(new StorefrontCachesInvalidateEvent('page_created'));
@@ -459,7 +545,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             $slug = PageSlugger::ensureUnique($repo, $slug, $id);
 
             $oldSlug = $page->slug;
-            $revisions->captureFromPage($page, $cmsUid($request));
+            $capturePageRevision($page, $cmsUid($request));
             $seoTitle = $v['seo_title'] !== '' ? $v['seo_title'] : null;
             $seoDesc = $v['seo_description'] !== '' ? $v['seo_description'] : null;
             $tagsJson = PageTagParser::toJson(PageTagParser::parseCommaSeparated($v['tags']));
@@ -534,15 +620,22 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             if ($page === null) {
                 throw new HttpNotFoundException($request);
             }
+            $rows = $revisions->listForPage($id);
+            foreach ($rows as &$row) {
+                $row['section_count'] = PageRevisionRepository::sectionCountFromJson(
+                    isset($row['sections_json']) ? (string) $row['sections_json'] : null
+                );
+            }
+            unset($row);
 
             return $twig->render($response, 'admin/pages/revisions.twig', $withCmsUser($request, array_merge($adminContext(), [
                 'admin_nav' => 'pages',
                 'page' => $page,
-                'revision_rows' => $revisions->listForPage($id),
+                'revision_rows' => $rows,
             ])));
         })->setName('admin.pages.revisions');
 
-        $group->get('/pages/{id:[0-9]+}/revisions/compare/{revId:[0-9]+}', function (Request $request, Response $response, array $args) use ($twig, $adminContext, $withCmsUser, $repo, $revisions): Response {
+        $group->get('/pages/{id:[0-9]+}/revisions/compare/{revId:[0-9]+}', function (Request $request, Response $response, array $args) use ($twig, $adminContext, $withCmsUser, $repo, $revisions, $pageSections): Response {
             $id = (int) $args['id'];
             $revId = (int) $args['revId'];
             $page = $repo->findById($id);
@@ -575,6 +668,15 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             $rightContent = $revRight !== null ? (string) $revRight['content'] : $page->content;
             $unifiedDiff = implode("\n", LineDiff::unified($leftContent, $rightContent));
 
+            $revSectionCount = PageRevisionRepository::sectionCountFromJson(
+                isset($rev['sections_json']) ? (string) $rev['sections_json'] : null
+            );
+            $rightSectionCount = $revRight !== null
+                ? PageRevisionRepository::sectionCountFromJson(
+                    isset($revRight['sections_json']) ? (string) $revRight['sections_json'] : null
+                )
+                : $pageSections->countForPage($id);
+
             return $twig->render($response, 'admin/pages/revision_compare.twig', $withCmsUser($request, array_merge($adminContext(), [
                 'admin_nav' => 'pages',
                 'page' => $page,
@@ -583,6 +685,8 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 'revision_tags_display' => PageTagParser::slugsToEditString(PageTagParser::fromJson($revTagsJson)),
                 'revision_right_tags_display' => $revRightTagsDisplay,
                 'revision_unified_diff' => $unifiedDiff,
+                'revision_section_count' => $revSectionCount,
+                'revision_right_section_count' => $rightSectionCount,
             ])));
         })->setName('admin.pages.revision_compare');
 
@@ -612,7 +716,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 ->withStatus(302);
         })->setName('admin.pages.preview_link');
 
-        $group->post('/pages/{id:[0-9]+}/revisions/{revId:[0-9]+}/restore', function (Request $request, Response $response, array $args) use ($repo, $revisions, $workflow, $activity, $cmsUid, $mediaRepo): Response {
+        $group->post('/pages/{id:[0-9]+}/revisions/{revId:[0-9]+}/restore', function (Request $request, Response $response, array $args) use ($repo, $revisions, $workflow, $activity, $cmsUid, $mediaRepo, $capturePageRevision, $restoreSectionsFromRevision): Response {
             $id = (int) $args['id'];
             $revId = (int) $args['revId'];
             $page = $repo->findById($id);
@@ -632,7 +736,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                     ->withStatus(302);
             }
 
-            $revisions->captureFromPage($page, $cmsUid($request));
+            $capturePageRevision($page, $cmsUid($request));
             $restoredBody = PageContentSanitizer::fromEnv()->sanitize((string) $rev['content']);
             $revSeoT = isset($rev['seo_title']) && (string) $rev['seo_title'] !== '' ? (string) $rev['seo_title'] : null;
             $revSeoD = isset($rev['seo_description']) && (string) $rev['seo_description'] !== '' ? (string) $rev['seo_description'] : null;
@@ -688,6 +792,9 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 $revSchedUnpub,
                 $cmsUid($request)
             );
+            if (array_key_exists('sections_json', $rev) && $rev['sections_json'] !== null) {
+                $restoreSectionsFromRevision($id, (string) $rev['sections_json']);
+            }
             $activity->log($cmsUid($request), 'page.revision_restored', 'page', $id, ['revision_id' => $revId]);
             Flash::set('success', 'Revision restored.');
             Events::dispatch(new StorefrontCachesInvalidateEvent('page_revision_restored'));
@@ -704,7 +811,8 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             $repo,
             $pageSections,
             $sectionManager,
-            $mediaRepo
+            $mediaRepo,
+            $wantsPartialHtml
         ): Response {
             $id = (int) $args['id'];
             $sectionId = (int) $args['sectionId'];
@@ -721,14 +829,24 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 throw new HttpNotFoundException($request);
             }
 
-            return $twig->render($response, 'admin/pages/builder_section.twig', $withCmsUser($request, array_merge($adminContext(), [
+            $payload = array_merge($adminContext(), [
                 'admin_nav' => 'pages',
                 'page' => $page,
                 'section_row' => $row,
                 'section_def' => $def,
                 'errors' => [],
                 'media_picker_images' => $mediaRepo->listImagesForPicker(200),
-            ])));
+                'section_save_url' => RouteContext::fromRequest($request)->getRouteParser()->urlFor(
+                    'admin.pages.builder.section_save',
+                    ['id' => (string) $id, 'sectionId' => (string) $sectionId]
+                ) . '?_format=json',
+            ]);
+
+            if ($wantsPartialHtml($request)) {
+                return $twig->render($response, 'admin/pages/_builder_section_drawer_body.twig', $withCmsUser($request, $payload));
+            }
+
+            return $twig->render($response, 'admin/pages/builder_section.twig', $withCmsUser($request, $payload));
         })->setName('admin.pages.builder.section_edit');
 
         $group->post('/pages/{id:[0-9]+}/builder/section/{sectionId:[0-9]+}', function (Request $request, Response $response, array $args) use (
@@ -740,7 +858,10 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             $sectionManager,
             $sectionValidator,
             $mediaRepo,
-            $redirectPageEditBuilder
+            $redirectPageEditBuilder,
+            $wantsJsonResponse,
+            $wantsPartialHtml,
+            $sectionPreviewText
         ): Response {
             $id = (int) $args['id'];
             $sectionId = (int) $args['sectionId'];
@@ -763,6 +884,11 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             $options = isset($body['options']) && is_array($body['options']) ? $body['options'] : [];
 
             $result = $sectionValidator->validate($row->sectionKey, $data, $options);
+            $saveUrl = RouteContext::fromRequest($request)->getRouteParser()->urlFor(
+                'admin.pages.builder.section_save',
+                ['id' => (string) $id, 'sectionId' => (string) $sectionId]
+            ) . '?_format=json';
+
             if ($result['errors'] !== []) {
                 $patched = new PageSection(
                     $row->id,
@@ -773,19 +899,43 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                     array_merge($row->options, $options)
                 );
 
-                return $twig->render($response, 'admin/pages/builder_section.twig', $withCmsUser($request, array_merge($adminContext(), [
+                $payload = array_merge($adminContext(), [
                     'admin_nav' => 'pages',
                     'page' => $page,
                     'section_row' => $patched,
                     'section_def' => $def,
                     'errors' => $result['errors'],
                     'media_picker_images' => $mediaRepo->listImagesForPicker(200),
-                ])));
+                    'section_save_url' => $saveUrl,
+                ]);
+
+                if ($wantsJsonResponse($request) || $wantsPartialHtml($request)) {
+                    $html = $twig->getEnvironment()->render('admin/pages/_builder_section_drawer_body.twig', $withCmsUser($request, $payload));
+                    $response->getBody()->write(json_encode([
+                        'ok' => false,
+                        'errors' => $result['errors'],
+                        'html' => $html,
+                    ], JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE));
+
+                    return $response->withHeader('Content-Type', 'application/json; charset=utf-8');
+                }
+
+                return $twig->render($response, 'admin/pages/builder_section.twig', $withCmsUser($request, $payload));
             }
 
             $pageSections->update($sectionId, $row->sortOrder, $row->sectionKey, $result['data'], $result['options']);
-            Flash::set('success', 'Section saved.');
             Events::dispatch(new StorefrontCachesInvalidateEvent('page_section_saved'));
+
+            if ($wantsJsonResponse($request)) {
+                $response->getBody()->write(json_encode([
+                    'ok' => true,
+                    'preview' => $sectionPreviewText($result['data']),
+                ], JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE));
+
+                return $response->withHeader('Content-Type', 'application/json; charset=utf-8');
+            }
+
+            Flash::set('success', 'Section saved.');
 
             return $response
                 ->withHeader('Location', $redirectPageEditBuilder($request, $id))
@@ -812,7 +962,9 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 'page' => $page,
                 'section_rows' => $pageSections->listForPage($id),
                 'section_palette' => $sectionManager->palette(),
+                'section_palette_grouped' => $sectionManager->paletteGrouped(),
                 'section_labels' => $sectionLabels,
+                'section_icons' => array_column($sectionManager->palette(), 'icon', 'key'),
                 'builder_panel_standalone' => true,
             ])));
         })->setName('admin.pages.builder');
@@ -911,10 +1063,23 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                     $ids[] = (int) $v;
                 }
                 $ids = array_values(array_filter($ids, static fn (int $i): bool => $i > 0));
+                $saved = false;
                 if ($ids !== []) {
                     $pageSections->reorderForPage($id, $ids);
-                    Flash::set('success', 'Order saved.');
+                    $saved = true;
                     Events::dispatch(new StorefrontCachesInvalidateEvent('page_sections_reordered'));
+                }
+
+                $wantsJson = str_contains(strtolower($request->getHeaderLine('Accept')), 'application/json')
+                    || (string) ($body['_format'] ?? '') === 'json';
+                if ($wantsJson) {
+                    $response->getBody()->write(json_encode(['ok' => $saved]));
+
+                    return $response->withHeader('Content-Type', 'application/json; charset=utf-8');
+                }
+
+                if ($saved) {
+                    Flash::set('success', 'Order saved.');
                 }
 
                 return $response->withHeader('Location', $url)->withStatus(302);

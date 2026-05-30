@@ -1,0 +1,28 @@
+{# Inline drawer body — returned as partial HTML for AJAX load #}
+<div class="admin-pb-drawer-inner">
+  <header class="admin-pb-drawer-head">
+    <div>
+      <h3 class="admin-pb-drawer-title">{{ section_def.label|default(section_row.sectionKey)|e }}</h3>
+      <p class="admin-pb-drawer-sub"><code class="admin-inline-code">{{ section_row.sectionKey|e }}</code></p>
+    </div>
+    <button type="button" class="admin-pb-drawer-x" data-admin-pb-drawer-close aria-label="Close">×</button>
+  </header>
+
+  {% if errors is defined and errors is not empty %}
+    <div class="admin-card admin-field--error admin-pb-drawer-errors">
+      <p class="admin-field-error" style="margin:0">Fix the following:</p>
+      <ul style="margin:0.5rem 0 0 1rem">
+        {% for e in errors %}<li>{{ e|e }}</li>{% endfor %}
+      </ul>
+    </div>
+  {% endif %}
+
+  <div class="admin-pb-drawer-form">
+    {% include 'admin/pages/_builder_section_form.twig' with { section_drawer_mode: true } %}
+  </div>
+
+  <footer class="admin-pb-drawer-foot">
+    <button type="submit" form="section-edit-form" class="admin-btn-primary" data-admin-pb-drawer-save>Save section</button>
+    <button type="button" class="admin-btn-ghost" data-admin-pb-drawer-close>Cancel</button>
+  </footer>
+</div>

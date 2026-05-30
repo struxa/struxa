@@ -71,7 +71,7 @@
 
         <div class="admin-field admin-field--full admin-page-edit--order-editor {{ errors.content is defined ? 'admin-field--error' : '' }}">
           <label class="admin-label" for="page-content">Body content</label>
-          <p class="admin-hint admin-editor-hint-visual" style="margin-top:0">Optional if the page uses the <strong>Visual builder</strong> below. Tip: select text for the floating bar; <strong>Formats → Paragraph styles</strong> for lead and callout blocks; <em>Insert → Media</em> for YouTube or Vimeo.</p>
+          <p class="admin-hint admin-editor-hint-visual" style="margin-top:0">Optional if the page uses the <strong>Page builder</strong> below. Tip: select text for the floating bar; <strong>Formats → Paragraph styles</strong> for lead and callout blocks; <em>Insert → Media</em> for YouTube or Vimeo.</p>
           <p class="admin-hint admin-editor-hint-html" style="margin-top:0;display:none" hidden>Raw HTML — switches back to <strong>Rich text</strong> to use the visual toolbar. Save works in either mode.</p>
           <div class="admin-page-editor" id="page-editor-root">
             <div class="admin-editor-mode-bar">
@@ -130,11 +130,10 @@
         </details>
       </form>
 
-      <style>.admin-page-builder-card.is-dragging { opacity: 0.55; }</style>
-      <details id="page-visual-builder" class="admin-card admin-seo-suite-panel admin-page-edit-builder admin-page-edit--order-builder"{% if is_edit %} open{% endif %} aria-label="Visual builder">
+      <details id="page-builder" class="admin-card admin-seo-suite-panel admin-page-edit-builder admin-page-edit--order-builder"{% if is_edit %} open{% endif %} aria-label="Page builder">
         <summary class="admin-seo-suite-summary">
-          <span class="admin-card-title" style="margin:0;display:inline">Visual builder</span>
-          <span class="admin-hint" style="margin-left:0.5rem;font-weight:400">Landing sections (drag to reorder)</span>
+          <span class="admin-card-title" style="margin:0;display:inline">Page builder</span>
+          <span class="admin-hint" style="margin-left:0.5rem;font-weight:400">Blocks &amp; layout</span>
         </summary>
         <div class="admin-seo-suite-body" style="margin-top:1rem">
           {% if is_edit %}
@@ -142,7 +141,9 @@
               page: page,
               section_rows: page_builder_section_rows,
               section_palette: page_builder_section_palette,
+              section_palette_grouped: page_builder_section_palette_grouped,
               section_labels: page_builder_section_labels,
+              section_icons: page_builder_section_icons,
               builder_panel_standalone: false,
             } %}
           {% else %}
@@ -531,11 +532,11 @@
     <script src="/js/admin-page-media-picker.js" defer></script>
   {% endif %}
   {% if is_edit %}
-    <script src="/js/admin-page-builder.js" defer></script>
+    <script src="{{ asset('js/admin-page-builder.js') }}" defer></script>
     <script>
       document.addEventListener('DOMContentLoaded', function () {
-        if (location.hash !== '#page-visual-builder') return;
-        var d = document.getElementById('page-visual-builder');
+        if (location.hash !== '#page-builder') return;
+        var d = document.getElementById('page-builder');
         if (d && d.tagName === 'DETAILS') d.open = true;
         d && d.scrollIntoView({ behavior: 'smooth', block: 'start' });
       });

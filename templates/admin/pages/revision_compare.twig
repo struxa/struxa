@@ -25,6 +25,13 @@
         <p class="admin-hint" style="margin-top:0.5rem"><strong>SEO title:</strong> {{ revision.seo_title|default('—')|e }}</p>
         <p class="admin-hint"><strong>SEO description:</strong> {{ revision.seo_description|default('—')|e }}</p>
         <p class="admin-hint"><strong>Tags:</strong> {{ revision_tags_display != '' ? revision_tags_display|e : '—' }}</p>
+        <p class="admin-hint"><strong>Blocks:</strong>
+          {% if revision_section_count is not null %}
+            {{ revision_section_count }} block{{ revision_section_count == 1 ? '' : 's' }}
+          {% else %}
+            not snapshotted
+          {% endif %}
+        </p>
         <h3 style="margin:0.75rem 0 0.35rem">{{ revision.title|e }}</h3>
         <pre style="white-space:pre-wrap;font:inherit;font-size:0.9rem;opacity:0.9">{{ revision.content|e }}</pre>
       </div>
@@ -34,6 +41,13 @@
         <p class="admin-hint" style="margin-top:0.5rem"><strong>SEO title:</strong> {{ revision_right.seo_title|default('—')|e }}</p>
         <p class="admin-hint"><strong>SEO description:</strong> {{ revision_right.seo_description|default('—')|e }}</p>
         <p class="admin-hint"><strong>Tags:</strong> {{ revision_right_tags_display != '' ? revision_right_tags_display|e : '—' }}</p>
+        <p class="admin-hint"><strong>Blocks:</strong>
+          {% if revision_right_section_count is not null %}
+            {{ revision_right_section_count }} block{{ revision_right_section_count == 1 ? '' : 's' }}
+          {% else %}
+            not snapshotted
+          {% endif %}
+        </p>
         <h3 style="margin:0.75rem 0 0.35rem">{{ revision_right.title|e }}</h3>
         <pre style="white-space:pre-wrap;font:inherit;font-size:0.9rem;opacity:0.9">{{ revision_right.content|e }}</pre>
       </div>
@@ -44,6 +58,13 @@
         <p class="admin-hint" style="margin-top:0.5rem"><strong>SEO title:</strong> {{ revision.seo_title|default('—')|e }}</p>
         <p class="admin-hint"><strong>SEO description:</strong> {{ revision.seo_description|default('—')|e }}</p>
         <p class="admin-hint"><strong>Tags:</strong> {{ revision_tags_display != '' ? revision_tags_display|e : '—' }}</p>
+        <p class="admin-hint"><strong>Blocks:</strong>
+          {% if revision_section_count is not null %}
+            {{ revision_section_count }} block{{ revision_section_count == 1 ? '' : 's' }}
+          {% else %}
+            not snapshotted
+          {% endif %}
+        </p>
         <h3 style="margin:0.75rem 0 0.35rem">{{ revision.title|e }}</h3>
         <pre style="white-space:pre-wrap;font:inherit;font-size:0.9rem;opacity:0.9">{{ revision.content|e }}</pre>
       </div>
@@ -53,6 +74,13 @@
         <p class="admin-hint" style="margin-top:0.5rem"><strong>SEO title:</strong> {{ page.seoTitle|default('—')|e }}</p>
         <p class="admin-hint"><strong>SEO description:</strong> {{ page.seoDescription|default('—')|e }}</p>
         <p class="admin-hint"><strong>Tags:</strong> {{ page.tagsEditString() != '' ? page.tagsEditString()|e : '—' }}</p>
+        <p class="admin-hint"><strong>Blocks:</strong>
+          {% if revision_right_section_count is not null %}
+            {{ revision_right_section_count }} block{{ revision_right_section_count == 1 ? '' : 's' }}
+          {% else %}
+            —
+          {% endif %}
+        </p>
         <h3 style="margin:0.75rem 0 0.35rem">{{ page.title|e }}</h3>
         <pre style="white-space:pre-wrap;font:inherit;font-size:0.9rem;opacity:0.9">{{ page.content|e }}</pre>
       </div>

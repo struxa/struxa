@@ -6,6 +6,8 @@ namespace App\Plugin;
 
 use App\Content\ReservedContentSlugs;
 use App\Event\EventDispatcher;
+use App\Section\SectionDefinitionProviderInterface;
+use App\Section\SectionDefinitionRegistry;
 use PHPAuth\Auth;
 use Slim\App;
 use Slim\Views\Twig;
@@ -114,5 +116,13 @@ final class PluginBootContext
     public function registerReservedContentSlugs(array $slugs): void
     {
         ReservedContentSlugs::registerReservedContentSlugs($slugs);
+    }
+
+    /**
+     * Register page builder block types from this plugin.
+     */
+    public function registerSectionProvider(SectionDefinitionProviderInterface $provider): void
+    {
+        SectionDefinitionRegistry::instance()->registerProvider($provider);
     }
 }

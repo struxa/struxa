@@ -161,4 +161,41 @@ final class PageSectionRepository
 
         return $out;
     }
+
+    public function deleteAllForPage(int $pageId): void
+    {
+        $stmt = $this->pdo->prepare('DELETE FROM ' . self::TABLE . ' WHERE page_id = ?');
+        $stmt->execute([$pageId]);
+    }
+
+    /**
+     * Replace all blocks on a page with validated export rows.
+     *
+     * @param list<array{type?: string, section_key?: string, sort_order?: int, data?: array<string, mixed>, options?: array<string, mixed>}> $blocks
+     */
+    public function replaceAllForPage(int $pageId, array $blocks): void
+    {
+        $this->pdo->beginTransaction();
+        try {
+            $this->deleteAllForPage($pageId);
+            $sort = 0;
+            foreach ($blocks as $block) {
+                if (!is_array($block)) {
+                    continue;
+                }
+                $key = trim((string) ($block['type'] ?? $block['section_key'] ?? ''));
+                if ($key === '') {
+                    continue;
+                }
+                $data = isset($block['data']) && is_array($block['data']) ? $block['data'] : [];
+                $opts = isset($block['options']) && is_array($block['options']) ? $block['options'] : [];
+                $this->insert($pageId, $sort, $key, $data, $opts);
+                ++$sort;
+            }
+            $this->pdo->commit();
+        } catch (\Throwable $e) {
+            $this->pdo->rollBack();
+            throw $e;
+        }
+    }
 }
