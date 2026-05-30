@@ -654,6 +654,7 @@ SectionDefinitionRegistry::instance()->registerProvider(new CoreSectionDefinitio
 (require $root . '/routes/admin_settings.php')($app, $twig, $auth, $pdo, $viewData);
 (require $root . '/routes/admin_search.php')($app, $twig, $auth, $pdo, $viewData);
 (require $root . '/routes/admin_cache.php')($app, $twig, $auth, $pdo, $viewData);
+(require $root . '/routes/admin_maintenance.php')($app, $twig, $auth, $pdo, $viewData);
 (require $root . '/routes/admin_seo.php')($app, $twig, $auth, $pdo, $viewData);
 (require $root . '/routes/admin_security.php')($app, $twig, $auth, $pdo, $viewData);
 (require $root . '/routes/admin_comments.php')($app, $twig, $auth, $pdo, $viewData);

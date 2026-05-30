@@ -26,6 +26,7 @@ use App\Security\IpBlockMatcher;
 use App\Security\IpBlockPatternValidator;
 use App\Dev\PluginDependencyHealthCheck;
 use App\Dev\TwigLayoutContractLinter;
+use App\Maintenance\MaintenanceService;
 use App\Manifest\ManifestMeta;
 use Slim\Psr7\Factory\ServerRequestFactory;
 
@@ -301,6 +302,13 @@ if ($hashA !== $hashB) {
 $hashC = ExternalLinkClickRepository::destinationHash('https://example.com/other');
 if ($hashA === $hashC) {
     $fail('ExternalLinkClickRepository::destinationHash should differ for different URLs.');
+}
+
+if (MaintenanceService::formatBytes(512) !== '512 B') {
+    $fail('MaintenanceService::formatBytes should format bytes.');
+}
+if (!str_contains(MaintenanceService::formatBytes(2048), 'KB')) {
+    $fail('MaintenanceService::formatBytes should format kilobytes.');
 }
 
 echo "All tests passed.\n";
