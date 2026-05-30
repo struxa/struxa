@@ -6,6 +6,53 @@
   'use strict';
 
   var entryFormBaselineCleared = false;
+  var bootAttempts = 0;
+  var MAX_BOOT_ATTEMPTS = 24;
+
+  function whenTinyMceReady(cb) {
+    if (typeof tinymce !== 'undefined') {
+      cb();
+      return;
+    }
+    var script = document.getElementById('cms-tinymce-cdn');
+    var done = false;
+    function finish() {
+      if (done || typeof tinymce === 'undefined') return;
+      done = true;
+      cb();
+    }
+    if (script) {
+      script.addEventListener('load', finish, { once: true });
+    }
+    var tries = 0;
+    var poll = window.setInterval(function () {
+      tries += 1;
+      if (typeof tinymce !== 'undefined') {
+        window.clearInterval(poll);
+        finish();
+      } else if (tries >= 120) {
+        window.clearInterval(poll);
+      }
+    }, 50);
+  }
+
+  function afterLayout(cb) {
+    if (typeof requestAnimationFrame === 'function') {
+      requestAnimationFrame(function () {
+        requestAnimationFrame(cb);
+      });
+      return;
+    }
+    cb();
+  }
+
+  function textareaReady(ta) {
+    if (!ta || !ta.isConnected) return false;
+    var details = ta.closest('details');
+    if (details && !details.open) return false;
+    var rect = ta.getBoundingClientRect();
+    return rect.width > 0 || rect.height > 0;
+  }
 
   function getConfig(textareaId, autosavePrefix) {
     return {
@@ -119,7 +166,10 @@
       ],
       emoticons_database: 'emojis',
       pagebreak_separator: '<!-- pagebreak -->',
-      init_instance_callback: function () {
+      init_instance_callback: function (editor) {
+        var el = editor.getElement && editor.getElement();
+        var root = el && el.closest ? el.closest('[data-admin-rich-text]') : null;
+        if (root) root.setAttribute('data-rich-text-bound', '1');
         if (entryFormBaselineCleared) return;
         entryFormBaselineCleared = true;
         requestAnimationFrame(function () {
@@ -143,7 +193,12 @@
     if (!taId || typeof tinymce === 'undefined') return;
 
     var ta = document.getElementById(taId);
-    if (!ta) return;
+    if (!ta || !textareaReady(ta)) return;
+
+    if (tinymce.get(taId)) {
+      root.setAttribute('data-rich-text-bound', '1');
+      return;
+    }
 
     var surface = root.querySelector('.admin-page-editor-surface');
     var btnVisual = root.querySelector('[data-editor-mode="visual"]');
@@ -152,68 +207,117 @@
     var hintHtml = root.querySelector('.admin-editor-hint-html');
     if (!surface || !btnVisual || !btnHtml) return;
 
-    function showHints(isHtml) {
-      if (hintVisual) {
-        hintVisual.style.display = isHtml ? 'none' : '';
-        if (isHtml) hintVisual.setAttribute('hidden', '');
-        else hintVisual.removeAttribute('hidden');
-      }
-      if (hintHtml) {
-        hintHtml.style.display = isHtml ? '' : 'none';
-        if (isHtml) hintHtml.removeAttribute('hidden');
-        else hintHtml.setAttribute('hidden', '');
-      }
-    }
+    if (root.getAttribute('data-rich-text-ui-bound') !== '1') {
+      root.setAttribute('data-rich-text-ui-bound', '1');
 
-    function setMode(mode) {
-      var isHtml = mode === 'html';
-      if (isHtml) {
-        var ed = tinymce.get(taId);
-        if (ed) {
-          ta.value = ed.getContent();
-          ed.remove();
+      function showHints(isHtml) {
+        if (hintVisual) {
+          hintVisual.style.display = isHtml ? 'none' : '';
+          if (isHtml) hintVisual.setAttribute('hidden', '');
+          else hintVisual.removeAttribute('hidden');
         }
-        ta.style.display = 'block';
-        ta.classList.add('admin-textarea--html-mode');
-        surface.classList.add('is-html-mode');
-        btnVisual.classList.remove('is-active');
-        btnHtml.classList.add('is-active');
-        btnVisual.setAttribute('aria-selected', 'false');
-        btnHtml.setAttribute('aria-selected', 'true');
-        showHints(true);
-        ta.focus();
-      } else {
-        surface.classList.remove('is-html-mode');
-        ta.classList.remove('admin-textarea--html-mode');
-        ta.style.display = '';
-        btnHtml.classList.remove('is-active');
-        btnVisual.classList.add('is-active');
-        btnVisual.setAttribute('aria-selected', 'true');
-        btnHtml.setAttribute('aria-selected', 'false');
-        showHints(false);
-        if (!tinymce.get(taId)) {
-          tinymce.init(getConfig(taId, autosavePrefix));
+        if (hintHtml) {
+          hintHtml.style.display = isHtml ? '' : 'none';
+          if (isHtml) hintHtml.removeAttribute('hidden');
+          else hintHtml.setAttribute('hidden', '');
         }
       }
+
+      function setMode(mode) {
+        var isHtml = mode === 'html';
+        if (isHtml) {
+          var ed = tinymce.get(taId);
+          if (ed) {
+            ta.value = ed.getContent();
+            ed.remove();
+          }
+          ta.style.display = 'block';
+          ta.classList.add('admin-textarea--html-mode');
+          surface.classList.add('is-html-mode');
+          btnVisual.classList.remove('is-active');
+          btnHtml.classList.add('is-active');
+          btnVisual.setAttribute('aria-selected', 'false');
+          btnHtml.setAttribute('aria-selected', 'true');
+          showHints(true);
+          ta.focus();
+        } else {
+          surface.classList.remove('is-html-mode');
+          ta.classList.remove('admin-textarea--html-mode');
+          ta.style.display = '';
+          btnHtml.classList.remove('is-active');
+          btnVisual.classList.add('is-active');
+          btnVisual.setAttribute('aria-selected', 'true');
+          btnHtml.setAttribute('aria-selected', 'false');
+          showHints(false);
+          if (!tinymce.get(taId)) {
+            tinymce.init(getConfig(taId, autosavePrefix));
+          }
+        }
+      }
+
+      btnVisual.addEventListener('click', function () {
+        setMode('visual');
+      });
+      btnHtml.addEventListener('click', function () {
+        setMode('html');
+      });
+
+      showHints(false);
     }
 
-    btnVisual.addEventListener('click', function () {
-      setMode('visual');
-    });
-    btnHtml.addEventListener('click', function () {
-      setMode('html');
+    if (!tinymce.get(taId)) {
+      tinymce.init(getConfig(taId, autosavePrefix));
+    }
+  }
+
+  function bootRichTextBlocks() {
+    if (typeof tinymce === 'undefined') return false;
+
+    var roots = document.querySelectorAll('[data-admin-rich-text]');
+    if (!roots.length) return true;
+
+    var pending = 0;
+    roots.forEach(function (root) {
+      var taId = root.getAttribute('data-textarea-id');
+      var ta = taId ? document.getElementById(taId) : null;
+      if (taId && tinymce.get(taId)) {
+        root.setAttribute('data-rich-text-bound', '1');
+        return;
+      }
+      if (ta && !textareaReady(ta)) {
+        pending += 1;
+        return;
+      }
+      bindRichTextBlock(root);
+      if (taId && !tinymce.get(taId)) pending += 1;
     });
 
-    showHints(false);
-    tinymce.init(getConfig(taId, autosavePrefix));
+    return pending === 0;
+  }
+
+  function scheduleBoot(force) {
+    whenTinyMceReady(function () {
+      afterLayout(function () {
+        var complete = bootRichTextBlocks();
+        if (!complete && bootAttempts < MAX_BOOT_ATTEMPTS) {
+          bootAttempts += 1;
+          window.setTimeout(scheduleBoot, 120);
+        }
+      });
+    });
   }
 
   function init() {
-    if (typeof tinymce === 'undefined') return;
-    document.querySelectorAll('[data-admin-rich-text]').forEach(bindRichTextBlock);
+    scheduleBoot(false);
+
+    window.addEventListener('load', function () {
+      bootAttempts = 0;
+      scheduleBoot(true);
+    }, { once: true });
 
     var form = document.getElementById('entry-edit-form') || document.querySelector('form.admin-form');
-    if (form) {
+    if (form && !form.getAttribute('data-rich-text-submit-bound')) {
+      form.setAttribute('data-rich-text-submit-bound', '1');
       form.addEventListener('submit', function () {
         if (typeof tinymce !== 'undefined') tinymce.triggerSave();
       });

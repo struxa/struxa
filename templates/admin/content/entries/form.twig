@@ -333,9 +333,15 @@
   {% endif %}
 {% endblock %}
 
+{% block admin_head %}
+  {% if fields|filter(f => f.fieldType == 'richtext') is not empty %}
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+  {% endif %}
+{% endblock %}
+
 {% block admin_scripts %}
   {% if fields|filter(f => f.fieldType == 'richtext') is not empty %}
-    <script src="https://cdn.jsdelivr.net/npm/tinymce@7.9.2/tinymce.min.js" referrerpolicy="origin"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tinymce@7.9.2/tinymce.min.js" id="cms-tinymce-cdn" referrerpolicy="origin"></script>
     <script src="/js/admin-rich-text-blocks.js"></script>
   {% endif %}
   {% if media_picker_enabled|default(false) %}
