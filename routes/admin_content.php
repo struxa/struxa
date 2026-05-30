@@ -691,18 +691,24 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             }
             $fieldList = $fields->forTypeOrdered($id);
             $taxList = $taxonomyRepo->forContentTypeOrdered($id);
-            $entryRows = $entries->forTypeOrdered($id, 500);
-            $entrySummary = ['total' => count($entryRows), 'published' => 0, 'draft' => 0, 'in_review' => 0];
-            foreach ($entryRows as $row) {
-                $st = (string) ($row['status'] ?? '');
-                if ($st === 'published') {
-                    ++$entrySummary['published'];
-                } elseif ($st === 'in_review') {
-                    ++$entrySummary['in_review'];
-                } elseif ($st === 'draft') {
-                    ++$entrySummary['draft'];
-                }
+            $qp = $request->getQueryParams();
+            $page = isset($qp['page']) && ctype_digit((string) $qp['page']) ? max(1, (int) $qp['page']) : 1;
+            $perPageChoices = [25, 50, 100];
+            $perPage = isset($qp['per_page']) && ctype_digit((string) $qp['per_page']) ? (int) $qp['per_page'] : 25;
+            if (!in_array($perPage, $perPageChoices, true)) {
+                $perPage = 25;
             }
+            $typeStats = $entries->statsByContentType()[$id] ?? ['total' => 0, 'published' => 0, 'draft' => 0, 'in_review' => 0];
+            $total = (int) $typeStats['total'];
+            $totalPages = $total > 0 ? (int) ceil($total / $perPage) : 1;
+            $page = min($page, max(1, $totalPages));
+            $entryRows = $entries->forTypeAdminPaged($id, $page, $perPage);
+            $entrySummary = [
+                'total' => $total,
+                'published' => (int) $typeStats['published'],
+                'draft' => (int) $typeStats['draft'],
+                'in_review' => (int) $typeStats['in_review'],
+            ];
 
             return $twig->render($response, 'admin/content/entries/index.twig', $withCmsUser($request, array_merge($adminContext(), [
                 'admin_nav' => 'content_types',
@@ -711,6 +717,10 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 'taxonomy_count' => count($taxList),
                 'entry_rows' => $entryRows,
                 'entry_summary' => $entrySummary,
+                'page' => $page,
+                'per_page' => $perPage,
+                'per_page_choices' => $perPageChoices,
+                'total_pages' => $totalPages,
                 'content_type_cards' => ContentAdminTree::cards($types, $entries, $fields),
                 'content_tree_section' => 'entries',
                 'content_tree_type_id' => $id,

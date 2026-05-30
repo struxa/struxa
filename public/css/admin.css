@@ -10840,6 +10840,26 @@ a.admin-entry-row:hover .admin-entry-row-go {
   font-size: 0.8125rem;
 }
 
+.admin-entry-list-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem 1rem;
+  margin-bottom: 0.85rem;
+}
+
+.admin-entry-list-count {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--admin-dim);
+}
+
+.admin-entry-list-per-page {
+  margin: 0;
+}
+
 @media (max-width: 720px) {
   .admin-entry-card {
     flex-direction: column;

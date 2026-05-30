@@ -29,7 +29,40 @@ final class ContentEntryRepository
         $stmt = $this->pdo->prepare(
             'SELECT e.*, u.email AS author_email FROM ' . self::TABLE . ' e
              LEFT JOIN cms_users u ON u.id = e.created_by
-             WHERE e.content_type_id = ? ORDER BY e.updated_at DESC LIMIT ' . $limit
+             WHERE e.content_type_id = ? ORDER BY e.updated_at DESC, e.id DESC LIMIT ' . $limit
+        );
+        $stmt->execute([$contentTypeId]);
+        $out = [];
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            $out[] = $row;
+        }
+
+        return $out;
+    }
+
+    public function countForContentType(int $contentTypeId): int
+    {
+        $stmt = $this->pdo->prepare('SELECT COUNT(*) FROM ' . self::TABLE . ' WHERE content_type_id = ?');
+        $stmt->execute([$contentTypeId]);
+
+        return (int) $stmt->fetchColumn();
+    }
+
+    /**
+     * Admin entry list for one content type (newest first).
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function forTypeAdminPaged(int $contentTypeId, int $page, int $perPage): array
+    {
+        $page = max(1, $page);
+        $perPage = max(1, min(100, $perPage));
+        $offset = ($page - 1) * $perPage;
+        $stmt = $this->pdo->prepare(
+            'SELECT e.*, u.email AS author_email FROM ' . self::TABLE . ' e
+             LEFT JOIN cms_users u ON u.id = e.created_by
+             WHERE e.content_type_id = ? ORDER BY e.updated_at DESC, e.id DESC
+             LIMIT ' . (int) $perPage . ' OFFSET ' . (int) $offset
         );
         $stmt->execute([$contentTypeId]);
         $out = [];
