@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.1.23",
-    "title": "Struxa 1.1.23",
-    "summary": "Paginated entry lists on admin content-type entries screens (25/50/100 per page) with numbered navigation.",
+    "latest_version": "1.1.24",
+    "title": "Struxa 1.1.24",
+    "summary": "Admin dashboard HUD redesign — unified command-center frame, glass stat tiles, and clearer two-column layout matching the admin theme.",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "minor"
