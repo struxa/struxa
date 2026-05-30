@@ -193,10 +193,32 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
         $entryFormMediaContext,
         $entryPrimaryRichtextTextareaId
     ): void {
-        $group->get('/content-types', function (Request $request, Response $response) use ($twig, $adminContext, $withCmsUser, $types): Response {
+        $group->get('/content-types', function (Request $request, Response $response) use ($twig, $adminContext, $withCmsUser, $types, $entries, $fields): Response {
+            $typeRows = $types->allOrdered();
+            $entryStats = $entries->statsByContentType();
+            $fieldCounts = $fields->countsByContentType();
+            $cards = [];
+            $summary = ['types' => count($typeRows), 'entries' => 0, 'published' => 0, 'draft' => 0];
+            foreach ($typeRows as $t) {
+                $stats = $entryStats[$t->id] ?? ['total' => 0, 'published' => 0, 'draft' => 0, 'in_review' => 0];
+                $summary['entries'] += $stats['total'];
+                $summary['published'] += $stats['published'];
+                $summary['draft'] += $stats['draft'] + $stats['in_review'];
+                $cards[] = [
+                    'type' => $t,
+                    'entry_total' => $stats['total'],
+                    'entry_published' => $stats['published'],
+                    'entry_draft' => $stats['draft'],
+                    'entry_in_review' => $stats['in_review'],
+                    'field_count' => $fieldCounts[$t->id] ?? 0,
+                ];
+            }
+
             return $twig->render($response, 'admin/content/types/index.twig', $withCmsUser($request, array_merge($adminContext(), [
                 'admin_nav' => 'content_types',
-                'content_types' => $types->allOrdered(),
+                'content_types' => $typeRows,
+                'content_type_cards' => $cards,
+                'content_types_summary' => $summary,
             ])));
         })->setName('admin.content_types.index')->add($permEntryBrowse);
 

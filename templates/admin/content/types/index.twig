@@ -8,17 +8,35 @@
 {% endblock %}
 
 {% block admin_hero_sub %}
-  <p class="admin-hero-sub">Define structured content models — blog posts, products, team members — with custom fields and optional public URLs.</p>
+  <p class="admin-hero-sub">Structured content models — blog posts, products, team members — each with custom fields and optional public URLs.</p>
 {% endblock %}
 
 {% block admin_content %}
-  {% if cms_can('manage_content_types') %}
-    <div class="admin-toolbar admin-toolbar--spread">
-      <a class="admin-btn-primary" href="{{ url_for('admin.content_types.new') }}">New content type</a>
-    </div>
-  {% endif %}
+  {% set summary = content_types_summary|default({ types: 0, entries: 0, published: 0, draft: 0 }) %}
+  {% set cards = content_type_cards|default([]) %}
 
-  {% if content_types is empty %}
+  <div class="admin-ct-toolbar">
+    {% if cards is not empty %}
+      <div class="admin-ct-summary" aria-label="Content overview">
+        <span class="admin-ct-summary-item"><strong>{{ summary.types }}</strong> type{{ summary.types == 1 ? '' : 's' }}</span>
+        <span class="admin-ct-summary-sep" aria-hidden="true">·</span>
+        <span class="admin-ct-summary-item"><strong>{{ summary.entries }}</strong> entr{{ summary.entries == 1 ? 'y' : 'ies' }}</span>
+        {% if summary.published > 0 %}
+          <span class="admin-ct-summary-sep" aria-hidden="true">·</span>
+          <span class="admin-ct-summary-item admin-ct-summary-item--live">{{ summary.published }} live</span>
+        {% endif %}
+        {% if summary.draft > 0 %}
+          <span class="admin-ct-summary-sep" aria-hidden="true">·</span>
+          <span class="admin-ct-summary-item admin-ct-summary-item--draft">{{ summary.draft }} draft</span>
+        {% endif %}
+      </div>
+    {% endif %}
+    {% if cms_can('manage_content_types') %}
+      <a class="admin-btn-primary" href="{{ url_for('admin.content_types.new') }}">New content type</a>
+    {% endif %}
+  </div>
+
+  {% if cards is empty %}
     {{ ui.empty_state(
       'No content types yet',
       'Create a type, add fields, then publish entries. Each type can have its own public URL prefix when routing is enabled.',
@@ -27,45 +45,63 @@
       '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>'
     ) }}
   {% else %}
-    <div class="admin-table-wrap">
-      <table class="admin-table">
-        <thead>
-          <tr>
-            <th scope="col">Name</th>
-            <th scope="col">Slug</th>
-            <th scope="col">Options</th>
-            <th class="admin-table-col-actions" scope="col"><span class="admin-table-muted">Actions</span></th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for t in content_types %}
-            <tr>
-              <td>
-                <strong>{{ t.name|e }}</strong>
-                {% if t.description %}<br /><span class="admin-hint" style="margin:0">{{ t.description|e|slice(0, 120) }}{% if t.description|length > 120 %}…{% endif %}</span>{% endif %}
-              </td>
-              <td><code class="admin-inline-code">{{ t.slug|e }}</code></td>
-              <td>
-                <span class="admin-pill {{ t.hasPublicRoute ? 'admin-pill--accent' : '' }}">{{ t.hasPublicRoute ? 'Public URL' : 'Admin only' }}</span>
+    <div class="admin-ct-grid" role="list">
+      {% for card in cards %}
+        {% set t = card.type %}
+        {% set entries_url = url_for('admin.content_types.entries.index', { id: t.id }) %}
+        <article class="admin-ct-card" role="listitem">
+          <a class="admin-ct-card-main" href="{{ entries_url|e('html_attr') }}">
+            <span class="admin-ct-card-icon" aria-hidden="true">
+              {% if t.icon %}
+                <span class="admin-ct-card-icon-glyph">{{ t.icon|e }}</span>
+              {% else %}
+                <span class="admin-ct-card-icon-letter">{{ t.name|slice(0, 1)|upper }}</span>
+              {% endif %}
+            </span>
+            <span class="admin-ct-card-body">
+              <span class="admin-ct-card-head">
+                <strong class="admin-ct-card-title">{{ t.name|e }}</strong>
+                <span class="admin-ct-card-go" aria-hidden="true">→</span>
+              </span>
+              <code class="admin-ct-card-slug">{{ t.slug|e }}</code>
+              {% if t.description %}
+                <span class="admin-ct-card-desc">{{ t.description|e|slice(0, 100) }}{% if t.description|length > 100 %}…{% endif %}</span>
+              {% endif %}
+              <span class="admin-ct-card-stats">
+                <span class="admin-ct-stat">
+                  <span class="admin-ct-stat-value">{{ card.entry_total }}</span>
+                  <span class="admin-ct-stat-label">entr{{ card.entry_total == 1 ? 'y' : 'ies' }}</span>
+                </span>
+                <span class="admin-ct-stat">
+                  <span class="admin-ct-stat-value">{{ card.field_count }}</span>
+                  <span class="admin-ct-stat-label">field{{ card.field_count == 1 ? '' : 's' }}</span>
+                </span>
+              </span>
+              <span class="admin-ct-card-pills">
+                <span class="admin-pill {{ t.hasPublicRoute ? 'admin-pill--accent' : 'admin-pill--muted' }}">{{ t.hasPublicRoute ? 'Public URL' : 'Admin only' }}</span>
                 {% if t.supportsSeo %}<span class="admin-pill">SEO</span>{% endif %}
                 {% if t.supportsFeaturedImage %}<span class="admin-pill">Featured</span>{% endif %}
-              </td>
-              <td class="admin-table-actions">
-                <details class="admin-actions-menu">
-                  <summary class="admin-actions-menu-trigger" aria-label="Actions for {{ t.name|e('html_attr') }}">⋯</summary>
-                  <div class="admin-actions-menu-panel">
-                    <a href="{{ url_for('admin.content_types.entries.index', { id: t.id }) }}">Entries</a>
-                    {% if cms_can('manage_content_types') %}
-                      <a href="{{ url_for('admin.content_types.edit', { id: t.id }) }}">Edit type</a>
-                      <a href="{{ url_for('admin.content_types.fields.index', { id: t.id }) }}">Fields</a>
-                    {% endif %}
-                  </div>
-                </details>
-              </td>
-            </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+                {% if card.entry_in_review > 0 %}
+                  <span class="admin-pill admin-pill--warn">{{ card.entry_in_review }} in review</span>
+                {% endif %}
+              </span>
+            </span>
+          </a>
+          {% if cms_can('manage_content_types') %}
+            <footer class="admin-ct-card-foot">
+              <a class="admin-ct-card-foot-link" href="{{ url_for('admin.content_types.fields.index', { id: t.id }) }}">Fields</a>
+              <a class="admin-ct-card-foot-link" href="{{ url_for('admin.content_types.edit', { id: t.id }) }}">Settings</a>
+              {% if cms_can('create_content') %}
+                <a class="admin-ct-card-foot-link admin-ct-card-foot-link--primary" href="{{ url_for('admin.content_types.entries.new', { id: t.id }) }}">New entry</a>
+              {% endif %}
+            </footer>
+          {% elseif cms_can('create_content') %}
+            <footer class="admin-ct-card-foot">
+              <a class="admin-ct-card-foot-link admin-ct-card-foot-link--primary" href="{{ url_for('admin.content_types.entries.new', { id: t.id }) }}">New entry</a>
+            </footer>
+          {% endif %}
+        </article>
+      {% endfor %}
     </div>
   {% endif %}
 {% endblock %}

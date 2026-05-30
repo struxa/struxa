@@ -207,6 +207,36 @@ final class ContentEntryRepository
     }
 
     /**
+     * Entry totals keyed by content type id (empty when no types exist).
+     *
+     * @return array<int, array{total: int, published: int, draft: int, in_review: int}>
+     */
+    public function statsByContentType(): array
+    {
+        $stmt = $this->pdo->query(
+            'SELECT content_type_id,
+                COUNT(*) AS total,
+                SUM(CASE WHEN status = \'published\' THEN 1 ELSE 0 END) AS published,
+                SUM(CASE WHEN status = \'draft\' THEN 1 ELSE 0 END) AS draft,
+                SUM(CASE WHEN status = \'in_review\' THEN 1 ELSE 0 END) AS in_review
+             FROM ' . self::TABLE . '
+             GROUP BY content_type_id'
+        );
+        $out = [];
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            $id = (int) $row['content_type_id'];
+            $out[$id] = [
+                'total' => (int) $row['total'],
+                'published' => (int) $row['published'],
+                'draft' => (int) $row['draft'],
+                'in_review' => (int) $row['in_review'],
+            ];
+        }
+
+        return $out;
+    }
+
+    /**
      * @param list<string> $statuses
      * @return list<array<string, mixed>>
      */

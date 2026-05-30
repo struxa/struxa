@@ -31,6 +31,24 @@ final class ContentFieldRepository
         return $out;
     }
 
+    /**
+     * Field counts keyed by content type id.
+     *
+     * @return array<int, int>
+     */
+    public function countsByContentType(): array
+    {
+        $stmt = $this->pdo->query(
+            'SELECT content_type_id, COUNT(*) AS c FROM ' . self::TABLE . ' GROUP BY content_type_id'
+        );
+        $out = [];
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            $out[(int) $row['content_type_id']] = (int) $row['c'];
+        }
+
+        return $out;
+    }
+
     public function findById(int $id): ?ContentField
     {
         $stmt = $this->pdo->prepare('SELECT * FROM ' . self::TABLE . ' WHERE id = ? LIMIT 1');
