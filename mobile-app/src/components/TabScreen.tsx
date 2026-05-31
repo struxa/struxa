@@ -3,19 +3,23 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { BootstrapData, MobileTab } from '../types/bootstrap';
 import type { SiteTheme } from '../theme/siteTheme';
 import { ContentBrowser } from './content/ContentBrowser';
+import { AccountScreen } from './account/AccountScreen';
 
 type Props = {
   bootstrap: BootstrapData;
   tab: MobileTab;
   theme: SiteTheme;
+  siteId: string;
 };
 
-export function TabScreen({ bootstrap, tab, theme }: Props) {
+export function TabScreen({ bootstrap, tab, theme, siteId }: Props) {
   switch (tab.type) {
     case 'home':
       return <HomeScreen bootstrap={bootstrap} theme={theme} />;
     case 'content':
       return <ContentBrowser bootstrap={bootstrap} theme={theme} />;
+    case 'account':
+      return <AccountScreen bootstrap={bootstrap} siteId={siteId} theme={theme} />;
     case 'search':
       return <SearchScreen bootstrap={bootstrap} theme={theme} />;
     case 'shop':
@@ -45,7 +49,7 @@ function ScreenShell({
   );
 }
 
-function HomeScreen({ bootstrap, theme }: Omit<Props, 'tab'>) {
+function HomeScreen({ bootstrap, theme }: Omit<Props, 'tab' | 'siteId'>) {
   return (
     <ScreenShell theme={theme} title={bootstrap.mobile.welcome_title}>
       {bootstrap.mobile.welcome_message ? (
@@ -76,7 +80,7 @@ function HomeScreen({ bootstrap, theme }: Omit<Props, 'tab'>) {
   );
 }
 
-function SearchScreen({ bootstrap, theme }: Omit<Props, 'tab'>) {
+function SearchScreen({ bootstrap, theme }: Omit<Props, 'tab' | 'siteId'>) {
   const enabled = bootstrap.features.search;
   return (
     <ScreenShell theme={theme} title="Search">
@@ -92,7 +96,7 @@ function SearchScreen({ bootstrap, theme }: Omit<Props, 'tab'>) {
   );
 }
 
-function ShopScreen({ bootstrap, theme }: Omit<Props, 'tab'>) {
+function ShopScreen({ bootstrap, theme }: Omit<Props, 'tab' | 'siteId'>) {
   const enabled = bootstrap.features.commerce;
   const shopTitle = bootstrap.commerce?.shop_title ?? 'Shop';
   return (
@@ -115,7 +119,7 @@ function ShopScreen({ bootstrap, theme }: Omit<Props, 'tab'>) {
   );
 }
 
-function PlaceholderScreen({ bootstrap, tab, theme }: Props) {
+function PlaceholderScreen({ bootstrap, tab, theme }: Omit<Props, 'siteId'>) {
   return (
     <ScreenShell theme={theme} title={tab.label}>
       <Text style={[styles.lead, { color: theme.textMuted }]}>

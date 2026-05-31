@@ -101,6 +101,7 @@ final class MobileBootstrapService
                 'commerce' => $commerceEnabled,
                 'search' => $searchEnabled,
                 'comments' => true,
+                'mobile_auth' => true,
                 'auth' => [
                     'login_path' => '/login',
                     'register_path' => '/register',
@@ -113,6 +114,11 @@ final class MobileBootstrapService
                 'graphql' => $siteUrl . '/api/v1/graphql',
                 'bootstrap' => $siteUrl . '/api/v1/mobile/bootstrap',
                 'content_base' => $siteUrl . '/api/v1/mobile/content',
+                'auth_login' => $siteUrl . '/api/v1/mobile/auth/login',
+                'auth_register' => $siteUrl . '/api/v1/mobile/auth/register',
+                'auth_refresh' => $siteUrl . '/api/v1/mobile/auth/refresh',
+                'auth_logout' => $siteUrl . '/api/v1/mobile/auth/logout',
+                'auth_me' => $siteUrl . '/api/v1/mobile/auth/me',
             ],
             'mobile' => [
                 'welcome_title' => $welcomeTitle,

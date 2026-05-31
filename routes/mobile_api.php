@@ -2,6 +2,9 @@
 
 declare(strict_types=1);
 
+use App\Auth\AppAuth;
+use App\Mobile\MobileAuthException;
+use App\Mobile\MobileAuthService;
 use App\Mobile\MobileBootstrapService;
 use App\Mobile\MobileContentException;
 use App\Mobile\MobileContentService;
@@ -16,17 +19,35 @@ use Slim\Exception\HttpNotFoundException;
  *
  * @param callable(): array<string, mixed> $viewData
  */
-return static function (App $app, \PDO $pdo, \App\Theme\ThemeManager $themeManager, callable $viewData): void {
+return static function (App $app, \PDO $pdo, \App\Theme\ThemeManager $themeManager, AppAuth $auth, callable $viewData): void {
     $bootstrap = new MobileBootstrapService($pdo, $themeManager);
     $content = new MobileContentService($pdo);
+    $mobileAuth = new MobileAuthService($pdo, $auth);
 
-    $json = static function (Response $response, array $payload, int $status = 200): Response {
+    $json = static function (Response $response, array $payload, int $status = 200, bool $private = false): Response {
         $response->getBody()->write(json_encode($payload, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
 
-        return $response
+        $response = $response
             ->withStatus($status)
-            ->withHeader('Content-Type', 'application/json; charset=utf-8')
-            ->withHeader('Cache-Control', 'public, max-age=120');
+            ->withHeader('Content-Type', 'application/json; charset=utf-8');
+
+        return $response->withHeader(
+            'Cache-Control',
+            $private ? 'no-store, no-cache, must-revalidate' : 'public, max-age=120',
+        );
+    };
+
+    $parseBody = static function (Request $request): array {
+        $body = $request->getParsedBody();
+        return is_array($body) ? $body : [];
+    };
+
+    $authError = static function (Response $response, MobileAuthException $e) use ($json): Response {
+        return $json($response, [
+            'ok' => false,
+            'error' => $e->errorCode,
+            'message' => $e->getMessage(),
+        ], $e->httpStatus, true);
     };
 
     $mobileDisabled = static function (Response $response) use ($json): Response {
@@ -120,4 +141,68 @@ return static function (App $app, \PDO $pdo, \App\Theme\ThemeManager $themeManag
             'data' => $data,
         ]);
     })->setName('public.mobile.content.entry');
+
+    $app->post('/api/v1/mobile/auth/login', function (Request $request, Response $response) use ($mobileAuth, $json, $parseBody, $authError): Response {
+        $body = $parseBody($request);
+        try {
+            $data = $mobileAuth->login(
+                (string) ($body['email'] ?? ''),
+                (string) ($body['password'] ?? ''),
+                (string) ($body['totp_code'] ?? ''),
+            );
+        } catch (MobileAuthException $e) {
+            return $authError($response, $e);
+        }
+
+        return $json($response, ['ok' => true, 'data' => $data], 200, true);
+    })->setName('public.mobile.auth.login');
+
+    $app->post('/api/v1/mobile/auth/register', function (Request $request, Response $response) use ($mobileAuth, $json, $parseBody, $authError): Response {
+        $body = $parseBody($request);
+        try {
+            $data = $mobileAuth->register(
+                (string) ($body['email'] ?? ''),
+                (string) ($body['password'] ?? ''),
+                (string) ($body['password_confirm'] ?? $body['password'] ?? ''),
+                (string) ($body['username'] ?? ''),
+            );
+        } catch (MobileAuthException $e) {
+            return $authError($response, $e);
+        }
+
+        return $json($response, ['ok' => true, 'data' => $data], 200, true);
+    })->setName('public.mobile.auth.register');
+
+    $app->post('/api/v1/mobile/auth/refresh', function (Request $request, Response $response) use ($mobileAuth, $json, $parseBody, $authError): Response {
+        $body = $parseBody($request);
+        try {
+            $data = $mobileAuth->refresh((string) ($body['refresh_token'] ?? ''));
+        } catch (MobileAuthException $e) {
+            return $authError($response, $e);
+        }
+
+        return $json($response, ['ok' => true, 'data' => $data], 200, true);
+    })->setName('public.mobile.auth.refresh');
+
+    $app->post('/api/v1/mobile/auth/logout', function (Request $request, Response $response) use ($mobileAuth, $json, $parseBody, $authError): Response {
+        $body = $parseBody($request);
+        try {
+            $mobileAuth->logout((string) ($body['refresh_token'] ?? ''));
+        } catch (MobileAuthException $e) {
+            return $authError($response, $e);
+        }
+
+        return $json($response, ['ok' => true], 200, true);
+    })->setName('public.mobile.auth.logout');
+
+    $app->get('/api/v1/mobile/auth/me', function (Request $request, Response $response) use ($mobileAuth, $json, $authError): Response {
+        try {
+            $authCtx = $mobileAuth->authenticateAccessToken($request->getHeaderLine('Authorization'));
+            $data = $mobileAuth->me($authCtx['userId']);
+        } catch (MobileAuthException $e) {
+            return $authError($response, $e);
+        }
+
+        return $json($response, ['ok' => true, 'data' => $data], 200, true);
+    })->setName('public.mobile.auth.me');
 };

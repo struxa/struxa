@@ -790,8 +790,8 @@ if (FilterHook::requiredCapability(FilterHook::MOBILE_BOOTSTRAP) !== PluginCapab
 }
 
 $tabs = MobileSettings::defaultTabs(true, true, 2);
-if (count($tabs) !== 4 || $tabs[0]['type'] !== 'home' || $tabs[3]['type'] !== 'shop') {
-    $fail('MobileSettings::defaultTabs should include home, content, search, and shop.');
+if (count($tabs) !== 5 || $tabs[4]['type'] !== 'account') {
+    $fail('MobileSettings::defaultTabs should include home, content, search, shop, and account.');
 }
 $parsed = MobileSettings::parseTabsJson('[{"id":"home","label":"Home","type":"home"},{"id":"bad id","label":"X","type":"x"}]');
 if (count($parsed) !== 1 || $parsed[0]['id'] !== 'home') {
@@ -810,6 +810,22 @@ if (MobileBootstrapService::absoluteUrl('https://example.com', 'https://cdn.test
 
 if (\App\Mobile\MobileContentService::PER_PAGE_DEFAULT !== 20 || \App\Mobile\MobileContentService::PER_PAGE_MAX !== 30) {
     $fail('MobileContentService pagination constants should match mobile API defaults.');
+}
+
+$prevSiteKey = $_ENV['PHPAUTH_SITE_KEY'] ?? null;
+$_ENV['PHPAUTH_SITE_KEY'] = 'unit-test-mobile-jwt-key';
+try {
+    $issued = \App\Mobile\MobileJwt::issueAccessToken(42, 'user@example.com');
+    $payload = \App\Mobile\MobileJwt::decode($issued['token']);
+    if ((int) ($payload['sub'] ?? 0) !== 42 || ($payload['email'] ?? '') !== 'user@example.com') {
+        $fail('MobileJwt round-trip should preserve subject and email.');
+    }
+} finally {
+    if ($prevSiteKey === null) {
+        unset($_ENV['PHPAUTH_SITE_KEY']);
+    } else {
+        $_ENV['PHPAUTH_SITE_KEY'] = $prevSiteKey;
+    }
 }
 
 echo "All tests passed.\n";

@@ -12,6 +12,11 @@ Struxa sites can expose a **public bootstrap API** for the official Struxa clien
 | `GET` | `/.well-known/struxa.json` | None | Minimal discovery (bootstrap URL + CMS version) |
 | `GET` | `/api/v1/mobile/content/{typeSlug}/entries` | None | Published entry list (paginated) |
 | `GET` | `/api/v1/mobile/content/{typeSlug}/entries/{entrySlug}` | None | Published entry detail |
+| `POST` | `/api/v1/mobile/auth/login` | None | Email/password login → JWT + refresh token |
+| `POST` | `/api/v1/mobile/auth/register` | None | Create PHPAuth account |
+| `POST` | `/api/v1/mobile/auth/refresh` | None | Rotate refresh token, new access token |
+| `POST` | `/api/v1/mobile/auth/logout` | None | Revoke refresh token |
+| `GET` | `/api/v1/mobile/auth/me` | Bearer access token | Current user profile |
 
 When mobile bootstrap is **disabled** in admin:
 
@@ -36,7 +41,7 @@ Successful bootstrap response:
   "ok": true,
   "data": {
     "schema_version": 1,
-    "cms_version": "1.1.43",
+    "cms_version": "1.1.44",
     "site": { "name": "…", "tagline": "…", "url": "https://…", "language": "en" },
     "branding": {
       "logo_url": "https://…/uploads/…",
@@ -126,7 +131,9 @@ Migration: `database/migrations/055_mobile_app.sql`
 ### Security notes
 
 - Bootstrap and mobile content endpoints are **read-only** and **unauthenticated** — published entries only; never include API keys, secrets, or drafts.
-- Staff write access and draft previews remain on `/api/v1` (API key) or future mobile JWT auth (Phase 4).
+- Staff write access and draft previews remain on `/api/v1` (API key).
+- Mobile JWT auth uses existing PHPAuth users; access tokens expire in 15 minutes; refresh tokens rotate on use.
+- Google SSO deep links are planned for a later phase.
 - Do not embed write-scoped API keys in mobile app binaries.
 
 ### Testing locally

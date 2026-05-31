@@ -37,6 +37,7 @@ export type BootstrapData = {
     commerce: boolean;
     search: boolean;
     comments: boolean;
+    mobile_auth: boolean;
     auth: {
       login_path: string;
       register_path: string;
@@ -49,6 +50,11 @@ export type BootstrapData = {
     graphql: string;
     bootstrap: string;
     content_base: string;
+    auth_login: string;
+    auth_register: string;
+    auth_refresh: string;
+    auth_logout: string;
+    auth_me: string;
   };
   mobile: {
     welcome_title: string;

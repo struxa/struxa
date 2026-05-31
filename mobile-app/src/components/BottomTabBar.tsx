@@ -73,6 +73,8 @@ function iconForType(type: string): string {
       return '⌕';
     case 'shop':
       return '◆';
+    case 'account':
+      return '☺';
     default:
       return '•';
   }

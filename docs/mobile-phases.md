@@ -47,16 +47,15 @@ See [mobile-app/README.md](../mobile-app/README.md) for run instructions.
 
 ---
 
-## Phase 4 — Mobile JWT auth
+## Phase 4 — Mobile JWT auth (done)
 
 **Goal:** End-user login per site without session cookies.
 
-- New endpoints: login, register, refresh, logout issuing **JWT** (or opaque mobile tokens)
-- Per-site user accounts (existing PHPAuth users)
-- Optional Google SSO deep link flow
-- Protected routes: profile, orders, comments
-
-**Do not:** Rely on PHPAuth session cookies or CSRF from the app.
+- `POST /api/v1/mobile/auth/login|register|refresh|logout`
+- `GET /api/v1/mobile/auth/me` (Bearer access token)
+- Short-lived JWT access tokens + hashed refresh tokens in `cms_mobile_refresh_tokens`
+- Per-site sessions in the app (AsyncStorage keyed by site id)
+- TOTP support on login when enabled for CMS staff accounts
 
 **Deliverable:** User signs in on Site A without affecting Site B.
 

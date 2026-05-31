@@ -671,7 +671,7 @@ $app->get('/logout', function (Request $request, Response $response) use ($twig,
 (require $root . '/routes/public_seo.php')($app, $pdo, $viewData);
 
 (require $root . '/routes/public_api.php')($app, $twig, $pdo, $viewData);
-(require $root . '/routes/mobile_api.php')($app, $pdo, $themeManager, $viewData);
+(require $root . '/routes/mobile_api.php')($app, $pdo, $themeManager, $auth, $viewData);
 (require $root . '/routes/public_comments.php')($app, $pdo, $root, $auth);
 (require $root . '/routes/public_forms.php')($app, $twig, $pdo, $root, $viewData);
 (require $root . '/routes/public_external_link_tracking.php')($app, $pdo, $root, $auth);

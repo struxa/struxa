@@ -30,6 +30,7 @@ Scan the QR code with Expo Go, or press `i` / `a` for iOS/Android simulator.
 - **Theming** — accent color, logo, site name from bootstrap
 - **Dynamic tab bar** — from `mobile.tabs` in bootstrap
 - **Content browsing** — type list → entry list (pagination) → entry detail with images
+- **Account tab** — per-site login, register, profile, sign out (JWT)
 - **Placeholder screens** — search, shop (later phases)
 
 ## Project layout

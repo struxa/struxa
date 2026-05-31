@@ -114,7 +114,7 @@ export function SiteShell({ siteId }: Props) {
         theme={theme}
       />
       <View style={styles.body}>
-        {activeTab ? <TabScreen bootstrap={bootstrap} tab={activeTab} theme={theme} /> : null}
+        {activeTab ? <TabScreen bootstrap={bootstrap} siteId={siteId} tab={activeTab} theme={theme} /> : null}
       </View>
       <BottomTabBar
         activeTabId={activeTab?.id ?? ''}

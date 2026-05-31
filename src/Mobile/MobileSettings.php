@@ -70,6 +70,7 @@ final class MobileSettings
         if ($commerceEnabled) {
             $tabs[] = ['id' => 'shop', 'label' => 'Shop', 'type' => 'shop'];
         }
+        $tabs[] = ['id' => 'account', 'label' => 'Account', 'type' => 'account'];
 
         return $tabs;
     }
