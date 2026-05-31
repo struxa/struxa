@@ -5,7 +5,10 @@ Expo/React Native client for Struxa CMS sites. Users add one or more site URLs; 
 ## Requirements
 
 - Node.js 20+
-- Expo Go app (device/simulator) or iOS/Android dev build
+- **Expo Go from the App Store / Play Store** (SDK 54 — matches this project)
+- iOS Simulator or Android emulator also work via `npm run ios` / `npm run android`
+
+> **Note:** This app targets **Expo SDK 54** so it runs in the public Expo Go app. SDK 56 is not yet on the App Store; if you see an “Expo Go out of date” message, pull the latest `mobile-app/` changes and run `npm install` again.
 
 ## Quick start
 

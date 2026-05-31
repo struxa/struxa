@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.1.44",
-    "title": "Struxa 1.1.44",
-    "summary": "Mobile app Phase 4: JWT auth endpoints (login, register, refresh, logout, me) and per-site Account tab in the Expo client.",
+    "latest_version": "1.1.45",
+    "title": "Struxa 1.1.45",
+    "summary": "Mobile app: downgrade to Expo SDK 54 for App Store / Play Store Expo Go compatibility.",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "minor"
