@@ -32,8 +32,8 @@
   {% endset %}
 
   {% set page_total = pages|length %}
-  {% set page_published = pages|selectattr('status', 'equalto', 'published')|length %}
-  {% set page_draft = pages|selectattr('status', 'equalto', 'draft')|length + pages|selectattr('status', 'equalto', 'in_review')|length %}
+  {% set page_published = page_published_count|default(0) %}
+  {% set page_draft = page_draft_count|default(0) %}
 
   <div class="admin-page-toolbar">
     {% if page_total > 0 %}

@@ -327,9 +327,22 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
         };
 
         $group->get('/pages', function (Request $request, Response $response) use ($twig, $adminContext, $withCmsUser, $repo): Response {
+            $pages = $repo->allOrderedByUpdated();
+            $publishedCount = 0;
+            $draftCount = 0;
+            foreach ($pages as $page) {
+                if ($page->status === 'published') {
+                    $publishedCount++;
+                } elseif ($page->status === 'draft' || $page->status === 'in_review') {
+                    $draftCount++;
+                }
+            }
+
             return $twig->render($response, 'admin/pages/list.twig', $withCmsUser($request, array_merge($adminContext(), [
                 'admin_nav' => 'pages',
-                'pages' => $repo->allOrderedByUpdated(),
+                'pages' => $pages,
+                'page_published_count' => $publishedCount,
+                'page_draft_count' => $draftCount,
             ])));
         })->setName('admin.pages.index');
 
