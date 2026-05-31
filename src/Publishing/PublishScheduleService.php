@@ -212,4 +212,27 @@ final class PublishScheduleService
 
         return $n;
     }
+
+    /** Count pages/entries with overdue scheduled publish or unpublish actions. */
+    public function countOverdueScheduled(): int
+    {
+        $sql = <<<'SQL'
+            SELECT (
+                (SELECT COUNT(*) FROM cms_content_entries
+                 WHERE deleted_at IS NULL
+                   AND (
+                     (scheduled_publish_at IS NOT NULL AND scheduled_publish_at <= NOW(6))
+                     OR (scheduled_unpublish_at IS NOT NULL AND scheduled_unpublish_at <= NOW(6))
+                   ))
+              + (SELECT COUNT(*) FROM cms_pages
+                 WHERE deleted_at IS NULL
+                   AND (
+                     (scheduled_publish_at IS NOT NULL AND scheduled_publish_at <= NOW(6))
+                     OR (scheduled_unpublish_at IS NOT NULL AND scheduled_unpublish_at <= NOW(6))
+                   ))
+            ) AS overdue
+            SQL;
+
+        return (int) $this->pdo->query($sql)->fetchColumn();
+    }
 }

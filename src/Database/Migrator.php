@@ -49,6 +49,28 @@ final class Migrator
         return $new;
     }
 
+    /**
+     * @return list<string> Migration basenames not yet applied
+     */
+    public function pending(): array
+    {
+        $this->ensureMigrationsTable();
+
+        $files = glob($this->migrationsDir . '/*.sql') ?: [];
+        sort($files, SORT_STRING);
+
+        $applied = $this->appliedNames();
+        $pending = [];
+        foreach ($files as $path) {
+            $name = basename($path);
+            if (!isset($applied[$name])) {
+                $pending[] = $name;
+            }
+        }
+
+        return $pending;
+    }
+
     private function ensureMigrationsTable(): void
     {
         $this->pdo->exec(

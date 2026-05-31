@@ -100,6 +100,7 @@ switch ($cmd) {
         foreach ($report['errors'] as $err) {
             fwrite(STDERR, $err . "\n");
         }
+        \App\Publishing\ScheduleRunTracker::record($pdo);
         exit($report['errors'] === [] ? 0 : 1);
 
     case 'maintenance:purge':

@@ -142,7 +142,7 @@
   </details>
 
   {% if cms_can('manage_settings') or cms_can('view_link_analytics') %}
-    <details class="admin-nav-group" {{ nav in ['settings','seo_overview','seo_redirects','seo_not_found','cache_tools','maintenance_tools','analytics_external_links','settings_search'] ? 'open' : '' }}>
+    <details class="admin-nav-group" {{ nav in ['settings','seo_overview','seo_redirects','seo_not_found','cache_tools','maintenance_tools','site_health','analytics_external_links','settings_search'] ? 'open' : '' }}>
       <summary class="admin-nav-group-title">Site</summary>
       <div class="admin-nav-group-items">
         {% if cms_can('manage_settings') %}
@@ -157,6 +157,10 @@
           <a href="{{ url_for('admin.seo.not_found') }}" class="{{ nav == 'seo_not_found' ? 'is-active' : '' }}">
             <svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
             404 log
+          </a>
+          <a href="{{ url_for('admin.tools.site_health') }}" class="{{ nav == 'site_health' ? 'is-active' : '' }}">
+            <svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+            Site health
           </a>
           <a href="{{ url_for('admin.tools.cache') }}" class="{{ nav == 'cache_tools' ? 'is-active' : '' }}">
             <svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>

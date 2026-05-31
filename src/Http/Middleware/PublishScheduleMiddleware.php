@@ -7,6 +7,7 @@ namespace App\Http\Middleware;
 use App\Cache\FileCache;
 use App\Preview\PreviewTokenRepository;
 use App\Publishing\PublishScheduleService;
+use App\Publishing\ScheduleRunTracker;
 use PDO;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -31,6 +32,7 @@ final class PublishScheduleMiddleware implements MiddlewareInterface
             try {
                 (new PreviewTokenRepository($this->pdo))->deleteExpired();
                 (new PublishScheduleService($this->pdo))->runDue();
+                ScheduleRunTracker::record($this->pdo);
             } catch (\Throwable) {
                 // Avoid breaking requests; failures are visible via CLI schedule:run
             }

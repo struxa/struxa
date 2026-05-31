@@ -30,6 +30,7 @@ use App\Security\IpBlockPatternValidator;
 use App\Editing\EditLockService;
 use App\Editing\EditSubjectType;
 use App\Dev\PluginDependencyHealthCheck;
+use App\Health\SiteHealthStatus;
 use App\Trash\TrashItemKind;
 use App\Dev\TwigLayoutContractLinter;
 use App\Maintenance\MaintenanceService;
@@ -424,6 +425,13 @@ if ($lockSvc->isActive(['heartbeat_at' => date('Y-m-d H:i:s', time() - EditLockS
 
 if (!TrashItemKind::isValid('page') || !TrashItemKind::isValid('content_entry') || TrashItemKind::isValid('invalid')) {
     $fail('TrashItemKind validation failed.');
+}
+
+if (SiteHealthStatus::worst([SiteHealthStatus::GOOD, SiteHealthStatus::RECOMMENDED]) !== SiteHealthStatus::RECOMMENDED) {
+    $fail('SiteHealthStatus::worst should prefer recommended over good.');
+}
+if (SiteHealthStatus::worst([SiteHealthStatus::GOOD, SiteHealthStatus::CRITICAL]) !== SiteHealthStatus::CRITICAL) {
+    $fail('SiteHealthStatus::worst should prefer critical.');
 }
 
 echo "All tests passed.\n";

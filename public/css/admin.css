@@ -1588,6 +1588,89 @@
   border-color: rgba(251, 146, 60, 0.42);
 }
 
+.admin-pill--critical,
+.admin-health-pill--critical {
+  color: #fca5a5;
+  background: rgba(239, 68, 68, 0.14);
+  border-color: rgba(239, 68, 68, 0.42);
+}
+
+.admin-health-pill--good {
+  color: #6ee7b7;
+  background: rgba(45, 212, 191, 0.12);
+  border-color: rgba(45, 212, 191, 0.35);
+}
+
+.admin-health-pill--recommended {
+  color: #fdba74;
+  background: rgba(251, 146, 60, 0.14);
+  border-color: rgba(251, 146, 60, 0.42);
+}
+
+.admin-health-overview-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.admin-health-summary {
+  display: block;
+  margin-top: 0.35rem;
+  color: var(--admin-dim);
+  font-size: 0.875rem;
+}
+
+.admin-health-table td {
+  vertical-align: top;
+}
+
+.admin-health-message {
+  margin: 0;
+  line-height: 1.5;
+}
+
+.admin-health-detail-pre {
+  margin: 0.5rem 0 0;
+  padding: 0.65rem 0.75rem;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--admin-border);
+  font-size: 0.75rem;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 12rem;
+  overflow: auto;
+}
+
+.admin-health-info-dl {
+  display: grid;
+  gap: 0.5rem 1.5rem;
+  margin: 0;
+}
+
+@media (min-width: 640px) {
+  .admin-health-info-dl {
+    grid-template-columns: max-content 1fr;
+  }
+}
+
+.admin-health-info-row {
+  display: contents;
+}
+
+.admin-health-info-row dt {
+  margin: 0;
+  color: var(--admin-dim);
+  font-size: 0.875rem;
+}
+
+.admin-health-info-row dd {
+  margin: 0;
+}
+
 .admin-pill--muted {
   color: var(--admin-muted);
   background: rgba(255, 255, 255, 0.04);
