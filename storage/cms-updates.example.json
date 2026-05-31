@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.1.27",
-    "title": "Struxa 1.1.27",
-    "summary": "Plugin filter pipeline — transform SEO meta, sanitized HTML, menus, and REST API payloads via FilterHook constants and PluginBootContext::addFilter().",
+    "latest_version": "1.1.28",
+    "title": "Struxa 1.1.28",
+    "summary": "Fix admin sidebar on Trash — pass cms_user so permission-gated nav links render correctly.",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "minor"

@@ -48,6 +48,13 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
         return array_merge($viewData(), []);
     };
 
+    $withCmsUser = static function (Request $request, array $data): array {
+        /** @var array<string, mixed> $cmsUser */
+        $cmsUser = $request->getAttribute('cms_user') ?? [];
+
+        return array_merge($data, ['cms_user' => $cmsUser]);
+    };
+
     $cmsUid = static function (Request $request): ?int {
         /** @var array<string, mixed> $u */
         $u = $request->getAttribute('cms_user') ?? [];
@@ -59,17 +66,18 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
     $app->group('/admin/trash', function (\Slim\Routing\RouteCollectorProxy $group) use (
         $twig,
         $adminContext,
+        $withCmsUser,
         $trash,
         $activity,
         $cmsUid,
         $permPurge,
     ): void {
-        $group->get('', function (Request $request, Response $response) use ($twig, $adminContext, $trash): Response {
-            return $twig->render($response, 'admin/trash/index.twig', array_merge($adminContext(), [
+        $group->get('', function (Request $request, Response $response) use ($twig, $adminContext, $withCmsUser, $trash): Response {
+            return $twig->render($response, 'admin/trash/index.twig', $withCmsUser($request, array_merge($adminContext(), [
                 'admin_nav' => 'trash',
                 'trash_items' => $trash->listItems(),
                 'trash_count' => $trash->countItems(),
-            ]));
+            ])));
         })->setName('admin.trash.index');
 
         $group->post('/restore', function (Request $request, Response $response) use ($trash, $activity, $cmsUid): Response {
