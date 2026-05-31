@@ -34,7 +34,7 @@ Successful bootstrap response:
   "ok": true,
   "data": {
     "schema_version": 1,
-    "cms_version": "1.1.41",
+    "cms_version": "1.1.42",
     "site": { "name": "…", "tagline": "…", "url": "https://…", "language": "en" },
     "branding": {
       "logo_url": "https://…/uploads/…",
@@ -136,3 +136,15 @@ curl -s http://localhost:3439/.well-known/struxa.json | jq .
 ```
 
 See [mobile-phases.md](mobile-phases.md) for the full roadmap.
+
+## Phase 2 — Expo app (`mobile-app/`)
+
+The client app lives in **`mobile-app/`** at the repo root.
+
+```bash
+cd mobile-app
+npm install
+npm start
+```
+
+Add your site URL in the app; it loads bootstrap and shows a themed tab shell. See [mobile-app/README.md](../mobile-app/README.md).

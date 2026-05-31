@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.1.41",
-    "title": "Struxa 1.1.41",
-    "summary": "Mobile app Phase 1: public bootstrap API, well-known discovery, admin Mobile app settings, and mobile.bootstrap plugin filter.",
+    "latest_version": "1.1.42",
+    "title": "Struxa 1.1.42",
+    "summary": "Mobile app Phase 2: Expo client shell in mobile-app/ with site registry, bootstrap cache, themed tabs, and placeholder screens.",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "minor"

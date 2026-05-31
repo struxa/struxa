@@ -11,6 +11,7 @@ This folder describes how the CMS is structured and how to extend it locally.
 | [content-types.md](content-types.md) | Types, fields, entries, public routes |
 | [commerce.md](commerce.md) | Content-type products, Stripe Checkout, orders |
 | [mobile.md](mobile.md) | Mobile app bootstrap API and admin settings |
+| [mobile-app/README.md](../mobile-app/README.md) | Expo client app (Phase 2+) |
 | [docker.md](docker.md) | Local containers and environment |
 | [migrations.md](migrations.md) | SQL migrations workflow |
 

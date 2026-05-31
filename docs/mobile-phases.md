@@ -17,7 +17,7 @@ One **Struxa client app** (Expo/React Native). Users add site URL(s); each site 
 
 ---
 
-## Phase 2 — Expo app shell
+## Phase 2 — Expo app shell (done)
 
 **Goal:** Minimal client that connects to real sites.
 
@@ -27,9 +27,11 @@ One **Struxa client app** (Expo/React Native). Users add site URL(s); each site 
 - Tab bar from bootstrap `mobile.tabs`
 - Placeholder screens per tab type (home, browse, shop)
 
-**Repo:** Likely separate from CMS (`struxa-app/` or similar).
+**Location:** `mobile-app/` in this repository.
 
 **Deliverable:** User enters `https://yoursite.com`, sees branded shell with tabs.
+
+See [mobile-app/README.md](../mobile-app/README.md) for run instructions.
 
 ---
 
