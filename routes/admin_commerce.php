@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Access\PermissionSlug;
+use App\Commerce\CommerceSettings;
 use App\Commerce\Coupon\CouponRepository;
 use App\Commerce\Coupon\CouponService;
 use App\Commerce\Inventory\InventoryService;
