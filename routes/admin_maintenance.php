@@ -108,13 +108,31 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 'purge_not_found_events' => $maintenance->purgeNotFoundHitEvents($days),
                 'purge_activity_logs' => $maintenance->purgeActivityLogs($days),
                 'clear_media_derivatives' => $maintenance->clearMediaDerivativeCache(),
+                'purge_excess_revisions' => $maintenance->purgeExcessRevisions(),
                 'run_scheduled' => $maintenance->runScheduledPurges(),
                 'enqueue_media_compress' => null,
                 'enqueue_scheduled_purges' => null,
                 'enqueue_publish_due' => null,
                 'save_auto_purge' => null,
+                'save_revision_retention' => null,
                 default => null,
             };
+
+            if ($action === 'save_revision_retention') {
+                $settingsRepo = new SettingsRepository($pdo);
+                $pageMax = isset($body['revision_retention_page_max']) && ctype_digit((string) $body['revision_retention_page_max'])
+                    ? (int) $body['revision_retention_page_max'] : 50;
+                $entryMax = isset($body['revision_retention_entry_max']) && ctype_digit((string) $body['revision_retention_entry_max'])
+                    ? (int) $body['revision_retention_entry_max'] : 50;
+                $pageMax = max(0, min(500, $pageMax));
+                $entryMax = max(0, min(500, $entryMax));
+                $settingsRepo->upsert('revision_retention_page_max', (string) $pageMax, true);
+                $settingsRepo->upsert('revision_retention_entry_max', (string) $entryMax, true);
+                Settings::reload($pdo);
+                Flash::set('success', 'Revision retention limits saved.');
+
+                return $response->withHeader('Location', $back)->withStatus(302);
+            }
 
             if ($action === 'save_auto_purge') {
                 $enabled = !empty($body['maintenance_auto_purge']);

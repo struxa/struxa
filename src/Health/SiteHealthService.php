@@ -9,6 +9,7 @@ use App\CmsVersion;
 use App\Database\Migrator;
 use App\Dev\PluginDependencyHealthCheck;
 use App\Dev\PluginDependencyHealthIssue;
+use App\Plugin\PluginPerformanceRegistry;
 use App\Jobs\JobRepository;
 use App\Jobs\JobRunTracker;
 use App\Maintenance\MaintenanceService;
@@ -54,6 +55,7 @@ final class SiteHealthService
             $this->operationsChecks(),
             $this->securityChecks($context),
             $this->pluginChecks(),
+            $this->pluginPerformanceChecks(),
         );
 
         return new SiteHealthReport($checks, $this->infoSnapshot($context));
@@ -456,6 +458,81 @@ final class SiteHealthService
                 implode("\n", $lines),
                 'admin.extensions.plugins.index',
                 'Manage plugins',
+            ),
+        ];
+    }
+
+    /**
+     * @return list<SiteHealthCheck>
+     */
+    private function pluginPerformanceChecks(): array
+    {
+        try {
+            $snapshots = PluginPerformanceRegistry::instance()->allSnapshots();
+        } catch (Throwable) {
+            return [];
+        }
+
+        if ($snapshots === []) {
+            return [];
+        }
+
+        $slowBoot = [];
+        $slowHooks = [];
+        $bootErrors = [];
+        foreach ($snapshots as $slug => $row) {
+            if (!is_array($row)) {
+                continue;
+            }
+            $bootMs = $row['last_boot_ms'] ?? null;
+            if (is_numeric($bootMs) && (float) $bootMs >= PluginPerformanceRegistry::BOOT_SLOW_MS) {
+                $slowBoot[] = $slug . ' (' . $bootMs . ' ms)';
+            }
+            if (!empty($row['last_boot_error']) && is_array($row['last_boot_error'])) {
+                $bootErrors[] = $slug;
+            }
+            $hooks = $row['slow_hooks'] ?? [];
+            if (is_array($hooks) && $hooks !== []) {
+                $slowHooks[] = $slug;
+            }
+        }
+
+        if ($slowBoot === [] && $slowHooks === [] && $bootErrors === []) {
+            return [
+                new SiteHealthCheck(
+                    'plugin_performance',
+                    'Plugin performance',
+                    SiteHealthStatus::GOOD,
+                    'No slow plugin boot or hook timings recorded.',
+                    'plugins',
+                    null,
+                    'admin.extensions.plugins.index',
+                    'Manage plugins',
+                ),
+            ];
+        }
+
+        $lines = [];
+        if ($slowBoot !== []) {
+            $lines[] = 'Slow boot: ' . implode(', ', $slowBoot);
+        }
+        if ($slowHooks !== []) {
+            $lines[] = 'Slow hooks: ' . implode(', ', $slowHooks);
+        }
+        if ($bootErrors !== []) {
+            $lines[] = 'Boot errors: ' . implode(', ', $bootErrors);
+        }
+
+        return [
+            new SiteHealthCheck(
+                'plugin_performance',
+                'Plugin performance',
+                SiteHealthStatus::RECOMMENDED,
+                count($slowBoot) + count($slowHooks) + count($bootErrors) . ' plugin performance issue(s) detected.',
+                'plugins',
+                implode("\n", $lines),
+                'admin.extensions.plugins.index',
+                'Review plugins',
             ),
         ];
     }

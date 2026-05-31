@@ -1,0 +1,90 @@
+{% extends 'admin/base.twig' %}
+
+{% block admin_title %}Find anything{% endblock %}
+
+{% block admin_hero_title %}
+  <h1 class="admin-hero-title">Find anything</h1>
+{% endblock %}
+
+{% block admin_hero_sub %}
+  <p class="admin-hero-sub">Search pages, content entries, and media library files across all statuses. Separate from the public storefront search at <code class="admin-inline-code">/search</code>. Also available from <kbd class="admin-cmd-kbd">⌘K</kbd>.</p>
+{% endblock %}
+
+{% block admin_content %}
+  {% set r = search_result|default({}) %}
+
+  <form method="get" action="{{ url_for('admin.content.search') }}" class="admin-form" style="margin-bottom:1.25rem">
+    <div style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:flex-end">
+      <label class="admin-form-row" style="flex:1;min-width:14rem;margin:0">
+        <span class="admin-form-label">Search</span>
+        <input class="admin-input" type="search" name="q" value="{{ search_query|default('')|e('html_attr') }}" placeholder="Page title, entry slug, filename…" autofocus minlength="2" maxlength="80" required />
+      </label>
+      <button type="submit" class="admin-btn-primary">Search</button>
+    </div>
+    <p class="admin-hint" style="margin:0.5rem 0 0">
+      {% set parts = [] %}
+      {% if search_can_pages|default(false) %}{% set parts = parts|merge(['pages']) %}{% endif %}
+      {% if search_can_entries|default(false) %}{% set parts = parts|merge(['entries']) %}{% endif %}
+      {% if search_can_media|default(false) %}{% set parts = parts|merge(['media']) %}{% endif %}
+      {% if parts is not empty %}
+        Searching {{ parts|join(', ') }}.
+      {% else %}
+        You do not have permission to search content.
+      {% endif %}
+    </p>
+  </form>
+
+  {% if search_query|default('') != '' %}
+    {% if r.total|default(0) == 0 %}
+      <section class="admin-card">
+        <p class="admin-hint" style="margin:0">No matches for <strong>{{ search_query|e }}</strong>.</p>
+      </section>
+    {% else %}
+      <section class="admin-card">
+        <p class="admin-hint" style="margin:0 0 1rem">
+          {{ r.total }} result(s)
+          {% if r.pages_total|default(0) > 0 or r.entries_total|default(0) > 0 or r.media_total|default(0) > 0 %}
+            —
+            {% if r.pages_total|default(0) > 0 %}{{ r.pages_total }} page(s){% endif %}
+            {% if r.entries_total|default(0) > 0 %}{% if r.pages_total|default(0) > 0 %}, {% endif %}{{ r.entries_total }} entry(ies){% endif %}
+            {% if r.media_total|default(0) > 0 %}{% if r.pages_total|default(0) > 0 or r.entries_total|default(0) > 0 %}, {% endif %}{{ r.media_total }} media file(s){% endif %}
+          {% endif %}
+        </p>
+        <ul class="admin-search-results" style="list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:0.75rem">
+          {% for hit in r.hits|default([]) %}
+            <li class="admin-search-hit" style="padding:0.85rem 1rem;border:1px solid rgba(255,255,255,0.08);border-radius:0.5rem">
+              <div style="display:flex;justify-content:space-between;gap:1rem;align-items:flex-start;flex-wrap:wrap">
+                <div>
+                  <span class="admin-badge" style="font-size:0.75rem;margin-right:0.35rem">
+                    {% if hit.kind == 'page' %}Page{% elseif hit.kind == 'media' %}Media{% else %}{{ hit.type_name|default('Entry')|e }}{% endif %}
+                  </span>
+                  <span class="admin-badge admin-badge--muted" style="font-size:0.75rem">{{ hit.status|e }}</span>
+                  <h3 style="margin:0.35rem 0 0;font-size:1rem">
+                    <a class="admin-link" href="{{ hit.edit_url|default('#')|e('html_attr') }}">{{ hit.title|e }}</a>
+                  </h3>
+                  <p class="admin-hint" style="margin:0.25rem 0 0"><code class="admin-inline-code">{{ hit.slug|e }}</code></p>
+                  {% if hit.snippet|default('') != '' %}
+                    <p class="admin-hint" style="margin:0.5rem 0 0;line-height:1.5">{{ hit.snippet|e }}</p>
+                  {% endif %}
+                </div>
+                <a class="admin-btn-ghost admin-btn-ghost--sm" href="{{ hit.edit_url|default('#')|e('html_attr') }}">Open</a>
+              </div>
+            </li>
+          {% endfor %}
+        </ul>
+
+        {% if r.total_pages|default(1) > 1 %}
+          <nav class="admin-pagination" style="margin-top:1rem;display:flex;gap:0.5rem;flex-wrap:wrap" aria-label="Search results pages">
+            {% if r.page|default(1) > 1 %}
+              <a class="admin-btn-ghost admin-btn-ghost--sm" href="{{ url_for('admin.content.search') }}?q={{ search_query|url_encode }}&amp;page={{ r.page - 1 }}">Previous</a>
+            {% endif %}
+            <span class="admin-hint" style="align-self:center">Page {{ r.page|default(1) }} of {{ r.total_pages|default(1) }}</span>
+            {% if r.page|default(1) < r.total_pages|default(1) %}
+              <a class="admin-btn-ghost admin-btn-ghost--sm" href="{{ url_for('admin.content.search') }}?q={{ search_query|url_encode }}&amp;page={{ r.page + 1 }}">Next</a>
+            {% endif %}
+          </nav>
+        {% endif %}
+      </section>
+    {% endif %}
+  {% endif %}
+{% endblock %}

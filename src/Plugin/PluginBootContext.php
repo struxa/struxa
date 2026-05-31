@@ -19,6 +19,8 @@ use Slim\Views\Twig;
  */
 final class PluginBootContext
 {
+    private readonly PluginCapabilityGuard $capabilityGuard;
+
     public function __construct(
         private readonly string $projectRoot,
         private readonly string $pluginRoot,
@@ -32,6 +34,12 @@ final class PluginBootContext
         private readonly EventDispatcher $events,
         private readonly PluginAdminNavRegistry $adminNav,
     ) {
+        $this->capabilityGuard = new PluginCapabilityGuard($manifest);
+    }
+
+    public function capabilityGuard(): PluginCapabilityGuard
+    {
+        return $this->capabilityGuard;
     }
 
     public function projectRoot(): string
@@ -46,6 +54,14 @@ final class PluginBootContext
 
     public function pdo(): \PDO
     {
+        if (!$this->capabilityGuard->isLegacyPermissive()
+            && !$this->capabilityGuard->has(PluginCapability::DATABASE_READ)
+            && !$this->capabilityGuard->has(PluginCapability::DATABASE_WRITE)) {
+            throw new PluginCapabilityException(
+                'Plugin "' . $this->manifest->slug . '" requires database.read or database.write in plugin.json to use pdo().'
+            );
+        }
+
         return $this->pdo;
     }
 
@@ -69,12 +85,36 @@ final class PluginBootContext
 
     public function auth(): Auth
     {
+        $this->capabilityGuard->assertCapability(PluginCapability::USER_READ);
+
         return $this->auth;
     }
 
     public function events(): EventDispatcher
     {
         return $this->events;
+    }
+
+    /**
+     * Writable storage under {@code storage/plugins/{slug}/} (requires filesystem.write).
+     */
+    public function pluginStoragePath(string ...$segments): string
+    {
+        $this->capabilityGuard->assertCapability(PluginCapability::FILESYSTEM_WRITE);
+        $base = $this->projectRoot . '/storage/plugins/' . $this->manifest->slug;
+        if (!is_dir($base)) {
+            @mkdir($base, 0755, true);
+        }
+        $path = $base;
+        foreach ($segments as $segment) {
+            $segment = trim(str_replace(['\\', '..'], '', $segment), '/');
+            if ($segment === '') {
+                continue;
+            }
+            $path .= '/' . $segment;
+        }
+
+        return $path;
     }
 
     /**
@@ -86,7 +126,27 @@ final class PluginBootContext
      */
     public function addFilter(string $hook, callable $callback, int $priority = 10): void
     {
-        Filters::add($hook, $callback, $priority);
+        $this->capabilityGuard->assertFilterRegistration($hook);
+        Filters::add($hook, $callback, $priority, $this->manifest->slug);
+    }
+
+    /**
+     * Listen for a core event. Declare the event short name in plugin.json {@code hooks.events}.
+     *
+     * @param class-string $eventClass
+     * @param callable(object): void $listener
+     */
+    public function listenEvent(string $eventClass, callable $listener): void
+    {
+        $short = class_basename($eventClass);
+        $resolved = PluginKnownEvents::resolveClass($short);
+        if ($resolved === null || $resolved !== $eventClass) {
+            throw new PluginCapabilityException(
+                'Event class must be a known Struxa event registered in ' . PluginKnownEvents::class . '.'
+            );
+        }
+        $this->capabilityGuard->assertEventRegistration($eventClass, $short);
+        $this->events->listen($eventClass, $listener, $this->manifest->slug);
     }
 
     /**
@@ -96,6 +156,7 @@ final class PluginBootContext
      */
     public function registerJobHandler(string $type, callable $handler): void
     {
+        $this->capabilityGuard->assertCapability(PluginCapability::DATABASE_WRITE);
         Jobs::registerHandler($type, $handler);
     }
 
@@ -104,19 +165,17 @@ final class PluginBootContext
      */
     public function enqueueJob(string $type, array $payload = [], ?string $dedupeKey = null): int
     {
+        $this->capabilityGuard->assertCapability(PluginCapability::DATABASE_WRITE);
+
         return Jobs::enqueue($type, $payload, $dedupeKey);
     }
 
     /**
      * Register an extra admin sidebar link (under Extensions).
-     *
-     * When this plugin's {@code plugin.json} sets {@code parent_plugin} to another plugin's
-     * directory slug, the link is nested under that parent's label in the sidebar (expandable group).
-     * When {@code nested_admin_nav} is true, links are nested under this plugin's own {@code name}
-     * instead of listing flat under Extensions.
      */
     public function registerAdminNavItem(string $label, string $routeName, array $routeParams = []): void
     {
+        $this->capabilityGuard->assertCapability(PluginCapability::ADMIN_NAV);
         $nested = $this->manifest->nestedAdminNav;
         $parentForNav = $nested ? $this->manifest->slug : $this->manifest->parentPluginSlug;
         $this->adminNav->register(
@@ -130,15 +189,11 @@ final class PluginBootContext
     }
 
     /**
-     * Reserve first-path URL segments so they cannot be used as content type slugs.
-     *
-     * Call for each segment your plugin serves publicly, e.g. ['my-catalog'] for GET /my-catalog.
-     * Do not add site-specific slugs to Struxa core — register them here in your plugin's boot().
-     *
      * @param list<string> $slugs
      */
     public function registerPluginReservedSlugs(array $slugs): void
     {
+        $this->capabilityGuard->assertCapability(PluginCapability::FRONTEND_RENDER);
         ReservedContentSlugs::registerPluginReservedSlugs($slugs);
     }
 
@@ -147,18 +202,13 @@ final class PluginBootContext
      */
     public function registerReservedContentSlugs(array $slugs): void
     {
+        $this->capabilityGuard->assertCapability(PluginCapability::FRONTEND_RENDER);
         ReservedContentSlugs::registerReservedContentSlugs($slugs);
     }
 
-    /**
-     * Register block builder types from this plugin.
-     *
-     * Implement {@see \App\Section\SectionDefinitionProviderInterface} and pass it here.
-     * Block definitions may include {@code hosts} (e.g. {@code ['page', 'content_entry']})
-     * to limit where a block appears; omit {@code hosts} to show on pages and content entries.
-     */
     public function registerSectionProvider(SectionDefinitionProviderInterface $provider): void
     {
+        $this->capabilityGuard->assertCapability(PluginCapability::FRONTEND_RENDER);
         SectionDefinitionRegistry::instance()->registerProvider($provider);
     }
 }

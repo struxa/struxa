@@ -11,12 +11,22 @@ use App\Asset\CoreAssetResolver;
 use App\Blueprint\BlueprintSchemaValidator;
 use App\Cache\PublicPageCacheKey;
 use App\Cache\PublicResponseCacheEnvelope;
+use App\Access\WorkflowService;
+use App\Content\ContentEntryBulkService;
+use App\Content\ContentEntryRepository;
 use App\Content\PublicContentIndexPager;
 use App\Content\RichtextTabsShortcode;
 use App\Analytics\ExternalLinkClickRepository;
 use App\Content\ReservedContentSlugs;
 use App\Http\SafeRedirectPath;
 use App\Plugin\PluginCapability;
+use App\Plugin\PluginCapabilityException;
+use App\Plugin\PluginCapabilityGuard;
+use App\Plugin\PluginLoadScope;
+use App\Plugin\PluginPerformanceRegistry;
+use App\Page\PageDuplicationService;
+use App\Privacy\PrivacyEmailHasher;
+use App\Revisions\RevisionRetentionSettings;
 use App\Plugin\PluginSemverConstraint;
 use App\Plugin\PluginManifest;
 use App\Plugin\PluginAdminNavGrouper;
@@ -576,6 +586,83 @@ $manifest = PluginManifest::fromArray([
 ], 'test-plugin');
 if ($manifest->requiresPlugins['base-plugin'] !== '^1.0' || $manifest->hookFilters !== ['seo.meta']) {
     $fail('PluginManifest should parse contract fields.');
+}
+
+$legacyManifest = PluginManifest::fromArray([
+    'name' => 'Legacy',
+    'slug' => 'legacy-plugin',
+    'version' => '1.0.0',
+], 'legacy-plugin');
+$legacyGuard = new PluginCapabilityGuard($legacyManifest);
+$legacyGuard->assertCapability(PluginCapability::ADMIN_NAV);
+$contractManifest = PluginManifest::fromArray([
+    'name' => 'Strict',
+    'slug' => 'strict-plugin',
+    'version' => '1.0.0',
+    'capabilities' => ['admin.nav'],
+    'hooks' => ['filters' => ['admin.dashboard']],
+], 'strict-plugin');
+$strictGuard = new PluginCapabilityGuard($contractManifest);
+try {
+    $strictGuard->assertFilterRegistration(FilterHook::SEO_META);
+    $fail('Strict plugin should reject undeclared filter hooks.');
+} catch (PluginCapabilityException) {
+    // expected
+}
+$strictGuard->assertFilterRegistration(FilterHook::ADMIN_DASHBOARD);
+if (FilterHook::requiredCapability(FilterHook::CONTENT_SAVE) !== PluginCapability::DATABASE_WRITE) {
+    $fail('FilterHook should map content.save to database.write.');
+}
+
+$loadManifest = PluginManifest::fromArray([
+    'name' => 'Admin Only',
+    'slug' => 'admin-only',
+    'version' => '1.0.0',
+    'load' => ['public' => false, 'admin' => true],
+], 'admin-only');
+if ($loadManifest->loadPublic || !$loadManifest->loadAdmin) {
+    $fail('PluginManifest should parse load flags.');
+}
+if (PluginLoadScope::Public->allows($loadManifest) || !PluginLoadScope::Admin->allows($loadManifest)) {
+    $fail('PluginLoadScope should respect manifest load flags.');
+}
+
+$tmpRoot = sys_get_temp_dir() . '/struxa-plugin-perf-' . getmypid();
+@mkdir($tmpRoot . '/storage', 0755, true);
+PluginPerformanceRegistry::configure($tmpRoot);
+$perf = PluginPerformanceRegistry::instance();
+$perf->recordBoot('demo-plugin', 12.5, 2, 1);
+$perf->recordHookCall('filter:seo.meta', 30.0, 'demo-plugin');
+$snap = $perf->snapshotForSlug('demo-plugin');
+if ($snap === null || ($snap['last_boot_ms'] ?? 0) != 12.5) {
+    $fail('PluginPerformanceRegistry should persist boot snapshots.');
+}
+if (($snap['slow_hooks'][0]['hook'] ?? '') !== 'filter:seo.meta') {
+    $fail('PluginPerformanceRegistry should record slow hooks.');
+}
+@unlink($tmpRoot . '/storage/plugin-performance.json');
+@rmdir($tmpRoot . '/storage');
+@rmdir($tmpRoot);
+
+if (ContentEntryBulkService::normalizeIds(['1', 2, '0', 'x', 2]) !== [1, 2]) {
+    $fail('ContentEntryBulkService should normalize entry ids.');
+}
+
+if (PrivacyEmailHasher::hash('  User@Example.COM ') !== hash('sha256', 'user@example.com')) {
+    $fail('PrivacyEmailHasher should normalize email before hashing.');
+}
+if (PrivacyEmailHasher::isValidEmail('not-an-email') || !PrivacyEmailHasher::isValidEmail('a@b.co')) {
+    $fail('PrivacyEmailHasher should validate emails.');
+}
+if (RevisionRetentionSettings::normalize('999') !== 500 || RevisionRetentionSettings::normalize('-1') !== 0) {
+    $fail('RevisionRetentionSettings should clamp limits.');
+}
+if (ContentSearchService::sanitizeQuery('a') !== '' || ContentSearchService::sanitizeQuery('  hello  ') !== 'hello') {
+    $fail('ContentSearchService sanitizeQuery should enforce min length and trim.');
+}
+
+if (PageDuplicationService::copyTitle('About') !== 'About (Copy)') {
+    $fail('PageDuplicationService should append (Copy) to titles.');
 }
 
 echo "All tests passed.\n";

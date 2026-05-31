@@ -23,6 +23,28 @@
   </div>
 {% endmacro %}
 
+{% macro row_action_link(href, label, icon, extra_class, target) %}
+  <a
+    href="{{ href|e('html_attr') }}"
+    class="admin-row-action{{ extra_class ? ' ' ~ extra_class : '' }}"
+    title="{{ label|e('html_attr') }}"
+    aria-label="{{ label|e('html_attr') }}"
+    {% if target %}target="{{ target|e('html_attr') }}" rel="noopener noreferrer"{% endif %}
+  >{{ icon|raw }}</a>
+{% endmacro %}
+
+{% macro row_action_button(action, label, icon, extra_class, confirm_message) %}
+  <form method="post" action="{{ action|e('html_attr') }}" class="admin-row-action-form"{% if confirm_message %} onsubmit="return confirm('{{ confirm_message|e('js') }}');"{% endif %}>
+    <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+    <button
+      type="submit"
+      class="admin-row-action{{ extra_class ? ' ' ~ extra_class : '' }}"
+      title="{{ label|e('html_attr') }}"
+      aria-label="{{ label|e('html_attr') }}"
+    >{{ icon|raw }}</button>
+  </form>
+{% endmacro %}
+
 {% macro pagination(route_name, page, total_pages, query = {}, aria_label = 'Pagination', route_args = {}) %}
   {% if total_pages > 1 %}
     <nav class="admin-pagination admin-pagination--numbered" aria-label="{{ aria_label|e('html_attr') }}">

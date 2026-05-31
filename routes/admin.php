@@ -3,6 +3,8 @@
 declare(strict_types=1);
 
 use App\Admin\DashboardStatsCollector;
+use App\Filter\FilterHook;
+use App\Filter\Filters;
 use App\Http\Middleware\RequireCmsStaff;
 use PHPAuth\Auth;
 use Psr\Http\Message\ResponseInterface as Response;
@@ -25,6 +27,10 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             /** @var array<string, mixed> $cmsUser */
             $cmsUser = $request->getAttribute('cms_user') ?? [];
             $stats = (new DashboardStatsCollector($pdo))->collect();
+            $stats = Filters::apply(FilterHook::ADMIN_DASHBOARD, $stats, []);
+            if (!is_array($stats)) {
+                $stats = (new DashboardStatsCollector($pdo))->collect();
+            }
 
             return $twig->render($response, 'admin/dashboard.twig', array_merge($adminContext(), [
                 'cms_user' => $cmsUser,

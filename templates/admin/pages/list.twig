@@ -12,13 +12,53 @@
 {% endblock %}
 
 {% block admin_content %}
-  <div class="admin-toolbar admin-toolbar--spread">
-    {% if cms_can('manage_pages') %}
-      <a class="admin-btn-primary" href="{{ url_for('admin.pages.new') }}">New page</a>
+  {% set icon_edit %}
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+  {% endset %}
+  {% set icon_builder %}
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+  {% endset %}
+  {% set icon_view %}
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+  {% endset %}
+  {% set icon_duplicate %}
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+  {% endset %}
+  {% set icon_trash %}
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+  {% endset %}
+  {% set icon_page %}
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+  {% endset %}
+
+  {% set page_total = pages|length %}
+  {% set page_published = pages|selectattr('status', 'equalto', 'published')|length %}
+  {% set page_draft = pages|selectattr('status', 'equalto', 'draft')|length + pages|selectattr('status', 'equalto', 'in_review')|length %}
+
+  <div class="admin-page-toolbar">
+    {% if page_total > 0 %}
+      <div class="admin-page-summary" aria-label="Page overview">
+        <span class="admin-page-summary-item"><strong>{{ page_total }}</strong> page{{ page_total == 1 ? '' : 's' }}</span>
+        {% if page_published > 0 %}
+          <span class="admin-page-summary-sep" aria-hidden="true">·</span>
+          <span class="admin-page-summary-item admin-page-summary-item--live">{{ page_published }} live</span>
+        {% endif %}
+        {% if page_draft > 0 %}
+          <span class="admin-page-summary-sep" aria-hidden="true">·</span>
+          <span class="admin-page-summary-item admin-page-summary-item--draft">{{ page_draft }} draft</span>
+        {% endif %}
+      </div>
+    {% else %}
+      <span></span>
     {% endif %}
-    {% if cms_can('manage_pages') or cms_can('edit_content') or cms_can('review_content') or cms_can('manage_media') %}
-      <a class="admin-link admin-toolbar-trash-link" href="{{ url_for('admin.trash.index') }}">Trash</a>
-    {% endif %}
+    <div class="admin-page-toolbar-actions">
+      {% if cms_can('manage_pages') %}
+        <a class="admin-btn-primary" href="{{ url_for('admin.pages.new') }}">New page</a>
+      {% endif %}
+      {% if cms_can('manage_pages') or cms_can('edit_content') or cms_can('review_content') or cms_can('manage_media') %}
+        <a class="admin-btn-ghost" href="{{ url_for('admin.trash.index') }}">Trash</a>
+      {% endif %}
+    </div>
   </div>
 
   {% if pages is empty %}
@@ -30,45 +70,40 @@
       '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>'
     ) }}
   {% else %}
-    <div class="admin-table-wrap">
-      <table class="admin-table">
-        <thead>
-          <tr>
-            <th scope="col">Title</th>
-            <th scope="col">Slug</th>
-            <th scope="col">Status</th>
-            <th scope="col">Updated</th>
-            <th scope="col" class="admin-table-col-actions"><span class="admin-table-muted">Actions</span></th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for p in pages %}
-            <tr>
-              <td><strong>{{ p.title|e }}</strong></td>
-              <td><code class="admin-inline-code">{{ p.slug|e }}</code></td>
-              <td>{{ ui.status_badge(p.status) }}</td>
-              <td class="admin-table-muted">{{ p.updatedAt|e }}</td>
-              <td class="admin-table-actions">
-                <details class="admin-actions-menu">
-                  <summary class="admin-actions-menu-trigger" aria-label="Actions for {{ p.title|e('html_attr') }}">⋯</summary>
-                  <div class="admin-actions-menu-panel">
-                    {% if p.status == 'published' %}
-                      <a href="{{ url_for('public.page', { slug: p.slug }) }}" target="_blank" rel="noopener">View live</a>
-                    {% endif %}
-                    <a href="{{ url_for('admin.pages.edit', { id: p.id }) }}">Edit</a>
-                    <a href="{{ url_for('admin.pages.builder', { id: p.id }) }}">Builder</a>
-                    {% if cms_can('delete_content') %}
-                      <form method="post" action="{{ url_for('admin.pages.delete', { id: p.id }) }}" onsubmit="return confirm('Move this page to trash?');">
-                        <button type="submit" class="admin-actions-danger">Move to trash</button>
-                      </form>
-                    {% endif %}
-                  </div>
-                </details>
-              </td>
-            </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
+    <ul class="admin-page-list" role="list">
+      {% for p in pages %}
+        {% set edit_url = url_for('admin.pages.edit', { id: p.id }) %}
+        <li class="admin-page-item">
+          <article class="admin-page-card">
+            <a class="admin-page-row" href="{{ edit_url|e('html_attr') }}">
+              <span class="admin-page-row-icon" aria-hidden="true">{{ icon_page|raw }}</span>
+              <span class="admin-page-row-body">
+                <span class="admin-page-row-head">
+                  <strong class="admin-page-row-title">{{ p.title|e }}</strong>
+                  <span class="admin-page-row-go" aria-hidden="true">→</span>
+                </span>
+                <code class="admin-page-row-slug">/p/{{ p.slug|e }}</code>
+              </span>
+              <span class="admin-page-row-meta">
+                {{ ui.status_badge(p.status) }}
+                <time class="admin-page-row-date" datetime="{{ p.updatedAt|e('html_attr') }}">{{ p.updatedAt|slice(0, 16)|e }}</time>
+              </span>
+            </a>
+            <div class="admin-row-actions" role="group" aria-label="Actions for {{ p.title|e('html_attr') }}">
+              {{ ui.row_action_link(edit_url, 'Edit page', icon_edit) }}
+              {{ ui.row_action_link(url_for('admin.pages.builder', { id: p.id }), 'Page builder', icon_builder) }}
+              {% if p.status == 'published' %}
+                {{ ui.row_action_link(url_for('public.page', { slug: p.slug }), 'View live', icon_view, '', '_blank') }}
+              {% endif %}
+              {{ ui.row_action_button(url_for('admin.pages.duplicate', { id: p.id }), 'Duplicate page', icon_duplicate) }}
+              {% if cms_can('delete_content') %}
+                {{ ui.row_action_button(url_for('admin.pages.delete', { id: p.id }), 'Move to trash', icon_trash, 'admin-row-action--danger', 'Move this page to trash?') }}
+              {% endif %}
+            </div>
+          </article>
+        </li>
+      {% endfor %}
+    </ul>
+    <p class="admin-hint admin-page-list-hint">Click a row to edit · use the icons for builder, duplicate, and other actions.</p>
   {% endif %}
 {% endblock %}

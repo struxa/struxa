@@ -148,7 +148,7 @@
   </details>
 
   {% if cms_can('manage_settings') or cms_can('view_link_analytics') %}
-    <details class="admin-nav-group" {{ nav in ['settings','seo_overview','seo_redirects','seo_not_found','cache_tools','maintenance_tools','site_health','analytics_external_links','settings_search'] ? 'open' : '' }}>
+    <details class="admin-nav-group" {{ nav in ['settings','seo_overview','seo_redirects','seo_not_found','cache_tools','maintenance_tools','privacy_tools','site_health','analytics_external_links','settings_search','admin_content_search'] ? 'open' : '' }}>
       <summary class="admin-nav-group-title">Site</summary>
       <div class="admin-nav-group-items">
         {% if cms_can('manage_settings') %}
@@ -176,6 +176,16 @@
             <svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/><circle cx="12" cy="12" r="3"/></svg>
             Maintenance
           </a>
+          <a href="{{ url_for('admin.tools.privacy') }}" class="{{ nav == 'privacy_tools' ? 'is-active' : '' }}">
+            <svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            Privacy
+          </a>
+          {% if cms_can('manage_pages') or cms_can('create_content') or cms_can('edit_content') or cms_can('review_content') or cms_can('manage_content_types') or cms_can('manage_media') %}
+          <a href="{{ url_for('admin.content.search') }}" class="{{ nav == 'admin_content_search' ? 'is-active' : '' }}">
+            <svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>
+            Find anything
+          </a>
+          {% endif %}
           <a href="{{ url_for('admin.settings.search') }}" class="{{ nav == 'settings_search' ? 'is-active' : '' }}">
             <svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>
             Search

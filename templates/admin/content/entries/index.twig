@@ -23,6 +23,13 @@
 {% block admin_content %}
   {% set summary = entry_summary|default({ total: 0, published: 0, draft: 0, in_review: 0 }) %}
   {% set can_edit_entries = cms_can('edit_content') or cms_can('review_content') %}
+  {% set can_publish_entries = cms_can('publish_content') %}
+  {% set can_trash_entries = cms_can('delete_content') %}
+  {% set can_bulk = can_edit_entries and entry_rows is not empty %}
+  {% set entry_page = page|default(1) %}
+  {% set entry_per_page = per_page|default(25) %}
+  {% set entry_total_pages = total_pages|default(1) %}
+  {% set entry_pagination_query = entry_per_page != 25 ? { per_page: entry_per_page } : {} %}
 
   <div class="admin-content-layout">
     {% include 'admin/content/_content_tree.twig' %}
@@ -70,10 +77,90 @@
       '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>'
     ) }}
   {% else %}
-    {% set entry_page = page|default(1) %}
-    {% set entry_per_page = per_page|default(25) %}
-    {% set entry_total_pages = total_pages|default(1) %}
-    {% set entry_pagination_query = entry_per_page != 25 ? { per_page: entry_per_page } : {} %}
+    {% if can_bulk %}
+      <form id="admin-entry-bulk-form" method="post" action="{{ url_for('admin.content_types.entries.bulk', { id: content_type.id }) }}" class="admin-entry-bulk-form" hidden aria-hidden="true">
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+        <input type="hidden" name="bulk_action" value="" />
+        <input type="hidden" name="return_page" value="{{ entry_page }}" />
+        <input type="hidden" name="return_per_page" value="{{ entry_per_page }}" />
+      </form>
+
+      {% if taxonomies is defined and taxonomies is not empty %}
+        <form id="admin-entry-bulk-taxonomy-form" method="post" action="{{ url_for('admin.content_types.entries.bulk', { id: content_type.id }) }}" class="admin-entry-bulk-form" hidden aria-hidden="true">
+          <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+          <input type="hidden" name="bulk_action" value="assign_taxonomy" />
+          <input type="hidden" name="taxonomy_id" value="" />
+          <input type="hidden" name="taxonomy_mode" value="merge" />
+          <input type="hidden" name="return_page" value="{{ entry_page }}" />
+          <input type="hidden" name="return_per_page" value="{{ entry_per_page }}" />
+        </form>
+      {% endif %}
+
+      <div class="admin-entry-bulk-bar admin-toolbar admin-toolbar--spread" id="admin-entry-bulk-bar" hidden aria-hidden="true">
+        <div class="admin-entry-bulk-start">
+          <label class="admin-entry-bulk-select-all">
+            <input type="checkbox" id="admin-entry-select-all" autocomplete="off" />
+            <span>Select all on page</span>
+          </label>
+          <span class="admin-entry-bulk-count" id="admin-entry-bulk-count" hidden></span>
+        </div>
+        <div class="admin-entry-bulk-actions">
+          {% if can_publish_entries %}
+            <button type="button" class="admin-btn-primary admin-entry-bulk-publish" id="admin-entry-bulk-publish" disabled>Publish</button>
+          {% endif %}
+          {% if can_trash_entries %}
+            <button type="button" class="admin-btn-danger admin-entry-bulk-trash" id="admin-entry-bulk-trash" disabled>Move to trash</button>
+          {% endif %}
+        </div>
+        {% if taxonomies is defined and taxonomies is not empty %}
+          <div class="admin-entry-bulk-taxonomy" id="admin-entry-bulk-taxonomy-panel">
+            <label class="admin-entry-bulk-taxonomy-label">
+              <span class="admin-table-muted">Taxonomy</span>
+              <select class="admin-select admin-select--sm" id="admin-entry-bulk-taxonomy-select">
+                {% for tx in taxonomies %}
+                  <option value="{{ tx.id }}">{{ tx.name|e }}</option>
+                {% endfor %}
+              </select>
+            </label>
+            <fieldset class="admin-entry-bulk-taxonomy-mode">
+              <label class="admin-check admin-check--inline">
+                <input type="radio" name="entry_bulk_taxonomy_mode" value="merge" checked />
+                <span>Add terms</span>
+              </label>
+              <label class="admin-check admin-check--inline">
+                <input type="radio" name="entry_bulk_taxonomy_mode" value="replace" />
+                <span>Replace</span>
+              </label>
+            </fieldset>
+            <button type="button" class="admin-btn-ghost admin-entry-bulk-taxonomy-apply" id="admin-entry-bulk-taxonomy-apply" disabled>Apply terms</button>
+          </div>
+        {% endif %}
+      </div>
+
+      {% if taxonomies is defined and taxonomies is not empty %}
+        <div class="admin-entry-bulk-term-panels" id="admin-entry-bulk-term-panels" hidden aria-hidden="true">
+          {% for tx in taxonomies %}
+            {% set rows = taxonomy_term_rows[tx.id] ?? [] %}
+            <div class="admin-entry-bulk-term-panel admin-card" data-entry-bulk-taxonomy-id="{{ tx.id }}" {% if not loop.first %}hidden aria-hidden="true"{% endif %}>
+              <p class="admin-entry-bulk-term-panel-title">{{ tx.name|e }} terms</p>
+              {% if rows is empty %}
+                <p class="admin-hint">No terms yet — <a class="admin-link" href="{{ url_for('admin.content_types.taxonomies.terms.index', { id: content_type.id, taxId: tx.id }) }}">add terms</a>.</p>
+              {% else %}
+                <div class="admin-entry-bulk-term-list">
+                  {% for row in rows %}
+                    {% set term = row.term %}
+                    <label class="admin-check" style="padding-left:{{ row.depth * 1rem }}rem">
+                      <input type="checkbox" value="{{ term.id }}" data-entry-bulk-term="1" />
+                      <span>{{ term.name|e }}</span>
+                    </label>
+                  {% endfor %}
+                </div>
+              {% endif %}
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endif %}
 
     <div class="admin-entry-list-toolbar">
       <p class="admin-entry-list-count">
@@ -96,6 +183,17 @@
         {% set edit_url = url_for('admin.content_types.entries.edit', { id: content_type.id, entryId: e.id }) %}
         <li class="admin-entry-item">
           <div class="admin-entry-card">
+            {% if can_bulk %}
+              <label class="admin-entry-select" aria-label="Select {{ e.title|e('html_attr') }}">
+                <input
+                  type="checkbox"
+                  class="admin-entry-row-cb"
+                  form="admin-entry-bulk-form"
+                  name="ids[]"
+                  value="{{ e.id }}"
+                />
+              </label>
+            {% endif %}
             {% if can_edit_entries %}
               <a class="admin-entry-row" href="{{ edit_url|e('html_attr') }}">
             {% else %}
@@ -130,12 +228,20 @@
                 <a class="admin-btn-ghost admin-btn-ghost--sm" href="{{ site_url }}/{{ content_type.slug|e }}/{{ e.slug|e }}" target="_blank" rel="noopener noreferrer">View live</a>
               </div>
             {% endif %}
+            {% if cms_can('create_content') %}
+              <div class="admin-entry-item-actions">
+                <form method="post" action="{{ url_for('admin.content_types.entries.duplicate', { id: content_type.id, entryId: e.id }) }}" class="admin-inline-form">
+                  <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+                  <button type="submit" class="admin-btn-ghost admin-btn-ghost--sm">Duplicate</button>
+                </form>
+              </div>
+            {% endif %}
           </div>
         </li>
       {% endfor %}
     </ul>
     {% if can_edit_entries %}
-      <p class="admin-hint admin-entry-list-hint">Click any row to edit.</p>
+      <p class="admin-hint admin-entry-list-hint">Click a row to edit{% if can_bulk %} · use checkboxes for bulk actions{% endif %}.</p>
     {% endif %}
 
     {{ ui.pagination(
@@ -149,4 +255,10 @@
   {% endif %}
     </div>
   </div>
+{% endblock %}
+
+{% block admin_scripts %}
+  {% if can_bulk|default(false) %}
+    <script src="{{ asset('js/admin-entry-list.js') }}" defer></script>
+  {% endif %}
 {% endblock %}

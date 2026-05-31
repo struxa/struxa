@@ -46,4 +46,30 @@ final class PluginKnownEvents
     {
         return array_keys(self::BY_SHORT);
     }
+
+    public static function resolveClass(string $name): ?string
+    {
+        $name = trim($name);
+        if ($name === '') {
+            return null;
+        }
+        if (isset(self::BY_SHORT[$name])) {
+            return self::BY_SHORT[$name];
+        }
+        if (in_array($name, self::BY_SHORT, true)) {
+            return $name;
+        }
+
+        return null;
+    }
+
+    public static function requiredCapability(string $declaredName): ?string
+    {
+        return match ($declaredName) {
+            'ContentEntrySavedEvent', 'ContentEntryDeletedEvent' => PluginCapability::DATABASE_WRITE,
+            'MediaUploadedEvent' => PluginCapability::MEDIA_UPLOAD,
+            'UserLoggedInEvent' => PluginCapability::USER_READ,
+            default => PluginCapability::DATABASE_READ,
+        };
+    }
 }

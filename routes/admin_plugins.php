@@ -13,6 +13,7 @@ use App\Filesystem\SafeDirectoryRemoval;
 use App\Plugin\PluginCatalogLoader;
 use App\Plugin\PluginManager;
 use App\Plugin\PluginMigrationRunner;
+use App\Plugin\PluginPerformanceRegistry;
 use App\Plugin\PluginRemoteInstaller;
 use App\Plugin\PluginRepository;
 use App\Plugin\PluginUninstaller;
@@ -40,6 +41,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
     $migrationRunner = new PluginMigrationRunner($pdo);
     $catalogLoader = new PluginCatalogLoader($root);
     $remoteInstaller = new PluginRemoteInstaller($root . '/plugins', $scanner);
+    $pluginPerformance = PluginPerformanceRegistry::instance();
 
     $adminContext = static fn (): array => array_merge($viewData(), []);
     $withCmsUser = static function (Request $request, array $data): array {
@@ -70,7 +72,8 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
         $cmsUid,
         $pdo,
         $catalogLoader,
-        $remoteInstaller
+        $remoteInstaller,
+        $pluginPerformance
     ): void {
         $group->get('/extensions/plugins', function (Request $request, Response $response) use (
             $twig,
@@ -79,7 +82,8 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             $repo,
             $manager,
             $validator,
-            $scanner
+            $scanner,
+            $pluginPerformance
         ): Response {
             $discovered = $manager->syncDiscoveredToDatabase();
             $slugs = [];
@@ -93,22 +97,57 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 }
             }
             $rows = [];
+            $summary = [
+                'total' => 0,
+                'active' => 0,
+                'inactive' => 0,
+                'blocked' => 0,
+                'warnings' => 0,
+            ];
             foreach ($discovered as $p) {
                 $db = $repo->findBySlug($p->manifest->slug);
                 $isActive = $db !== null && $db->isActive;
                 $report = $validator->compatibilityReport($p, $scanner);
+                $summary['total']++;
+                if ($isActive) {
+                    $summary['active']++;
+                } else {
+                    $summary['inactive']++;
+                }
+                if ($report->statusLabel() === 'blocked') {
+                    $summary['blocked']++;
+                } elseif ($report->statusLabel() === 'warnings') {
+                    $summary['warnings']++;
+                }
                 $rows[] = [
                     'discovered' => $p,
                     'record' => $db,
                     'is_active' => $isActive,
                     'compatibility' => $report,
+                    'performance' => $pluginPerformance->snapshotForSlug($p->manifest->slug),
                 ];
             }
+
+            usort($rows, static function (array $a, array $b): int {
+                $aActive = $a['is_active'] ? 0 : 1;
+                $bActive = $b['is_active'] ? 0 : 1;
+                if ($aActive !== $bActive) {
+                    return $aActive <=> $bActive;
+                }
+
+                return strcasecmp($a['discovered']->manifest->name, $b['discovered']->manifest->name);
+            });
 
             return $twig->render($response, 'admin/plugins/index.twig', $withCmsUser($request, array_merge($adminContext(), [
                 'admin_nav' => 'extensions_plugins',
                 'plugin_rows' => $rows,
+                'plugin_summary' => $summary,
                 'plugin_orphans' => $orphans,
+                'plugin_perf_thresholds' => [
+                    'boot_ms' => PluginPerformanceRegistry::BOOT_SLOW_MS,
+                    'hook_ms' => PluginPerformanceRegistry::HOOK_SLOW_MS,
+                ],
+                'plugin_circuit_breaker' => PluginPerformanceRegistry::circuitBreakerEnabled(),
             ])));
         })->setName('admin.extensions.plugins.index');
 

@@ -19,9 +19,9 @@ final class Filters
     /**
      * @param callable(mixed, array<string, mixed>): mixed $callback
      */
-    public static function add(string $hook, callable $callback, int $priority = 10): void
+    public static function add(string $hook, callable $callback, int $priority = 10, ?string $pluginSlug = null): void
     {
-        self::$registry?->add($hook, $callback, $priority);
+        self::$registry?->add($hook, $callback, $priority, $pluginSlug);
     }
 
     /**

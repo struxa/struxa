@@ -5,6 +5,8 @@ declare(strict_types=1);
 use App\Access\PermissionSlug;
 use App\Event\Events;
 use App\Event\MediaUploadedEvent;
+use App\Filter\FilterHook;
+use App\Filter\Filters;
 use App\Flash;
 use App\Http\Middleware\RequireCmsStaff;
 use App\Http\Middleware\RequirePermission;
@@ -419,6 +421,20 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 $response->getBody()->write(json_encode(['ok' => false, 'error' => 'No file uploaded.']));
 
                 return $response->withStatus(400)->withHeader('Content-Type', 'application/json; charset=utf-8');
+            }
+            $uploadMeta = Filters::apply(FilterHook::MEDIA_UPLOAD, [
+                'filename' => (string) ($file->getClientFilename() ?? ''),
+                'size' => $file->getSize(),
+                'mime' => $file->getClientMediaType(),
+                'allowed' => true,
+            ], ['source' => 'admin']);
+            if (is_array($uploadMeta) && ($uploadMeta['allowed'] ?? true) === false) {
+                $err = is_string($uploadMeta['block_message'] ?? null) && trim((string) $uploadMeta['block_message']) !== ''
+                    ? trim((string) $uploadMeta['block_message'])
+                    : 'Upload blocked.';
+                $response->getBody()->write(json_encode(['ok' => false, 'error' => $err]));
+
+                return $response->withStatus(422)->withHeader('Content-Type', 'application/json; charset=utf-8');
             }
             $folderId = $parseUploadFolderId($request);
             $result = $uploadService->handleUpload($file, $cmsUserId($request), $folderId);

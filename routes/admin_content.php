@@ -8,6 +8,9 @@ use App\Access\PermissionSlug;
 use App\Access\WorkflowService;
 use App\Content\ContentAdminTree;
 use App\Content\ContentEntry;
+use App\Content\ContentEntryBulkResult;
+use App\Content\ContentEntryBulkService;
+use App\Content\ContentEntryDuplicationService;
 use App\Content\ContentEntryFormValidator;
 use App\Content\ContentEntryRefsGuard;
 use App\Content\ContentEntryRepository;
@@ -83,6 +86,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
     $entryRevRepo = new ContentEntryRevisionRepository($pdo);
     $editSessions = new EditSessionContext(new EditLockService(new EditLockRepository($pdo)), new ContentAutosaveRepository($pdo));
     $entrySections = new ContentEntrySectionRepository($pdo);
+    $entryDuplicator = new ContentEntryDuplicationService($entries, $values, $entrySections, $entryTaxonomyRepo);
     $sectionPatterns = new SectionPatternRepository($pdo);
     $sectionManager = new SectionManager();
     $sectionValidator = new SectionSchemaValidator($sectionManager);
@@ -99,6 +103,47 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
     ]);
     $permEntryCreate = new RequirePermission($pdo, [PermissionSlug::CREATE_CONTENT]);
     $permEntryEdit = new RequirePermission($pdo, [PermissionSlug::EDIT_CONTENT, PermissionSlug::REVIEW_CONTENT]);
+
+    $redirectToEntryIndex = static function (Request $request, Response $response, int $typeId, array $body): Response {
+        $page = isset($body['return_page']) && ctype_digit((string) $body['return_page']) ? max(1, (int) $body['return_page']) : 1;
+        $perPage = isset($body['return_per_page']) && ctype_digit((string) $body['return_per_page']) ? (int) $body['return_per_page'] : 25;
+        $query = [];
+        if ($page > 1) {
+            $query['page'] = $page;
+        }
+        if ($perPage !== 25) {
+            $query['per_page'] = $perPage;
+        }
+
+        return $response
+            ->withHeader('Location', RouteContext::fromRequest($request)->getRouteParser()->urlFor(
+                'admin.content_types.entries.index',
+                ['id' => (string) $typeId],
+                $query,
+            ))
+            ->withStatus(302);
+    };
+
+    $entryBulkFlash = static function (ContentEntryBulkResult $result, string $actionLabel): void {
+        if ($result->applied < 1 && $result->skipped < 1) {
+            Flash::set('error', 'No entries were selected.');
+
+            return;
+        }
+        if ($result->applied > 0 && $result->skipped < 1) {
+            Flash::set('success', $result->applied === 1
+                ? '1 entry ' . $actionLabel . '.'
+                : $result->applied . ' entries ' . $actionLabel . '.');
+
+            return;
+        }
+        if ($result->applied > 0) {
+            Flash::set('success', $result->applied . ' ' . ($result->applied === 1 ? 'entry' : 'entries') . ' ' . $actionLabel
+                . ($result->skipped > 0 ? '; ' . $result->skipped . ' skipped.' : '.'));
+        } else {
+            Flash::set('error', 'No entries were updated.' . ($result->skipReasons !== [] ? ' ' . $result->skipReasons[0] : ''));
+        }
+    };
 
     $adminContext = static fn (): array => array_merge($viewData(), []);
     $withCmsUser = static function (Request $request, array $data): array {
@@ -711,7 +756,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
         })->setName('admin.content_types.show')->add($permEntryBrowse);
 
         /* —— Entries (merged former type hub + full list) —— */
-        $group->get('/content-types/{id:[0-9]+}/entries', function (Request $request, Response $response, array $args) use ($twig, $adminContext, $withCmsUser, $types, $fields, $entries, $taxonomyRepo): Response {
+        $group->get('/content-types/{id:[0-9]+}/entries', function (Request $request, Response $response, array $args) use ($twig, $adminContext, $withCmsUser, $types, $fields, $entries, $taxonomyRepo, $taxonomyTermRepo): Response {
             $id = (int) $args['id'];
             $t = $types->findById($id);
             if ($t === null) {
@@ -737,12 +782,21 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 'draft' => (int) $typeStats['draft'],
                 'in_review' => (int) $typeStats['in_review'],
             ];
+            $taxonomyTermRows = [];
+            foreach ($taxList as $tx) {
+                $taxonomyTermRows[$tx->id] = TaxonomyTermTree::rowsWithDepth(
+                    $taxonomyTermRepo->forTaxonomyOrdered($tx->id),
+                    $tx->isHierarchical
+                );
+            }
 
             return $twig->render($response, 'admin/content/entries/index.twig', $withCmsUser($request, array_merge($adminContext(), [
                 'admin_nav' => 'content_types',
                 'content_type' => $t,
                 'field_count' => count($fieldList),
                 'taxonomy_count' => count($taxList),
+                'taxonomies' => $taxList,
+                'taxonomy_term_rows' => $taxonomyTermRows,
                 'entry_rows' => $entryRows,
                 'entry_summary' => $entrySummary,
                 'page' => $page,
@@ -754,6 +808,100 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 'content_tree_type_id' => $id,
             ])));
         })->setName('admin.content_types.entries.index')->add($permEntryBrowse);
+
+        $group->post('/content-types/{id:[0-9]+}/entries/bulk', function (Request $request, Response $response, array $args) use (
+            $types,
+            $entries,
+            $entryTaxonomyRepo,
+            $taxonomyRepo,
+            $taxonomyTermRepo,
+            $workflow,
+            $activity,
+            $cmsUserId,
+            $redirectToEntryIndex,
+            $entryBulkFlash
+        ): Response {
+            $id = (int) $args['id'];
+            $t = $types->findById($id);
+            if ($t === null) {
+                throw new HttpNotFoundException($request);
+            }
+            $body = $request->getParsedBody();
+            $body = is_array($body) ? $body : [];
+            $action = trim((string) ($body['bulk_action'] ?? ''));
+            $ids = ContentEntryBulkService::normalizeIds(is_array($body['ids'] ?? null) ? $body['ids'] : []);
+            if ($ids === []) {
+                Flash::set('error', 'Select at least one entry.');
+
+                return $redirectToEntryIndex($request, $response, $id, $body);
+            }
+
+            /** @var array<string, mixed> $cmsUser */
+            $cmsUser = $request->getAttribute('cms_user') ?? [];
+            $perms = is_array($cmsUser['permission_slugs'] ?? null) ? $cmsUser['permission_slugs'] : [];
+            $bulk = new ContentEntryBulkService($entries, $entryTaxonomyRepo, $workflow);
+
+            if ($action === 'publish') {
+                if (!in_array(PermissionSlug::PUBLISH_CONTENT, $perms, true)) {
+                    Flash::set('error', 'You do not have permission to publish content.');
+
+                    return $redirectToEntryIndex($request, $response, $id, $body);
+                }
+                $result = $bulk->publish($id, $ids, $perms);
+                foreach ($result->appliedIds as $entryId) {
+                    Events::dispatch(new ContentEntrySavedEvent($entryId, $id, false));
+                }
+                $entryBulkFlash($result, 'published');
+                if ($result->applied > 0) {
+                    Events::dispatch(new StorefrontCachesInvalidateEvent('content_entries_bulk_published'));
+                    $activity->log($cmsUserId($request), 'content_entry.bulk_published', 'content_type', $id, [
+                        'count' => $result->applied,
+                        'entry_ids' => $ids,
+                    ]);
+                }
+            } elseif ($action === 'trash') {
+                if (!in_array(PermissionSlug::DELETE_CONTENT, $perms, true)) {
+                    Flash::set('error', 'You do not have permission to move entries to trash.');
+
+                    return $redirectToEntryIndex($request, $response, $id, $body);
+                }
+                $result = $bulk->trash($id, $ids, $cmsUserId($request));
+                foreach ($result->appliedIds as $entryId) {
+                    Events::dispatch(new ContentEntryDeletedEvent($entryId, $id));
+                }
+                $entryBulkFlash($result, 'moved to trash');
+                if ($result->applied > 0) {
+                    Events::dispatch(new StorefrontCachesInvalidateEvent('content_entries_bulk_trashed'));
+                    $activity->log($cmsUserId($request), 'content_entry.bulk_trashed', 'content_type', $id, [
+                        'count' => $result->applied,
+                        'entry_ids' => $ids,
+                    ]);
+                }
+            } elseif ($action === 'assign_taxonomy') {
+                if (!in_array(PermissionSlug::EDIT_CONTENT, $perms, true) && !in_array(PermissionSlug::REVIEW_CONTENT, $perms, true)) {
+                    Flash::set('error', 'You do not have permission to edit entries.');
+
+                    return $redirectToEntryIndex($request, $response, $id, $body);
+                }
+                $taxonomyId = isset($body['taxonomy_id']) && ctype_digit((string) $body['taxonomy_id']) ? (int) $body['taxonomy_id'] : 0;
+                $termIds = is_array($body['term_ids'] ?? null) ? $body['term_ids'] : [];
+                $mode = trim((string) ($body['taxonomy_mode'] ?? 'merge'));
+                $result = $bulk->assignTaxonomy($id, $ids, $taxonomyId, $termIds, $taxonomyRepo, $taxonomyTermRepo, $mode);
+                $entryBulkFlash($result, 'updated with taxonomy terms');
+                if ($result->applied > 0) {
+                    Events::dispatch(new StorefrontCachesInvalidateEvent('content_entries_bulk_taxonomy'));
+                    $activity->log($cmsUserId($request), 'content_entry.bulk_taxonomy', 'content_type', $id, [
+                        'count' => $result->applied,
+                        'taxonomy_id' => $taxonomyId,
+                        'entry_ids' => $ids,
+                    ]);
+                }
+            } else {
+                Flash::set('error', 'Unknown bulk action.');
+            }
+
+            return $redirectToEntryIndex($request, $response, $id, $body);
+        })->setName('admin.content_types.entries.bulk')->add($permEntryEdit);
 
         $group->get('/content-types/{id:[0-9]+}/entries/new', function (Request $request, Response $response, array $args) use ($twig, $adminContext, $withCmsUser, $types, $fields, $mediaRepo, $taxonomyRepo, $taxonomyTermRepo, $pdo, $entryFormMediaContext, $entryPrimaryRichtextTextareaId): Response {
             $id = (int) $args['id'];
@@ -1618,6 +1766,41 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 ->withHeader('Location', RouteContext::fromRequest($request)->getRouteParser()->urlFor('admin.content_types.entries.edit', ['id' => (string) $id, 'entryId' => (string) $entryId]))
                 ->withStatus(302);
         })->setName('admin.content_types.entries.revision_restore')->add($permEntryEdit);
+
+        $group->post('/content-types/{id:[0-9]+}/entries/{entryId:[0-9]+}/duplicate', function (Request $request, Response $response, array $args) use (
+            $types,
+            $entries,
+            $entryDuplicator,
+            $activity,
+            $cmsUserId,
+            $captureEntryRevision
+        ): Response {
+            $id = (int) $args['id'];
+            $entryId = (int) $args['entryId'];
+            $t = $types->findById($id);
+            if ($t === null || !$entries->belongsToType($entryId, $id)) {
+                throw new HttpNotFoundException($request);
+            }
+            $newId = $entryDuplicator->duplicate($entryId, $cmsUserId($request));
+            if ($newId === null) {
+                Flash::set('error', 'Could not duplicate entry.');
+
+                return $response
+                    ->withHeader('Location', RouteContext::fromRequest($request)->getRouteParser()->urlFor('admin.content_types.entries.index', ['id' => (string) $id]))
+                    ->withStatus(302);
+            }
+            $captureEntryRevision($newId, $cmsUserId($request));
+            $activity->log($cmsUserId($request), 'content_entry.duplicated', 'content_entry', $newId, [
+                'source_id' => $entryId,
+                'content_type_id' => $id,
+            ]);
+            Events::dispatch(new ContentEntrySavedEvent($newId, $id, true));
+            Flash::set('success', 'Entry duplicated as a draft.');
+
+            return $response
+                ->withHeader('Location', RouteContext::fromRequest($request)->getRouteParser()->urlFor('admin.content_types.entries.edit', ['id' => (string) $id, 'entryId' => (string) $newId]))
+                ->withStatus(302);
+        })->setName('admin.content_types.entries.duplicate')->add($permEntryCreate);
 
         $group->post('/content-types/{id:[0-9]+}/entries/{entryId:[0-9]+}/delete', function (Request $request, Response $response, array $args) use ($entries, $activity, $cmsUserId): Response {
             $id = (int) $args['id'];

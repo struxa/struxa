@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Auth\AppAuth;
 use App\Auth\GoogleOAuthClient;
 use App\Auth\GoogleSsoConfig;
+use App\Auth\LoginFilterPipeline;
 use App\Auth\PhpAuthUsernameRepository;
 use App\Auth\UsernameValidation;
 use App\Asset\CoreAssetResolver;
@@ -49,7 +50,9 @@ use App\Page\PublicCmsPageRenderer;
 use App\Section\CoreSectionDefinitionProvider;
 use App\Section\SectionDefinitionRegistry;
 use App\PhpAuthSettings;
+use App\Plugin\PluginLoadScope;
 use App\Plugin\PluginManager;
+use App\Plugin\PluginPerformanceRegistry;
 use App\Plugin\PluginRepository;
 use App\Plugin\PluginScanner;
 use App\Plugin\PluginValidator;
@@ -92,6 +95,8 @@ $envFileReadable = is_readable($root . '/.env');
 if ($envFileReadable) {
     Dotenv\Dotenv::createImmutable($root)->safeLoad();
 }
+
+PluginPerformanceRegistry::configure($root);
 
 Flash::start();
 
@@ -431,6 +436,11 @@ $app->get('/auth/google/callback', function (Request $request, Response $respons
         return $redirectLogin($next, (string) ($complete['message'] ?? 'Login failed'));
     }
 
+    $block = LoginFilterPipeline::blockMessage($email, $uid, 'google');
+    if ($block !== null) {
+        return $redirectLogin($next, $block);
+    }
+
     Events::dispatch(new UserLoggedInEvent($email));
     $target = PostLoginRedirect::target($next, $uid, $routeParser, $pdo);
 
@@ -499,6 +509,12 @@ $app->post('/login/two-factor', function (Request $request, Response $response) 
     TwoFactorLoginSession::clear();
     $email = $totpState !== null ? trim((string) ($totpState['email'] ?? '')) : '';
     if ($email !== '') {
+        $block = LoginFilterPipeline::blockMessage($email, (int) $pending['phpauth_uid'], 'two_factor');
+        if ($block !== null) {
+            Flash::set('error', $block);
+
+            return $response->withHeader('Location', $loginUrl)->withStatus(302);
+        }
         Events::dispatch(new UserLoggedInEvent($email));
     }
 
@@ -555,6 +571,13 @@ $app->post('/login', function (Request $request, Response $response) use ($auth,
     $complete = $auth->completeSessionAfterTwoFactor($uid, $rem);
     if (($complete['error'] ?? true) === true) {
         Flash::set('error', (string) ($complete['message'] ?? 'Login failed'));
+
+        return $response->withHeader('Location', $loginUrl)->withStatus(302);
+    }
+
+    $block = LoginFilterPipeline::blockMessage($email, $uid, 'password');
+    if ($block !== null) {
+        Flash::set('error', $block);
 
         return $response->withHeader('Location', $loginUrl)->withStatus(302);
     }
@@ -670,6 +693,8 @@ SectionDefinitionRegistry::instance()->registerProvider(new CoreSectionDefinitio
 (require $root . '/routes/admin_search.php')($app, $twig, $auth, $pdo, $viewData);
 (require $root . '/routes/admin_cache.php')($app, $twig, $auth, $pdo, $viewData);
 (require $root . '/routes/admin_maintenance.php')($app, $twig, $auth, $pdo, $viewData);
+(require $root . '/routes/admin_privacy.php')($app, $twig, $auth, $pdo, $viewData);
+(require $root . '/routes/admin_content_search.php')($app, $twig, $auth, $pdo, $viewData);
 (require $root . '/routes/admin_site_health.php')($app, $twig, $auth, $pdo, $viewData);
 (require $root . '/routes/admin_seo.php')($app, $twig, $auth, $pdo, $viewData);
 (require $root . '/routes/admin_security.php')($app, $twig, $auth, $pdo, $viewData);
@@ -687,8 +712,9 @@ SectionDefinitionRegistry::instance()->registerProvider(new CoreSectionDefinitio
 (require $root . '/routes/admin_plugins.php')($app, $twig, $auth, $pdo, $viewData);
 
 $pluginRepo = new PluginRepository($pdo);
+$pluginScope = PluginLoadScope::fromWebRequest($_SERVER['REQUEST_URI'] ?? '/');
 $pluginManager = new PluginManager($root, $pluginRepo, new PluginScanner($root), new PluginValidator($pdo));
-$pluginContexts = $pluginManager->registerActivePublicRoutes($app, $twig, $auth, $pdo, $viewData, $eventDispatcher);
+$pluginContexts = $pluginManager->registerActivePublicRoutes($app, $twig, $auth, $pdo, $viewData, $eventDispatcher, $pluginScope);
 
 (require $root . '/routes/public_search.php')($app, $twig, $pdo, $root, $viewData);
 (require $root . '/routes/public_preview.php')($app, $twig, $pdo, $viewData);

@@ -1,4 +1,4 @@
-<div class="admin-cmd" id="admin-cmd-palette" hidden role="dialog" aria-modal="true" aria-label="Jump to page">
+<div class="admin-cmd" id="admin-cmd-palette" hidden role="dialog" aria-modal="true" aria-label="Jump to page"{% if cms_can('manage_pages') or cms_can('create_content') or cms_can('edit_content') or cms_can('review_content') or cms_can('manage_content_types') or cms_can('manage_media') %} data-suggest-url="{{ url_for('admin.content.search.suggest')|e('html_attr') }}" data-search-url="{{ url_for('admin.content.search')|e('html_attr') }}"{% endif %}>
   <button type="button" class="admin-cmd-backdrop" tabindex="-1" aria-label="Close"></button>
   <div class="admin-cmd-panel">
     <div class="admin-cmd-search-wrap">
@@ -9,7 +9,7 @@
         type="search"
         class="admin-cmd-input"
         id="admin-cmd-input"
-        placeholder="Jump to a page or action…"
+        placeholder="Jump to… or search pages, entries, media"
         autocomplete="off"
         spellcheck="false"
         aria-autocomplete="list"

@@ -63,6 +63,9 @@ final class PluginManifest
         /** @var list<string> tables this plugin owns (documentation / preflight) */
         public readonly array $databaseTables = [],
         public readonly ?string $maxCmsVersion = null,
+        public readonly bool $loadPublic = true,
+        public readonly bool $loadAdmin = true,
+        public readonly bool $loadCli = true,
     ) {
     }
 
@@ -132,6 +135,9 @@ final class PluginManifest
             databaseMigrationsPath: self::parseDatabaseMigrationsPath($data['database'] ?? null),
             databaseTables: self::parseDatabaseTables($data['database'] ?? null),
             maxCmsVersion: self::parseOptionalVersion($data, 'max_cms_version', 'maxCmsVersion'),
+            loadPublic: self::parseLoadFlag($data['load'] ?? null, 'public', true),
+            loadAdmin: self::parseLoadFlag($data['load'] ?? null, 'admin', true),
+            loadCli: self::parseLoadFlag($data['load'] ?? null, 'cli', true),
         );
     }
 
@@ -182,6 +188,11 @@ final class PluginManifest
                 'tables' => $this->databaseTables,
             ],
             'max_cms_version' => $this->maxCmsVersion,
+            'load' => [
+                'public' => $this->loadPublic,
+                'admin' => $this->loadAdmin,
+                'cli' => $this->loadCli,
+            ],
         ];
     }
 
@@ -374,6 +385,18 @@ final class PluginManifest
         $v = trim($raw);
 
         return $v !== '' ? $v : null;
+    }
+
+    /**
+     * @param mixed $load
+     */
+    private static function parseLoadFlag(mixed $load, string $key, bool $default): bool
+    {
+        if (!is_array($load) || !array_key_exists($key, $load)) {
+            return $default;
+        }
+
+        return (bool) $load[$key];
     }
 
 }

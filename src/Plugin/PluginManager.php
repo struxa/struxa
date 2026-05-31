@@ -6,6 +6,7 @@ namespace App\Plugin;
 
 use App\Event\EventDispatcher;
 use App\Event\PluginBootedEvent;
+use App\Filter\Filters;
 use PHPAuth\Auth;
 use Slim\App;
 use Slim\Views\Twig;
@@ -32,11 +33,22 @@ final class PluginManager
      *
      * @return list<PluginBootContext> Pass to registerActiveAdminRoutes() and bootActivePluginLifecycle()
      */
-    public function registerActivePublicRoutes(App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $viewData, EventDispatcher $events): array
-    {
-        $contexts = $this->createActiveContexts($app, $twig, $auth, $pdo, $viewData, $events);
+    public function registerActivePublicRoutes(
+        App $app,
+        Twig $twig,
+        Auth $auth,
+        \PDO $pdo,
+        callable $viewData,
+        EventDispatcher $events,
+        PluginLoadScope $scope = PluginLoadScope::Public,
+    ): array {
+        $contexts = $this->createActiveContexts($app, $twig, $auth, $pdo, $viewData, $events, $scope);
         foreach ($contexts as $ctx) {
-            $this->loadRouteFile($ctx->pluginRoot() . '/routes/public.php', $app, $ctx);
+            try {
+                $this->loadRouteFile($ctx->pluginRoot() . '/routes/public.php', $app, $ctx, true);
+            } catch (PluginCapabilityException $e) {
+                error_log('[plugin] Skipped public routes for ' . $ctx->manifest->slug . ': ' . $e->getMessage());
+            }
         }
 
         return $contexts;
@@ -51,7 +63,11 @@ final class PluginManager
     public function registerActiveAdminRoutes(App $app, array $contexts): void
     {
         foreach ($contexts as $ctx) {
-            $this->loadRouteFile($ctx->pluginRoot() . '/routes/admin.php', $app, $ctx);
+            try {
+                $this->loadRouteFile($ctx->pluginRoot() . '/routes/admin.php', $app, $ctx, false);
+            } catch (PluginCapabilityException $e) {
+                error_log('[plugin] Skipped admin routes for ' . $ctx->manifest->slug . ': ' . $e->getMessage());
+            }
         }
     }
 
@@ -64,16 +80,47 @@ final class PluginManager
     {
         PluginAdminNavRegistry::instance()->clear();
 
+        $filterCountsBefore = Filters::registry()?->countByPlugin() ?? [];
+        $eventCountsBefore = $events->countByPlugin();
+
         foreach ($contexts as $ctx) {
+            $slug = $ctx->manifest->slug;
+            $start = hrtime(true);
+            $booted = false;
+
             $main = $ctx->manifest->mainClass;
             if ($main !== null && class_exists($main)) {
                 $provider = new $main();
                 if ($provider instanceof PluginServiceProviderInterface) {
-                    $provider->boot($ctx);
+                    try {
+                        $provider->boot($ctx);
+                        $booted = true;
+                    } catch (PluginCapabilityException $e) {
+                        error_log('[plugin] Boot failed for ' . $slug . ': ' . $e->getMessage());
+                        PluginPerformanceRegistry::instanceOrNull()?->recordBootError($slug, $e);
+                    } catch (\Throwable $e) {
+                        error_log('[plugin] Boot failed for ' . $slug . ': ' . $e->getMessage());
+                        PluginPerformanceRegistry::instanceOrNull()?->recordBootError($slug, $e);
+                        if (PluginPerformanceRegistry::circuitBreakerEnabled()) {
+                            $this->plugins->setActive($slug, false);
+                            PluginPerformanceRegistry::instanceOrNull()?->recordAutoDeactivated($slug);
+                        }
+                    }
                 }
             }
 
-            $events->dispatch(new PluginBootedEvent($ctx->manifest->slug));
+            if ($booted || $main === null) {
+                $ms = (hrtime(true) - $start) / 1_000_000;
+                $filterCounts = Filters::registry()?->countByPlugin() ?? [];
+                $eventCounts = $events->countByPlugin();
+                $filterCount = ($filterCounts[$slug] ?? 0) - ($filterCountsBefore[$slug] ?? 0);
+                $eventCount = ($eventCounts[$slug] ?? 0) - ($eventCountsBefore[$slug] ?? 0);
+                PluginPerformanceRegistry::instanceOrNull()?->recordBoot($slug, $ms, max(0, $filterCount), max(0, $eventCount));
+                $filterCountsBefore = $filterCounts;
+                $eventCountsBefore = $eventCounts;
+            }
+
+            $events->dispatch(new PluginBootedEvent($slug));
         }
     }
 
@@ -82,8 +129,15 @@ final class PluginManager
      *
      * @return list<PluginBootContext>
      */
-    private function createActiveContexts(App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $viewData, EventDispatcher $events): array
-    {
+    private function createActiveContexts(
+        App $app,
+        Twig $twig,
+        Auth $auth,
+        \PDO $pdo,
+        callable $viewData,
+        EventDispatcher $events,
+        PluginLoadScope $scope,
+    ): array {
         $loader = $twig->getEnvironment()->getLoader();
         if (!$loader instanceof FilesystemLoader) {
             return [];
@@ -93,6 +147,12 @@ final class PluginManager
         foreach ($this->plugins->activeSlugs() as $slug) {
             $discovered = $this->scanner->findBySlug($slug);
             if ($discovered === null) {
+                continue;
+            }
+
+            if (!$scope->allows($discovered->manifest)) {
+                PluginPerformanceRegistry::instanceOrNull()?->recordSkipped($slug, $scope);
+
                 continue;
             }
 
@@ -150,10 +210,15 @@ final class PluginManager
         }
     }
 
-    private function loadRouteFile(string $path, App $app, PluginBootContext $ctx): void
+    private function loadRouteFile(string $path, App $app, PluginBootContext $ctx, bool $public): void
     {
         if (!is_file($path)) {
             return;
+        }
+        if ($public) {
+            $ctx->capabilityGuard()->assertPublicRoutes();
+        } else {
+            $ctx->capabilityGuard()->assertAdminRoutes();
         }
         $callback = require $path;
         if (!is_callable($callback)) {

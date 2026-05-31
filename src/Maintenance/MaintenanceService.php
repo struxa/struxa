@@ -9,6 +9,7 @@ use App\Analytics\ExternalLinkClickRepository;
 use App\Analytics\ExternalLinkTrackingConfig;
 use App\Preview\PreviewTokenRepository;
 use App\Security\IpBlockHitBucketRepository;
+use App\Revisions\RevisionRetentionService;
 use App\Settings;
 use PDO;
 use PDOException;
@@ -44,6 +45,7 @@ final class MaintenanceService
             'media_derivative_cache_bytes' => $derivativeBytes,
             'external_link_retention_days' => ExternalLinkTrackingConfig::retentionDays(),
             'ai_chat_retention_days' => max(0, (int) (Settings::get('ai_chat_retention_days', '30') ?? '30')),
+            ...(new RevisionRetentionService($this->pdo))->stats(),
         ];
     }
 
@@ -171,6 +173,14 @@ final class MaintenanceService
         }
 
         return $out;
+    }
+
+    /**
+     * @return array<string, int>
+     */
+    public function purgeExcessRevisions(): array
+    {
+        return (new RevisionRetentionService($this->pdo))->pruneAllExcess();
     }
 
     public static function formatBytes(int $bytes): string

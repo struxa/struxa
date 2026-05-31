@@ -122,6 +122,17 @@
               </form>
             </td>
           </tr>
+          <tr>
+            <td>Content revisions (pages + entries)</td>
+            <td>{{ s.page_revisions|default(0) }} page · {{ s.entry_revisions|default(0) }} entry</td>
+            <td>
+              <form method="post" action="{{ url_for('admin.tools.maintenance.process') }}" class="admin-inline-form" onsubmit="return confirm('Remove excess revisions beyond the configured per-item limits?\n\nThe newest revisions for each page and entry are kept.');">
+                <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+                <input type="hidden" name="action" value="purge_excess_revisions" />
+                <button type="submit" class="admin-btn-ghost admin-btn-ghost--sm">Prune excess</button>
+              </form>
+            </td>
+          </tr>
         </tbody>
       </table>
     </div>
@@ -133,6 +144,28 @@
       <span class="admin-hint" style="margin-left:0.5rem">Same as part of <code class="admin-inline-code">php bin/cms.php schedule:run</code> when auto-purge is enabled below.</span>
     </form>
   </section>
+
+  <form class="admin-form" method="post" action="{{ url_for('admin.tools.maintenance.process') }}">
+    <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+    <input type="hidden" name="action" value="save_revision_retention" />
+    <section class="admin-card" style="margin-bottom:1.25rem">
+      <h2 class="admin-card-title">Revision retention</h2>
+      <p class="admin-hint" style="margin-top:0">Cap how many saved revisions are kept per page or content entry. Older revisions are removed automatically after each save, and you can run a one-time prune above. Set to <strong>0</strong> for unlimited.</p>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(12rem,1fr));gap:1rem;margin-top:1rem">
+        <label class="admin-form-row">
+          <span class="admin-form-label">Max page revisions</span>
+          <input class="admin-input" type="number" name="revision_retention_page_max" min="0" max="500" value="{{ s.revision_retention_page_max|default(50) }}" />
+        </label>
+        <label class="admin-form-row">
+          <span class="admin-form-label">Max entry revisions</span>
+          <input class="admin-input" type="number" name="revision_retention_entry_max" min="0" max="500" value="{{ s.revision_retention_entry_max|default(50) }}" />
+        </label>
+      </div>
+      <div class="admin-form-actions" style="margin-top:0.75rem">
+        <button type="submit" class="admin-btn-primary">Save limits</button>
+      </div>
+    </section>
+  </form>
 
   <form class="admin-form" method="post" action="{{ url_for('admin.tools.maintenance.process') }}">
     <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />

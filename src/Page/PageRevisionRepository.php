@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Page;
 
+use App\Revisions\RevisionRetentionService;
 use PDO;
 
 final class PageRevisionRepository
@@ -49,6 +50,7 @@ final class PageRevisionRepository
             $page->scheduledUnpublishAt,
             $createdBy,
         ]);
+        (new RevisionRetentionService($this->pdo))->prunePageRevisions((int) $page->id);
     }
 
     /**

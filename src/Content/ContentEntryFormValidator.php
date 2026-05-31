@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Content;
 
+use App\Filter\FilterHook;
+use App\Filter\Filters;
 use App\Media\MediaRepository;
 use DateTimeImmutable;
 use DateTimeZone;
@@ -43,6 +45,17 @@ final class ContentEntryFormValidator
         MediaRepository $mediaRepo,
         ?int $exceptEntryId = null
     ): array {
+        if (!is_array($body)) {
+            $body = [];
+        }
+        $body = Filters::apply(FilterHook::CONTENT_SAVE, $body, [
+            'content_type_id' => $type->id,
+            'entry_id' => $exceptEntryId,
+        ]);
+        if (!is_array($body)) {
+            $body = [];
+        }
+
         $errors = [];
 
         $title = $this->str($body, 'title');

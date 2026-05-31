@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Content;
 
+use App\Revisions\RevisionRetentionService;
 use PDO;
 
 final class ContentEntryRevisionRepository
@@ -29,6 +30,7 @@ final class ContentEntryRevisionRepository
             'INSERT INTO cms_content_entry_revisions (content_entry_id, snapshot_json, created_by) VALUES (?, ?, ?)'
         );
         $stmt->execute([$entryId, $json, $createdBy]);
+        (new RevisionRetentionService($this->pdo))->pruneEntryRevisions($entryId);
     }
 
     /**

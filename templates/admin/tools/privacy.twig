@@ -1,0 +1,47 @@
+{% extends 'admin/base.twig' %}
+
+{% block admin_title %}Privacy tools{% endblock %}
+
+{% block admin_hero_title %}
+  <h1 class="admin-hero-title">Privacy tools</h1>
+{% endblock %}
+
+{% block admin_hero_sub %}
+  <p class="admin-hero-sub">Export or erase personal data stored in comments and form submissions — similar to WordPress privacy tools. Use only for verified data-subject requests.</p>
+{% endblock %}
+
+{% block admin_content %}
+  <section class="admin-card" style="margin-bottom:1.25rem">
+    <h2 class="admin-card-title">Export personal data</h2>
+    <p class="admin-hint" style="margin-top:0">Downloads a JSON file with comments and form submissions linked to the email address. Comment emails are stored as one-way hashes; matching uses the same normalization as when comments were posted.</p>
+    <form method="post" action="{{ url_for('admin.tools.privacy.export') }}" class="admin-form" style="margin-top:1rem">
+      <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+      <label class="admin-form-row" style="display:block;max-width:24rem">
+        <span class="admin-form-label">Email address</span>
+        <input class="admin-input" type="email" name="email" required autocomplete="off" placeholder="person@example.com" />
+      </label>
+      <div class="admin-form-actions" style="margin-top:0.75rem">
+        <button type="submit" class="admin-btn-primary">Export JSON</button>
+      </div>
+    </form>
+  </section>
+
+  <section class="admin-card">
+    <h2 class="admin-card-title">Erase personal data</h2>
+    <p class="admin-hint" style="margin-top:0">Permanently deletes all comments authored with this email and any form submissions where the email appears in an email field (or any field value). This cannot be undone.</p>
+    <form method="post" action="{{ url_for('admin.tools.privacy.erase') }}" class="admin-form" style="margin-top:1rem" onsubmit="return confirm('Permanently erase personal data for this email?\n\nComments and matching form submissions will be deleted.');">
+      <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+      <label class="admin-form-row" style="display:block;max-width:24rem">
+        <span class="admin-form-label">Email address</span>
+        <input class="admin-input" type="email" name="email" required autocomplete="off" placeholder="person@example.com" />
+      </label>
+      <label class="admin-form-row" style="display:block;max-width:24rem;margin-top:0.75rem">
+        <span class="admin-form-label">Type <code class="admin-inline-code">ERASE</code> to confirm</span>
+        <input class="admin-input" type="text" name="confirm_erase" required autocomplete="off" placeholder="ERASE" />
+      </label>
+      <div class="admin-form-actions" style="margin-top:0.75rem">
+        <button type="submit" class="admin-btn-ghost" style="color:var(--admin-danger,#ef4444)">Erase personal data</button>
+      </div>
+    </form>
+  </section>
+{% endblock %}

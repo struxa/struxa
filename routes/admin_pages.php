@@ -21,6 +21,7 @@ use App\Media\MediaUploadService;
 use App\Page\Page;
 use App\Page\PageContentSanitizer;
 use App\Page\PagePreviewFactory;
+use App\Page\PageDuplicationService;
 use App\Page\PageRepository;
 use App\Page\PageRevisionRepository;
 use App\Page\PageSlugger;
@@ -67,6 +68,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
     $workflow = new WorkflowService();
     $activity = new ActivityLogger($pdo);
     $pageSections = new PageSectionRepository($pdo);
+    $pageDuplicator = new PageDuplicationService($repo, $pageSections);
     $sectionPatterns = new SectionPatternRepository($pdo);
     $sectionManager = new SectionManager();
     $builderHandler = new BlockBuilderActionHandler($sectionManager, $sectionPatterns);
@@ -637,6 +639,43 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 ->withHeader('Location', $parser->urlFor('admin.pages.edit', ['id' => (string) $id]))
                 ->withStatus(302);
         })->setName('admin.pages.update');
+
+        $group->post('/pages/{id:[0-9]+}/duplicate', function (Request $request, Response $response, array $args) use (
+            $repo,
+            $pageDuplicator,
+            $revisions,
+            $activity,
+            $cmsUid,
+            $capturePageRevision
+        ): Response {
+            $id = (int) $args['id'];
+            $source = $repo->findById($id);
+            if ($source === null) {
+                throw new HttpNotFoundException($request);
+            }
+            $newId = $pageDuplicator->duplicate($id);
+            if ($newId === null) {
+                Flash::set('error', 'Could not duplicate page.');
+
+                return $response
+                    ->withHeader('Location', RouteContext::fromRequest($request)->getRouteParser()->urlFor('admin.pages.index'))
+                    ->withStatus(302);
+            }
+            $copy = $repo->findById($newId);
+            if ($copy !== null) {
+                $capturePageRevision($copy, $cmsUid($request));
+            }
+            $activity->log($cmsUid($request), 'page.duplicated', 'page', $newId, [
+                'source_id' => $id,
+                'title' => $copy?->title ?? '',
+            ]);
+            Events::dispatch(new StorefrontCachesInvalidateEvent('page_duplicated'));
+            Flash::set('success', 'Page duplicated as a draft.');
+
+            return $response
+                ->withHeader('Location', RouteContext::fromRequest($request)->getRouteParser()->urlFor('admin.pages.edit', ['id' => (string) $newId]))
+                ->withStatus(302);
+        })->setName('admin.pages.duplicate');
 
         $group->post('/pages/{id:[0-9]+}/delete', function (Request $request, Response $response, array $args) use ($repo, $activity, $cmsUid): Response {
             $id = (int) $args['id'];

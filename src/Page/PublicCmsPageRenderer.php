@@ -7,6 +7,8 @@ namespace App\Page;
 use App\Comment\CommentRepository;
 use App\Comment\CommentThreadBuilder;
 use App\Media\MediaUrlHelper;
+use App\Filter\FilterHook;
+use App\Filter\Filters;
 use App\Seo\ExternalLinkPolicy;
 use App\Section\PageSectionRepository;
 use App\Section\SectionManager;
@@ -63,6 +65,11 @@ final class PublicCmsPageRenderer
         ));
 
         $bodyHtml = ExternalLinkPolicy::maybeNofollowExternalAnchorsInHtml($page->content);
+        $bodyHtml = (string) Filters::apply(FilterHook::PAGE_RENDER, $bodyHtml, [
+            'page_id' => $page->id,
+            'slug' => $page->slug,
+            'subject' => 'page',
+        ]);
         $pageForView = $bodyHtml === $page->content ? $page : $page->withContent($bodyHtml);
         $threadKey = 'page:' . $page->id;
         $vd = $viewData();

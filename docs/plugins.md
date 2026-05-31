@@ -28,6 +28,7 @@ Plugins declare what they need and what they touch. Struxa validates this **befo
 | `hooks.events` | string[] | Events the plugin listens to (e.g. `ContentEntrySavedEvent`) |
 | `database.migrations` | string | Relative path to SQL folder (default `migrations`) |
 | `database.tables` | string[] | Tables owned by this plugin (documentation + preflight) |
+| `load.public` / `load.admin` / `load.cli` | bool | Skip boot on matching request types (default all `true`) |
 
 Example:
 
@@ -133,8 +134,60 @@ public function boot(PluginBootContext $context): void
 | `FilterHook::API_ENTRY_RESPONSE` | `api.entry.response` | REST entry detail JSON payload |
 | `FilterHook::API_PAGE_RESPONSE` | `api.page.response` | REST page detail JSON payload |
 | `FilterHook::API_ENTRY_REQUEST` | `api.entry.request` | Inbound REST entry write body before validation |
+| `FilterHook::PAGE_RENDER` | `page.render` | Public page HTML body before template |
+| `FilterHook::ADMIN_DASHBOARD` | `admin.dashboard` | Dashboard stats array |
+| `FilterHook::USER_LOGIN` | `user.login` | Login payload; set `allowed` => false to block |
+| `FilterHook::CONTENT_SAVE` | `content.save` | Entry save POST body before validation |
+| `FilterHook::MEDIA_UPLOAD` | `media.upload` | Upload metadata before storage |
 
 Lower **priority** runs first (default `10`). Callbacks receive `(mixed $value, array $context)` and must **return** the next value.
+
+Only hooks listed in `FilterHook` may be registered. If your manifest declares `hooks.filters`, each filter you register in `boot()` must appear in that list.
+
+## Capability enforcement (boot)
+
+When a plugin declares **any** of `capabilities`, `hooks.filters`, or `hooks.events`, Struxa enforces the contract at boot:
+
+| API | Capability |
+| --- | --- |
+| `pdo()` | `database.read` or `database.write` |
+| `auth()` | `user.read` |
+| `registerAdminNavItem()`, `routes/admin.php` | `admin.nav` |
+| `registerSectionProvider()`, `routes/public.php`, reserved slugs | `frontend.render` |
+| `registerJobHandler()`, `enqueueJob()` | `database.write` |
+| `pluginStoragePath()` | `filesystem.write` |
+| `addFilter()` | matching capability for that hook (see `FilterHook::requiredCapability()`) |
+| `listenEvent()` | matching capability; declare event in `hooks.events` |
+
+Plugins with **no** capabilities and **no** declared hooks remain in **legacy permissive** mode (full boot API, but filters must still use valid `FilterHook` constants).
+
+Use `$context->listenEvent(ContentEntrySavedEvent::class, …)` instead of `$context->events()->listen()` so manifest events are validated.
+
+## Performance protection (Phase 5)
+
+Struxa tracks plugin cost at boot and on hooks:
+
+| Mechanism | Behavior |
+| --- | --- |
+| Boot timer | Each active plugin's `boot()` is timed; runs over **50 ms** are logged and shown in **Extensions → Plugins** |
+| Hook timer | Filter and event callbacks over **25 ms** are logged with plugin slug |
+| Admin panel | Plugins list **Performance** column: boot ms, filter/event counts, slow hooks, last boot error |
+| Conditional load | Optional manifest `load` object skips plugins on contexts where they are not needed |
+| Circuit breaker | Set `PLUGIN_BOOT_CIRCUIT_BREAKER=1` in `.env` to auto-deactivate plugins that throw during boot |
+
+Example admin-only plugin (no public boot cost):
+
+```json
+{
+  "load": {
+    "public": false,
+    "admin": true,
+    "cli": true
+  }
+}
+```
+
+Snapshots persist in `storage/plugin-performance.json`. **Site Health** warns when slow boot or hook timings are recorded.
 
 ## Background jobs
 

@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.1.33",
-    "title": "Struxa 1.1.33",
-    "summary": "Rich-text oEmbed (YouTube/X), plugin manifest contract with pre-activation compatibility checks, and admin route scope fixes.",
+    "latest_version": "1.1.35",
+    "title": "Struxa 1.1.35",
+    "summary": "Plugin sandbox and performance timing, plugins card UI, bulk entry actions, revision retention and GDPR privacy tools, unified admin search, page/entry duplicate, redesigned pages list.",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "minor"

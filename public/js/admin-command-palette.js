@@ -8,8 +8,13 @@
   var input = document.getElementById("admin-cmd-input");
   var list = document.getElementById("admin-cmd-results");
   var backdrop = dialog.querySelector(".admin-cmd-backdrop");
-  var items = [];
+  var navItems = [];
+  var remoteItems = [];
   var activeIndex = 0;
+  var suggestTimer = null;
+  var suggestRequestId = 0;
+  var suggestUrl = dialog.getAttribute("data-suggest-url") || "";
+  var searchUrl = dialog.getAttribute("data-search-url") || "";
 
   var isMac = typeof navigator !== "undefined" && /Mac|iPhone|iPad/i.test(navigator.platform || navigator.userAgent);
 
@@ -19,8 +24,8 @@
     return el.innerHTML;
   }
 
-  function collectItems() {
-    items = [];
+  function collectNavItems() {
+    navItems = [];
     var nav = document.getElementById("admin-primary-nav");
     if (nav) {
       nav.querySelectorAll("a[href]").forEach(function (link) {
@@ -38,14 +43,14 @@
         } else if (link.classList.contains("admin-nav-pin")) {
           group = "Pinned";
         }
-        items.push({ label: label, href: href, group: group });
+        navItems.push({ label: label, href: href, group: group });
       });
     }
 
     document.querySelectorAll(".admin-create-menu-panel a[href]").forEach(function (link) {
       var href = link.getAttribute("href");
       if (!href) return;
-      items.push({
+      navItems.push({
         label: link.textContent.trim(),
         href: href,
         group: "Create",
@@ -53,32 +58,92 @@
     });
 
     var seen = {};
-    items = items.filter(function (item) {
+    navItems = navItems.filter(function (item) {
       if (seen[item.href]) return false;
       seen[item.href] = true;
       return true;
     });
   }
 
-  function filteredItems(query) {
+  function filterNavItems(query) {
     var q = (query || "").toLowerCase().trim();
-    if (!q) return items.slice(0, 14);
-    return items
+    if (!q) return navItems.slice(0, 10);
+    return navItems
       .filter(function (item) {
         return (item.label + " " + item.group).toLowerCase().indexOf(q) !== -1;
       })
-      .slice(0, 14);
+      .slice(0, 10);
+  }
+
+  function mergedItems(query) {
+    var q = (query || "").trim();
+    if (q.length >= 2 && remoteItems.length) {
+      return remoteItems.slice(0, 14);
+    }
+    if (q.length >= 2 && suggestUrl) {
+      return [];
+    }
+    return filterNavItems(q);
+  }
+
+  function scheduleSuggest(query) {
+    if (!suggestUrl) return;
+    var q = (query || "").trim();
+    if (suggestTimer) {
+      clearTimeout(suggestTimer);
+      suggestTimer = null;
+    }
+    if (q.length < 2) {
+      remoteItems = [];
+      render(query);
+      return;
+    }
+    var requestId = ++suggestRequestId;
+    suggestTimer = setTimeout(function () {
+      suggestTimer = null;
+      fetch(suggestUrl + "?q=" + encodeURIComponent(q), {
+        credentials: "same-origin",
+        headers: { Accept: "application/json" },
+      })
+        .then(function (res) {
+          return res.ok ? res.json() : { items: [] };
+        })
+        .then(function (data) {
+          if (requestId !== suggestRequestId) return;
+          remoteItems = Array.isArray(data.items) ? data.items : [];
+          if (remoteItems.length === 0 && searchUrl) {
+            remoteItems.push({
+              label: 'Search for "' + q + '"',
+              href: searchUrl + "?q=" + encodeURIComponent(q),
+              group: "Search",
+            });
+          }
+          render(query);
+        })
+        .catch(function () {
+          if (requestId !== suggestRequestId) return;
+          remoteItems = searchUrl
+            ? [{ label: 'Search for "' + q + '"', href: searchUrl + "?q=" + encodeURIComponent(q), group: "Search" }]
+            : [];
+          render(query);
+        });
+    }, 180);
   }
 
   function render(query) {
-    var results = filteredItems(query);
+    var results = mergedItems(query);
     activeIndex = 0;
     list.innerHTML = "";
 
     if (!results.length) {
+      var q = (query || "").trim();
       var empty = document.createElement("li");
       empty.className = "admin-cmd-empty";
-      empty.textContent = "No matches — try another keyword.";
+      if (q.length >= 2 && suggestUrl) {
+        empty.textContent = "Searching…";
+      } else {
+        empty.textContent = "No matches — try another keyword.";
+      }
       list.appendChild(empty);
       return;
     }
@@ -95,7 +160,7 @@
         escapeHtml(item.label) +
         "</span>" +
         '<span class="admin-cmd-item-meta">' +
-        escapeHtml(item.group) +
+        escapeHtml(item.group + (item.meta ? " · " + item.meta : "")) +
         "</span>" +
         "</span>" +
         '<svg class="admin-cmd-item-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg>';
@@ -116,7 +181,9 @@
   }
 
   function openPalette() {
-    collectItems();
+    collectNavItems();
+    remoteItems = [];
+    suggestRequestId += 1;
     render("");
     dialog.hidden = false;
     dialog.classList.add("is-open");
@@ -131,6 +198,11 @@
     dialog.hidden = true;
     dialog.classList.remove("is-open");
     document.body.classList.remove("admin-cmd-open");
+    remoteItems = [];
+    if (suggestTimer) {
+      clearTimeout(suggestTimer);
+      suggestTimer = null;
+    }
     if (trigger) trigger.focus();
   }
 
@@ -157,11 +229,12 @@
 
   if (input) {
     input.addEventListener("input", function () {
+      remoteItems = [];
       render(input.value);
+      scheduleSuggest(input.value);
     });
 
     input.addEventListener("keydown", function (event) {
-      var nodes = list.querySelectorAll(".admin-cmd-item");
       if (event.key === "ArrowDown") {
         event.preventDefault();
         setActive(activeIndex + 1);

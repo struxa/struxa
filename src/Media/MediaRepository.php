@@ -305,6 +305,34 @@ final class MediaRepository
     }
 
     /**
+     * Staff search — filename and original name only.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function adminSearchLike(string $likeParam, int $limit = 25): array
+    {
+        if ($likeParam === '' || $likeParam === '%%') {
+            return [];
+        }
+        $limit = max(1, min(50, $limit));
+        $stmt = $this->pdo->prepare(
+            'SELECT id, filename, original_name, mime_type, file_size, created_at
+             FROM ' . self::TABLE . '
+             WHERE deleted_at IS NULL
+               AND (filename LIKE ? ESCAPE \'\\\\\' OR original_name LIKE ? ESCAPE \'\\\\\')
+             ORDER BY created_at DESC, id DESC
+             LIMIT ' . (int) $limit
+        );
+        $stmt->execute([$likeParam, $likeParam]);
+        $out = [];
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            $out[] = $row;
+        }
+
+        return $out;
+    }
+
+    /**
      * @return array{0: string, 1: list<mixed>}
      */
     private function buildListWhere(string $search, ?MediaFolderFilter $folderFilter, string $alias = 'm'): array
