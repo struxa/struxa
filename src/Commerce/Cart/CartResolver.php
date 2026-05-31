@@ -105,7 +105,7 @@ final class CartResolver
             }
         }
 
-        $totals = $this->totalsCalculator->calculate($subtotal, $coupon, $couponCode);
+        $totals = $this->totalsCalculator->calculate($subtotal, $coupon, $couponCode, $this->cart->shipCountry());
 
         return [
             'ok' => true,
@@ -115,6 +115,7 @@ final class CartResolver
             'totals' => $totals,
             'coupon_code' => $couponCode,
             'coupon_error' => $couponError,
+            'ship_country' => $this->cart->shipCountry(),
         ];
     }
 

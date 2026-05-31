@@ -13,7 +13,7 @@
 
 {% block admin_hero_actions %}{% endblock %}
 
-{% block admin_body_class %}admin-body--media{% endblock %}
+{% block admin_body_class %}admin-body--dash-ref admin-body--media{% endblock %}
 
 {% block admin_content %}
   {% set stats = media_stats|default({ total_files: 0, total_bytes: 0, image_files: 0 }) %}

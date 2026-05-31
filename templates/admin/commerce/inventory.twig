@@ -1,0 +1,33 @@
+{% extends 'admin/base.twig' %}
+{% import 'admin/_ui_macros.twig' as ui %}
+
+{% block admin_title %}Inventory{% endblock %}
+{% block admin_hero_title %}<h1 class="admin-hero-title">Low stock</h1>{% endblock %}
+{% block admin_hero_sub %}<p class="admin-hero-sub">Published products with tracked <code class="admin-inline-code">stock_qty</code> at or below {{ low_stock_threshold }}.</p>{% endblock %}
+
+{% block admin_content %}
+  <div class="admin-page-toolbar">
+    <a class="admin-btn-ghost" href="{{ url_for('admin.commerce.settings') }}">Commerce settings</a>
+  </div>
+
+  {% if not inventory_tracking %}
+    <p class="admin-hint">Inventory tracking is disabled. Enable it under Commerce settings to see low-stock products.</p>
+  {% elseif low_stock_items is empty %}
+    {{ ui.empty_state('All stocked up', 'No published products are at or below the low-stock threshold.', url_for('admin.commerce.settings'), 'Commerce settings', '') }}
+  {% else %}
+    <div class="admin-table-wrap">
+      <table class="admin-table">
+        <thead><tr><th>Product</th><th>Stock</th><th></th></tr></thead>
+        <tbody>
+          {% for item in low_stock_items %}
+            <tr>
+              <td><strong>{{ item.title|e }}</strong><br /><code class="admin-inline-code">{{ item.slug|e }}</code></td>
+              <td>{{ item.stockQty }}</td>
+              <td><a class="admin-link" href="{{ url_for('admin.content_types.entries.edit', { id: item.contentTypeId, entryId: item.entryId }) }}">Edit entry</a></td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% endif %}
+{% endblock %}

@@ -1,0 +1,46 @@
+{% extends 'admin/base.twig' %}
+
+{% block admin_title %}{{ tax_rate ? 'Edit tax rate' : 'New tax rate' }}{% endblock %}
+{% block admin_hero_title %}<h1 class="admin-hero-title">{{ tax_rate ? 'Edit tax rate' : 'New tax rate' }}</h1>{% endblock %}
+
+{% block admin_content %}
+  <form class="admin-form admin-form-stack" method="post" action="{{ tax_rate ? url_for('admin.commerce.tax_rates.update', { id: tax_rate.id }) : url_for('admin.commerce.tax_rates.create') }}" style="max-width:36rem">
+    <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+    {% if tax_rate %}
+      <div class="admin-field">
+        <label class="admin-label">Country</label>
+        <p><strong>{{ tax_rate.countryCode|e }}</strong></p>
+      </div>
+    {% else %}
+      <div class="admin-field">
+        <label class="admin-label" for="country_code">Country code</label>
+        <input class="admin-input" id="country_code" name="country_code" maxlength="2" pattern="[A-Za-z]{2}" required placeholder="GB" />
+      </div>
+    {% endif %}
+    <div class="admin-field">
+      <label class="admin-label" for="label">Label (optional)</label>
+      <input class="admin-input" id="label" name="label" value="{{ tax_rate.label|default('')|e('html_attr') }}" placeholder="VAT" />
+    </div>
+    <div class="admin-field">
+      <label class="admin-label" for="rate_bps">Rate (basis points)</label>
+      <input class="admin-input" id="rate_bps" name="rate_bps" type="number" min="0" max="10000" value="{{ tax_rate.rateBps|default(2000)|e('html_attr') }}" />
+      <p class="admin-hint">2000 = 20%</p>
+    </div>
+    <div class="admin-field">
+      <label class="admin-label" for="sort_order">Sort order</label>
+      <input class="admin-input" id="sort_order" name="sort_order" type="number" value="{{ tax_rate.sortOrder|default(0)|e('html_attr') }}" />
+    </div>
+    <label class="admin-check">
+      <input type="checkbox" name="is_active" value="1" {% if tax_rate is null or tax_rate.isActive %}checked{% endif %} />
+      Active
+    </label>
+    <button class="admin-btn-primary" type="submit">Save rate</button>
+    <a class="admin-btn-ghost" href="{{ url_for('admin.commerce.tax_rates') }}">Cancel</a>
+  </form>
+  {% if tax_rate %}
+    <form method="post" action="{{ url_for('admin.commerce.tax_rates.delete', { id: tax_rate.id }) }}" style="margin-top:1rem" onsubmit="return confirm('Delete this tax rate?');">
+      <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+      <button type="submit" class="admin-btn-danger">Delete rate</button>
+    </form>
+  {% endif %}
+{% endblock %}

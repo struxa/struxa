@@ -27,6 +27,10 @@ final class CommerceSettings
     public const FIELD_STRIPE_PRICE_ID = 'stripe_price_id';
     public const FIELD_SKU = 'sku';
     public const FIELD_STOCK_QTY = 'stock_qty';
+    public const FIELD_DIGITAL_FILE = 'digital_file';
+    public const FIELD_DIGITAL_URL = 'digital_url';
+    public const FIELD_DIGITAL_ENTRY_SLUG = 'digital_entry_slug';
+    public const FIELD_DIGITAL_LABEL = 'digital_label';
 
     public const SETTING_NOTIFY_EMAIL = 'commerce_notify_email';
     public const SETTING_SEND_ORDER_EMAILS = 'commerce_send_order_emails';
@@ -34,6 +38,9 @@ final class CommerceSettings
 
     public const SETTING_TAX_ENABLED = 'commerce_tax_enabled';
     public const SETTING_TAX_RATE_BPS = 'commerce_tax_rate_bps';
+    public const SETTING_TAX_MODE = 'commerce_tax_mode';
+    public const SETTING_USE_SHIPPING_ZONES = 'commerce_use_shipping_zones';
+    public const SETTING_LOW_STOCK_THRESHOLD = 'commerce_low_stock_threshold';
     public const SETTING_SHIPPING_ENABLED = 'commerce_shipping_enabled';
     public const SETTING_SHIPPING_FLAT_CENTS = 'commerce_shipping_flat_cents';
     public const SETTING_FREE_SHIPPING_MIN_CENTS = 'commerce_free_shipping_min_cents';
@@ -41,6 +48,10 @@ final class CommerceSettings
     public const SETTING_SHIPPING_COUNTRIES = 'commerce_shipping_countries';
     public const SETTING_SHOP_TITLE = 'commerce_shop_title';
     public const SETTING_SHOP_DESCRIPTION = 'commerce_shop_description';
+
+    public const TAX_MODE_FLAT = 'flat';
+    public const TAX_MODE_COUNTRY = 'country';
+    public const TAX_MODE_STRIPE = 'stripe';
 
     public function __construct(private readonly PDO $pdo)
     {
@@ -110,6 +121,35 @@ final class CommerceSettings
         $bps = (int) (Settings::get(self::SETTING_TAX_RATE_BPS) ?: '0');
 
         return max(0, min(10000, $bps));
+    }
+
+    public function taxMode(): string
+    {
+        $mode = strtolower(trim(Settings::get(self::SETTING_TAX_MODE) ?: self::TAX_MODE_FLAT));
+
+        return in_array($mode, [self::TAX_MODE_FLAT, self::TAX_MODE_COUNTRY, self::TAX_MODE_STRIPE], true)
+            ? $mode
+            : self::TAX_MODE_FLAT;
+    }
+
+    public function useShippingZones(): bool
+    {
+        return Settings::get(self::SETTING_USE_SHIPPING_ZONES) === '1';
+    }
+
+    public function lowStockThreshold(): int
+    {
+        return max(0, (int) (Settings::get(self::SETTING_LOW_STOCK_THRESHOLD) ?: '5'));
+    }
+
+    /** Cart/checkout should collect ship-to country when zones or per-country tax apply. */
+    public function needsCheckoutCountry(): bool
+    {
+        if ($this->useShippingZones() && $this->shippingEnabled()) {
+            return true;
+        }
+
+        return $this->taxEnabled() && $this->taxMode() === self::TAX_MODE_COUNTRY;
     }
 
     public function shippingEnabled(): bool

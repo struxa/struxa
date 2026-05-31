@@ -1,4 +1,5 @@
 {% extends 'admin/base.twig' %}
+{% import 'admin/_ui_macros.twig' as ui %}
 
 {% block admin_title %}Forms{% endblock %}
 
@@ -7,63 +8,91 @@
 {% endblock %}
 
 {% block admin_hero_sub %}
-  <p class="admin-hero-sub">Build contact forms, collect submissions, and embed forms on pages.</p>
+  <p class="admin-hero-sub admin-hero-sub--tight">Build contact forms, collect submissions, and embed forms on pages.</p>
+{% endblock %}
+
+{% block admin_hero_actions %}
+  <a class="admin-btn-primary" href="{{ url_for('admin.forms.new') }}">Add form</a>
 {% endblock %}
 
 {% block admin_content %}
-  <div class="admin-toolbar admin-toolbar--spread" style="margin-bottom:1rem">
-    <p class="admin-hint">{{ form_rows|length }} form{{ form_rows|length == 1 ? '' : 's' }}</p>
-    <a class="admin-btn admin-btn--primary" href="{{ url_for('admin.forms.new') }}">Add form</a>
-  </div>
+  {% set total_forms = form_rows|length %}
+  {% set published_count = form_rows|filter(row => row.status == 'published')|length %}
+  {% set new_entries = form_rows|reduce((carry, row) => carry + row.new_entry_count|default(0), 0) %}
 
-  {% if form_rows is empty %}
-    <section class="admin-card">
-      <p class="admin-hint">No forms yet. Start with a template or a blank form.</p>
-      <a class="admin-btn admin-btn--primary" href="{{ url_for('admin.forms.new') }}">Create your first form</a>
-    </section>
-  {% else %}
-    <div class="admin-table-wrap">
-      <table class="admin-table">
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>Slug</th>
-            <th>Status</th>
-            <th>Entries</th>
-            <th>Updated</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for row in form_rows %}
-            <tr>
-              <td><strong>{{ row.name|e }}</strong></td>
-              <td><code class="admin-inline-code">{{ row.slug|e }}</code></td>
-              <td>
-                {% if row.status == 'published' %}
-                  <span class="admin-badge admin-badge--success">Published</span>
-                {% else %}
-                  <span class="admin-badge">Draft</span>
-                {% endif %}
-              </td>
-              <td>
-                {{ row.entry_count|default(0) }}
-                {% if row.new_entry_count|default(0) > 0 %}
-                  <span class="admin-badge admin-badge--warn">{{ row.new_entry_count }} new</span>
-                {% endif %}
-              </td>
-              <td><code class="admin-inline-code">{{ row.updated_at|e }}</code></td>
-              <td style="white-space:nowrap">
-                <a class="admin-btn admin-btn--ghost admin-btn--sm" href="{{ url_for('admin.forms.edit', { id: row.id }) }}">Edit</a>
-                <a class="admin-btn admin-btn--ghost admin-btn--sm" href="{{ url_for('admin.forms.entries', { id: row.id }) }}">Entries</a>
-                {% if row.status == 'published' %}
-                  <a class="admin-btn admin-btn--ghost admin-btn--sm" href="/forms/{{ row.slug|e('url') }}" target="_blank" rel="noopener">View</a>
-                {% endif %}
-              </td>
-            </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+  <div class="admin-settings-page">
+    <div class="admin-metrics admin-hub-metrics" aria-label="Form summary">
+      <article class="admin-metric">
+        <p class="admin-metric-label">Forms</p>
+        <p class="admin-metric-value">{{ total_forms }}</p>
+        <p class="admin-metric-meta">{{ published_count }} published</p>
+      </article>
+      <article class="admin-metric{% if new_entries > 0 %} admin-metric--hot{% endif %}">
+        <p class="admin-metric-label">New submissions</p>
+        <p class="admin-metric-value">{{ new_entries }}</p>
+        <p class="admin-metric-meta">Unread across all forms</p>
+      </article>
+      <article class="admin-metric">
+        <p class="admin-metric-label">Public URL</p>
+        <p class="admin-metric-value admin-metric-value--sm">/forms/{slug}</p>
+        <p class="admin-metric-meta">Embed via shortcode or link</p>
+      </article>
     </div>
-  {% endif %}
+
+    {% if form_rows is empty %}
+      <section class="admin-card admin-settings-card">
+        {{ ui.empty_state(
+          'No forms yet',
+          'Start with a template or a blank form — then embed on pages or share the public URL.',
+          url_for('admin.forms.new'),
+          'Create your first form',
+          '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 9H8"/></svg>'
+        ) }}
+      </section>
+    {% else %}
+      <section class="admin-card admin-settings-card">
+        <div class="admin-toolbar admin-toolbar--spread" style="margin-bottom:0.85rem">
+          <h2 class="admin-settings-card-title" style="margin:0">All forms</h2>
+          <a class="admin-btn-primary admin-btn-primary--sm" href="{{ url_for('admin.forms.new') }}">Add form</a>
+        </div>
+        <div class="admin-table-wrap">
+          <table class="admin-table admin-table--comfortable">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Slug</th>
+                <th>Status</th>
+                <th>Entries</th>
+                <th>Updated</th>
+                <th><span class="admin-sr-only">Actions</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in form_rows %}
+                <tr>
+                  <td><strong class="admin-table-primary">{{ row.name|e }}</strong></td>
+                  <td><code class="admin-inline-code">{{ row.slug|e }}</code></td>
+                  <td>{{ ui.status_badge(row.status) }}</td>
+                  <td>
+                    <span class="admin-table-count">{{ row.entry_count|default(0) }}</span>
+                    {% if row.new_entry_count|default(0) > 0 %}
+                      <span class="admin-pill admin-pill--warn">{{ row.new_entry_count }} new</span>
+                    {% endif %}
+                  </td>
+                  <td><time datetime="{{ row.updated_at|e('html_attr') }}">{{ row.updated_at|slice(0, 16)|e }}</time></td>
+                  <td class="admin-table-actions">
+                    <a class="admin-btn-ghost admin-btn-ghost--sm" href="{{ url_for('admin.forms.edit', { id: row.id }) }}">Edit</a>
+                    <a class="admin-btn-ghost admin-btn-ghost--sm" href="{{ url_for('admin.forms.entries', { id: row.id }) }}">Entries</a>
+                    {% if row.status == 'published' %}
+                      <a class="admin-btn-ghost admin-btn-ghost--sm" href="/forms/{{ row.slug|e('url') }}" target="_blank" rel="noopener">View</a>
+                    {% endif %}
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    {% endif %}
+  </div>
 {% endblock %}

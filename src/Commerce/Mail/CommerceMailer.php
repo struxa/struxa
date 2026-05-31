@@ -24,23 +24,32 @@ final class CommerceMailer
         return new self($site !== '' ? $site : 'Store', $from);
     }
 
-    public function sendOrderConfirmation(CommerceOrder $order, string $toEmail): bool
+    /**
+     * @param list<array{label: string, url: string}> $accessLinks
+     */
+    public function sendOrderConfirmation(CommerceOrder $order, string $toEmail, array $accessLinks = []): bool
     {
         $subject = sprintf('Order %s confirmed — %s', $order->orderNumber, $this->siteName);
-        $body = $this->buildOrderBody('Thank you for your order.', $order);
+        $body = $this->buildOrderBody('Thank you for your order.', $order, $accessLinks);
 
         return $this->send($toEmail, $subject, $body);
     }
 
-    public function sendAdminNotification(CommerceOrder $order, string $toEmail): bool
+    /**
+     * @param list<array{label: string, url: string}> $accessLinks
+     */
+    public function sendAdminNotification(CommerceOrder $order, string $toEmail, array $accessLinks = []): bool
     {
         $subject = sprintf('New order %s — %s', $order->orderNumber, $this->siteName);
-        $body = $this->buildOrderBody('A new order was paid.', $order);
+        $body = $this->buildOrderBody('A new order was paid.', $order, $accessLinks);
 
         return $this->send($toEmail, $subject, $body);
     }
 
-    private function buildOrderBody(string $intro, CommerceOrder $order): string
+    /**
+     * @param list<array{label: string, url: string}> $accessLinks
+     */
+    private function buildOrderBody(string $intro, CommerceOrder $order, array $accessLinks): string
     {
         $cur = strtoupper($order->currency);
         $lines = [$intro, '', 'Order: ' . $order->orderNumber, 'Status: ' . $order->status, ''];
@@ -69,6 +78,14 @@ final class CommerceMailer
             $lines[] = sprintf('%s: %.2f %s', $shipLabel, $order->shippingCents / 100, $cur);
         }
         $lines[] = sprintf('Total: %.2f %s', $order->totalCents / 100, $cur);
+
+        if ($accessLinks !== []) {
+            $lines[] = '';
+            $lines[] = 'Your downloads:';
+            foreach ($accessLinks as $link) {
+                $lines[] = sprintf('- %s: %s', $link['label'], $link['url']);
+            }
+        }
 
         $shipLines = ShippingAddressFormatter::lines($order->shippingAddress);
         if ($shipLines !== []) {

@@ -1,0 +1,47 @@
+{% extends 'admin/base.twig' %}
+
+{% block admin_title %}{{ zone ? 'Edit shipping zone' : 'New shipping zone' }}{% endblock %}
+{% block admin_hero_title %}<h1 class="admin-hero-title">{{ zone ? 'Edit shipping zone' : 'New shipping zone' }}</h1>{% endblock %}
+
+{% block admin_content %}
+  <form class="admin-form admin-form-stack" method="post" action="{{ zone ? url_for('admin.commerce.shipping_zones.update', { id: zone.id }) : url_for('admin.commerce.shipping_zones.create') }}" style="max-width:36rem">
+    <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+    <div class="admin-field">
+      <label class="admin-label" for="name">Admin name</label>
+      <input class="admin-input" id="name" name="name" value="{{ zone.name|default('')|e('html_attr') }}" required />
+    </div>
+    <div class="admin-field">
+      <label class="admin-label" for="label">Checkout label</label>
+      <input class="admin-input" id="label" name="label" value="{{ zone.label|default('')|e('html_attr') }}" required />
+    </div>
+    <div class="admin-field">
+      <label class="admin-label" for="price_cents">Shipping price (cents)</label>
+      <input class="admin-input" id="price_cents" name="price_cents" type="number" min="0" value="{{ zone.priceCents|default(0)|e('html_attr') }}" />
+    </div>
+    <div class="admin-field">
+      <label class="admin-label" for="free_shipping_min_cents">Free shipping min subtotal (cents, after discount)</label>
+      <input class="admin-input" id="free_shipping_min_cents" name="free_shipping_min_cents" type="number" min="0" value="{{ zone.freeShippingMinCents|default(0)|e('html_attr') }}" />
+    </div>
+    <div class="admin-field">
+      <label class="admin-label" for="countries">Countries (ISO codes)</label>
+      <input class="admin-input" id="countries" name="countries" value="{{ zone ? zone.countries|join(', ') : '' }}" placeholder="GB, IE, US or leave empty for fallback" />
+      <p class="admin-hint">Comma-separated 2-letter codes. Empty = rest-of-world fallback (use one zone only).</p>
+    </div>
+    <div class="admin-field">
+      <label class="admin-label" for="sort_order">Sort order</label>
+      <input class="admin-input" id="sort_order" name="sort_order" type="number" value="{{ zone.sortOrder|default(0)|e('html_attr') }}" />
+    </div>
+    <label class="admin-check">
+      <input type="checkbox" name="is_active" value="1" {% if zone is null or zone.isActive %}checked{% endif %} />
+      Active
+    </label>
+    <button class="admin-btn-primary" type="submit">Save zone</button>
+    <a class="admin-btn-ghost" href="{{ url_for('admin.commerce.shipping_zones') }}">Cancel</a>
+  </form>
+  {% if zone %}
+    <form method="post" action="{{ url_for('admin.commerce.shipping_zones.delete', { id: zone.id }) }}" style="margin-top:1rem" onsubmit="return confirm('Delete this shipping zone?');">
+      <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+      <button type="submit" class="admin-btn-danger">Delete zone</button>
+    </form>
+  {% endif %}
+{% endblock %}

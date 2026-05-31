@@ -43,4 +43,8 @@
       {% endfor %}
     </address>
   {% endif %}
+
+  {% if order.status == 'paid' and digital_grants is defined %}
+    {% include 'commerce/_digital_access.twig' with { digital_grants: digital_grants, order: order } %}
+  {% endif %}
 </section>

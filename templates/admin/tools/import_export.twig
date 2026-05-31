@@ -2,56 +2,90 @@
 
 {% block admin_title %}Import / Export{% endblock %}
 
-{% block admin_hero_title %}<h1 class="admin-hero-title">Import / Export</h1>{% endblock %}
+{% block admin_hero_title %}
+  <h1 class="admin-hero-title">Import / export</h1>
+{% endblock %}
 
 {% block admin_hero_sub %}
-  <p class="admin-hero-sub">Export or import selected structure slices as JSON (<code class="admin-inline-code">cms_structure_export_version</code> 1.0). Safer than full blueprints when you only need menus or settings.</p>
+  <p class="admin-hero-sub admin-hero-sub--tight">Move selected structure slices as JSON — lighter than full blueprints.</p>
 {% endblock %}
 
 {% block admin_content %}
-  <section class="admin-card" style="margin-bottom:1.25rem">
-    <h2 class="admin-card-title">Export</h2>
-    <form class="admin-form" method="post" action="{{ url_for('admin.tools.import_export.export') }}">
-      <p class="admin-hint">Choose scopes to include in the download.</p>
-      <div style="display:grid;gap:0.35rem;margin:0.75rem 0">
-        <label><input type="checkbox" name="scopes[]" value="meta" checked /> Meta (site profile summary, active theme, active plugins)</label>
-        <label><input type="checkbox" name="scopes[]" value="settings" checked /> Settings</label>
-        <label><input type="checkbox" name="scopes[]" value="menus" checked /> Menus</label>
-        <label><input type="checkbox" name="scopes[]" value="content_types" checked /> Content types, fields, taxonomies</label>
-        <label><input type="checkbox" name="scopes[]" value="entries" /> Content entries (up to 200 per type)</label>
-      </div>
-      <button type="submit" class="admin-btn-primary">Download JSON</button>
-    </form>
-  </section>
+  <div class="admin-settings-page admin-settings-page--portability">
+    {% include 'admin/tools/_portability_subnav.twig' with { portability_nav_active: 'import_export' } %}
 
-  <section class="admin-card">
-    <h2 class="admin-card-title">Import</h2>
-    <p class="admin-hint">Scopes control which top-level sections are applied. Use <strong>Validate only</strong> first, then <strong>Apply to database</strong> with the same JSON.</p>
-    <form class="admin-form" method="post" action="{{ url_for('admin.tools.import_export.import') }}" enctype="multipart/form-data">
-      <div class="admin-field admin-field--full">
-        <label class="admin-label" for="ief">JSON file</label>
-        <input class="admin-input" id="ief" name="json_file" type="file" accept=".json,application/json" />
+    <div class="admin-settings-intro admin-settings-intro--import">
+      <div class="admin-settings-intro-icon" aria-hidden="true">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+          <polyline points="17 8 12 3 7 8" />
+          <line x1="12" x2="12" y1="3" y2="15" />
+        </svg>
       </div>
-      <div class="admin-field admin-field--full">
-        <label class="admin-label" for="iet">Or paste JSON</label>
-        <textarea class="admin-textarea" id="iet" name="json_text" rows="8"></textarea>
+      <div class="admin-settings-intro-body">
+        <p class="admin-settings-intro-title">Partial structure transfer</p>
+        <p class="admin-settings-intro-text">
+          Export or import specific scopes — settings, menus, content types, or entries —
+          using format <code class="admin-inline-code">cms_structure_export_version</code> 1.0.
+          Safer than <a class="admin-link" href="{{ url_for('admin.tools.blueprints') }}">Blueprints</a> when you only need to copy menus between environments or back up settings.
+        </p>
       </div>
-      <p class="admin-label">Apply sections</p>
-      <div style="display:grid;gap:0.35rem;margin:0.35rem 0 0.75rem">
-        <label><input type="checkbox" name="scopes[]" value="meta" /> Meta (optional: apply theme from export)</label>
-        <label><input type="checkbox" name="scopes[]" value="settings" checked /> Settings</label>
-        <label><input type="checkbox" name="scopes[]" value="menus" checked /> Menus</label>
-        <label><input type="checkbox" name="scopes[]" value="content_types" checked /> Content types / fields / taxonomies</label>
-        <label><input type="checkbox" name="scopes[]" value="entries" /> Entries</label>
-      </div>
-      <input type="hidden" name="merge" value="0" />
-      <label class="admin-label"><input type="checkbox" name="merge" value="1" checked /> Merge</label>
-      <label class="admin-label"><input type="checkbox" name="apply_theme" value="1" /> When meta is selected, set active theme from export</label>
-      <label class="admin-label"><input type="checkbox" name="import_entries" value="1" /> Import entry rows (when entries scope checked)</label>
-      <div class="admin-form-actions admin-form-actions--split" style="margin-top:1rem">
-        <button type="submit" name="import_mode" value="dry_run" class="admin-btn-ghost">Validate only (dry run)</button>
-        <button type="submit" name="import_mode" value="apply" class="admin-btn-primary">Apply to database</button>
-      </div>
-    </form>
-  </section>
+    </div>
+
+    <div class="admin-settings-stack">
+      <section class="admin-card admin-settings-card admin-settings-section" id="import-export-export">
+        <h2 class="admin-settings-card-title">Export</h2>
+        <p class="admin-settings-card-desc">Choose which slices to include in the downloaded JSON file.</p>
+        <form class="admin-form admin-settings-form" method="post" action="{{ url_for('admin.tools.import_export.export') }}">
+          <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+          <div class="admin-scope-grid">
+            <label class="admin-scope-option"><input type="checkbox" name="scopes[]" value="meta" checked /> Meta — site profile summary, active theme, active plugins</label>
+            <label class="admin-scope-option"><input type="checkbox" name="scopes[]" value="settings" checked /> Settings — site name, SEO defaults, feature toggles</label>
+            <label class="admin-scope-option"><input type="checkbox" name="scopes[]" value="menus" checked /> Menus — header/footer link trees</label>
+            <label class="admin-scope-option"><input type="checkbox" name="scopes[]" value="content_types" checked /> Content types — fields, taxonomies, terms</label>
+            <label class="admin-scope-option"><input type="checkbox" name="scopes[]" value="entries" /> Content entries — up to 200 per type</label>
+          </div>
+          <div class="admin-form-actions">
+            <button type="submit" class="admin-btn-primary">Download JSON</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="admin-card admin-settings-card admin-settings-section" id="import-export-import">
+        <h2 class="admin-settings-card-title">Import</h2>
+        <p class="admin-settings-card-desc">Pick which sections to apply. Run <strong>Validate only</strong> first, then apply with the same JSON.</p>
+        <form class="admin-form admin-settings-form" method="post" action="{{ url_for('admin.tools.import_export.import') }}" enctype="multipart/form-data">
+          <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+          <div class="admin-form-grid">
+            <div class="admin-field admin-field--full">
+              <label class="admin-label" for="ief">JSON file</label>
+              <input class="admin-input" id="ief" name="json_file" type="file" accept=".json,application/json" />
+            </div>
+            <div class="admin-field admin-field--full">
+              <label class="admin-label" for="iet">Or paste JSON</label>
+              <textarea class="admin-textarea" id="iet" name="json_text" rows="8"></textarea>
+            </div>
+          </div>
+          <p class="admin-label" style="margin-top:0.5rem">Apply sections</p>
+          <div class="admin-scope-grid">
+            <label class="admin-scope-option"><input type="checkbox" name="scopes[]" value="meta" /> Meta — optionally apply theme from export</label>
+            <label class="admin-scope-option"><input type="checkbox" name="scopes[]" value="settings" checked /> Settings</label>
+            <label class="admin-scope-option"><input type="checkbox" name="scopes[]" value="menus" checked /> Menus</label>
+            <label class="admin-scope-option"><input type="checkbox" name="scopes[]" value="content_types" checked /> Content types / fields / taxonomies</label>
+            <label class="admin-scope-option"><input type="checkbox" name="scopes[]" value="entries" /> Entries</label>
+          </div>
+          <div class="admin-scope-grid admin-scope-grid--compact">
+            <input type="hidden" name="merge" value="0" />
+            <label class="admin-scope-option"><input type="checkbox" name="merge" value="1" checked /> Merge — keep existing slugs</label>
+            <label class="admin-scope-option"><input type="checkbox" name="apply_theme" value="1" /> Set active theme when meta is selected</label>
+            <label class="admin-scope-option"><input type="checkbox" name="import_entries" value="1" /> Import entry rows (when entries scope checked)</label>
+          </div>
+          <div class="admin-form-actions admin-form-actions--split">
+            <button type="submit" name="import_mode" value="dry_run" class="admin-btn-ghost">Validate only</button>
+            <button type="submit" name="import_mode" value="apply" class="admin-btn-primary">Apply to database</button>
+          </div>
+        </form>
+      </section>
+    </div>
+  </div>
 {% endblock %}

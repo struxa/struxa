@@ -43,8 +43,8 @@ SELECT p.id, r.id FROM cms_permissions p
 CROSS JOIN cms_roles r
 WHERE p.slug = 'manage_commerce' AND r.slug IN ('super_admin', 'admin');
 
-INSERT INTO cms_settings (setting_key, setting_value, is_sensitive) VALUES
-('commerce_enabled', '0', 0),
-('commerce_product_type_slug', 'product', 0),
-('commerce_currency', 'gbp', 0)
+INSERT INTO cms_settings (setting_key, setting_value, autoload) VALUES
+('commerce_enabled', '0', 1),
+('commerce_product_type_slug', 'product', 1),
+('commerce_currency', 'gbp', 1)
 ON DUPLICATE KEY UPDATE setting_key = setting_key;

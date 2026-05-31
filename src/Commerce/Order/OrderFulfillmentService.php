@@ -6,12 +6,14 @@ namespace App\Commerce\Order;
 
 use App\Commerce\CommerceSettings;
 use App\Commerce\Coupon\CouponService;
+use App\Commerce\Digital\DigitalFulfillmentService;
 use App\Commerce\Inventory\InventoryService;
 use App\Commerce\Mail\CommerceMailer;
+use App\Settings\SiteUrlResolver;
 use PDO;
 
 /**
- * Post-payment side effects: inventory, confirmation emails.
+ * Post-payment side effects: inventory, digital grants, confirmation emails.
  */
 final class OrderFulfillmentService
 {
@@ -21,6 +23,7 @@ final class OrderFulfillmentService
         private readonly CommerceOrderRepository $orders,
         private readonly InventoryService $inventory,
         private readonly CouponService $coupons,
+        private readonly DigitalFulfillmentService $digital,
     ) {
     }
 
@@ -38,16 +41,24 @@ final class OrderFulfillmentService
             $this->orders->updateMetadata($orderId, $meta);
         }
 
+        if (empty($meta['digital_grants_issued'])) {
+            $this->digital->issueForOrder($orderId);
+            $meta['digital_grants_issued'] = true;
+            $this->orders->updateMetadata($orderId, $meta);
+        }
+
         if ($this->commerce->sendOrderEmails()) {
             if ($order->confirmationEmailSentAt === null) {
+                $order = $this->orders->findById($orderId) ?? $order;
                 $mailer = CommerceMailer::fromSettings();
+                $accessLinks = $this->digital->accessLinksForOrder($order, SiteUrlResolver::resolve());
                 $sent = false;
                 if ($order->customerEmail !== null && $order->customerEmail !== '') {
-                    $sent = $mailer->sendOrderConfirmation($order, $order->customerEmail);
+                    $sent = $mailer->sendOrderConfirmation($order, $order->customerEmail, $accessLinks);
                 }
                 $notify = $this->commerce->notifyEmail();
                 if ($notify !== '') {
-                    $mailer->sendAdminNotification($order, $notify);
+                    $mailer->sendAdminNotification($order, $notify, $accessLinks);
                 }
                 if ($sent || $notify !== '') {
                     $this->orders->markConfirmationEmailSent($orderId);
@@ -75,6 +86,24 @@ final class OrderFulfillmentService
             $meta['inventory_restored'] = true;
             $this->orders->updateMetadata($orderId, $meta);
         }
+        if (empty($meta['digital_revoked'])) {
+            $this->digital->revokeForOrder($orderId);
+            $meta['digital_revoked'] = true;
+            $this->orders->updateMetadata($orderId, $meta);
+        }
+    }
+
+    public function resendDeliveryEmail(int $orderId): bool
+    {
+        $order = $this->orders->findById($orderId);
+        if ($order === null || $order->status !== 'paid' || $order->customerEmail === null || $order->customerEmail === '') {
+            return false;
+        }
+        $this->digital->issueForOrder($orderId);
+        $order = $this->orders->findById($orderId) ?? $order;
+        $links = $this->digital->accessLinksForOrder($order, SiteUrlResolver::resolve());
+
+        return CommerceMailer::fromSettings()->sendOrderConfirmation($order, $order->customerEmail, $links);
     }
 
     /**
@@ -82,7 +111,6 @@ final class OrderFulfillmentService
      */
     private function decodeMeta(CommerceOrder $order): array
     {
-        // metadata stored on order row — load fresh row
         $stmt = $this->pdo->prepare('SELECT metadata_json FROM cms_commerce_orders WHERE id = ? LIMIT 1');
         $stmt->execute([$order->id]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);

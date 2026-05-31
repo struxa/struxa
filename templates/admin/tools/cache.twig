@@ -7,176 +7,249 @@
 {% endblock %}
 
 {% block admin_hero_sub %}
-  <p class="admin-hero-sub">Guest-only public page cache, short-lived internal Twig globals cache, and versioned static assets. Internal data is cleared whenever you publish or change site structure.</p>
+  <p class="admin-hero-sub admin-hero-sub--tight">Guest-only public page cache, short-lived internal Twig globals cache, and versioned static assets.</p>
+{% endblock %}
+
+{% block admin_breadcrumbs %}
+  {% include 'admin/partials/_breadcrumbs.twig' with {
+    breadcrumbs: [
+      { label: 'Performance' },
+    ],
+  } %}
 {% endblock %}
 
 {% block admin_content %}
-  <section class="admin-card" style="margin-bottom:1.25rem">
-    <h2 class="admin-card-title">Status</h2>
-    <ul class="admin-hint" style="margin:0; padding-left:1.25rem; line-height:1.65">
-      <li><strong>Store:</strong> {{ cache_store_driver|e }}</li>
-      <li><strong>Public page cache</strong> is <strong>{{ cache_public_enabled ? 'on' : 'off' }}</strong>. Only anonymous GET requests are eligible; signed-in users, admin, flash messages, PHPAuth session cookies (when present), 2FA login gates, and <code class="admin-inline-code">preview</code> / <code class="admin-inline-code">nocache</code> / <code class="admin-inline-code">struxa_nocache</code> are never cached.</li>
-      <li><strong>Public TTL:</strong> {{ cache_public_ttl_sec }}s (30–86400). Responses larger than ~{{ cache_max_body_mb }} MB are not stored.</li>
-      <li><strong>Internal globals TTL</strong> (menus, settings snapshot, theme manifest bundle): env <code class="admin-inline-code">STRUXA_INTERNAL_CACHE_TTL</code> → {{ cache_internal_ttl_sec }}s. Cleared together with the public cache when content or site settings change.</li>
-      <li><strong>On disk:</strong> {{ cache_public_files }} public response file(s), ~{{ (cache_public_bytes / 1024)|round(1) }} KB · {{ cache_internal_files }} internal file(s), ~{{ (cache_internal_bytes / 1024)|round(1) }} KB</li>
-      <li><strong>Directory:</strong> <code class="admin-inline-code">{{ cache_storage_path|e('html') }}</code></li>
-      <li><strong>Theme CSS/JS</strong> (<code class="admin-inline-code">/theme-assets/…</code>): URLs include <code class="admin-inline-code">?v=</code> (file mtime). Browsers may cache them up to <strong>one year</strong> (immutable) when that query is present. Media under <code class="admin-inline-code">/uploads/</code> can use long TTL via <code class="admin-inline-code">public/uploads/.htaccess</code> on Apache; set equivalent headers on nginx/CDN.</li>
-      <li><strong>Unused CSS</strong> in PageSpeed is not the same as minify: removing dead rules needs a build step (e.g. PurgeCSS against your Twig/HTML) or hand-splitting stylesheets. On-the-fly minify only shrinks transfer size.</li>
-    </ul>
-    <p class="admin-hint" style="margin:1rem 0 0">Debug responses: set <code class="admin-inline-code">STRUXA_CACHE_DEBUG_HEADERS=1</code> for <code class="admin-inline-code">X-Struxa-Page-Cache</code> (HIT / MISS / BYPASS) and detail headers.</p>
-  </section>
+  {% set public_kb = (cache_public_bytes / 1024)|round(1) %}
+  {% set internal_kb = (cache_internal_bytes / 1024)|round(1) %}
 
-  <section class="admin-card" style="margin-bottom:1.25rem">
-    <h2 class="admin-card-title">Cached public responses</h2>
-    <p class="admin-hint" style="margin-top:0">
-      On-disk entries in the <code class="admin-inline-code">public_response</code> namespace. URLs appear for entries written after the envelope update; older shards show “Legacy” until they are re-cached or cleared.
-      {% if cache_public_entries_truncated %}
-        Showing the largest {{ cache_public_entries|length }} of {{ cache_public_entries_total }} file(s) by response body size.
-      {% elseif cache_public_entries_total > 0 %}
-        {{ cache_public_entries_total }} file(s).
-      {% endif %}
-    </p>
-    {% if cache_public_entries is empty %}
-      <p class="admin-hint">No public response cache files yet. Enable the public cache and browse the storefront as a guest to populate this list.</p>
-    {% else %}
-      <div class="admin-table-wrap" style="overflow-x:auto">
-        <table class="admin-table">
-          <thead>
-            <tr>
-              <th scope="col">URL</th>
-              <th scope="col">Host</th>
-              <th scope="col">Status</th>
-              <th scope="col">Content-Type</th>
-              <th scope="col">Body</th>
-              <th scope="col">File</th>
-              <th scope="col">Expires</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for row in cache_public_entries %}
-              <tr>
-                <td>
-                  <code class="admin-inline-code" style="word-break:break-all">{{ row.url_h|e }}</code>
-                  {% if row.legacy %}<span class="admin-badge admin-badge--muted" style="margin-left:0.35rem">Legacy</span>{% endif %}
-                  {% if row.expired %}<span class="admin-pill" style="margin-left:0.35rem">Expired</span>{% endif %}
-                </td>
-                <td class="admin-table-muted" style="white-space:nowrap">{{ row.scheme_host_h|e }}</td>
-                <td>{{ row.status }}</td>
-                <td class="admin-table-muted" style="max-width:14rem;word-break:break-word">{{ row.content_type_h|e }}</td>
-                <td class="admin-table-muted" style="white-space:nowrap">{{ row.body_bytes_h|e }}</td>
-                <td class="admin-table-muted" style="white-space:nowrap">
-                  {{ row.file_bytes_h|e }}
-                  <span class="admin-table-muted" style="display:block;font-size:0.75rem;margin-top:0.15rem">{{ row.file_id|e }}</span>
-                </td>
-                <td class="admin-table-muted" style="font-size:0.8rem;line-height:1.35">
-                  {{ row.expires_h|e }}
-                  {% if row.stored_at_h != '—' %}
-                    <span style="display:block;margin-top:0.2rem">Stored {{ row.stored_at_h|e }}</span>
-                  {% endif %}
-                </td>
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    {% endif %}
-  </section>
+  <div class="admin-settings-page admin-settings-page--tools">
+    {% include 'admin/tools/_subnav.twig' with { tools_nav_active: 'cache' } %}
 
-  <section class="admin-card" style="margin-bottom:1.25rem">
-    <h2 class="admin-card-title">Internal Twig globals cache</h2>
-    <p class="admin-hint" style="margin-top:0">
-      Short-lived JSON blobs (settings, menus, theme bundle). Labels are inferred from payload shape.
-      {% if cache_internal_entries_truncated %}
-        Showing {{ cache_internal_entries|length }} of {{ cache_internal_entries_total }} file(s).
-      {% elseif cache_internal_entries_total > 0 %}
-        {{ cache_internal_entries_total }} file(s).
-      {% endif %}
-    </p>
-    {% if cache_internal_entries is empty %}
-      <p class="admin-hint">No internal cache files. They appear after the first guest or uncached public request once data is loaded.</p>
-    {% else %}
-      <div class="admin-table-wrap" style="overflow-x:auto">
-        <table class="admin-table">
-          <thead>
-            <tr>
-              <th scope="col">Kind</th>
-              <th scope="col">Detail</th>
-              <th scope="col">Payload (approx)</th>
-              <th scope="col">File</th>
-              <th scope="col">Expires</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for row in cache_internal_entries %}
-              <tr>
-                <td>{{ row.label_h|e }}{% if row.expired %} <span class="admin-pill" style="margin-left:0.35rem">Expired</span>{% endif %}</td>
-                <td class="admin-table-muted" style="max-width:18rem;word-break:break-word">{{ row.detail_h|e }}</td>
-                <td class="admin-table-muted" style="white-space:nowrap">{{ row.payload_bytes_h|e }}</td>
-                <td class="admin-table-muted" style="white-space:nowrap">
-                  {{ row.file_bytes_h|e }}
-                  <span class="admin-table-muted" style="display:block;font-size:0.75rem;margin-top:0.15rem">{{ row.file_id|e }}</span>
-                </td>
-                <td class="admin-table-muted" style="font-size:0.8rem">{{ row.expires_h|e }}<br /><span style="opacity:0.85">{{ row.file_mtime_h|e }}</span></td>
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
+    <div class="admin-settings-intro admin-settings-intro--cache">
+      <div class="admin-settings-intro-icon" aria-hidden="true">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z" />
+        </svg>
       </div>
-    {% endif %}
-  </section>
-
-  <form class="admin-form" method="post" action="{{ url_for('admin.tools.cache.process') }}">
-    <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
-    <input type="hidden" name="action" value="save" />
-    <section class="admin-card" style="margin-bottom:1.25rem">
-      <h2 class="admin-card-title">Storefront static assets</h2>
-      <p class="admin-hint" style="margin-top:0">Theme files are served by the app (not PHP for each byte) with cache headers above. Google Fonts are loaded non-blocking from the theme layout; self-hosting fonts removes the fonts.googleapis.com chain entirely.</p>
-      <div class="admin-form-grid">
-        <div class="admin-field admin-field--full">
-          <label class="admin-label admin-label--checkbox">
-            <input type="checkbox" name="assets_prefer_minified" value="1" {{ assets_prefer_minified ? 'checked' : '' }} />
-            Prefer minified theme CSS/JS when <code class="admin-inline-code">*.min.css</code> / <code class="admin-inline-code">*.min.js</code> exist in the active theme (same as env <code class="admin-inline-code">STRUXA_ASSETS_PREFER_MIN=1</code>)
-          </label>
-        </div>
-        <div class="admin-field admin-field--full">
-          <label class="admin-label admin-label--checkbox">
-            <input type="checkbox" name="storefront_css_minify" value="1" {{ storefront_css_minify ? 'checked' : '' }} />
-            Minify theme CSS on serve (simple whitespace/comments strip, cached under <code class="admin-inline-code">storage/cache/theme-css-min/</code>; turn off clears that cache)
-          </label>
-        </div>
+      <div class="admin-settings-intro-body">
+        <p class="admin-settings-intro-title">Storefront caching</p>
+        <p class="admin-settings-intro-text">
+          Only anonymous GET requests are eligible for the public page cache. Signed-in users, admin, flash messages, auth cookies, 2FA gates, and
+          <code class="admin-inline-code">preview</code> / <code class="admin-inline-code">nocache</code> / <code class="admin-inline-code">struxa_nocache</code> are never cached.
+          Internal globals (menus, settings snapshot, theme bundle) clear whenever you publish or change site structure.
+        </p>
       </div>
-    </section>
-
-    <section class="admin-card" style="margin-bottom:1.25rem">
-      <h2 class="admin-card-title">Public page cache</h2>
-      <p class="admin-hint" style="margin-top:0">Turn on only in production after redirects and auth flows look correct. If the DB toggle is unset, env <code class="admin-inline-code">STRUXA_PUBLIC_CACHE=1</code> can enable it.</p>
-      <div class="admin-form-grid">
-        <div class="admin-field admin-field--full">
-          <label class="admin-label admin-label--checkbox">
-            <input type="checkbox" name="cache_public_enabled" value="1" {{ cache_public_enabled ? 'checked' : '' }} />
-            Enable public page cache
-          </label>
-        </div>
-        <div class="admin-field">
-          <label class="admin-label" for="cache_public_ttl_sec">TTL (seconds)</label>
-          <input class="admin-input" type="number" id="cache_public_ttl_sec" name="cache_public_ttl_sec" min="30" max="86400" value="{{ cache_public_ttl_sec|e('html_attr') }}" />
-        </div>
-      </div>
-    </section>
-    <div class="admin-form-actions">
-      <button type="submit" class="admin-btn admin-btn--primary">Save settings</button>
     </div>
-  </form>
 
-  <form class="admin-form" method="post" action="{{ url_for('admin.tools.cache.process') }}" style="margin-top:1.5rem" onsubmit="return confirm('Clear all storefront file caches?\n\nThis removes cached public HTML/XML and the internal Twig globals snapshot. Live traffic will rebuild them on demand.');">
-    <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
-    <input type="hidden" name="action" value="clear" />
-    <section class="admin-card" style="margin-bottom:1.25rem">
-      <h2 class="admin-card-title">Clear caches</h2>
-      <p class="admin-hint" style="margin-top:0">Same as <code class="admin-inline-code">composer cache:clear</code> or <code class="admin-inline-code">php bin/cms.php cache:clear</code>. You will see a success message after redirect.</p>
-    </section>
-    <div class="admin-form-actions">
-      <button type="submit" class="admin-btn">Clear storefront caches</button>
+    <div class="admin-metrics admin-hub-metrics" aria-label="Cache summary">
+      <article class="admin-metric{% if cache_public_enabled %} admin-metric--health-good{% endif %}">
+        <p class="admin-metric-label">Public cache</p>
+        <p class="admin-metric-value admin-metric-value--sm">{{ cache_public_enabled ? 'On' : 'Off' }}</p>
+        <p class="admin-metric-meta">TTL {{ cache_public_ttl_sec }}s · store {{ cache_store_driver|e }}</p>
+      </article>
+      <article class="admin-metric">
+        <p class="admin-metric-label">Public responses</p>
+        <p class="admin-metric-value">{{ cache_public_files }}</p>
+        <p class="admin-metric-meta">~{{ public_kb }} KB on disk</p>
+      </article>
+      <article class="admin-metric">
+        <p class="admin-metric-label">Internal globals</p>
+        <p class="admin-metric-value">{{ cache_internal_files }}</p>
+        <p class="admin-metric-meta">~{{ internal_kb }} KB · TTL {{ cache_internal_ttl_sec }}s</p>
+      </article>
+      <article class="admin-metric">
+        <p class="admin-metric-label">Max response</p>
+        <p class="admin-metric-value admin-metric-value--sm">~{{ cache_max_body_mb }} MB</p>
+        <p class="admin-metric-meta">Larger responses are not stored</p>
+      </article>
     </div>
-  </form>
+    <p class="admin-hint admin-tools-path-hint">Cache directory: <code class="admin-inline-code">{{ cache_storage_path|e }}</code></p>
+
+    <div class="admin-settings-stack">
+      <section class="admin-card admin-settings-card admin-settings-section" id="cache-public-entries">
+        <header class="admin-settings-card-head-row">
+          <div>
+            <h2 class="admin-settings-card-title">Cached public responses</h2>
+            <p class="admin-settings-card-desc" style="margin-bottom:0">
+              On-disk entries in the <code class="admin-inline-code">public_response</code> namespace.
+              {% if cache_public_entries_truncated %}
+                Showing the largest {{ cache_public_entries|length }} of {{ cache_public_entries_total }} file(s) by body size.
+              {% elseif cache_public_entries_total > 0 %}
+                {{ cache_public_entries_total }} file(s).
+              {% endif %}
+            </p>
+          </div>
+          {% if cache_public_entries_total > 0 %}
+            <span class="admin-pill">{{ cache_public_entries_total }} file(s)</span>
+          {% endif %}
+        </header>
+        {% if cache_public_entries is empty %}
+          <p class="admin-hint admin-settings-card-footnote">No public response cache files yet. Enable the public cache and browse the storefront as a guest to populate this list.</p>
+        {% else %}
+          <div class="admin-table-wrap" style="margin-top:0.85rem;overflow-x:auto">
+            <table class="admin-table admin-table--comfortable">
+              <thead>
+                <tr>
+                  <th scope="col">URL</th>
+                  <th scope="col">Host</th>
+                  <th scope="col">Status</th>
+                  <th scope="col">Content-Type</th>
+                  <th scope="col">Body</th>
+                  <th scope="col">File</th>
+                  <th scope="col">Expires</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for row in cache_public_entries %}
+                  <tr>
+                    <td>
+                      <code class="admin-inline-code admin-tools-code-break">{{ row.url_h|e }}</code>
+                      {% if row.legacy %}<span class="admin-badge admin-badge--muted" style="margin-left:0.35rem">Legacy</span>{% endif %}
+                      {% if row.expired %}<span class="admin-pill" style="margin-left:0.35rem">Expired</span>{% endif %}
+                    </td>
+                    <td class="admin-table-muted" style="white-space:nowrap">{{ row.scheme_host_h|e }}</td>
+                    <td>{{ row.status }}</td>
+                    <td class="admin-table-muted admin-tools-code-break">{{ row.content_type_h|e }}</td>
+                    <td class="admin-table-muted" style="white-space:nowrap">{{ row.body_bytes_h|e }}</td>
+                    <td class="admin-table-muted" style="white-space:nowrap">
+                      {{ row.file_bytes_h|e }}
+                      <span class="admin-table-sub">{{ row.file_id|e }}</span>
+                    </td>
+                    <td class="admin-table-muted admin-tools-expires">
+                      {{ row.expires_h|e }}
+                      {% if row.stored_at_h != '—' %}
+                        <span class="admin-table-sub">Stored {{ row.stored_at_h|e }}</span>
+                      {% endif %}
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% endif %}
+      </section>
+
+      <section class="admin-card admin-settings-card admin-settings-section" id="cache-internal-entries">
+        <header class="admin-settings-card-head-row">
+          <div>
+            <h2 class="admin-settings-card-title">Internal Twig globals cache</h2>
+            <p class="admin-settings-card-desc" style="margin-bottom:0">
+              Short-lived JSON blobs (settings, menus, theme bundle). Labels are inferred from payload shape.
+              {% if cache_internal_entries_truncated %}
+                Showing {{ cache_internal_entries|length }} of {{ cache_internal_entries_total }} file(s).
+              {% elseif cache_internal_entries_total > 0 %}
+                {{ cache_internal_entries_total }} file(s).
+              {% endif %}
+            </p>
+          </div>
+        </header>
+        {% if cache_internal_entries is empty %}
+          <p class="admin-hint admin-settings-card-footnote">No internal cache files. They appear after the first guest or uncached public request once data is loaded.</p>
+        {% else %}
+          <div class="admin-table-wrap" style="margin-top:0.85rem;overflow-x:auto">
+            <table class="admin-table admin-table--comfortable">
+              <thead>
+                <tr>
+                  <th scope="col">Kind</th>
+                  <th scope="col">Detail</th>
+                  <th scope="col">Payload (approx)</th>
+                  <th scope="col">File</th>
+                  <th scope="col">Expires</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for row in cache_internal_entries %}
+                  <tr>
+                    <td>
+                      <strong class="admin-table-primary">{{ row.label_h|e }}</strong>
+                      {% if row.expired %} <span class="admin-pill" style="margin-left:0.35rem">Expired</span>{% endif %}
+                    </td>
+                    <td class="admin-table-muted admin-tools-code-break">{{ row.detail_h|e }}</td>
+                    <td class="admin-table-muted" style="white-space:nowrap">{{ row.payload_bytes_h|e }}</td>
+                    <td class="admin-table-muted" style="white-space:nowrap">
+                      {{ row.file_bytes_h|e }}
+                      <span class="admin-table-sub">{{ row.file_id|e }}</span>
+                    </td>
+                    <td class="admin-table-muted admin-tools-expires">
+                      {{ row.expires_h|e }}
+                      <span class="admin-table-sub">{{ row.file_mtime_h|e }}</span>
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% endif %}
+      </section>
+
+      <form class="admin-form admin-settings-form" method="post" action="{{ url_for('admin.tools.cache.process') }}">
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+        <input type="hidden" name="action" value="save" />
+
+        <section class="admin-card admin-settings-card admin-settings-section" id="cache-assets">
+          <h2 class="admin-settings-card-title">Storefront static assets</h2>
+          <p class="admin-settings-card-desc">
+            Theme files are served with <code class="admin-inline-code">?v=</code> cache busting (file mtime). Browsers may cache them up to one year when that query is present.
+            Media under <code class="admin-inline-code">/uploads/</code> can use long TTL via Apache <code class="admin-inline-code">.htaccess</code> or equivalent nginx/CDN headers.
+          </p>
+          <div class="admin-form-grid">
+            <div class="admin-field admin-field--full">
+              <label class="admin-label admin-settings-check-label">
+                <input type="checkbox" name="assets_prefer_minified" value="1" {{ assets_prefer_minified ? 'checked' : '' }} />
+                Prefer minified theme CSS/JS when <code class="admin-inline-code">*.min.css</code> / <code class="admin-inline-code">*.min.js</code> exist (same as env <code class="admin-inline-code">STRUXA_ASSETS_PREFER_MIN=1</code>)
+              </label>
+            </div>
+            <div class="admin-field admin-field--full">
+              <label class="admin-label admin-settings-check-label">
+                <input type="checkbox" name="storefront_css_minify" value="1" {{ storefront_css_minify ? 'checked' : '' }} />
+                Minify theme CSS on serve (cached under <code class="admin-inline-code">storage/cache/theme-css-min/</code>; turning off clears that cache)
+              </label>
+            </div>
+          </div>
+        </section>
+
+        <section class="admin-card admin-settings-card admin-settings-section" id="cache-public-settings">
+          <h2 class="admin-settings-card-title">Public page cache</h2>
+          <p class="admin-settings-card-desc">Turn on only in production after redirects and auth flows look correct. If the DB toggle is unset, env <code class="admin-inline-code">STRUXA_PUBLIC_CACHE=1</code> can enable it.</p>
+          <div class="admin-form-grid">
+            <div class="admin-field admin-field--full">
+              <label class="admin-label admin-settings-check-label">
+                <input type="checkbox" name="cache_public_enabled" value="1" {{ cache_public_enabled ? 'checked' : '' }} />
+                Enable public page cache
+              </label>
+            </div>
+            <div class="admin-field">
+              <label class="admin-label" for="cache_public_ttl_sec">TTL (seconds)</label>
+              <input class="admin-input" type="number" id="cache_public_ttl_sec" name="cache_public_ttl_sec" min="30" max="86400" value="{{ cache_public_ttl_sec|e('html_attr') }}" />
+              <p class="admin-hint">30–86400 seconds.</p>
+            </div>
+          </div>
+        </section>
+
+        <div class="admin-form-actions">
+          <button type="submit" class="admin-btn admin-btn--primary">Save settings</button>
+        </div>
+      </form>
+
+      <form class="admin-form" method="post" action="{{ url_for('admin.tools.cache.process') }}" onsubmit="return confirm('Clear all storefront file caches?\n\nThis removes cached public HTML/XML and the internal Twig globals snapshot. Live traffic will rebuild them on demand.');">
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+        <input type="hidden" name="action" value="clear" />
+        <section class="admin-card admin-settings-card admin-card--danger-zone admin-settings-section" id="cache-clear">
+          <h2 class="admin-settings-card-title">Clear caches</h2>
+          <p class="admin-settings-card-desc">Same as <code class="admin-inline-code">composer cache:clear</code> or <code class="admin-inline-code">php bin/cms.php cache:clear</code>. You will see a success message after redirect.</p>
+          <div class="admin-form-actions" style="margin-top:0.85rem">
+            <button type="submit" class="admin-btn">Clear storefront caches</button>
+          </div>
+        </section>
+      </form>
+
+      <div class="admin-callout admin-callout--subtle">
+        <p class="admin-prose" style="margin:0">
+          <strong>Debug headers:</strong> set <code class="admin-inline-code">STRUXA_CACHE_DEBUG_HEADERS=1</code> for
+          <code class="admin-inline-code">X-Struxa-Page-Cache</code> (HIT / MISS / BYPASS) and detail headers.
+          <strong>Unused CSS</strong> in PageSpeed is not the same as minify — removing dead rules needs a build step or hand-splitting stylesheets.
+        </p>
+      </div>
+    </div>
+  </div>
 {% endblock %}

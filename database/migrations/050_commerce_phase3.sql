@@ -24,11 +24,11 @@ CREATE TABLE IF NOT EXISTS cms_commerce_coupons (
   KEY idx_commerce_coupon_active (active, expires_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-INSERT INTO cms_settings (setting_key, setting_value, is_sensitive) VALUES
-('commerce_tax_enabled', '0', 0),
-('commerce_tax_rate_bps', '2000', 0),
-('commerce_shipping_enabled', '0', 0),
-('commerce_shipping_flat_cents', '499', 0),
-('commerce_free_shipping_min_cents', '5000', 0),
-('commerce_shipping_label', 'Standard shipping', 0)
+INSERT INTO cms_settings (setting_key, setting_value, autoload) VALUES
+('commerce_tax_enabled', '0', 1),
+('commerce_tax_rate_bps', '2000', 1),
+('commerce_shipping_enabled', '0', 1),
+('commerce_shipping_flat_cents', '499', 1),
+('commerce_free_shipping_min_cents', '5000', 1),
+('commerce_shipping_label', 'Standard shipping', 1)
 ON DUPLICATE KEY UPDATE setting_key = setting_key;

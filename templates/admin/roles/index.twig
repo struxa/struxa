@@ -1,50 +1,88 @@
 {% extends 'admin/base.twig' %}
+{% import 'admin/_ui_macros.twig' as ui %}
 
 {% block admin_title %}Roles{% endblock %}
 
-{% block admin_hero_title %}<h1 class="admin-hero-title">Roles</h1>{% endblock %}
+{% block admin_hero_title %}
+  <h1 class="admin-hero-title">Roles</h1>
+{% endblock %}
 
 {% block admin_hero_sub %}
-  <p class="admin-hero-sub">Permissions are grouped by role. System roles cannot be deleted.</p>
+  <p class="admin-hero-sub admin-hero-sub--tight">Permission groups assigned to users — system roles cannot be deleted.</p>
+{% endblock %}
+
+{% block admin_hero_actions %}
+  <a class="admin-btn-primary" href="{{ url_for('admin.roles.new') }}">New custom role</a>
 {% endblock %}
 
 {% block admin_content %}
-  <div class="admin-toolbar admin-toolbar--spread">
-    <a class="admin-btn-primary" href="{{ url_for('admin.roles.new') }}">New custom role</a>
-  </div>
+  {% set system_count = role_rows|filter(r => r.is_system)|length %}
+  {% set custom_count = role_rows|length - system_count %}
 
-  <div class="admin-table-wrap">
-    <table class="admin-table">
-      <thead>
-        <tr>
-          <th scope="col">Name</th>
-          <th scope="col">Slug</th>
-          <th scope="col">Type</th>
-          <th class="admin-table-col-actions" scope="col"><span class="admin-table-muted">Actions</span></th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for r in role_rows %}
-          <tr>
-            <td><strong>{{ r.name|e }}</strong></td>
-            <td><code class="admin-inline-code">{{ r.slug|e }}</code></td>
-            <td><span class="admin-pill {{ r.is_system ? '' : 'admin-pill--accent' }}">{{ r.is_system ? 'System' : 'Custom' }}</span></td>
-            <td class="admin-table-actions">
-              <details class="admin-actions-menu">
-                <summary class="admin-actions-menu-trigger" aria-label="Actions for {{ r.name|e('html_attr') }}">⋯</summary>
-                <div class="admin-actions-menu-panel">
-                  <a href="{{ url_for('admin.roles.edit', { id: r.id }) }}">Edit</a>
+  <div class="admin-settings-page admin-settings-page--system">
+    {% include 'admin/partials/_system_subnav.twig' with { system_nav_active: 'roles' } %}
+
+    <div class="admin-settings-intro admin-settings-intro--roles">
+      <div class="admin-settings-intro-icon" aria-hidden="true">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+        </svg>
+      </div>
+      <div class="admin-settings-intro-body">
+        <p class="admin-settings-intro-title">Access control</p>
+        <p class="admin-settings-intro-text">
+          Roles bundle permissions like editing content, managing settings, or moderating comments.
+          Assign roles on the <a class="admin-link" href="{{ url_for('admin.users.index') }}">Users</a> screen.
+          System roles ship with Struxa; custom roles let you tailor access for your team.
+        </p>
+      </div>
+    </div>
+
+    <div class="admin-metrics admin-hub-metrics" aria-label="Role summary">
+      <article class="admin-metric">
+        <p class="admin-metric-label">Total roles</p>
+        <p class="admin-metric-value">{{ role_rows|length }}</p>
+        <p class="admin-metric-meta">{{ system_count }} system · {{ custom_count }} custom</p>
+      </article>
+    </div>
+
+    <section class="admin-card admin-settings-card">
+      <div class="admin-toolbar admin-toolbar--spread" style="margin-bottom:0.85rem">
+        <h2 class="admin-settings-card-title" style="margin:0">All roles</h2>
+        <a class="admin-btn-primary admin-btn-primary--sm" href="{{ url_for('admin.roles.new') }}">New custom role</a>
+      </div>
+      <div class="admin-table-wrap">
+        <table class="admin-table admin-table--comfortable">
+          <thead>
+            <tr>
+              <th scope="col">Name</th>
+              <th scope="col">Slug</th>
+              <th scope="col">Type</th>
+              <th class="admin-table-col-actions" scope="col"><span class="admin-table-muted">Actions</span></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for r in role_rows %}
+              <tr>
+                <td><strong class="admin-table-primary">{{ r.name|e }}</strong></td>
+                <td><code class="admin-inline-code">{{ r.slug|e }}</code></td>
+                <td>
+                  <span class="admin-pill {{ r.is_system ? '' : 'admin-pill--accent' }}">{{ r.is_system ? 'System' : 'Custom' }}</span>
+                </td>
+                <td class="admin-table-actions">
+                  <a class="admin-link" href="{{ url_for('admin.roles.edit', { id: r.id }) }}">Edit permissions</a>
                   {% if not r.is_system %}
-                    <form method="post" action="{{ url_for('admin.roles.delete', { id: r.id }) }}" onsubmit="return confirm('Delete this role?');">
-                      <button type="submit" class="admin-actions-danger">Delete</button>
+                    <form method="post" action="{{ url_for('admin.roles.delete', { id: r.id }) }}" class="admin-inline-form" onsubmit="return confirm('Delete this role?');">
+                      <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+                      <button type="submit" class="admin-link admin-link--danger">Delete</button>
                     </form>
                   {% endif %}
-                </div>
-              </details>
-            </td>
-          </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
   </div>
 {% endblock %}

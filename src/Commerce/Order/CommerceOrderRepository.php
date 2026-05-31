@@ -45,6 +45,49 @@ final class CommerceOrderRepository
     /**
      * @return list<CommerceOrder>
      */
+    public function listFiltered(OrderListFilter $filter): array
+    {
+        $limit = max(1, min(5000, $filter->limit));
+        $where = ['1=1'];
+        $params = [];
+
+        if ($filter->status !== null) {
+            $where[] = 'status = ?';
+            $params[] = $filter->status;
+        }
+        if ($filter->email !== null) {
+            $where[] = 'LOWER(customer_email) LIKE ?';
+            $params[] = '%' . strtolower($filter->email) . '%';
+        }
+        if ($filter->orderNumber !== null) {
+            $where[] = 'order_number LIKE ?';
+            $params[] = '%' . $filter->orderNumber . '%';
+        }
+        if ($filter->dateFrom !== null) {
+            $where[] = 'DATE(created_at) >= ?';
+            $params[] = $filter->dateFrom;
+        }
+        if ($filter->dateTo !== null) {
+            $where[] = 'DATE(created_at) <= ?';
+            $params[] = $filter->dateTo;
+        }
+
+        $sql = 'SELECT * FROM ' . self::ORDERS . ' WHERE ' . implode(' AND ', $where)
+            . ' ORDER BY created_at DESC, id DESC LIMIT ' . $limit;
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute($params);
+        $out = [];
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            $id = (int) $row['id'];
+            $out[] = CommerceOrder::fromRow($row, $this->itemsForOrder($id));
+        }
+
+        return $out;
+    }
+
+    /**
+     * @return list<CommerceOrder>
+     */
     public function listRecent(int $limit = 100): array
     {
         $limit = max(1, min(500, $limit));

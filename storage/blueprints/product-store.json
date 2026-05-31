@@ -62,6 +62,34 @@
                     "field_type": "number",
                     "sort_order": 70,
                     "help_text": "Leave empty for unlimited stock. Decremented when orders are paid (if inventory tracking is enabled)."
+                },
+                {
+                    "field_key": "digital_file",
+                    "label": "Digital file (media ID)",
+                    "field_type": "number",
+                    "sort_order": 80,
+                    "help_text": "Optional. Media library ID delivered after purchase (file download)."
+                },
+                {
+                    "field_key": "digital_url",
+                    "label": "Digital URL",
+                    "field_type": "url",
+                    "sort_order": 90,
+                    "help_text": "Optional external link delivered after purchase (used when no digital_file is set)."
+                },
+                {
+                    "field_key": "digital_entry_slug",
+                    "label": "Digital content slug",
+                    "field_type": "text",
+                    "sort_order": 100,
+                    "help_text": "Optional published entry slug (same product type) unlocked after purchase."
+                },
+                {
+                    "field_key": "digital_label",
+                    "label": "Download button label",
+                    "field_type": "text",
+                    "sort_order": 110,
+                    "help_text": "Optional label for the customer download link (default: Download)."
                 }
             ],
             "taxonomies": [

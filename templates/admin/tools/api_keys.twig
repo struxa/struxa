@@ -1,76 +1,145 @@
 {% extends 'admin/base.twig' %}
 
-{% block admin_title %}API keys{% endblock %}
+{% block admin_title %}Public API keys{% endblock %}
 
-{% block admin_hero_title %}<h1 class="admin-hero-title">Public API keys</h1>{% endblock %}
+{% block admin_hero_title %}
+  <h1 class="admin-hero-title">Public API keys</h1>
+{% endblock %}
 
 {% block admin_hero_sub %}
-  <p class="admin-hero-sub">Keys authenticate <code class="admin-inline-code">/api/v1</code> requests (Bearer or <code class="admin-inline-code">X-Api-Key</code>). Format: <code class="admin-inline-code">prefix.secret</code>. You can also set a single shared key in <code class="admin-inline-code">CMS_PUBLIC_API_KEY</code>.</p>
+  <p class="admin-hero-sub admin-hero-sub--tight">Authenticate headless clients against <code class="admin-inline-code">/api/v1</code>.</p>
 {% endblock %}
 
 {% block admin_content %}
-  {% if new_secret %}
-    <div class="admin-card admin-flash admin-flash--success" role="status" style="margin-bottom:1.25rem">
-      <p class="admin-card-title" style="margin-top:0">New key (copy now)</p>
-      <p class="admin-hint">This value is not stored and cannot be retrieved later.</p>
-      <pre class="admin-inline-code" style="white-space:pre-wrap;word-break:break-all;margin:0.5rem 0 0;padding:0.75rem;background:rgba(0,0,0,0.06);border-radius:6px">{{ new_secret|e }}</pre>
+  {% set active_keys = api_keys|filter(row => not row.revoked_at)|length %}
+  {% set revoked_keys = api_keys|length - active_keys %}
+
+  <div class="admin-settings-page admin-settings-page--portability">
+    {% include 'admin/tools/_portability_subnav.twig' with { portability_nav_active: 'api_keys' } %}
+
+    <div class="admin-settings-intro admin-settings-intro--api">
+      <div class="admin-settings-intro-icon" aria-hidden="true">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0 3 3L22 7l-3-3m-3.5 3.5L19 4" />
+        </svg>
+      </div>
+      <div class="admin-settings-intro-body">
+        <p class="admin-settings-intro-title">Headless content API access</p>
+        <p class="admin-settings-intro-text">
+          Keys authenticate requests to <code class="admin-inline-code">/api/v1</code> via
+          <code class="admin-inline-code">Authorization: Bearer …</code> or
+          <code class="admin-inline-code">X-Api-Key</code>.
+          Format is <code class="admin-inline-code">prefix.secret</code> — the secret is shown once at creation.
+          For OpenAI and other server-side secrets, use
+          <a class="admin-link" href="{{ url_for('admin.system.api_keys') }}">System → API keys</a>.
+        </p>
+      </div>
     </div>
-  {% endif %}
 
-  <section class="admin-card" style="margin-bottom:1.25rem">
-    <h2 class="admin-card-title">Create key</h2>
-    <form class="admin-form" method="post" action="{{ url_for('admin.tools.api_keys.create') }}">
-      <div class="admin-field admin-field--full">
-        <label class="admin-label" for="apk_name">Label</label>
-        <input class="admin-input" id="apk_name" name="name" type="text" required maxlength="160" placeholder="e.g. Marketing site" />
-      </div>
-      <p class="admin-label">Scopes</p>
-      <div style="display:grid;gap:0.35rem;margin:0.35rem 0 0.75rem">
-        <label><input type="checkbox" name="scopes[]" value="read" checked /> read — published content and pages</label>
-        <label><input type="checkbox" name="scopes[]" value="read_drafts" /> read_drafts — non-published entries, types without a public URL</label>
-        <label><input type="checkbox" name="scopes[]" value="write" /> write — create and update entries via POST/PATCH</label>
-      </div>
-      <button type="submit" class="admin-btn-primary">Generate key</button>
-    </form>
-  </section>
-
-  <section class="admin-card">
-    <h2 class="admin-card-title">Existing keys</h2>
-    {% if api_keys is empty %}
-      <p class="admin-hint">No database keys yet. Use env <code class="admin-inline-code">CMS_PUBLIC_API_KEY</code> or create a key above.</p>
-    {% else %}
-      <div class="admin-table-wrap" style="overflow-x:auto">
-        <table class="admin-table">
-          <thead>
-            <tr>
-              <th>Label</th>
-              <th>Prefix</th>
-              <th>Scopes</th>
-              <th>Last used</th>
-              <th>Status</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for row in api_keys %}
-              <tr>
-                <td>{{ row.name|e }}</td>
-                <td><code class="admin-inline-code">{{ row.prefix|e }}</code></td>
-                <td>{{ row.scopes_list|join(', ')|e }}</td>
-                <td>{% if row.last_used_at %}{{ row.last_used_at|e }}{% else %}—{% endif %}</td>
-                <td>{% if row.revoked_at %}Revoked{% else %}Active{% endif %}</td>
-                <td>
-                  {% if not row.revoked_at %}
-                    <form method="post" action="{{ url_for('admin.tools.api_keys.revoke', { id: row.id }) }}" style="display:inline" onsubmit="return confirm('Revoke this key? Clients using it will fail immediately.');">
-                      <button type="submit" class="admin-btn-ghost">Revoke</button>
-                    </form>
-                  {% endif %}
-                </td>
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
+    {% if new_secret %}
+      <div class="admin-callout admin-callout--success admin-hub-secret-reveal" role="status">
+        <p class="admin-callout-title">New key — copy now</p>
+        <p class="admin-prose">This value is not stored and cannot be retrieved later.</p>
+        <pre class="admin-hub-secret-pre">{{ new_secret|e }}</pre>
       </div>
     {% endif %}
-  </section>
+
+    <div class="admin-metrics admin-hub-metrics" aria-label="API key summary">
+      <article class="admin-metric">
+        <p class="admin-metric-label">Active keys</p>
+        <p class="admin-metric-value">{{ active_keys }}</p>
+        <p class="admin-metric-meta">Database keys</p>
+      </article>
+      <article class="admin-metric">
+        <p class="admin-metric-label">Revoked</p>
+        <p class="admin-metric-value">{{ revoked_keys }}</p>
+        <p class="admin-metric-meta">No longer valid</p>
+      </article>
+      <article class="admin-metric">
+        <p class="admin-metric-label">Env fallback</p>
+        <p class="admin-metric-value admin-metric-value--sm">CMS_PUBLIC_API_KEY</p>
+        <p class="admin-metric-meta">Single shared key option</p>
+      </article>
+    </div>
+
+    <div class="admin-settings-stack">
+      <section class="admin-card admin-settings-card admin-settings-section" id="api-keys-create">
+        <h2 class="admin-settings-card-title">Create key</h2>
+        <p class="admin-settings-card-desc">Choose scopes carefully — write access allows creating and updating entries via the API.</p>
+        <form class="admin-form admin-settings-form" method="post" action="{{ url_for('admin.tools.api_keys.create') }}">
+          <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+          <div class="admin-form-grid">
+            <div class="admin-field admin-field--full">
+              <label class="admin-label" for="apk_name">Label</label>
+              <input class="admin-input" id="apk_name" name="name" type="text" required maxlength="160" placeholder="e.g. Marketing site, mobile app" />
+            </div>
+          </div>
+          <p class="admin-label">Scopes</p>
+          <div class="admin-scope-grid">
+            <label class="admin-scope-option"><input type="checkbox" name="scopes[]" value="read" checked /> <strong>read</strong> — published content and pages</label>
+            <label class="admin-scope-option"><input type="checkbox" name="scopes[]" value="read_drafts" /> <strong>read_drafts</strong> — non-published entries, types without a public URL</label>
+            <label class="admin-scope-option"><input type="checkbox" name="scopes[]" value="write" /> <strong>write</strong> — create and update entries via POST/PATCH</label>
+          </div>
+          <div class="admin-form-actions">
+            <button type="submit" class="admin-btn-primary">Generate key</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="admin-card admin-settings-card admin-settings-section" id="api-keys-list">
+        <header class="admin-settings-card-head-row">
+          <div>
+            <h2 class="admin-settings-card-title">Existing keys</h2>
+            <p class="admin-settings-card-desc" style="margin-bottom:0">Revoked keys stay listed for audit but no longer authenticate.</p>
+          </div>
+          {% if active_keys > 0 %}
+            <span class="admin-pill admin-pill--ok">{{ active_keys }} active</span>
+          {% endif %}
+        </header>
+        {% if api_keys is empty %}
+          <p class="admin-hint admin-settings-card-footnote">No database keys yet. Set env <code class="admin-inline-code">CMS_PUBLIC_API_KEY</code> or create a key above.</p>
+        {% else %}
+          <div class="admin-table-wrap" style="margin-top:0.85rem;overflow-x:auto">
+            <table class="admin-table admin-table--comfortable">
+              <thead>
+                <tr>
+                  <th>Label</th>
+                  <th>Prefix</th>
+                  <th>Scopes</th>
+                  <th>Last used</th>
+                  <th>Status</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for row in api_keys %}
+                  <tr>
+                    <td><strong class="admin-table-primary">{{ row.name|e }}</strong></td>
+                    <td><code class="admin-inline-code">{{ row.prefix|e }}</code></td>
+                    <td class="admin-table-muted">{{ row.scopes_list|join(', ')|e }}</td>
+                    <td class="admin-table-muted">{% if row.last_used_at %}{{ row.last_used_at|e }}{% else %}—{% endif %}</td>
+                    <td>
+                      {% if row.revoked_at %}
+                        <span class="admin-pill">Revoked</span>
+                      {% else %}
+                        <span class="admin-pill admin-pill--ok">Active</span>
+                      {% endif %}
+                    </td>
+                    <td class="admin-table-actions">
+                      {% if not row.revoked_at %}
+                        <form method="post" action="{{ url_for('admin.tools.api_keys.revoke', { id: row.id }) }}" class="admin-inline-form" onsubmit="return confirm('Revoke this key? Clients using it will fail immediately.');">
+                          <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+                          <button type="submit" class="admin-btn-ghost admin-btn-ghost--sm">Revoke</button>
+                        </form>
+                      {% endif %}
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% endif %}
+      </section>
+    </div>
+  </div>
 {% endblock %}

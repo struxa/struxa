@@ -66,6 +66,27 @@
     </section>
 
     {% if cart_totals %}
+      {% if cart_needs_country|default(false) %}
+        <section class="theme-commerce-cart-country">
+          <h2>Ship to</h2>
+          <form method="post" action="{{ url_for('public.commerce.cart.country') }}" class="theme-commerce-country-form">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+            <label>
+              Country
+              <select name="ship_country" onchange="this.form.submit()">
+                <option value="">Select country…</option>
+                {% for c in cart_country_choices|default([]) %}
+                  <option value="{{ c.code|e('html_attr') }}" {{ cart_ship_country == c.code ? 'selected' : '' }}>{{ c.name|e }} ({{ c.code|e }})</option>
+                {% endfor %}
+              </select>
+            </label>
+          </form>
+          {% if cart_ship_country|default('') == '' %}
+            <p class="theme-commerce-cart-hint">Select a country to see tax and shipping estimates.</p>
+          {% endif %}
+        </section>
+      {% endif %}
+
       <dl class="theme-commerce-cart-totals">
         <dt>Subtotal</dt><dd>{{ (cart_totals.subtotalCents / 100)|number_format(2) }} {{ cart_currency|upper|e }}</dd>
         {% if cart_totals.discountCents > 0 %}

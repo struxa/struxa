@@ -7,6 +7,17 @@
     <form class="theme-commerce-buy" method="post" action="{{ url_for('public.commerce.checkout') }}">
       <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
       <input type="hidden" name="content_entry_id" value="{{ commerce_product.entryId }}" />
+      {% if commerce_needs_checkout_country|default(false) %}
+        <label class="theme-commerce-ship-country">
+          Ship to
+          <select name="ship_country" required>
+            <option value="">Select country…</option>
+            {% for c in commerce_country_choices|default([]) %}
+              <option value="{{ c.code|e('html_attr') }}">{{ c.name|e }} ({{ c.code|e }})</option>
+            {% endfor %}
+          </select>
+        </label>
+      {% endif %}
       <button type="submit" class="theme-btn theme-commerce-buy-btn">Buy now</button>
     </form>
     <form class="theme-commerce-add-cart" method="post" action="{{ url_for('public.commerce.cart.add') }}">

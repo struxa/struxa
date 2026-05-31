@@ -6,15 +6,24 @@ namespace App\Commerce\Pricing;
 
 use App\Commerce\CommerceSettings;
 use App\Commerce\Coupon\CommerceCoupon;
+use App\Commerce\Shipping\ShippingZoneResolver;
+use App\Commerce\Tax\TaxRateResolver;
 
 final class OrderTotalsCalculator
 {
-    public function __construct(private readonly CommerceSettings $commerce)
-    {
+    public function __construct(
+        private readonly CommerceSettings $commerce,
+        private readonly TaxRateResolver $taxRates,
+        private readonly ShippingZoneResolver $shippingZones,
+    ) {
     }
 
-    public function calculate(int $subtotalCents, ?CommerceCoupon $coupon = null, ?string $couponCode = null): OrderTotals
-    {
+    public function calculate(
+        int $subtotalCents,
+        ?CommerceCoupon $coupon = null,
+        ?string $couponCode = null,
+        ?string $countryCode = null,
+    ): OrderTotals {
         $subtotalCents = max(0, $subtotalCents);
         $discountCents = 0;
         $appliedCode = null;
@@ -28,17 +37,20 @@ final class OrderTotalsCalculator
 
         $taxable = max(0, $subtotalCents - $discountCents);
         $taxCents = 0;
-        if ($this->commerce->taxEnabled() && $taxable > 0) {
-            $taxCents = (int) round($taxable * $this->commerce->taxRateBps() / 10000);
+        if ($this->commerce->taxEnabled() && $taxable > 0 && !$this->taxRates->usesStripeTax()) {
+            $bps = $this->taxRates->rateBpsForCountry($countryCode);
+            if ($bps > 0) {
+                $taxCents = (int) round($taxable * $bps / 10000);
+            }
         }
 
         $shippingCents = 0;
         $shippingLabel = null;
         if ($this->commerce->shippingEnabled() && $subtotalCents > 0) {
-            $shippingLabel = $this->commerce->shippingLabel();
-            $freeMin = $this->commerce->freeShippingMinCents();
-            if ($freeMin <= 0 || $taxable < $freeMin) {
-                $shippingCents = $this->commerce->shippingFlatCents();
+            $quote = $this->shippingZones->quote($taxable, $countryCode);
+            if ($quote !== null) {
+                $shippingCents = $quote->priceCents;
+                $shippingLabel = $quote->label;
             }
         }
 

@@ -7,41 +7,78 @@
 {% endblock %}
 
 {% block admin_hero_sub %}
-  <p class="admin-hero-sub">Export or erase personal data stored in comments and form submissions — similar to WordPress privacy tools. Use only for verified data-subject requests.</p>
+  <p class="admin-hero-sub admin-hero-sub--tight">Export or erase personal data stored in comments and form submissions — for verified data-subject requests only.</p>
+{% endblock %}
+
+{% block admin_breadcrumbs %}
+  {% include 'admin/partials/_breadcrumbs.twig' with {
+    breadcrumbs: [
+      { label: 'Privacy' },
+    ],
+  } %}
 {% endblock %}
 
 {% block admin_content %}
-  <section class="admin-card" style="margin-bottom:1.25rem">
-    <h2 class="admin-card-title">Export personal data</h2>
-    <p class="admin-hint" style="margin-top:0">Downloads a JSON file with comments and form submissions linked to the email address. Comment emails are stored as one-way hashes; matching uses the same normalization as when comments were posted.</p>
-    <form method="post" action="{{ url_for('admin.tools.privacy.export') }}" class="admin-form" style="margin-top:1rem">
-      <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
-      <label class="admin-form-row" style="display:block;max-width:24rem">
-        <span class="admin-form-label">Email address</span>
-        <input class="admin-input" type="email" name="email" required autocomplete="off" placeholder="person@example.com" />
-      </label>
-      <div class="admin-form-actions" style="margin-top:0.75rem">
-        <button type="submit" class="admin-btn-primary">Export JSON</button>
-      </div>
-    </form>
-  </section>
+  <div class="admin-settings-page admin-settings-page--tools">
+    {% include 'admin/tools/_subnav.twig' with { tools_nav_active: 'privacy' } %}
 
-  <section class="admin-card">
-    <h2 class="admin-card-title">Erase personal data</h2>
-    <p class="admin-hint" style="margin-top:0">Permanently deletes all comments authored with this email and any form submissions where the email appears in an email field (or any field value). This cannot be undone.</p>
-    <form method="post" action="{{ url_for('admin.tools.privacy.erase') }}" class="admin-form" style="margin-top:1rem" onsubmit="return confirm('Permanently erase personal data for this email?\n\nComments and matching form submissions will be deleted.');">
-      <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
-      <label class="admin-form-row" style="display:block;max-width:24rem">
-        <span class="admin-form-label">Email address</span>
-        <input class="admin-input" type="email" name="email" required autocomplete="off" placeholder="person@example.com" />
-      </label>
-      <label class="admin-form-row" style="display:block;max-width:24rem;margin-top:0.75rem">
-        <span class="admin-form-label">Type <code class="admin-inline-code">ERASE</code> to confirm</span>
-        <input class="admin-input" type="text" name="confirm_erase" required autocomplete="off" placeholder="ERASE" />
-      </label>
-      <div class="admin-form-actions" style="margin-top:0.75rem">
-        <button type="submit" class="admin-btn-ghost" style="color:var(--admin-danger,#ef4444)">Erase personal data</button>
+    <div class="admin-settings-intro admin-settings-intro--privacy">
+      <div class="admin-settings-intro-icon" aria-hidden="true">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+          <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
+          <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+        </svg>
       </div>
-    </form>
-  </section>
+      <div class="admin-settings-intro-body">
+        <p class="admin-settings-intro-title">Data subject requests</p>
+        <p class="admin-settings-intro-text">
+          Similar to WordPress privacy tools. Comment emails are stored as one-way hashes; matching uses the same normalization as when comments were posted.
+          Verify the requester's identity before exporting or erasing data.
+        </p>
+      </div>
+    </div>
+
+    <div class="admin-settings-stack">
+      <section class="admin-card admin-settings-card admin-settings-section" id="privacy-export">
+        <h2 class="admin-settings-card-title">Export personal data</h2>
+        <p class="admin-settings-card-desc">Downloads a JSON file with comments and form submissions linked to the email address.</p>
+        <form method="post" action="{{ url_for('admin.tools.privacy.export') }}" class="admin-form admin-tools-privacy-form">
+          <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+          <div class="admin-form-grid">
+            <div class="admin-field admin-field--full">
+              <label class="admin-label" for="privacy-export-email">Email address</label>
+              <input class="admin-input" id="privacy-export-email" type="email" name="email" required autocomplete="off" placeholder="person@example.com" />
+            </div>
+          </div>
+          <div class="admin-form-actions">
+            <button type="submit" class="admin-btn-primary">Export JSON</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="admin-card admin-settings-card admin-card--danger-zone admin-settings-section" id="privacy-erase">
+        <h2 class="admin-settings-card-title">Erase personal data</h2>
+        <p class="admin-settings-card-desc">
+          Permanently deletes all comments authored with this email and any form submissions where the email appears in an email field (or any field value).
+          This cannot be undone.
+        </p>
+        <form method="post" action="{{ url_for('admin.tools.privacy.erase') }}" class="admin-form admin-tools-privacy-form" onsubmit="return confirm('Permanently erase personal data for this email?\n\nComments and matching form submissions will be deleted.');">
+          <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+          <div class="admin-form-grid">
+            <div class="admin-field admin-field--full">
+              <label class="admin-label" for="privacy-erase-email">Email address</label>
+              <input class="admin-input" id="privacy-erase-email" type="email" name="email" required autocomplete="off" placeholder="person@example.com" />
+            </div>
+            <div class="admin-field admin-field--full">
+              <label class="admin-label" for="privacy-erase-confirm">Type <code class="admin-inline-code">ERASE</code> to confirm</label>
+              <input class="admin-input" id="privacy-erase-confirm" type="text" name="confirm_erase" required autocomplete="off" placeholder="ERASE" />
+            </div>
+          </div>
+          <div class="admin-form-actions">
+            <button type="submit" class="admin-btn admin-btn--danger">Erase personal data</button>
+          </div>
+        </form>
+      </section>
+    </div>
+  </div>
 {% endblock %}

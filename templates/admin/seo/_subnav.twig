@@ -1,0 +1,7 @@
+{# Expects: seo_nav_active — overview|sitemap|redirects|not_found #}
+<nav class="admin-settings-toc" aria-label="SEO sections">
+  <a class="admin-settings-toc-link{{ seo_nav_active == 'overview' ? ' is-current' : '' }}" href="{{ url_for('admin.seo.overview') }}">Overview</a>
+  <a class="admin-settings-toc-link{{ seo_nav_active == 'sitemap' ? ' is-current' : '' }}" href="{{ url_for('admin.seo.sitemap') }}">Sitemap</a>
+  <a class="admin-settings-toc-link{{ seo_nav_active == 'redirects' ? ' is-current' : '' }}" href="{{ url_for('admin.seo.redirects') }}">Redirects</a>
+  <a class="admin-settings-toc-link{{ seo_nav_active == 'not_found' ? ' is-current' : '' }}" href="{{ url_for('admin.seo.not_found') }}">404 monitor</a>
+</nav>

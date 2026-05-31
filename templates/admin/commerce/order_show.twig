@@ -46,12 +46,63 @@
       {% endif %}
     </dl>
     {% if order.status == 'paid' %}
-      <form method="post" action="{{ url_for('admin.commerce.orders.refund', {id: order.id}) }}" style="margin-top:1rem" onsubmit="return confirm('Refund this order in Stripe? Inventory will be restored if tracking is enabled.');">
+      <form method="post" action="{{ url_for('admin.commerce.orders.refund', {id: order.id}) }}" style="margin-top:1rem" onsubmit="return confirm('Refund this order in Stripe? Inventory will be restored and digital links revoked if tracking is enabled.');">
         <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
         <button class="admin-btn-ghost" type="submit">Refund order</button>
       </form>
     {% endif %}
   </section>
+
+  {% if digital_grants is defined and digital_grants is not empty %}
+    <section class="admin-card" style="margin-top:1rem">
+      <div class="admin-card-head">
+        <h2 class="admin-card-title">Digital delivery</h2>
+        {% if order.status == 'paid' and order.customerEmail %}
+          <form method="post" action="{{ url_for('admin.commerce.orders.digital.resend', {id: order.id}) }}">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+            <button class="admin-btn-ghost" type="submit">Resend delivery email</button>
+          </form>
+        {% endif %}
+      </div>
+      <div class="admin-table-wrap">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Label</th>
+              <th>Type</th>
+              <th>Status</th>
+              <th>Downloads</th>
+              <th>Token</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for grant in digital_grants %}
+              <tr>
+                <td>{{ grant.label|e }}</td>
+                <td>{{ grant.deliveryType|e }}</td>
+                <td>{% if grant.isActive %}<span class="admin-badge admin-badge--ok">Active</span>{% else %}<span class="admin-badge">Revoked</span>{% endif %}</td>
+                <td>{{ grant.downloadCount }}{% if grant.lastDownloadAt %} · last {{ grant.lastDownloadAt|e }}{% endif %}</td>
+                <td><code class="admin-inline-code">{{ (digital_access_base|default('')) ~ grant.accessToken|e }}</code></td>
+                <td class="admin-table-actions">
+                  {% if grant.isActive %}
+                    <form method="post" action="{{ url_for('admin.commerce.orders.digital.revoke', {id: order.id, grantId: grant.id}) }}" style="display:inline" onsubmit="return confirm('Revoke this download link?');">
+                      <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+                      <button class="admin-btn-ghost admin-btn-sm" type="submit">Revoke</button>
+                    </form>
+                  {% endif %}
+                  <form method="post" action="{{ url_for('admin.commerce.orders.digital.regenerate', {id: order.id, grantId: grant.id}) }}" style="display:inline" onsubmit="return confirm('Issue a new token? Old email links will stop working.');">
+                    <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+                    <button class="admin-btn-ghost admin-btn-sm" type="submit">Regenerate</button>
+                  </form>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  {% endif %}
 
   <section class="admin-card" style="margin-top:1rem">
     <h2 class="admin-card-title">Line items</h2>

@@ -1,0 +1,6 @@
+{# Expects: portability_nav_active — blueprints|import_export|api_keys #}
+<nav class="admin-settings-toc" aria-label="Portability tools">
+  <a class="admin-settings-toc-link{{ portability_nav_active == 'blueprints' ? ' is-current' : '' }}" href="{{ url_for('admin.tools.blueprints') }}">Blueprints</a>
+  <a class="admin-settings-toc-link{{ portability_nav_active == 'import_export' ? ' is-current' : '' }}" href="{{ url_for('admin.tools.import_export') }}">Import / export</a>
+  <a class="admin-settings-toc-link{{ portability_nav_active == 'api_keys' ? ' is-current' : '' }}" href="{{ url_for('admin.tools.api_keys') }}">Public API keys</a>
+</nav>

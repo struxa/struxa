@@ -1,4 +1,5 @@
 {% extends 'admin/base.twig' %}
+{% import 'admin/_ui_macros.twig' as ui %}
 
 {% block admin_title %}SEO overview{% endblock %}
 
@@ -7,11 +8,7 @@
 {% endblock %}
 
 {% block admin_hero_sub %}
-  <p class="admin-hero-sub admin-hint" style="margin-top:0">
-    <a class="admin-link" href="{{ url_for('admin.seo.sitemap') }}">Sitemap</a>
-    · <a class="admin-link" href="{{ url_for('admin.seo.redirects') }}">Redirects</a>
-    · <a class="admin-link" href="{{ url_for('admin.seo.not_found') }}">404 monitor</a>
-  </p>
+  <p class="admin-hero-sub admin-hero-sub--tight">Meta coverage, noindex usage, and items that need attention before publish.</p>
 {% endblock %}
 
 {% block admin_breadcrumbs %}
@@ -24,65 +21,141 @@
 
 {% block admin_content %}
   {% set s = seo_overview|default({}) %}
-  <div class="admin-form-grid" style="margin-bottom:1.5rem">
-    <div class="admin-card">
-      <h2 class="admin-card-title">Pages</h2>
-      <p class="admin-hint" style="margin-top:0">{{ s.pages_published|default(0) }} published / {{ s.pages_total|default(0) }} total</p>
-      <ul class="admin-hint" style="margin:0.75rem 0 0 1.1rem;padding:0">
-        <li>{{ s.pages_missing_description|default(0) }} missing meta description</li>
-        <li>{{ s.pages_missing_keyphrase|default(0) }} without focus keyphrase</li>
-        <li>{{ s.pages_noindex|default(0) }} published with noindex</li>
-      </ul>
-    </div>
-    <div class="admin-card">
-      <h2 class="admin-card-title">Content entries</h2>
-      <p class="admin-hint" style="margin-top:0">{{ s.entries_published|default(0) }} published / {{ s.entries_total|default(0) }} total</p>
-      <ul class="admin-hint" style="margin:0.75rem 0 0 1.1rem;padding:0">
-        <li>{{ s.entries_missing_description|default(0) }} missing meta description</li>
-        <li>{{ s.entries_missing_keyphrase|default(0) }} without focus keyphrase</li>
-        <li>{{ s.entries_noindex|default(0) }} published with noindex</li>
-      </ul>
-    </div>
-  </div>
+  {% set pages_pub = s.pages_published|default(0) %}
+  {% set pages_total = s.pages_total|default(0) %}
+  {% set entries_pub = s.entries_published|default(0) %}
+  {% set entries_total = s.entries_total|default(0) %}
+  {% set pages_issues = (s.pages_missing_description|default(0)) %}
+  {% set entries_issues = (s.entries_missing_description|default(0)) %}
+  {% set pages_health = pages_pub > 0 ? (((pages_pub - pages_issues) / pages_pub * 100)|round) : 100 %}
+  {% set entries_health = entries_pub > 0 ? (((entries_pub - entries_issues) / entries_pub * 100)|round) : 100 %}
 
-  <div class="admin-card" style="margin-bottom:1.25rem">
-    <h2 class="admin-card-title">Pages needing attention</h2>
-    {% if s.recent_pages|default([])|length > 0 %}
-      <table class="admin-table" style="margin-top:0.75rem">
-        <thead><tr><th>Page</th><th>Issue</th><th></th></tr></thead>
-        <tbody>
-          {% for row in s.recent_pages %}
-            <tr>
-              <td>{{ row.title|e }}</td>
-              <td class="admin-hint">{{ row.issue|e }}</td>
-              <td><a class="admin-link" href="{{ url_for('admin.pages.edit', { id: row.id }) }}">Edit</a></td>
-            </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    {% else %}
-      <p class="admin-hint" style="margin-top:0.75rem">All published pages have a meta description and focus keyphrase.</p>
-    {% endif %}
-  </div>
+  <div class="admin-settings-page admin-settings-page--seo">
+    {% include 'admin/seo/_subnav.twig' with { seo_nav_active: 'overview' } %}
 
-  <div class="admin-card">
-    <h2 class="admin-card-title">Entries needing attention</h2>
-    {% if s.recent_entries|default([])|length > 0 %}
-      <table class="admin-table" style="margin-top:0.75rem">
-        <thead><tr><th>Entry</th><th>Type</th><th>Issue</th><th></th></tr></thead>
-        <tbody>
-          {% for row in s.recent_entries %}
-            <tr>
-              <td>{{ row.title|e }}</td>
-              <td class="admin-hint">{{ row.type_name|e }}</td>
-              <td class="admin-hint">{{ row.issue|e }}</td>
-              <td><a class="admin-link" href="{{ url_for('admin.content_types.entries.edit', { id: row.type_id, entryId: row.id }) }}">Edit</a></td>
-            </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    {% else %}
-      <p class="admin-hint" style="margin-top:0.75rem">All published entries have a meta description and focus keyphrase.</p>
-    {% endif %}
+    <div class="admin-stats-row admin-seo-stats-row">
+      <article class="admin-stat-card admin-stat-card--wide">
+        <div class="admin-donut-wrap">
+          <div class="admin-donut" style="--donut-p: {{ pages_health / 100 }}">
+            <div class="admin-donut-center">
+              <span class="admin-donut-value">{{ pages_health }}%</span>
+              <span class="admin-donut-label">Meta desc</span>
+            </div>
+          </div>
+        </div>
+        <dl class="admin-stat-details">
+          <div class="admin-stat-row">
+            <dt>Published</dt>
+            <dd>{{ pages_pub }} / {{ pages_total }}</dd>
+          </div>
+          <div class="admin-stat-row">
+            <dt>Missing description</dt>
+            <dd>{{ s.pages_missing_description|default(0) }}</dd>
+          </div>
+          <div class="admin-stat-row">
+            <dt>Missing keyphrase</dt>
+            <dd>{{ s.pages_missing_keyphrase|default(0) }}</dd>
+          </div>
+          <div class="admin-stat-row">
+            <dt>Published noindex</dt>
+            <dd>{{ s.pages_noindex|default(0) }}</dd>
+          </div>
+        </dl>
+      </article>
+
+      <article class="admin-stat-card">
+        <div class="admin-donut-wrap">
+          <div class="admin-donut admin-donut--teal" style="--donut-p: {{ entries_health / 100 }}">
+            <div class="admin-donut-center">
+              <span class="admin-donut-value">{{ entries_health }}%</span>
+              <span class="admin-donut-label">Meta desc</span>
+            </div>
+          </div>
+        </div>
+        <dl class="admin-stat-details">
+          <div class="admin-stat-row">
+            <dt>Published</dt>
+            <dd>{{ entries_pub }} / {{ entries_total }}</dd>
+          </div>
+          <div class="admin-stat-row">
+            <dt>Missing description</dt>
+            <dd>{{ s.entries_missing_description|default(0) }}</dd>
+          </div>
+          <div class="admin-stat-row">
+            <dt>Missing keyphrase</dt>
+            <dd>{{ s.entries_missing_keyphrase|default(0) }}</dd>
+          </div>
+          <div class="admin-stat-row">
+            <dt>Published noindex</dt>
+            <dd>{{ s.entries_noindex|default(0) }}</dd>
+          </div>
+        </dl>
+      </article>
+    </div>
+
+    <section class="admin-card admin-settings-card admin-seo-attention-card">
+      <header class="admin-settings-card-head-row">
+        <div>
+          <h2 class="admin-settings-card-title">Pages needing attention</h2>
+          <p class="admin-settings-card-desc" style="margin-bottom:0">Published pages missing SEO fields or set to noindex.</p>
+        </div>
+        {% if s.recent_pages|default([])|length == 0 %}
+          <span class="admin-pill admin-pill--ok">All clear</span>
+        {% else %}
+          <span class="admin-pill admin-pill--warn">{{ s.recent_pages|length }} flagged</span>
+        {% endif %}
+      </header>
+      {% if s.recent_pages|default([])|length > 0 %}
+        <div class="admin-table-wrap" style="margin-top:0.85rem">
+          <table class="admin-table admin-table--comfortable">
+            <thead><tr><th>Page</th><th>Issue</th><th></th></tr></thead>
+            <tbody>
+              {% for row in s.recent_pages %}
+                <tr>
+                  <td><strong class="admin-table-primary">{{ row.title|e }}</strong></td>
+                  <td><span class="admin-pill admin-pill--warn">{{ row.issue|e }}</span></td>
+                  <td><a class="admin-link" href="{{ url_for('admin.pages.edit', { id: row.id }) }}">Edit</a></td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <p class="admin-hint admin-settings-card-footnote">All published pages have a meta description and focus keyphrase.</p>
+      {% endif %}
+    </section>
+
+    <section class="admin-card admin-settings-card admin-seo-attention-card" style="margin-top:1.1rem">
+      <header class="admin-settings-card-head-row">
+        <div>
+          <h2 class="admin-settings-card-title">Entries needing attention</h2>
+          <p class="admin-settings-card-desc" style="margin-bottom:0">Published entries missing SEO fields or set to noindex.</p>
+        </div>
+        {% if s.recent_entries|default([])|length == 0 %}
+          <span class="admin-pill admin-pill--ok">All clear</span>
+        {% else %}
+          <span class="admin-pill admin-pill--warn">{{ s.recent_entries|length }} flagged</span>
+        {% endif %}
+      </header>
+      {% if s.recent_entries|default([])|length > 0 %}
+        <div class="admin-table-wrap" style="margin-top:0.85rem">
+          <table class="admin-table admin-table--comfortable">
+            <thead><tr><th>Entry</th><th>Type</th><th>Issue</th><th></th></tr></thead>
+            <tbody>
+              {% for row in s.recent_entries %}
+                <tr>
+                  <td><strong class="admin-table-primary">{{ row.title|e }}</strong></td>
+                  <td class="admin-hint">{{ row.type_name|e }}</td>
+                  <td><span class="admin-pill admin-pill--warn">{{ row.issue|e }}</span></td>
+                  <td><a class="admin-link" href="{{ url_for('admin.content_types.entries.edit', { id: row.type_id, entryId: row.id }) }}">Edit</a></td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <p class="admin-hint admin-settings-card-footnote">All published entries have a meta description and focus keyphrase.</p>
+      {% endif %}
+    </section>
   </div>
 {% endblock %}

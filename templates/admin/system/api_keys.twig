@@ -7,94 +7,147 @@
 {% endblock %}
 
 {% block admin_hero_sub %}
-  <p class="admin-hero-sub">Store provider credentials for server-side integrations. Values are masked by default and can be revealed on demand.</p>
+  <p class="admin-hero-sub admin-hero-sub--tight">Server-side credentials for OpenAI and custom integrations — never exposed to the browser.</p>
 {% endblock %}
 
 {% block admin_content %}
-  <section class="admin-card" style="margin-bottom:1.25rem">
-    <h2 class="admin-card-title">OpenAI</h2>
-    <p class="admin-hint" style="margin-top:0">
-      {% if openai_env_key %}
-        Environment key is detected (<code class="admin-inline-code">OPENAI_API_KEY</code> / <code class="admin-inline-code">STRUXA_OPENAI_API_KEY</code>) and overrides stored value at runtime.
-      {% else %}
-        No environment override detected.
-      {% endif %}
-    </p>
-    <form method="post" action="{{ url_for('admin.system.api_keys.openai') }}" class="admin-form-stack" style="max-width:40rem">
-      <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
-      <label class="admin-field">
-        <span class="admin-field-label">Stored key</span>
-        {% if openai_key_stored %}
-          <div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap">
-            <code class="admin-inline-code" id="openai-key-mask">{{ openai_key_masked|e }}</code>
-            <button class="admin-btn admin-btn--ghost admin-btn--sm" type="button" data-reveal-key data-type="openai" data-id="1" data-url="{{ url_for('admin.system.api_keys.reveal', { type: 'openai', id: 1 })|e('html_attr') }}">View</button>
-          </div>
-        {% else %}
-          <p class="admin-hint" style="margin:0">No key stored.</p>
-        {% endif %}
-      </label>
-      <label class="admin-field">
-        <span class="admin-field-label">Set / replace OpenAI key</span>
-        <input class="admin-input" type="password" name="openai_api_key" value="" autocomplete="new-password" maxlength="512" placeholder="{{ openai_key_stored ? 'Leave blank to keep existing key' : 'sk-…' }}" />
-      </label>
-      <label class="admin-hint" style="display:flex;gap:0.5rem;align-items:center">
-        <input type="checkbox" name="openai_api_key_clear" value="1" />
-        Remove stored OpenAI key
-      </label>
-      <button type="submit" class="admin-btn admin-btn--primary">Save OpenAI key</button>
-    </form>
-  </section>
+  <div class="admin-settings-page admin-settings-page--system">
+    {% include 'admin/partials/_system_subnav.twig' with { system_nav_active: 'api_keys' } %}
 
-  <section class="admin-card">
-    <h2 class="admin-card-title">Custom API keys</h2>
-    <form method="post" action="{{ url_for('admin.system.api_keys.custom') }}" class="admin-form-stack" style="max-width:40rem;margin-bottom:1rem">
-      <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
-      <label class="admin-field">
-        <span class="admin-field-label">Key name</span>
-        <input class="admin-input" type="text" name="key_name" maxlength="160" required placeholder="e.g. Anthropic, Stripe, Data API" />
-      </label>
-      <label class="admin-field">
-        <span class="admin-field-label">Key value</span>
-        <input class="admin-input" type="password" name="key_value" maxlength="1024" required autocomplete="new-password" placeholder="Enter secret key" />
-      </label>
-      <button type="submit" class="admin-btn admin-btn--primary">Add key</button>
-    </form>
-
-    {% if custom_keys is empty %}
-      <p class="admin-hint">No custom keys saved.</p>
-    {% else %}
-      <div class="admin-table-wrap" style="overflow-x:auto">
-        <table class="admin-table">
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Key</th>
-              <th>Updated</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for row in custom_keys %}
-              <tr>
-                <td>{{ row.key_name|e }}</td>
-                <td>
-                  <code class="admin-inline-code" id="key-mask-{{ row.id }}">{{ row.masked|e }}</code>
-                  <button class="admin-btn admin-btn--ghost admin-btn--sm" type="button" data-reveal-key data-type="custom" data-id="{{ row.id }}" data-url="{{ url_for('admin.system.api_keys.reveal', { type: 'custom', id: row.id })|e('html_attr') }}">View</button>
-                </td>
-                <td>{{ row.updated_at|e }}</td>
-                <td>
-                  <form method="post" action="{{ url_for('admin.system.api_keys.delete', { id: row.id }) }}" style="display:inline" onsubmit="return confirm('Delete this key?');">
-                    <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
-                    <button class="admin-btn admin-btn--ghost admin-btn--sm" type="submit">Delete</button>
-                  </form>
-                </td>
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
+    <div class="admin-settings-intro admin-settings-intro--syskeys">
+      <div class="admin-settings-intro-icon" aria-hidden="true">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 10h-7M10 14h11M3 10h3m-3 4h7" />
+          <circle cx="8" cy="10" r="2" />
+          <circle cx="14" cy="14" r="2" />
+        </svg>
       </div>
-    {% endif %}
-  </section>
+      <div class="admin-settings-intro-body">
+        <p class="admin-settings-intro-title">Server-side secrets</p>
+        <p class="admin-settings-intro-text">
+          These keys power CMS features like AI draft generation — stored encrypted in the database, masked in the UI.
+          For headless content API access, use
+          <a class="admin-link" href="{{ url_for('admin.tools.api_keys') }}">Tools → Public API keys</a>.
+          Environment variables (e.g. <code class="admin-inline-code">OPENAI_API_KEY</code>) override stored values at runtime.
+        </p>
+      </div>
+    </div>
+
+    <div class="admin-metrics admin-hub-metrics" aria-label="Key summary">
+      <article class="admin-metric{% if openai_key_stored or openai_env_key %} admin-metric--health-good{% endif %}">
+        <p class="admin-metric-label">OpenAI</p>
+        <p class="admin-metric-value admin-metric-value--sm">{% if openai_env_key %}Env{% elseif openai_key_stored %}Stored{% else %}None{% endif %}</p>
+        <p class="admin-metric-meta">{% if openai_env_key %}Env overrides DB{% else %}AI draft & comments{% endif %}</p>
+      </article>
+      <article class="admin-metric">
+        <p class="admin-metric-label">Custom keys</p>
+        <p class="admin-metric-value">{{ custom_keys|length }}</p>
+        <p class="admin-metric-meta">Plugin & integration secrets</p>
+      </article>
+    </div>
+
+    <div class="admin-settings-stack">
+      <section class="admin-card admin-settings-card admin-settings-section" id="syskeys-openai">
+        <h2 class="admin-settings-card-title">OpenAI</h2>
+        <p class="admin-settings-card-desc">
+          Used by <a class="admin-link" href="{{ url_for('admin.tools.ai_blog') }}">AI draft</a> and
+          <a class="admin-link" href="{{ url_for('admin.tools.ai_comments') }}">AI comments</a>.
+          {% if openai_env_key %}
+            Environment key detected — overrides the stored value at runtime.
+          {% else %}
+            No environment override detected.
+          {% endif %}
+        </p>
+        <form method="post" action="{{ url_for('admin.system.api_keys.openai') }}" class="admin-form admin-settings-form">
+          <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+          <div class="admin-form-grid">
+            {% if openai_key_stored %}
+              <div class="admin-field admin-field--full">
+                <span class="admin-label">Current key</span>
+                <div class="admin-hub-key-row">
+                  <code class="admin-inline-code admin-hub-key-mask" id="openai-key-mask">{{ openai_key_masked|e }}</code>
+                  <button class="admin-btn-ghost admin-btn-ghost--sm" type="button" data-reveal-key data-type="openai" data-id="1" data-url="{{ url_for('admin.system.api_keys.reveal', { type: 'openai', id: 1 })|e('html_attr') }}">View</button>
+                </div>
+              </div>
+            {% else %}
+              <p class="admin-hint">No key stored in the database.</p>
+            {% endif %}
+            <div class="admin-field admin-field--full">
+              <label class="admin-label" for="openai-api-key">Set / replace key</label>
+              <input class="admin-input" id="openai-api-key" type="password" name="openai_api_key" value="" autocomplete="new-password" maxlength="512" placeholder="{{ openai_key_stored ? 'Leave blank to keep existing key' : 'sk-…' }}" />
+            </div>
+            <div class="admin-field admin-field--full">
+              <label class="admin-label admin-settings-check-label">
+                <input type="checkbox" name="openai_api_key_clear" value="1" />
+                Remove stored OpenAI key
+              </label>
+            </div>
+          </div>
+          <div class="admin-form-actions">
+            <button type="submit" class="admin-btn-primary">Save OpenAI key</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="admin-card admin-settings-card admin-settings-section" id="syskeys-custom">
+        <h2 class="admin-settings-card-title">Custom API keys</h2>
+        <p class="admin-settings-card-desc">Named secrets for plugins or custom code — retrieved server-side only.</p>
+        <form method="post" action="{{ url_for('admin.system.api_keys.custom') }}" class="admin-form admin-settings-form">
+          <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+          <div class="admin-form-grid">
+            <div class="admin-field">
+              <label class="admin-label" for="key-name">Key name</label>
+              <input class="admin-input" id="key-name" type="text" name="key_name" maxlength="160" required placeholder="e.g. Anthropic, Stripe" />
+            </div>
+            <div class="admin-field">
+              <label class="admin-label" for="key-value">Key value</label>
+              <input class="admin-input" id="key-value" type="password" name="key_value" maxlength="1024" required autocomplete="new-password" placeholder="Enter secret key" />
+            </div>
+          </div>
+          <div class="admin-form-actions">
+            <button type="submit" class="admin-btn-primary">Add key</button>
+          </div>
+        </form>
+
+        {% if custom_keys is empty %}
+          <p class="admin-hint admin-settings-card-footnote">No custom keys saved.</p>
+        {% else %}
+          <div class="admin-table-wrap" style="margin-top:1rem;overflow-x:auto">
+            <table class="admin-table admin-table--comfortable">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Key</th>
+                  <th>Updated</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for row in custom_keys %}
+                  <tr>
+                    <td><strong class="admin-table-primary">{{ row.key_name|e }}</strong></td>
+                    <td>
+                      <div class="admin-hub-key-row">
+                        <code class="admin-inline-code admin-hub-key-mask" id="key-mask-{{ row.id }}">{{ row.masked|e }}</code>
+                        <button class="admin-btn-ghost admin-btn-ghost--sm" type="button" data-reveal-key data-type="custom" data-id="{{ row.id }}" data-url="{{ url_for('admin.system.api_keys.reveal', { type: 'custom', id: row.id })|e('html_attr') }}">View</button>
+                      </div>
+                    </td>
+                    <td class="admin-table-muted">{{ row.updated_at|e }}</td>
+                    <td class="admin-table-actions">
+                      <form method="post" action="{{ url_for('admin.system.api_keys.delete', { id: row.id }) }}" class="admin-inline-form" onsubmit="return confirm('Delete this key?');">
+                        <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+                        <button class="admin-btn-ghost admin-btn-ghost--sm" type="submit">Delete</button>
+                      </form>
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% endif %}
+      </section>
+    </div>
+  </div>
 
   <script>
     (function () {

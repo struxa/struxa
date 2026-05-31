@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.1.39",
-    "title": "Struxa 1.1.39",
-    "summary": "Fix admin commerce routes: add missing CommerceSettings import.",
+    "latest_version": "1.1.40",
+    "title": "Struxa 1.1.40",
+    "summary": "Commerce phases 6–7 (shipping, tax, inventory, digital delivery), migration fixes, Commerce admin nav, and admin UI polish across tools and settings.",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "minor"

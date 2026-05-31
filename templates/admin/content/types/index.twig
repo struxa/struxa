@@ -11,7 +11,7 @@
   <p class="admin-hero-sub">Structured content models — blog posts, products, team members — each with custom fields and optional public URLs.</p>
 {% endblock %}
 
-{% block admin_body_class %}admin-body--content-types{% endblock %}
+{% block admin_body_class %}admin-body--dash-ref admin-body--content-types{% endblock %}
 
 {% block admin_content %}
   {% set summary = content_types_summary|default({ types: 0, entries: 0, published: 0, draft: 0 }) %}

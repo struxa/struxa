@@ -1,4 +1,5 @@
 {% extends 'admin/base.twig' %}
+{% import 'admin/_ui_macros.twig' as ui %}
 
 {% block admin_title %}Menus{% endblock %}
 
@@ -7,41 +8,99 @@
 {% endblock %}
 
 {% block admin_hero_sub %}
-  <p class="admin-hero-sub">Header and footer placements. Each placement can have one menu.</p>
+  <p class="admin-hero-sub admin-hero-sub--tight">Header and footer link lists rendered by your active theme.</p>
+{% endblock %}
+
+{% block admin_hero_actions %}
+  <a class="admin-btn-primary" href="{{ url_for('admin.menus.new') }}">New menu</a>
 {% endblock %}
 
 {% block admin_content %}
-  <div class="admin-toolbar">
-    <a class="admin-btn-primary" href="{{ url_for('admin.menus.new') }}">New menu</a>
-  </div>
+  {% set header_count = menus|filter(m => m.location == 'header')|length %}
+  {% set footer_count = menus|filter(m => m.location == 'footer')|length %}
 
-  {% if menus is empty %}
-    <p class="admin-empty">No menus yet. Create one for the header or footer.</p>
-  {% else %}
-    <div class="admin-table-wrap">
-      <table class="admin-table">
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>Placement</th>
-            <th class="admin-table-actions">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for m in menus %}
-            <tr>
-              <td><strong>{{ m.name|e }}</strong></td>
-              <td><span class="admin-badge admin-badge--muted">{{ m.location|e }}</span></td>
-              <td class="admin-table-actions">
-                <a class="admin-link" href="{{ url_for('admin.menus.edit', { id: m.id }) }}">Edit</a>
-                <form class="admin-inline-form" method="post" action="{{ url_for('admin.menus.delete', { id: m.id }) }}" onsubmit="return confirm('Delete this menu and all its links?');">
-                  <button type="submit" class="admin-link admin-link--danger">Delete</button>
-                </form>
-              </td>
-            </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+  <div class="admin-settings-page admin-settings-page--menus">
+    <div class="admin-settings-intro admin-settings-intro--menus">
+      <div class="admin-settings-intro-icon" aria-hidden="true">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="4" x2="20" y1="12" y2="12" />
+          <line x1="4" x2="20" y1="6" y2="6" />
+          <line x1="4" x2="20" y1="18" y2="18" />
+        </svg>
+      </div>
+      <div class="admin-settings-intro-body">
+        <p class="admin-settings-intro-title">Site navigation</p>
+        <p class="admin-settings-intro-text">
+          Each menu is assigned to a <strong class="admin-settings-intro-strong">placement</strong> — header or footer.
+          Your theme loads the menu for that slot and outputs the links you define here.
+          One menu per placement is typical; create separate menus if your theme supports multiple locations.
+        </p>
+      </div>
     </div>
-  {% endif %}
+
+    <div class="admin-metrics admin-hub-metrics" aria-label="Menu summary">
+      <article class="admin-metric">
+        <p class="admin-metric-label">Menus</p>
+        <p class="admin-metric-value">{{ menus|length }}</p>
+        <p class="admin-metric-meta">Total configured</p>
+      </article>
+      <article class="admin-metric{% if header_count == 0 %} admin-metric--hot{% endif %}">
+        <p class="admin-metric-label">Header</p>
+        <p class="admin-metric-value">{{ header_count }}</p>
+        <p class="admin-metric-meta">Top navigation slot</p>
+      </article>
+      <article class="admin-metric{% if footer_count == 0 %} admin-metric--hot{% endif %}">
+        <p class="admin-metric-label">Footer</p>
+        <p class="admin-metric-value">{{ footer_count }}</p>
+        <p class="admin-metric-meta">Bottom navigation slot</p>
+      </article>
+    </div>
+
+    {% if menus is empty %}
+      <section class="admin-card admin-settings-card">
+        {{ ui.empty_state(
+          'No menus yet',
+          'Create a header or footer menu, then add links to pages, content entries, or custom URLs.',
+          url_for('admin.menus.new'),
+          'Create menu',
+          '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>'
+        ) }}
+      </section>
+    {% else %}
+      <section class="admin-card admin-settings-card">
+        <div class="admin-toolbar admin-toolbar--spread" style="margin-bottom:0.85rem">
+          <h2 class="admin-settings-card-title" style="margin:0">All menus</h2>
+          <a class="admin-btn-primary admin-btn-primary--sm" href="{{ url_for('admin.menus.new') }}">New menu</a>
+        </div>
+        <div class="admin-table-wrap">
+          <table class="admin-table admin-table--comfortable">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Placement</th>
+                <th><span class="admin-sr-only">Actions</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for m in menus %}
+                <tr>
+                  <td><strong class="admin-table-primary">{{ m.name|e }}</strong></td>
+                  <td>
+                    <span class="admin-pill{% if m.location == 'header' %} admin-pill--accent{% endif %}">{{ m.location|e }}</span>
+                  </td>
+                  <td class="admin-table-actions">
+                    <a class="admin-link" href="{{ url_for('admin.menus.edit', { id: m.id }) }}">Edit links</a>
+                    <form class="admin-inline-form" method="post" action="{{ url_for('admin.menus.delete', { id: m.id }) }}" onsubmit="return confirm('Delete this menu and all its links?');">
+                      <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+                      <button type="submit" class="admin-link admin-link--danger">Delete</button>
+                    </form>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    {% endif %}
+  </div>
 {% endblock %}

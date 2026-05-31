@@ -1,0 +1,17 @@
+{# Expects: digital_grants (list), order (CommerceOrder with orderNumber) #}
+{% if digital_grants is defined and digital_grants is not empty %}
+  <section class="theme-commerce-digital-access">
+    <h2>Your downloads</h2>
+    <ul class="theme-commerce-digital-links">
+      {% for grant in digital_grants %}
+        {% if grant.isActive %}
+          <li>
+            <a href="{{ url_for('public.commerce.orders.access', { order_number: order.orderNumber, grantId: grant.id }) }}">{{ grant.label|e }}</a>
+            <span class="theme-commerce-digital-type">({{ grant.deliveryType|e }})</span>
+          </li>
+        {% endif %}
+      {% endfor %}
+    </ul>
+    <p class="theme-commerce-digital-note">Links are tied to your account. You can also use the download links from your confirmation email.</p>
+  </section>
+{% endif %}

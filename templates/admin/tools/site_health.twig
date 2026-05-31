@@ -7,102 +7,156 @@
 {% endblock %}
 
 {% block admin_hero_sub %}
-  <p class="admin-hero-sub admin-hero-sub--tight">
-    Pass/fail checks for PHP, database, storage, scheduling, security, and active plugins.
-    {% set counts = health_counts|default({}) %}
-    {% if counts.good|default(0) > 0 or counts.recommended|default(0) > 0 or counts.critical|default(0) > 0 %}
-      <span class="admin-health-summary">
-        {{ counts.good|default(0) }} good · {{ counts.recommended|default(0) }} recommended · {{ counts.critical|default(0) }} critical
-      </span>
-    {% endif %}
-  </p>
+  <p class="admin-hero-sub admin-hero-sub--tight">Pass/fail checks for PHP, database, storage, scheduling, security, and active plugins.</p>
+{% endblock %}
+
+{% block admin_breadcrumbs %}
+  {% include 'admin/partials/_breadcrumbs.twig' with {
+    breadcrumbs: [
+      { label: 'Site health' },
+    ],
+  } %}
 {% endblock %}
 
 {% block admin_content %}
   {% set overall = health_overall|default('good') %}
+  {% set counts = health_counts|default({}) %}
   {% set status_labels = health_status_labels|default({}) %}
   {% set group_labels = health_group_labels|default({}) %}
+  {% set good_n = counts.good|default(0) %}
+  {% set rec_n = counts.recommended|default(0) %}
+  {% set crit_n = counts.critical|default(0) %}
 
-  <section class="admin-card admin-health-overview" style="margin-bottom:1.25rem">
-    <div class="admin-health-overview-row">
-      <div>
-        <h2 class="admin-card-title" style="margin-top:0">Overall status</h2>
-        <p class="admin-hint" style="margin:0.35rem 0 0">
+  <div class="admin-settings-page admin-settings-page--tools">
+    {% include 'admin/tools/_subnav.twig' with { tools_nav_active: 'site_health' } %}
+
+    <div class="admin-settings-intro admin-settings-intro--health">
+      <div class="admin-settings-intro-icon" aria-hidden="true">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+        </svg>
+      </div>
+      <div class="admin-settings-intro-body">
+        <p class="admin-settings-intro-title">
           {% if overall == 'good' %}
-            This install looks healthy. Review recommended items when you have time.
+            This install looks healthy
           {% elseif overall == 'recommended' %}
-            No critical blockers, but some improvements are recommended.
+            No critical blockers — review recommendations
           {% else %}
-            Critical issues need attention before you rely on this site in production.
+            Critical issues need attention
+          {% endif %}
+        </p>
+        <p class="admin-settings-intro-text">
+          {% if overall == 'good' %}
+            Review recommended items when you have time. Checks run against your server, database, and active plugins — not your page content.
+          {% elseif overall == 'recommended' %}
+            Address recommended improvements before production traffic. Critical checks are clear.
+          {% else %}
+            Fix critical failures before you rely on this site in production. Use the action links in each row when available.
           {% endif %}
         </p>
       </div>
-      <span class="admin-pill admin-health-pill admin-health-pill--{{ overall|e('html_attr') }}">
+      <span class="admin-pill admin-health-pill admin-health-pill--{{ overall|e('html_attr') }} admin-tools-overall-pill">
         {{ status_labels[overall]|default(overall|title) }}
       </span>
     </div>
-  </section>
 
-  {% for group_key, checks in health_groups|default({}) %}
-    <section class="admin-card" style="margin-bottom:1.25rem">
-      <h2 class="admin-card-title">{{ group_labels[group_key]|default(group_key|title) }}</h2>
-      <div class="admin-table-wrap">
-        <table class="admin-table admin-health-table">
-          <thead>
-            <tr>
-              <th scope="col">Check</th>
-              <th scope="col">Status</th>
-              <th scope="col">Details</th>
-              <th scope="col" class="admin-table-col-actions"><span class="admin-table-muted">Action</span></th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for check in checks %}
-              <tr>
-                <td><strong>{{ check.label|e }}</strong></td>
-                <td>
-                  <span class="admin-pill admin-health-pill admin-health-pill--{{ check.status|e('html_attr') }}">
-                    {{ status_labels[check.status]|default(check.status|title) }}
-                  </span>
-                </td>
-                <td class="admin-health-detail">
-                  <p class="admin-health-message">{{ check.message|e }}</p>
-                  {% if check.detail|default('') != '' %}
-                    <pre class="admin-health-detail-pre">{{ check.detail|e }}</pre>
-                  {% endif %}
-                </td>
-                <td class="admin-table-actions">
-                  {% if check.actionRoute|default('') != '' %}
-                    <a class="admin-btn-ghost admin-btn-ghost--sm" href="{{ url_for(check.actionRoute, check.actionRouteParams|default({})) }}">
-                      {{ check.actionLabel|default('Open')|e }}
-                    </a>
-                  {% else %}
-                    <span class="admin-table-muted">—</span>
-                  {% endif %}
-                </td>
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    </section>
-  {% endfor %}
+    <div class="admin-metrics admin-hub-metrics" aria-label="Health summary">
+      <article class="admin-metric admin-metric--health-good">
+        <p class="admin-metric-label">Good</p>
+        <p class="admin-metric-value">{{ good_n }}</p>
+        <p class="admin-metric-meta">Checks passed</p>
+      </article>
+      <article class="admin-metric admin-metric--health-rec{% if rec_n > 0 %} admin-metric--hot{% endif %}">
+        <p class="admin-metric-label">Recommended</p>
+        <p class="admin-metric-value">{{ rec_n }}</p>
+        <p class="admin-metric-meta">Worth improving</p>
+      </article>
+      <article class="admin-metric admin-metric--health-crit{% if crit_n > 0 %} admin-metric--danger{% endif %}">
+        <p class="admin-metric-label">Critical</p>
+        <p class="admin-metric-value">{{ crit_n }}</p>
+        <p class="admin-metric-meta">Needs action</p>
+      </article>
+    </div>
 
-  <section class="admin-card">
-    <h2 class="admin-card-title">System info</h2>
-    <dl class="admin-health-info-dl">
-      {% for label, value in health_report.info|default({}) %}
-        <div class="admin-health-info-row">
-          <dt>{{ label|e }}</dt>
-          <dd><code class="admin-inline-code">{{ value|e }}</code></dd>
-        </div>
+    <div class="admin-settings-stack">
+      {% for group_key, checks in health_groups|default({}) %}
+        {% set group_crit = checks|filter(c => c.status == 'critical')|length %}
+        {% set group_rec = checks|filter(c => c.status == 'recommended')|length %}
+        <section class="admin-card admin-settings-card admin-settings-section" id="health-{{ group_key|e('html_attr') }}">
+          <header class="admin-settings-card-head-row">
+            <div>
+              <h2 class="admin-settings-card-title">{{ group_labels[group_key]|default(group_key|title) }}</h2>
+              <p class="admin-settings-card-desc" style="margin-bottom:0">{{ checks|length }} check(s) in this group.</p>
+            </div>
+            {% if group_crit > 0 %}
+              <span class="admin-pill admin-health-pill admin-health-pill--critical">{{ group_crit }} critical</span>
+            {% elseif group_rec > 0 %}
+              <span class="admin-pill admin-health-pill admin-health-pill--recommended">{{ group_rec }} recommended</span>
+            {% else %}
+              <span class="admin-pill admin-pill--ok">All clear</span>
+            {% endif %}
+          </header>
+          <div class="admin-table-wrap" style="margin-top:0.85rem">
+            <table class="admin-table admin-table--comfortable admin-health-table">
+              <thead>
+                <tr>
+                  <th scope="col">Check</th>
+                  <th scope="col">Status</th>
+                  <th scope="col">Details</th>
+                  <th scope="col" class="admin-table-col-actions"><span class="admin-table-muted">Action</span></th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for check in checks %}
+                  <tr>
+                    <td><strong class="admin-table-primary">{{ check.label|e }}</strong></td>
+                    <td>
+                      <span class="admin-pill admin-health-pill admin-health-pill--{{ check.status|e('html_attr') }}">
+                        {{ status_labels[check.status]|default(check.status|title) }}
+                      </span>
+                    </td>
+                    <td class="admin-health-detail">
+                      <p class="admin-health-message">{{ check.message|e }}</p>
+                      {% if check.detail|default('') != '' %}
+                        <pre class="admin-health-detail-pre">{{ check.detail|e }}</pre>
+                      {% endif %}
+                    </td>
+                    <td class="admin-table-actions">
+                      {% if check.actionRoute|default('') != '' %}
+                        <a class="admin-btn-ghost admin-btn-ghost--sm" href="{{ url_for(check.actionRoute, check.actionRouteParams|default({})) }}">
+                          {{ check.actionLabel|default('Open')|e }}
+                        </a>
+                      {% else %}
+                        <span class="admin-table-muted">—</span>
+                      {% endif %}
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </section>
       {% endfor %}
-    </dl>
-    <p class="admin-hint" style="margin:1rem 0 0">
-      Related tools:
-      <a class="admin-link" href="{{ url_for('admin.tools.cache') }}">Performance</a> ·
-      <a class="admin-link" href="{{ url_for('admin.tools.maintenance') }}">Maintenance</a> ·
-      <a class="admin-link" href="{{ url_for('admin.updates.index') }}">CMS updates</a>
-    </p>
-  </section>
+
+      <section class="admin-card admin-settings-card admin-settings-section" id="health-system-info">
+        <h2 class="admin-settings-card-title">System info</h2>
+        <p class="admin-settings-card-desc">Runtime versions and paths reported by the health service.</p>
+        <dl class="admin-health-info-dl admin-tools-info-dl">
+          {% for label, value in health_report.info|default({}) %}
+            <div class="admin-health-info-row">
+              <dt>{{ label|e }}</dt>
+              <dd><code class="admin-inline-code">{{ value|e }}</code></dd>
+            </div>
+          {% endfor %}
+        </dl>
+        <p class="admin-hint admin-settings-card-footnote">
+          Related:
+          <a class="admin-link" href="{{ url_for('admin.tools.cache') }}">Performance</a> ·
+          <a class="admin-link" href="{{ url_for('admin.tools.maintenance') }}">Maintenance</a> ·
+          <a class="admin-link" href="{{ url_for('admin.updates.index') }}">CMS updates</a>
+        </p>
+      </section>
+    </div>
+  </div>
 {% endblock %}

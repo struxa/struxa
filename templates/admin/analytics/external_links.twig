@@ -7,182 +7,226 @@
 {% endblock %}
 
 {% block admin_hero_sub %}
-  <p class="admin-hint" style="margin-top:0">
-    Click tracking for outbound links across the storefront. Counts, source pages, and recent clicks below.
-    <a class="admin-link" href="?range=7{% if not tracking_enabled %}&tracking={{ tracking_enabled ? '1' : '0' }}{% endif %}">7d</a> ·
-    <a class="admin-link" href="?range=30">30d</a> ·
-    <a class="admin-link" href="?range=90">90d</a> ·
-    <a class="admin-link" href="?range=all">All time</a>
-    {% if not tracking_enabled %}
-      · <strong style="color:#f97316">Tracking disabled</strong>
-    {% endif %}
-  </p>
+  <p class="admin-hero-sub admin-hero-sub--tight">See where visitors go when they leave your site — outbound clicks from the storefront.</p>
 {% endblock %}
 
 {% block admin_content %}
-  <section class="admin-card admin-settings-card" style="margin-bottom:1.5rem">
-    <div class="admin-toolbar admin-toolbar--spread" style="margin-bottom:0.75rem;align-items:flex-start;gap:1rem;flex-wrap:wrap">
-      <div>
-        <h2 class="admin-settings-card-title" style="margin:0">Summary</h2>
-        <p class="admin-settings-card-desc" style="margin:0.35rem 0 0">
-          {{ total_clicks }} click{{ total_clicks == 1 ? '' : 's' }}{% if range != 'all' %} in the last {{ range }} day{{ range == '1' ? '' : 's' }}{% endif %}.
+  {% set dest_count = top_destinations|length %}
+  {% set source_count = top_sources|length %}
+
+  <div class="admin-settings-page admin-settings-page--analytics">
+    <div class="admin-settings-intro admin-settings-intro--analytics">
+      <div class="admin-settings-intro-icon" aria-hidden="true">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.72" />
+          <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.72-1.72" />
+        </svg>
+      </div>
+      <div class="admin-settings-intro-body">
+        <p class="admin-settings-intro-title">Outbound click tracking</p>
+        <p class="admin-settings-intro-text">
+          A lightweight storefront script records clicks on external links (different host than your site).
+          Use this to see popular affiliate links, partner sites, and which pages send the most traffic away.
+          Tracking must be enabled below — when off, no new clicks are stored.
         </p>
       </div>
+      {% if tracking_enabled %}
+        <span class="admin-pill admin-pill--ok admin-hub-status-pill">Tracking on</span>
+      {% else %}
+        <span class="admin-pill admin-pill--warn admin-hub-status-pill">Tracking off</span>
+      {% endif %}
     </div>
-  </section>
 
-  <section class="admin-card admin-settings-card" style="margin-bottom:1.5rem">
-    <div class="admin-toolbar admin-toolbar--spread" style="margin-bottom:0.75rem;align-items:flex-start;gap:1rem;flex-wrap:wrap">
-      <div>
-        <h2 class="admin-settings-card-title" style="margin:0">Top destinations</h2>
-        <p class="admin-settings-card-desc" style="margin:0.35rem 0 0">Where users go when they leave your site.</p>
-      </div>
+    <div class="admin-toolbar admin-toolbar--spread admin-hub-range-bar">
+      <nav class="admin-filter-pills" aria-label="Date range">
+        {% for key, label in { '7': '7 days', '30': '30 days', '90': '90 days', 'all': 'All time' } %}
+          <a class="admin-filter-pill{{ range == key ? ' is-current' : '' }}" href="?range={{ key|e('url') }}">{{ label }}</a>
+        {% endfor %}
+      </nav>
     </div>
-    {% if top_destinations is empty %}
-      <p class="admin-hint" style="margin:0">No clicks recorded yet.</p>
-    {% else %}
-      <div class="admin-table-wrap" style="overflow-x:auto">
-        <table class="admin-table">
-          <thead>
-            <tr>
-              <th scope="col">Destination URL</th>
-              <th scope="col">Host</th>
-              <th scope="col">Clicks</th>
-              <th scope="col">Source pages</th>
-              <th scope="col">Last clicked</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for row in top_destinations %}
-              <tr>
-                <td style="max-width:32rem;overflow:hidden;text-overflow:ellipsis"><a class="admin-link" href="{{ row.destination_url|e('html_attr') }}" rel="noopener noreferrer nofollow" target="_blank">{{ row.destination_url|e }}</a></td>
-                <td>{{ row.destination_host|e }}</td>
-                <td><strong>{{ row.clicks }}</strong></td>
-                <td>{{ row.unique_sources }}</td>
-                <td><time datetime="{{ row.last_clicked_at|e('html_attr') }}">{{ row.last_clicked_at|e }}</time></td>
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    {% endif %}
-  </section>
 
-  <section class="admin-card admin-settings-card" style="margin-bottom:1.5rem">
-    <div class="admin-toolbar admin-toolbar--spread" style="margin-bottom:0.75rem;align-items:flex-start;gap:1rem;flex-wrap:wrap">
-      <div>
-        <h2 class="admin-settings-card-title" style="margin:0">Top source pages</h2>
-        <p class="admin-settings-card-desc" style="margin:0.35rem 0 0">Pages on your site that send the most users away.</p>
-      </div>
+    <div class="admin-metrics admin-hub-metrics" aria-label="Click summary">
+      <article class="admin-metric{% if total_clicks > 0 %} admin-metric--health-good{% endif %}">
+        <p class="admin-metric-label">Total clicks</p>
+        <p class="admin-metric-value">{{ total_clicks }}</p>
+        <p class="admin-metric-meta">{% if range != 'all' %}Last {{ range }} day{{ range == '1' ? '' : 's' }}{% else %}All recorded{% endif %}</p>
+      </article>
+      <article class="admin-metric">
+        <p class="admin-metric-label">Top destinations</p>
+        <p class="admin-metric-value">{{ dest_count }}</p>
+        <p class="admin-metric-meta">Unique outbound URLs</p>
+      </article>
+      <article class="admin-metric">
+        <p class="admin-metric-label">Top sources</p>
+        <p class="admin-metric-value">{{ source_count }}</p>
+        <p class="admin-metric-meta">Pages sending clicks away</p>
+      </article>
+      <article class="admin-metric">
+        <p class="admin-metric-label">Retention</p>
+        <p class="admin-metric-value admin-metric-value--sm">{% if retention_days > 0 %}{{ retention_days }}d{% else %}Off{% endif %}</p>
+        <p class="admin-metric-meta">Auto-purge old events</p>
+      </article>
     </div>
-    {% if top_sources is empty %}
-      <p class="admin-hint" style="margin:0">No clicks recorded yet.</p>
-    {% else %}
-      <div class="admin-table-wrap" style="overflow-x:auto">
-        <table class="admin-table">
-          <thead>
-            <tr>
-              <th scope="col">Source page</th>
-              <th scope="col">Clicks</th>
-              <th scope="col">Unique destinations</th>
-              <th scope="col">Last clicked</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for row in top_sources %}
-              <tr>
-                <td><a class="admin-link" href="{{ row.source_path|e('html_attr') }}" target="_blank" rel="noopener">{{ row.source_path|e }}</a></td>
-                <td><strong>{{ row.clicks }}</strong></td>
-                <td>{{ row.unique_destinations }}</td>
-                <td><time datetime="{{ row.last_clicked_at|e('html_attr') }}">{{ row.last_clicked_at|e }}</time></td>
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    {% endif %}
-  </section>
 
-  <section class="admin-card admin-settings-card" style="margin-bottom:1.5rem">
-    <div class="admin-toolbar admin-toolbar--spread" style="margin-bottom:0.75rem;align-items:flex-start;gap:1rem;flex-wrap:wrap">
-      <div>
-        <h2 class="admin-settings-card-title" style="margin:0">Recent clicks</h2>
-        <p class="admin-settings-card-desc" style="margin:0.35rem 0 0">The 50 most recent outbound clicks (any time range).</p>
-      </div>
-    </div>
-    {% if recent_clicks is empty %}
-      <p class="admin-hint" style="margin:0">No clicks recorded yet.</p>
-    {% else %}
-      <div class="admin-table-wrap" style="overflow-x:auto">
-        <table class="admin-table">
-          <thead>
-            <tr>
-              <th scope="col">When</th>
-              <th scope="col">Source page</th>
-              <th scope="col">Destination</th>
-              <th scope="col">Anchor text</th>
-              <th scope="col">User</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for row in recent_clicks %}
-              <tr>
-                <td><time datetime="{{ row.clicked_at|e('html_attr') }}">{{ row.clicked_at|e }}</time></td>
-                <td><a class="admin-link" href="{{ row.source_path|e('html_attr') }}" target="_blank" rel="noopener">{{ row.source_path|e }}</a></td>
-                <td style="max-width:24rem;overflow:hidden;text-overflow:ellipsis"><a class="admin-link" href="{{ row.destination_url|e('html_attr') }}" rel="noopener noreferrer nofollow" target="_blank">{{ row.destination_url|e }}</a></td>
-                <td>{{ row.link_text|default('')|e }}</td>
-                <td>{% if row.user_id %}#{{ row.user_id }}{% else %}—{% endif %}</td>
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    {% endif %}
-  </section>
+    <div class="admin-settings-stack">
+      <section class="admin-card admin-settings-card admin-settings-section" id="analytics-destinations">
+        <header class="admin-settings-card-head-row">
+          <div>
+            <h2 class="admin-settings-card-title">Top destinations</h2>
+            <p class="admin-settings-card-desc" style="margin-bottom:0">Where users go when they leave your site.</p>
+          </div>
+        </header>
+        {% if top_destinations is empty %}
+          <p class="admin-hint admin-settings-card-footnote">No clicks recorded yet{% if not tracking_enabled %} — enable tracking below{% endif %}.</p>
+        {% else %}
+          <div class="admin-table-wrap" style="margin-top:0.85rem;overflow-x:auto">
+            <table class="admin-table admin-table--comfortable">
+              <thead>
+                <tr>
+                  <th scope="col">Destination URL</th>
+                  <th scope="col">Host</th>
+                  <th scope="col">Clicks</th>
+                  <th scope="col">Source pages</th>
+                  <th scope="col">Last clicked</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for row in top_destinations %}
+                  <tr>
+                    <td class="admin-table-url"><a class="admin-link" href="{{ row.destination_url|e('html_attr') }}" rel="noopener noreferrer nofollow" target="_blank">{{ row.destination_url|e }}</a></td>
+                    <td class="admin-table-muted">{{ row.destination_host|e }}</td>
+                    <td><strong class="admin-table-primary">{{ row.clicks }}</strong></td>
+                    <td class="admin-table-muted">{{ row.unique_sources }}</td>
+                    <td class="admin-table-muted"><time datetime="{{ row.last_clicked_at|e('html_attr') }}">{{ row.last_clicked_at|e }}</time></td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% endif %}
+      </section>
 
-  <section class="admin-card admin-settings-card" style="margin-bottom:1.5rem">
-    <div>
-      <h2 class="admin-settings-card-title" style="margin:0 0 0.35rem">Tracker settings</h2>
-      <p class="admin-settings-card-desc" style="margin:0 0 1rem">Enable/disable the storefront beacon, exclude noisy hosts, and choose retention.</p>
-    </div>
-    <form method="post" action="{{ url_for('admin.analytics.external_links.settings') }}" class="admin-form admin-form--stack">
-      <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
-      <label class="admin-form-row" style="display:flex;align-items:center;gap:0.6rem">
-        <input type="checkbox" name="enabled" value="1" {% if tracking_enabled %}checked{% endif %} />
-        <span>Track outbound link clicks</span>
-      </label>
-      <label class="admin-form-row" style="display:block">
-        <span class="admin-form-label">Exclude destinations (one host per line; subdomains match)</span>
-        <textarea name="exclude_hosts" rows="4" class="admin-input admin-input--code" style="width:100%;max-width:36rem">{{ exclude_hosts|e }}</textarea>
-      </label>
-      <label class="admin-form-row" style="display:block">
-        <span class="admin-form-label">Auto-purge after (days, 0 disables)</span>
-        <input type="number" min="0" name="retention_days" value="{{ retention_days }}" class="admin-input" style="max-width:8rem" />
-      </label>
-      <div class="admin-form-actions" style="margin-top:0.75rem">
-        <button type="submit" class="admin-btn-primary">Save settings</button>
-      </div>
-    </form>
-  </section>
+      <section class="admin-card admin-settings-card admin-settings-section" id="analytics-sources">
+        <header class="admin-settings-card-head-row">
+          <div>
+            <h2 class="admin-settings-card-title">Top source pages</h2>
+            <p class="admin-settings-card-desc" style="margin-bottom:0">Pages on your site that send the most users away.</p>
+          </div>
+        </header>
+        {% if top_sources is empty %}
+          <p class="admin-hint admin-settings-card-footnote">No clicks recorded yet.</p>
+        {% else %}
+          <div class="admin-table-wrap" style="margin-top:0.85rem;overflow-x:auto">
+            <table class="admin-table admin-table--comfortable">
+              <thead>
+                <tr>
+                  <th scope="col">Source page</th>
+                  <th scope="col">Clicks</th>
+                  <th scope="col">Unique destinations</th>
+                  <th scope="col">Last clicked</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for row in top_sources %}
+                  <tr>
+                    <td><a class="admin-link admin-table-primary" href="{{ row.source_path|e('html_attr') }}" target="_blank" rel="noopener">{{ row.source_path|e }}</a></td>
+                    <td><strong class="admin-table-primary">{{ row.clicks }}</strong></td>
+                    <td class="admin-table-muted">{{ row.unique_destinations }}</td>
+                    <td class="admin-table-muted"><time datetime="{{ row.last_clicked_at|e('html_attr') }}">{{ row.last_clicked_at|e }}</time></td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% endif %}
+      </section>
 
-  <section class="admin-card admin-settings-card admin-card--danger" style="margin-bottom:1.5rem">
-    <div>
-      <h2 class="admin-settings-card-title" style="margin:0 0 0.35rem">Maintenance</h2>
-      <p class="admin-settings-card-desc" style="margin:0 0 1rem">Delete older click events or wipe the log entirely.</p>
+      <section class="admin-card admin-settings-card admin-settings-section" id="analytics-recent">
+        <header class="admin-settings-card-head-row">
+          <div>
+            <h2 class="admin-settings-card-title">Recent clicks</h2>
+            <p class="admin-settings-card-desc" style="margin-bottom:0">The 50 most recent outbound clicks (any time range).</p>
+          </div>
+        </header>
+        {% if recent_clicks is empty %}
+          <p class="admin-hint admin-settings-card-footnote">No clicks recorded yet.</p>
+        {% else %}
+          <div class="admin-table-wrap" style="margin-top:0.85rem;overflow-x:auto">
+            <table class="admin-table admin-table--comfortable">
+              <thead>
+                <tr>
+                  <th scope="col">When</th>
+                  <th scope="col">Source page</th>
+                  <th scope="col">Destination</th>
+                  <th scope="col">Anchor text</th>
+                  <th scope="col">User</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for row in recent_clicks %}
+                  <tr>
+                    <td class="admin-table-muted"><time datetime="{{ row.clicked_at|e('html_attr') }}">{{ row.clicked_at|e }}</time></td>
+                    <td><a class="admin-link" href="{{ row.source_path|e('html_attr') }}" target="_blank" rel="noopener">{{ row.source_path|e }}</a></td>
+                    <td class="admin-table-url"><a class="admin-link" href="{{ row.destination_url|e('html_attr') }}" rel="noopener noreferrer nofollow" target="_blank">{{ row.destination_url|e }}</a></td>
+                    <td class="admin-table-muted">{{ row.link_text|default('')|e }}</td>
+                    <td class="admin-table-muted">{% if row.user_id %}#{{ row.user_id }}{% else %}—{% endif %}</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% endif %}
+      </section>
+
+      <section class="admin-card admin-settings-card admin-settings-section" id="analytics-settings">
+        <h2 class="admin-settings-card-title">Tracker settings</h2>
+        <p class="admin-settings-card-desc">Enable the storefront beacon, exclude noisy hosts, and choose how long to keep click data.</p>
+        <form method="post" action="{{ url_for('admin.analytics.external_links.settings') }}" class="admin-form admin-settings-form">
+          <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+          <div class="admin-form-grid">
+            <div class="admin-field admin-field--full">
+              <label class="admin-label admin-settings-check-label">
+                <input type="checkbox" name="enabled" value="1" {% if tracking_enabled %}checked{% endif %} />
+                Track outbound link clicks on the storefront
+              </label>
+              <p class="admin-hint">When off, the tracking script does not send events and this report stops growing.</p>
+            </div>
+            <div class="admin-field admin-field--full">
+              <label class="admin-label" for="exclude-hosts">Exclude destinations (one host per line)</label>
+              <textarea class="admin-textarea admin-input--code" id="exclude-hosts" name="exclude_hosts" rows="4">{{ exclude_hosts|e }}</textarea>
+              <p class="admin-hint">Subdomains match — e.g. <code class="admin-inline-code">google.com</code> skips <code class="admin-inline-code">www.google.com</code> too.</p>
+            </div>
+            <div class="admin-field">
+              <label class="admin-label" for="retention-days">Auto-purge after (days)</label>
+              <input type="number" id="retention-days" min="0" name="retention_days" value="{{ retention_days }}" class="admin-input" />
+              <p class="admin-hint">Set to <strong>0</strong> to keep all clicks until you purge manually.</p>
+            </div>
+          </div>
+          <div class="admin-form-actions">
+            <button type="submit" class="admin-btn-primary">Save settings</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="admin-card admin-settings-card admin-card--danger-zone admin-settings-section" id="analytics-maintenance">
+        <h2 class="admin-settings-card-title">Maintenance</h2>
+        <p class="admin-settings-card-desc">Delete older click events or wipe the log entirely. You can also purge from <a class="admin-link" href="{{ url_for('admin.tools.maintenance') }}">Maintenance</a>.</p>
+        <form method="post" action="{{ url_for('admin.analytics.external_links.purge') }}" class="admin-hub-inline-purge-form">
+          <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+          <input type="hidden" name="mode" value="older_than" />
+          <label class="admin-hint admin-hub-inline-label">
+            Delete clicks older than
+            <input type="number" name="days" min="1" value="90" class="admin-input admin-input--inline admin-hub-inline-days" />
+            days
+          </label>
+          <button type="submit" class="admin-btn-ghost admin-btn-ghost--sm">Delete old clicks</button>
+        </form>
+        <form method="post" action="{{ url_for('admin.analytics.external_links.purge') }}" class="admin-form" style="margin-top:0.85rem" onsubmit="return confirm('Delete ALL external-link click events? This cannot be undone.');">
+          <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+          <input type="hidden" name="mode" value="all" />
+          <button type="submit" class="admin-btn admin-btn--danger">Delete all clicks</button>
+        </form>
+      </section>
     </div>
-    <form method="post" action="{{ url_for('admin.analytics.external_links.purge') }}" class="admin-form admin-form--inline" style="display:flex;gap:0.5rem;align-items:end;flex-wrap:wrap;margin-bottom:0.75rem">
-      <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
-      <input type="hidden" name="mode" value="older_than" />
-      <label style="display:flex;flex-direction:column">
-        <span class="admin-form-label">Delete clicks older than (days)</span>
-        <input type="number" name="days" min="1" value="90" class="admin-input" style="max-width:7rem" />
-      </label>
-      <button type="submit" class="admin-btn-secondary">Delete old clicks</button>
-    </form>
-    <form method="post" action="{{ url_for('admin.analytics.external_links.purge') }}" class="admin-form" onsubmit="return confirm('Delete ALL external-link click events? This cannot be undone.');" style="margin:0">
-      <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
-      <input type="hidden" name="mode" value="all" />
-      <button type="submit" class="admin-btn-danger">Delete all clicks</button>
-    </form>
-  </section>
+  </div>
 {% endblock %}

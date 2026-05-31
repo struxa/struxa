@@ -1,0 +1,34 @@
+{% extends 'admin/base.twig' %}
+{% import 'admin/_ui_macros.twig' as ui %}
+
+{% block admin_title %}Tax rates{% endblock %}
+{% block admin_hero_title %}<h1 class="admin-hero-title">Country tax rates</h1>{% endblock %}
+{% block admin_hero_sub %}<p class="admin-hero-sub">Used when tax mode is <strong>Per country</strong> in Commerce settings.</p>{% endblock %}
+
+{% block admin_content %}
+  <div class="admin-page-toolbar">
+    <a class="admin-btn-primary" href="{{ url_for('admin.commerce.tax_rates.new') }}">New rate</a>
+    <a class="admin-btn-ghost" href="{{ url_for('admin.commerce.settings') }}">Commerce settings</a>
+  </div>
+
+  {% if tax_rates is empty %}
+    {{ ui.empty_state('No country tax rates', 'Add rates for GB, US, etc., then set tax mode to Per country.', url_for('admin.commerce.tax_rates.new'), 'New rate', '') }}
+  {% else %}
+    <div class="admin-table-wrap">
+      <table class="admin-table">
+        <thead><tr><th>Country</th><th>Label</th><th>Rate</th><th>Active</th><th></th></tr></thead>
+        <tbody>
+          {% for r in tax_rates %}
+            <tr>
+              <td><strong>{{ r.countryCode|e }}</strong></td>
+              <td>{{ r.label|default('—')|e }}</td>
+              <td>{{ (r.rateBps / 100)|number_format(2) }}%</td>
+              <td>{{ r.isActive ? 'Yes' : 'No' }}</td>
+              <td><a class="admin-link" href="{{ url_for('admin.commerce.tax_rates.edit', { id: r.id }) }}">Edit</a></td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% endif %}
+{% endblock %}

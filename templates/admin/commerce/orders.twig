@@ -12,18 +12,52 @@
 {% endblock %}
 
 {% block admin_content %}
+  <form class="admin-form admin-toolbar admin-toolbar--spread" method="get" action="{{ url_for('admin.commerce.orders') }}" style="margin-bottom:1rem">
+    <div class="admin-toolbar-start" style="display:flex;flex-wrap:wrap;gap:0.75rem;align-items:flex-end">
+      <label class="admin-field" style="margin:0">
+        <span class="admin-label">Status</span>
+        <select class="admin-select admin-select--sm" name="status">
+          <option value="">Any</option>
+          {% for st in ['pending', 'paid', 'failed', 'cancelled', 'refunded'] %}
+            <option value="{{ st }}" {{ order_filter.status == st ? 'selected' : '' }}>{{ st|replace({'_': ' '})|title }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label class="admin-field" style="margin:0">
+        <span class="admin-label">Email</span>
+        <input class="admin-input admin-input--sm" type="search" name="email" value="{{ order_filter.email|default('')|e('html_attr') }}" placeholder="customer@…" />
+      </label>
+      <label class="admin-field" style="margin:0">
+        <span class="admin-label">Order #</span>
+        <input class="admin-input admin-input--sm" type="search" name="order_number" value="{{ order_filter.orderNumber|default('')|e('html_attr') }}" placeholder="STX-…" />
+      </label>
+      <label class="admin-field" style="margin:0">
+        <span class="admin-label">From</span>
+        <input class="admin-input admin-input--sm" type="date" name="date_from" value="{{ order_filter.dateFrom|default('')|e('html_attr') }}" />
+      </label>
+      <label class="admin-field" style="margin:0">
+        <span class="admin-label">To</span>
+        <input class="admin-input admin-input--sm" type="date" name="date_to" value="{{ order_filter.dateTo|default('')|e('html_attr') }}" />
+      </label>
+      <button class="admin-btn-primary admin-btn-primary--sm" type="submit">Filter</button>
+      {% if order_filter.isActive %}
+        <a class="admin-btn-ghost admin-btn-ghost--sm" href="{{ url_for('admin.commerce.orders') }}">Clear</a>
+      {% endif %}
+    </div>
+  </form>
+
   <div class="admin-page-toolbar">
-    <span class="admin-hint">{{ orders|length }} order{{ orders|length == 1 ? '' : 's' }}</span>
-    <a class="admin-btn-ghost" href="{{ url_for('admin.commerce.orders.export') }}">Export CSV</a>
+    <span class="admin-hint">{{ orders|length }} order{{ orders|length == 1 ? '' : 's' }}{% if order_filter.isActive %} (filtered){% endif %}</span>
+    <a class="admin-btn-ghost" href="{{ url_for('admin.commerce.orders.export', {}, order_export_query|default({})) }}">Export CSV</a>
     <a class="admin-btn-ghost" href="{{ url_for('admin.commerce.settings') }}">Commerce settings</a>
   </div>
 
   {% if orders is empty %}
     {{ ui.empty_state(
-      'No orders yet',
-      'Enable commerce, configure Stripe, and publish a product content entry with a price.',
-      url_for('admin.commerce.settings'),
-      'Commerce settings',
+      order_filter.isActive ? 'No matching orders' : 'No orders yet',
+      order_filter.isActive ? 'Try clearing filters or widening the date range.' : 'Enable commerce, configure Stripe, and publish a product content entry with a price.',
+      order_filter.isActive ? url_for('admin.commerce.orders') : url_for('admin.commerce.settings'),
+      order_filter.isActive ? 'Clear filters' : 'Commerce settings',
       '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>'
     ) }}
   {% else %}

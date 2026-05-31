@@ -434,6 +434,83 @@ if (count($addr) < 3 || !str_contains(implode(' ', $addr), 'Jane Doe')) {
     $fail('ShippingAddressFormatter should format address lines.');
 }
 
+use App\Commerce\Order\OrderListFilter;
+$olf = OrderListFilter::fromQueryParams(['status' => 'paid', 'email' => 'a@b.co']);
+if (!$olf->isActive() || $olf->status !== 'paid') {
+    $fail('OrderListFilter should parse query params.');
+}
+
+use App\Commerce\Shipping\ShippingZone;
+$zone = new ShippingZone(1, 'UK', 'UK Standard', 499, 5000, ['GB'], 0, true);
+if ($zone->isFallback() || $zone->priceCents !== 499) {
+    $fail('ShippingZone should expose zone metadata.');
+}
+$fallback = new ShippingZone(2, 'Rest', 'International', 999, 0, [], 1, true);
+if (!$fallback->isFallback()) {
+    $fail('ShippingZone with empty countries should be fallback.');
+}
+
+use App\Commerce\Tax\CommerceTaxRate;
+$taxRate = new CommerceTaxRate(1, 'GB', 'VAT', 2000, true, 0);
+if ($taxRate->rateBps !== 2000) {
+    $fail('CommerceTaxRate should store basis points.');
+}
+
+use App\Commerce\Shipping\ShippingZoneRepository;
+if (ShippingZoneRepository::normalizeCountries('gb, ie, US') !== ['GB', 'IE', 'US']) {
+    $fail('ShippingZoneRepository should normalize country lists.');
+}
+
+use App\Commerce\Digital\DigitalDeliverySpec;
+$fileSpec = new DigitalDeliverySpec(DigitalDeliverySpec::TYPE_FILE, ['media_id' => 42], 'PDF');
+if (!$fileSpec->hasDelivery() || $fileSpec->label !== 'PDF') {
+    $fail('DigitalDeliverySpec file type should require media_id.');
+}
+$urlSpec = new DigitalDeliverySpec(DigitalDeliverySpec::TYPE_URL, ['url' => 'https://example.com/file.zip']);
+if (!$urlSpec->hasDelivery()) {
+    $fail('DigitalDeliverySpec url type should accept valid url payload.');
+}
+$emptySpec = new DigitalDeliverySpec(DigitalDeliverySpec::TYPE_FILE, []);
+if ($emptySpec->hasDelivery()) {
+    $fail('DigitalDeliverySpec should reject empty file payload.');
+}
+
+use App\Commerce\Digital\DigitalGrant;
+$grant = DigitalGrant::fromRow([
+    'id' => 1,
+    'order_id' => 10,
+    'order_item_id' => 20,
+    'content_entry_id' => 5,
+    'access_token' => str_repeat('a', 64),
+    'delivery_type' => 'file',
+    'delivery_payload_json' => '{"media_id":1}',
+    'label' => 'E-book',
+    'revoked_at' => null,
+    'download_count' => 0,
+    'last_download_at' => null,
+    'created_at' => '2026-01-01',
+]);
+if (!$grant->isActive() || $grant->payload['media_id'] !== 1) {
+    $fail('DigitalGrant should parse row and report active state.');
+}
+$revoked = DigitalGrant::fromRow(array_merge([
+    'id' => 2,
+    'order_id' => 10,
+    'order_item_id' => 21,
+    'content_entry_id' => 6,
+    'access_token' => str_repeat('b', 64),
+    'delivery_type' => 'url',
+    'delivery_payload_json' => '{"url":"https://x.test"}',
+    'label' => 'Link',
+    'revoked_at' => '2026-01-02 12:00:00',
+    'download_count' => 3,
+    'last_download_at' => '2026-01-02 11:00:00',
+    'created_at' => '2026-01-01',
+]));
+if ($revoked->isActive()) {
+    $fail('DigitalGrant with revoked_at should not be active.');
+}
+
 $fields = [
     ['id' => 1, 'field_key' => 'email', 'field_type' => FormFieldType::EMAIL, 'label' => 'Email', 'required' => 1],
     ['id' => 2, 'field_key' => '_hp_url', 'field_type' => FormFieldType::HONEYPOT, 'label' => 'HP', 'required' => 0],

@@ -18,7 +18,7 @@
   </p>
 {% endblock %}
 
-{% block admin_body_class %}admin-body--content-types{% endblock %}
+{% block admin_body_class %}admin-body--dash-ref admin-body--content-types{% endblock %}
 
 {% block admin_content %}
   {% set summary = entry_summary|default({ total: 0, published: 0, draft: 0, in_review: 0 }) %}

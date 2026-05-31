@@ -11,6 +11,7 @@ final class CartService
 {
     private const SESSION_KEY = 'struxa_commerce_cart';
     private const COUPON_KEY = 'struxa_commerce_coupon';
+    private const COUNTRY_KEY = 'struxa_commerce_ship_country';
 
     /**
      * @return array<int, int> entry_id => quantity
@@ -80,6 +81,39 @@ final class CartService
         $this->ensureSession();
         unset($_SESSION[self::SESSION_KEY]);
         unset($_SESSION[self::COUPON_KEY]);
+        unset($_SESSION[self::COUNTRY_KEY]);
+    }
+
+    public function shipCountry(): ?string
+    {
+        if (session_status() !== PHP_SESSION_ACTIVE) {
+            return null;
+        }
+        /** @var mixed $code */
+        $code = $_SESSION[self::COUNTRY_KEY] ?? null;
+        if (!is_string($code)) {
+            return null;
+        }
+        $code = strtoupper(trim($code));
+
+        return preg_match('/^[A-Z]{2}$/', $code) === 1 ? $code : null;
+    }
+
+    public function setShipCountry(?string $countryCode): void
+    {
+        $this->ensureSession();
+        if ($countryCode === null || trim($countryCode) === '') {
+            unset($_SESSION[self::COUNTRY_KEY]);
+
+            return;
+        }
+        $code = strtoupper(trim($countryCode));
+        if (preg_match('/^[A-Z]{2}$/', $code) !== 1) {
+            unset($_SESSION[self::COUNTRY_KEY]);
+
+            return;
+        }
+        $_SESSION[self::COUNTRY_KEY] = $code;
     }
 
     public function couponCode(): ?string

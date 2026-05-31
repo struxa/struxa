@@ -64,7 +64,7 @@
 
     <div class="theme-cms-body">
       {% for row in content_field_rows %}
-        {% if commerce_product is defined and commerce_product and row.field_key in ['price_cents', 'purchasable', 'stripe_price_id', 'sku', 'stock_qty'] %}
+        {% if commerce_product is defined and commerce_product and row.field_key in ['price_cents', 'purchasable', 'stripe_price_id', 'sku', 'stock_qty', 'digital_file', 'digital_url', 'digital_entry_slug', 'digital_label'] %}
           {# Shown via commerce buy form #}
         {% else %}
         <section class="theme-field-block" data-field-key="{{ row.field_key|e('html_attr') }}">

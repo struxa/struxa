@@ -2,7 +2,7 @@
 {% import 'admin/_ui_macros.twig' as ui %}
 
 {% block admin_title %}Edit form — {{ form_row.name|e }}{% endblock %}
-{% block admin_body_class %}admin-body--form-edit{% endblock %}
+{% block admin_body_class %}admin-body--dash-ref admin-body--form-edit{% endblock %}
 
 {% block admin_head %}
   <script src="{{ asset('js/admin-forms-builder.js') }}" defer></script>

@@ -7,68 +7,92 @@
 {% endblock %}
 
 {% block admin_hero_sub %}
-  <p class="admin-hint" style="margin-top:0">
-    <a class="admin-link" href="{{ url_for('admin.seo.overview') }}">SEO overview</a>
-    ·
-    <a class="admin-link" href="{{ url_for('admin.seo.redirects') }}">URL redirects</a>
-    ·
-    <a class="admin-link" href="{{ url_for('admin.seo.not_found') }}">404 monitor</a>
-  </p>
+  <p class="admin-hero-sub admin-hero-sub--tight">Control what search engines discover via <code class="admin-inline-code">/sitemap.xml</code> and default <code class="admin-inline-code">robots.txt</code>.</p>
 {% endblock %}
 
 {% block admin_content %}
-  <section class="admin-card" style="margin-bottom:1.25rem">
-    <h2 class="admin-card-title">Live sitemap</h2>
-    <p class="admin-hint" style="margin-top:0">
-      Search engines read <code class="admin-inline-code">/sitemap.xml</code> (standard location). It lists your public site URL, published CMS pages (<code class="admin-inline-code">/p/…</code>), published content entries with a public route, and indexable taxonomy term archives.
-    </p>
-    <p class="admin-hint" style="margin-top:0.75rem">
-      <strong>Public URL:</strong>
-      <a class="admin-link" href="{{ url_for('public.sitemap') }}" target="_blank" rel="noopener noreferrer">{{ site_url }}/sitemap.xml</a>
-      {% if not sitemap_enabled %}
-        <span class="admin-pill" style="margin-left:0.5rem">Disabled</span>
-        <span class="admin-hint" style="display:block;margin-top:0.35rem">With the sitemap off, that address returns <strong>404</strong> and <code class="admin-inline-code">robots.txt</code> omits the <code class="admin-inline-code">Sitemap:</code> line (unless you added one in custom robots text under Settings).</span>
-      {% endif %}
-    </p>
-    <p class="admin-hint" style="margin-top:0.75rem">
-      <strong>URLs with current options:</strong> {{ sitemap_url_count }} (includes the site homepage once).
-    </p>
-  </section>
+  <div class="admin-settings-page admin-settings-page--seo">
+    {% include 'admin/seo/_subnav.twig' with { seo_nav_active: 'sitemap' } %}
 
-  <form class="admin-form" method="post" action="{{ url_for('admin.seo.sitemap.save') }}">
-    <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
-    <section class="admin-card" style="margin-bottom:1.25rem">
-      <h2 class="admin-card-title">Options</h2>
-      <div class="admin-form-grid">
-        <div class="admin-field admin-field--full">
-          <label class="admin-label admin-label--checkbox">
-            <input type="checkbox" name="sitemap_enabled" value="1" {{ sitemap_enabled ? 'checked' : '' }} />
-            Publish <code class="admin-inline-code">/sitemap.xml</code> and advertise it in default <code class="admin-inline-code">robots.txt</code>
-          </label>
+    <section class="admin-card admin-settings-card admin-sitemap-live-card">
+      <div class="admin-settings-card-head-row">
+        <div>
+          <h2 class="admin-settings-card-title">Live sitemap</h2>
+          <p class="admin-settings-card-desc" style="margin-bottom:0">
+            Lists your homepage, published pages, public content entries, and indexable taxonomy archives.
+          </p>
         </div>
-        <div class="admin-field admin-field--full">
-          <label class="admin-label admin-label--checkbox">
-            <input type="checkbox" name="sitemap_include_pages" value="1" {{ sitemap_include_pages ? 'checked' : '' }} />
-            Include published <strong>pages</strong> (<code class="admin-inline-code">/p/{slug}</code>)
-          </label>
+        {% if sitemap_enabled %}
+          <span class="admin-pill admin-pill--ok">Published</span>
+        {% else %}
+          <span class="admin-pill admin-pill--warn">Disabled</span>
+        {% endif %}
+      </div>
+
+      <div class="admin-sitemap-live-body">
+        <div class="admin-sitemap-url-box">
+          <span class="admin-sitemap-url-label">Public URL</span>
+          <a class="admin-sitemap-url-link" href="{{ url_for('public.sitemap') }}" target="_blank" rel="noopener noreferrer">{{ site_url }}/sitemap.xml</a>
+          <a class="admin-btn-ghost admin-btn-ghost--sm" href="{{ url_for('public.sitemap') }}" target="_blank" rel="noopener noreferrer">Open sitemap</a>
         </div>
-        <div class="admin-field admin-field--full">
-          <label class="admin-label admin-label--checkbox">
-            <input type="checkbox" name="sitemap_include_entries" value="1" {{ sitemap_include_entries ? 'checked' : '' }} />
-            Include published <strong>content entries</strong> for types that have a public route
-          </label>
+        <div class="admin-metrics admin-hub-metrics admin-hub-metrics--inline">
+          <article class="admin-metric">
+            <p class="admin-metric-label">URLs listed</p>
+            <p class="admin-metric-value">{{ sitemap_url_count }}</p>
+            <p class="admin-metric-meta">Includes homepage once</p>
+          </article>
+          <article class="admin-metric">
+            <p class="admin-metric-label">Status</p>
+            <p class="admin-metric-value admin-metric-value--sm">{{ sitemap_enabled ? 'Live' : '404' }}</p>
+            <p class="admin-metric-meta">{{ sitemap_enabled ? 'Advertised in robots.txt' : 'Omitted from robots.txt' }}</p>
+          </article>
         </div>
-        <div class="admin-field admin-field--full">
-          <label class="admin-label admin-label--checkbox">
-            <input type="checkbox" name="sitemap_include_taxonomy_archives" value="1" {{ sitemap_include_taxonomy_archives ? 'checked' : '' }} />
-            Include <strong>taxonomy term</strong> archive URLs (indexable terms only)
-          </label>
+        {% if not sitemap_enabled %}
+          <div class="admin-callout admin-callout--warn" style="margin-top:0.85rem">
+            <p class="admin-callout-title" style="margin-top:0">Sitemap is off</p>
+            <p style="margin:0.35rem 0 0">That address returns <strong>404</strong> and default <code class="admin-inline-code">robots.txt</code> omits the <code class="admin-inline-code">Sitemap:</code> line unless you added one in Settings.</p>
+          </div>
+        {% endif %}
+      </div>
+    </section>
+
+    <form class="admin-form admin-settings-form" method="post" action="{{ url_for('admin.seo.sitemap.save') }}">
+      <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+      <section class="admin-card admin-settings-card admin-settings-section">
+        <h2 class="admin-settings-card-title">Options</h2>
+        <p class="admin-settings-card-desc">Pages and entries with <code class="admin-inline-code">noindex</code> are omitted automatically.</p>
+        <div class="admin-form-grid admin-sitemap-options">
+          <div class="admin-field admin-field--full">
+            <label class="admin-label admin-settings-check-label">
+              <input type="checkbox" name="sitemap_enabled" value="1" {{ sitemap_enabled ? 'checked' : '' }} />
+              Publish <code class="admin-inline-code">/sitemap.xml</code> and advertise it in default <code class="admin-inline-code">robots.txt</code>
+            </label>
+          </div>
+          <div class="admin-field admin-field--full">
+            <label class="admin-label admin-settings-check-label">
+              <input type="checkbox" name="sitemap_include_pages" value="1" {{ sitemap_include_pages ? 'checked' : '' }} />
+              Include published <strong>pages</strong> (<code class="admin-inline-code">/p/{slug}</code>)
+            </label>
+          </div>
+          <div class="admin-field admin-field--full">
+            <label class="admin-label admin-settings-check-label">
+              <input type="checkbox" name="sitemap_include_entries" value="1" {{ sitemap_include_entries ? 'checked' : '' }} />
+              Include published <strong>content entries</strong> for types with a public route
+            </label>
+          </div>
+          <div class="admin-field admin-field--full">
+            <label class="admin-label admin-settings-check-label">
+              <input type="checkbox" name="sitemap_include_taxonomy_archives" value="1" {{ sitemap_include_taxonomy_archives ? 'checked' : '' }} />
+              Include <strong>taxonomy term</strong> archive URLs (indexable terms only)
+            </label>
+          </div>
+        </div>
+      </section>
+      <div class="admin-form-sticky-bar admin-settings-sticky">
+        <div class="admin-form-sticky-inner admin-settings-sticky-inner">
+          <button type="submit" class="admin-btn-primary">Save sitemap settings</button>
         </div>
       </div>
-      <p class="admin-hint" style="margin-top:1rem;margin-bottom:0">Pages and entries with <code class="admin-inline-code">noindex</code> are omitted automatically. The homepage URL is always listed once when the sitemap is enabled.</p>
-    </section>
-    <div class="admin-form-actions">
-      <button type="submit" class="admin-btn admin-btn--primary">Save sitemap settings</button>
-    </div>
-  </form>
+    </form>
+  </div>
 {% endblock %}

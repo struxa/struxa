@@ -17,6 +17,9 @@
         <dt>Status</dt><dd>{{ commerce_order.status|replace({'_': ' '})|e }}</dd>
         <dt>Total</dt><dd>{{ (commerce_order.totalCents / 100)|number_format(2) }} {{ commerce_order.currency|upper|e }}</dd>
       </dl>
+      {% if commerce_order.status == 'paid' and digital_grants is defined and digital_grants is not empty %}
+        {% include 'commerce/_digital_access.twig' with { digital_grants: digital_grants, order: commerce_order } %}
+      {% endif %}
       <p><a href="{{ url_for('public.commerce.orders.lookup') }}">Track this order</a>{% if logged_in %} · <a href="{{ url_for('public.commerce.orders') }}">My orders</a>{% endif %}</p>
     {% else %}
       <p class="theme-commerce-success-lead">Your checkout session completed. If you do not see order details yet, check your email for a Stripe receipt.</p>

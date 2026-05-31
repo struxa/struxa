@@ -1,4 +1,5 @@
 {% extends 'admin/base.twig' %}
+{% import 'admin/_ui_macros.twig' as ui %}
 
 {% block admin_title %}Comments moderation{% endblock %}
 
@@ -7,71 +8,125 @@
 {% endblock %}
 
 {% block admin_hero_sub %}
-  <p class="admin-hero-sub">Review public comments, approve trusted posts, and mark spam quickly.</p>
+  <p class="admin-hero-sub admin-hero-sub--tight">Review public comments, approve trusted posts, and mark spam.</p>
 {% endblock %}
 
 {% block admin_content %}
-  <section class="admin-card">
-    <div class="admin-toolbar admin-toolbar--spread" style="margin-bottom:0.75rem;flex-wrap:wrap;gap:0.5rem">
-      <div class="admin-hint">
-        Pending {{ comment_pending_count }} · Approved {{ comment_approved_count }} · Rejected {{ comment_rejected_count }} · Spam {{ comment_spam_count }}
+  {% set _status = comment_status|default('pending') %}
+  {% set queue_total = comment_pending_count + comment_approved_count + comment_rejected_count + comment_spam_count %}
+
+  <div class="admin-settings-page admin-settings-page--system">
+    {% include 'admin/partials/_system_subnav.twig' with { system_nav_active: 'comments' } %}
+
+    <div class="admin-settings-intro admin-settings-intro--comments">
+      <div class="admin-settings-intro-icon" aria-hidden="true">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+        </svg>
       </div>
-      <div style="display:flex;gap:0.4rem;flex-wrap:wrap">
-        {% set _status = comment_status|default('pending') %}
-        <a class="admin-btn {{ _status == 'pending' ? 'admin-btn--primary' : 'admin-btn--ghost' }}" href="{{ url_for('admin.comments.index', {}, { status: 'pending' }) }}">Pending</a>
-        <a class="admin-btn {{ _status == 'approved' ? 'admin-btn--primary' : 'admin-btn--ghost' }}" href="{{ url_for('admin.comments.index', {}, { status: 'approved' }) }}">Approved</a>
-        <a class="admin-btn {{ _status == 'rejected' ? 'admin-btn--primary' : 'admin-btn--ghost' }}" href="{{ url_for('admin.comments.index', {}, { status: 'rejected' }) }}">Rejected</a>
-        <a class="admin-btn {{ _status == 'spam' ? 'admin-btn--primary' : 'admin-btn--ghost' }}" href="{{ url_for('admin.comments.index', {}, { status: 'spam' }) }}">Spam</a>
+      <div class="admin-settings-intro-body">
+        <p class="admin-settings-intro-title">Public comment queue</p>
+        <p class="admin-settings-intro-text">
+          Comments submitted on the storefront land here for moderation.
+          Only <strong class="admin-settings-intro-strong">approved</strong> comments appear publicly.
+          Use spam for obvious junk — rejected comments are hidden but kept for review.
+        </p>
       </div>
+      {% if comment_pending_count > 0 %}
+        <span class="admin-pill admin-pill--warn admin-hub-status-pill">{{ comment_pending_count }} pending</span>
+      {% endif %}
     </div>
 
-    {% if comment_rows is empty %}
-      <p class="admin-hint">No comments in this queue.</p>
-    {% else %}
-      <div class="admin-table-wrap">
-        <table class="admin-table">
-          <thead>
-            <tr>
-              <th>When</th>
-              <th>Thread</th>
-              <th>Author</th>
-              <th>Comment</th>
-              <th>IP</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for row in comment_rows %}
+    <div class="admin-metrics admin-hub-metrics" aria-label="Comment summary">
+      <article class="admin-metric{% if comment_pending_count > 0 %} admin-metric--hot{% endif %}">
+        <p class="admin-metric-label">Pending</p>
+        <p class="admin-metric-value">{{ comment_pending_count }}</p>
+        <p class="admin-metric-meta">Awaiting review</p>
+      </article>
+      <article class="admin-metric admin-metric--health-good">
+        <p class="admin-metric-label">Approved</p>
+        <p class="admin-metric-value">{{ comment_approved_count }}</p>
+        <p class="admin-metric-meta">Visible on site</p>
+      </article>
+      <article class="admin-metric">
+        <p class="admin-metric-label">Rejected</p>
+        <p class="admin-metric-value">{{ comment_rejected_count }}</p>
+        <p class="admin-metric-meta">Hidden from public</p>
+      </article>
+      <article class="admin-metric">
+        <p class="admin-metric-label">Spam</p>
+        <p class="admin-metric-value">{{ comment_spam_count }}</p>
+        <p class="admin-metric-meta">Marked as junk</p>
+      </article>
+    </div>
+
+    <nav class="admin-filter-pills admin-filter-pills--wide" aria-label="Comment status">
+      <a class="admin-filter-pill{{ _status == 'pending' ? ' is-current' : '' }}" href="{{ url_for('admin.comments.index', {}, { status: 'pending' }) }}">Pending{% if comment_pending_count > 0 %} ({{ comment_pending_count }}){% endif %}</a>
+      <a class="admin-filter-pill{{ _status == 'approved' ? ' is-current' : '' }}" href="{{ url_for('admin.comments.index', {}, { status: 'approved' }) }}">Approved</a>
+      <a class="admin-filter-pill{{ _status == 'rejected' ? ' is-current' : '' }}" href="{{ url_for('admin.comments.index', {}, { status: 'rejected' }) }}">Rejected</a>
+      <a class="admin-filter-pill{{ _status == 'spam' ? ' is-current' : '' }}" href="{{ url_for('admin.comments.index', {}, { status: 'spam' }) }}">Spam</a>
+    </nav>
+
+    <section class="admin-card admin-settings-card">
+      <header class="admin-settings-card-head-row">
+        <div>
+          <h2 class="admin-settings-card-title">{{ _status|replace({'_': ' '})|title }} queue</h2>
+          <p class="admin-settings-card-desc" style="margin-bottom:0">{{ comment_rows|length }} comment(s) on this page · {{ queue_total }} total</p>
+        </div>
+      </header>
+
+      {% if comment_rows is empty %}
+        <p class="admin-hint admin-settings-card-footnote">No comments in this queue.</p>
+      {% else %}
+        <div class="admin-table-wrap" style="margin-top:0.85rem">
+          <table class="admin-table admin-table--comfortable">
+            <thead>
               <tr>
-                <td><code class="admin-inline-code">{{ row.created_at|e }}</code></td>
-                <td><code class="admin-inline-code">{{ row.thread_key|e }}</code></td>
-                <td>{{ row.author_name|e }}</td>
-                <td style="max-width:28rem">{{ row.body|default('')|e|nl2br }}</td>
-                <td><code class="admin-inline-code">{{ row.client_ip|e }}</code></td>
-                <td style="white-space:nowrap">
-                  <form method="post" action="{{ url_for('admin.comments.status', { id: row.id }) }}" style="display:inline">
-                    <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
-                    <input type="hidden" name="from_status" value="{{ _status|e('html_attr') }}" />
-                    <input type="hidden" name="status" value="approved" />
-                    <button class="admin-btn admin-btn--ghost admin-btn--sm" type="submit">Approve</button>
-                  </form>
-                  <form method="post" action="{{ url_for('admin.comments.status', { id: row.id }) }}" style="display:inline">
-                    <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
-                    <input type="hidden" name="from_status" value="{{ _status|e('html_attr') }}" />
-                    <input type="hidden" name="status" value="spam" />
-                    <button class="admin-btn admin-btn--ghost admin-btn--sm" type="submit">Spam</button>
-                  </form>
-                  <form method="post" action="{{ url_for('admin.comments.delete', { id: row.id }) }}" style="display:inline" onsubmit="return confirm('Delete this comment?')">
-                    <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
-                    <input type="hidden" name="from_status" value="{{ _status|e('html_attr') }}" />
-                    <button class="admin-btn admin-btn--ghost admin-btn--sm" type="submit">Delete</button>
-                  </form>
-                </td>
+                <th>When</th>
+                <th>Thread</th>
+                <th>Author</th>
+                <th>Comment</th>
+                <th>IP</th>
+                <th>Actions</th>
               </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    {% endif %}
-  </section>
+            </thead>
+            <tbody>
+              {% for row in comment_rows %}
+                <tr>
+                  <td class="admin-table-muted"><code class="admin-inline-code">{{ row.created_at|e }}</code></td>
+                  <td><code class="admin-inline-code admin-table-sub">{{ row.thread_key|e }}</code></td>
+                  <td><strong class="admin-table-primary">{{ row.author_name|e }}</strong></td>
+                  <td class="admin-comment-body">{{ row.body|default('')|e|nl2br }}</td>
+                  <td class="admin-table-muted"><code class="admin-inline-code">{{ row.client_ip|e }}</code></td>
+                  <td class="admin-table-actions" style="white-space:nowrap">
+                    {% if _status != 'approved' %}
+                      <form method="post" action="{{ url_for('admin.comments.status', { id: row.id }) }}" class="admin-inline-form">
+                        <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+                        <input type="hidden" name="from_status" value="{{ _status|e('html_attr') }}" />
+                        <input type="hidden" name="status" value="approved" />
+                        <button class="admin-btn-ghost admin-btn-ghost--sm" type="submit">Approve</button>
+                      </form>
+                    {% endif %}
+                    {% if _status != 'spam' %}
+                      <form method="post" action="{{ url_for('admin.comments.status', { id: row.id }) }}" class="admin-inline-form">
+                        <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+                        <input type="hidden" name="from_status" value="{{ _status|e('html_attr') }}" />
+                        <input type="hidden" name="status" value="spam" />
+                        <button class="admin-btn-ghost admin-btn-ghost--sm" type="submit">Spam</button>
+                      </form>
+                    {% endif %}
+                    <form method="post" action="{{ url_for('admin.comments.delete', { id: row.id }) }}" class="admin-inline-form" onsubmit="return confirm('Delete this comment?')">
+                      <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+                      <input type="hidden" name="from_status" value="{{ _status|e('html_attr') }}" />
+                      <button class="admin-btn-ghost admin-btn-ghost--sm" type="submit">Delete</button>
+                    </form>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% endif %}
+    </section>
+  </div>
 {% endblock %}

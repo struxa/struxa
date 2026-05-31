@@ -6,9 +6,13 @@ use App\Commerce\Catalog\ShopCatalogPage;
 use App\Commerce\Customer\CommerceCustomerLinker;
 use App\Commerce\Cart\CartResolver;
 use App\Commerce\Cart\CartService;
+use App\Commerce\CommerceCountryCodes;
 use App\Commerce\CommerceSettings;
 use App\Commerce\Coupon\CouponRepository;
 use App\Commerce\Coupon\CouponService;
+use App\Commerce\Digital\DigitalAccessHandler;
+use App\Commerce\Digital\DigitalFulfillmentService;
+use App\Commerce\Digital\DigitalGrantRepository;
 use App\Commerce\Order\CommerceOrderRepository;
 use App\Commerce\Order\OrderFulfillmentService;
 use App\Commerce\Payment\StripeCheckoutService;
@@ -16,12 +20,17 @@ use App\Commerce\Payment\StripeWebhookHandler;
 use App\Commerce\Pricing\OrderTotalsCalculator;
 use App\Commerce\Product\ProductCatalogEnricher;
 use App\Commerce\Product\ProductResolver;
+use App\Commerce\Shipping\ShippingZoneRepository;
+use App\Commerce\Shipping\ShippingZoneResolver;
+use App\Commerce\Tax\TaxRateRepository;
+use App\Commerce\Tax\TaxRateResolver;
 use App\Content\PublicContentIndexCardBuilder;
 use App\Media\MediaUrlHelper;
 use App\Content\ContentEntryRepository;
 use App\Content\ContentEntryValueRepository;
 use App\Content\ContentFieldRepository;
 use App\Content\ContentTypeRepository;
+use App\Media\MediaRepository;
 use App\Flash;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
@@ -32,6 +41,7 @@ use Slim\Routing\RouteContext;
 use Slim\Views\Twig;
 
 return static function (App $app, Twig $twig, \PDO $pdo, callable $viewData): void {
+    $root = dirname(__DIR__);
     $commerce = new CommerceSettings($pdo);
     $orders = new CommerceOrderRepository($pdo);
     $types = new ContentTypeRepository($pdo);
@@ -46,15 +56,28 @@ return static function (App $app, Twig $twig, \PDO $pdo, callable $viewData): vo
     $customerLinker = new CommerceCustomerLinker($pdo, $orders);
     $cart = new CartService();
     $coupons = new CouponService(new CouponRepository($pdo));
-    $totalsCalculator = new OrderTotalsCalculator($commerce);
+    $shippingZoneRepo = new ShippingZoneRepository($pdo);
+    $taxRateRepo = new TaxRateRepository($pdo);
+    $shippingZones = new ShippingZoneResolver($commerce, $shippingZoneRepo);
+    $taxRates = new TaxRateResolver($commerce, $taxRateRepo);
+    $totalsCalculator = new OrderTotalsCalculator($commerce, $taxRates, $shippingZones);
     $cartResolver = new CartResolver($cart, $commerce, $types, $entries, $values, $products, $totalsCalculator, $coupons);
-    $checkout = new StripeCheckoutService($commerce, $orders);
+    $checkout = new StripeCheckoutService($commerce, $orders, $taxRates, $shippingZones);
+    $digital = DigitalFulfillmentService::factory($pdo, $commerce, $types, $fields, $values, $entries, $orders);
+    $digitalAccess = new DigitalAccessHandler(
+        new DigitalGrantRepository($pdo),
+        $orders,
+        new MediaRepository($pdo),
+        $mediaUrls,
+        $root,
+    );
     $fulfillment = new OrderFulfillmentService(
         $pdo,
         $commerce,
         $orders,
         new \App\Commerce\Inventory\InventoryService($pdo, $commerce, $types, $values, $products),
         $coupons,
+        $digital,
     );
     $webhooks = new StripeWebhookHandler($commerce, $orders, $fulfillment, $customerLinker);
 
@@ -75,12 +98,17 @@ return static function (App $app, Twig $twig, \PDO $pdo, callable $viewData): vo
         return $shopPage->render($request, $response, $twig, $viewData);
     })->setName('public.commerce.shop');
 
-    $app->get('/commerce/cart', function (Request $request, Response $response) use ($twig, $viewData, $cartResolver, $requireCommerce, $cart, $commerce): Response {
+    $app->get('/commerce/cart', function (Request $request, Response $response) use ($twig, $viewData, $cartResolver, $requireCommerce, $cart, $commerce, $shippingZoneRepo, $taxRateRepo): Response {
         $requireCommerce($request);
         $resolved = $cartResolver->resolve();
         if (!$resolved['ok']) {
             Flash::set('error', $resolved['error']);
         }
+
+        $preferredCountries = array_merge(
+            $shippingZoneRepo->allCountryCodes(),
+            array_map(static fn ($r) => $r->countryCode, $taxRateRepo->listActive()),
+        );
 
         return $twig->render($response, 'commerce/cart.twig', array_merge($viewData(), [
             'cart_lines' => $resolved['ok'] ? $resolved['lines'] : [],
@@ -91,6 +119,9 @@ return static function (App $app, Twig $twig, \PDO $pdo, callable $viewData): vo
             'cart_error' => $resolved['ok'] ? null : $resolved['error'],
             'cart_coupon_code' => $resolved['ok'] ? $resolved['coupon_code'] : null,
             'cart_coupon_error' => $resolved['ok'] ? $resolved['coupon_error'] : null,
+            'cart_ship_country' => $resolved['ok'] ? ($resolved['ship_country'] ?? null) : $cart->shipCountry(),
+            'cart_country_choices' => CommerceCountryCodes::forSelect($preferredCountries),
+            'cart_needs_country' => $commerce->needsCheckoutCountry(),
         ]));
     })->setName('public.commerce.cart');
 
@@ -150,6 +181,17 @@ return static function (App $app, Twig $twig, \PDO $pdo, callable $viewData): vo
         return $response->withHeader('Location', RouteContext::fromRequest($request)->getRouteParser()->urlFor('public.commerce.cart'))->withStatus(302);
     })->setName('public.commerce.cart.update');
 
+    $app->post('/commerce/cart/country', function (Request $request, Response $response) use ($cart, $requireCommerce): Response {
+        $requireCommerce($request);
+        $body = $request->getParsedBody();
+        $body = is_array($body) ? $body : [];
+        $country = isset($body['ship_country']) && is_string($body['ship_country']) ? trim($body['ship_country']) : '';
+        $cart->setShipCountry($country !== '' ? $country : null);
+        Flash::set('success', 'Shipping country updated.');
+
+        return $response->withHeader('Location', RouteContext::fromRequest($request)->getRouteParser()->urlFor('public.commerce.cart'))->withStatus(302);
+    })->setName('public.commerce.cart.country');
+
     $app->post('/commerce/cart/coupon', function (Request $request, Response $response) use ($cart, $cartResolver, $coupons, $requireCommerce): Response {
         $requireCommerce($request);
         $body = $request->getParsedBody();
@@ -183,11 +225,14 @@ return static function (App $app, Twig $twig, \PDO $pdo, callable $viewData): vo
         return $response->withHeader('Location', $back)->withStatus(302);
     })->setName('public.commerce.cart.coupon');
 
-    $app->post('/commerce/cart/checkout', function (Request $request, Response $response) use ($cartResolver, $checkout, $viewData, $requireCommerce, $checkoutUserId): Response {
+    $app->post('/commerce/cart/checkout', function (Request $request, Response $response) use ($cartResolver, $checkout, $viewData, $requireCommerce, $checkoutUserId, $commerce): Response {
         $requireCommerce($request);
         $resolved = $cartResolver->resolve();
         if (!$resolved['ok']) {
             throw new HttpBadRequestException($request, $resolved['error']);
+        }
+        if ($commerce->needsCheckoutCountry() && ($resolved['ship_country'] ?? null) === null) {
+            throw new HttpBadRequestException($request, 'Select a shipping country before checkout.');
         }
         $err = $cartResolver->validateForCheckout($resolved['lines']);
         if ($err !== null) {
@@ -213,7 +258,9 @@ return static function (App $app, Twig $twig, \PDO $pdo, callable $viewData): vo
         $totalsCalculator,
         $viewData,
         $requireCommerce,
-        $checkoutUserId
+        $checkoutUserId,
+        $commerce,
+        $cart
     ): Response {
         $requireCommerce($request);
 
@@ -221,6 +268,10 @@ return static function (App $app, Twig $twig, \PDO $pdo, callable $viewData): vo
         $body = is_array($body) ? $body : [];
         $entryId = isset($body['content_entry_id']) ? (int) $body['content_entry_id'] : 0;
         $quantity = isset($body['quantity']) ? (int) $body['quantity'] : 1;
+        $shipCountry = isset($body['ship_country']) && is_string($body['ship_country']) ? trim($body['ship_country']) : $cart->shipCountry();
+        if ($shipCountry !== '') {
+            $cart->setShipCountry($shipCountry);
+        }
 
         if ($entryId < 1) {
             throw new HttpBadRequestException($request, 'Missing product.');
@@ -244,9 +295,12 @@ return static function (App $app, Twig $twig, \PDO $pdo, callable $viewData): vo
         if (!$products->hasStock($product, $quantity)) {
             throw new HttpBadRequestException($request, 'Not enough stock.');
         }
+        if ($commerce->needsCheckoutCountry() && $cart->shipCountry() === null) {
+            throw new HttpBadRequestException($request, 'Select a shipping country before checkout (use the cart page or the country field below).');
+        }
 
         $lineTotal = $product->stripePriceId !== null ? 0 : $product->priceCents * $quantity;
-        $totals = $totalsCalculator->calculate($lineTotal);
+        $totals = $totalsCalculator->calculate($lineTotal, null, null, $cart->shipCountry());
 
         $vd = $viewData();
         $siteUrl = rtrim((string) ($vd['site_url'] ?? ''), '/');
@@ -260,7 +314,7 @@ return static function (App $app, Twig $twig, \PDO $pdo, callable $viewData): vo
             ->withStatus(302);
     })->setName('public.commerce.checkout');
 
-    $app->get('/commerce/checkout/success', function (Request $request, Response $response) use ($twig, $viewData, $orders, $fulfillment, $customerLinker, $cart, $requireCommerce): Response {
+    $app->get('/commerce/checkout/success', function (Request $request, Response $response) use ($twig, $viewData, $orders, $fulfillment, $customerLinker, $cart, $digital, $requireCommerce): Response {
         $requireCommerce($request);
 
         $q = $request->getQueryParams();
@@ -272,12 +326,22 @@ return static function (App $app, Twig $twig, \PDO $pdo, callable $viewData): vo
             $order = $orders->findByStripeSessionId($sessionId);
             $cart->clear();
         }
+        $digitalGrants = ($order !== null && $order->status === 'paid')
+            ? $digital->activeGrantsForOrder($order)
+            : [];
 
         return $twig->render($response, 'commerce/checkout_success.twig', array_merge($viewData(), [
             'commerce_order' => $order,
             'checkout_session_id' => $sessionId,
+            'digital_grants' => $digitalGrants,
         ]));
     })->setName('public.commerce.checkout_success');
+
+    $app->get('/commerce/access/{token:[a-f0-9]{64}}', function (Request $request, Response $response, array $args) use ($digitalAccess, $requireCommerce): Response {
+        $requireCommerce($request);
+
+        return $digitalAccess->serveByToken($request, $response, (string) ($args['token'] ?? ''));
+    })->setName('public.commerce.digital.access');
 
     $app->get('/commerce/orders/lookup', function (Request $request, Response $response) use ($twig, $viewData, $requireCommerce): Response {
         $requireCommerce($request);
@@ -316,7 +380,7 @@ return static function (App $app, Twig $twig, \PDO $pdo, callable $viewData): vo
         ]));
     })->setName('public.commerce.orders');
 
-    $app->get('/commerce/orders/{order_number}', function (Request $request, Response $response, array $args) use ($twig, $viewData, $orders, $requireCommerce): Response {
+    $app->get('/commerce/orders/{order_number}', function (Request $request, Response $response, array $args) use ($twig, $viewData, $orders, $digital, $requireCommerce): Response {
         $requireCommerce($request);
         $vd = $viewData();
         $email = isset($vd['user_email']) && is_string($vd['user_email']) ? trim($vd['user_email']) : '';
@@ -334,8 +398,29 @@ return static function (App $app, Twig $twig, \PDO $pdo, callable $viewData): vo
 
         return $twig->render($response, 'commerce/order_show.twig', array_merge($vd, [
             'order' => $order,
+            'digital_grants' => $digital->activeGrantsForOrder($order),
         ]));
     })->setName('public.commerce.orders.show');
+
+    $app->get('/commerce/orders/{order_number}/access/{grantId:[0-9]+}', function (Request $request, Response $response, array $args) use ($digitalAccess, $orders, $viewData, $requireCommerce): Response {
+        $requireCommerce($request);
+        $vd = $viewData();
+        $email = isset($vd['user_email']) && is_string($vd['user_email']) ? trim($vd['user_email']) : '';
+        $userId = isset($vd['phpauth_user_id']) ? (int) $vd['phpauth_user_id'] : 0;
+        if (($userId < 1 && $email === '') || empty($vd['logged_in'])) {
+            Flash::set('error', 'Sign in to access downloads.');
+
+            return $response->withHeader('Location', RouteContext::fromRequest($request)->getRouteParser()->urlFor('login'))->withStatus(302);
+        }
+        $orderNumber = isset($args['order_number']) && is_string($args['order_number']) ? trim($args['order_number']) : '';
+        $order = $orders->findByOrderNumberForCustomer($orderNumber, $userId, $email);
+        if ($order === null) {
+            throw new HttpNotFoundException($request);
+        }
+        $grantId = (int) ($args['grantId'] ?? 0);
+
+        return $digitalAccess->serveByGrantId($request, $response, $order->id, $grantId);
+    })->setName('public.commerce.orders.access');
 
     $app->post('/commerce/stripe/webhook', function (Request $request, Response $response) use ($webhooks): Response {
         $payload = (string) $request->getBody();

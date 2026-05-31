@@ -11,8 +11,11 @@ use App\Content\ContentTypeRepository;
 use App\Content\ContentViewTemplates;
 use App\Comment\CommentRepository;
 use App\Comment\CommentThreadBuilder;
+use App\Commerce\CommerceCountryCodes;
 use App\Commerce\CommerceSettings;
 use App\Commerce\Product\ProductResolver;
+use App\Commerce\Shipping\ShippingZoneRepository;
+use App\Commerce\Tax\TaxRateRepository;
 use App\Content\ReservedContentSlugs;
 use App\Media\MediaUrlHelper;
 use App\Seo\MetaTagBuilder;
@@ -38,6 +41,8 @@ return static function (App $app, Twig $twig, \PDO $pdo, callable $viewData): vo
     $entryTaxonomies = new ContentEntryTaxonomyRepository($pdo);
     $commerceSettings = new CommerceSettings($pdo);
     $productResolver = new ProductResolver($pdo, $commerceSettings, $fields);
+    $shippingZoneRepo = new ShippingZoneRepository($pdo);
+    $taxRateRepo = new TaxRateRepository($pdo);
 
     $app->get('/{typeSlug}/{entrySlug}', function (Request $request, Response $response, array $args) use (
         $twig,
@@ -49,7 +54,10 @@ return static function (App $app, Twig $twig, \PDO $pdo, callable $viewData): vo
         $values,
         $mediaUrls,
         $entryTaxonomies,
-        $productResolver
+        $productResolver,
+        $commerceSettings,
+        $shippingZoneRepo,
+        $taxRateRepo
     ): Response {
         $typeSlug = (string) ($args['typeSlug'] ?? '');
         $entrySlug = (string) ($args['entrySlug'] ?? '');
@@ -162,6 +170,11 @@ return static function (App $app, Twig $twig, \PDO $pdo, callable $viewData): vo
             'content_entry_sections_html' => $sectionsHtml,
             'entry_taxonomy_groups' => $entryTaxonomies->termsGroupedForEntry($entry->id),
             'commerce_product' => $productResolver->resolvePublished($type, $entry, $valueMap),
+            'commerce_needs_checkout_country' => $commerceSettings->needsCheckoutCountry(),
+            'commerce_country_choices' => CommerceCountryCodes::forSelect(array_merge(
+                $shippingZoneRepo->allCountryCodes(),
+                array_map(static fn ($r) => $r->countryCode, $taxRateRepo->listActive()),
+            )),
             'comments_thread_key' => $threadKey,
             'comments_return_to' => $returnTo,
             'comments_pager_base' => $basePath,

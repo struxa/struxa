@@ -28,6 +28,12 @@ On the product content type:
 | `stripe_price_id` | text | Optional Stripe Price ID (`price_…`) — overrides ad-hoc `price_cents`. |
 | `sku` | text | Optional SKU stored on order line metadata. |
 | `stock_qty` | number | Optional stock count. Empty = unlimited. Decremented on paid orders when inventory tracking is enabled. |
+| `digital_file` | number | Optional media library ID — secure file download after purchase. |
+| `digital_url` | url | Optional external URL redirect after purchase (used when no `digital_file`). |
+| `digital_entry_slug` | text | Optional published entry slug (same product type) unlocked after purchase. |
+| `digital_label` | text | Optional label for customer download links (default **Download**). |
+
+Priority when multiple digital fields are set: **file** → **url** → **entry slug**.
 
 **Note:** Coupons and local tax/shipping totals apply to `price_cents` lines. Products using `stripe_price_id` only charge via Stripe’s price; coupons are disabled when such items are in the cart.
 
@@ -46,7 +52,29 @@ All checkout POST routes require CSRF tokens.
 
 When shipping is enabled, Stripe Checkout collects a **shipping address** (allowed countries configurable in admin).
 
-Success URL: `/commerce/checkout/success?session_id=…` — triggers fulfillment (inventory + emails + coupon redemption) if the webhook has not already.
+Success URL: `/commerce/checkout/success?session_id=…` — triggers fulfillment (inventory + digital grants + emails + coupon redemption) if the webhook has not already.
+
+Paid orders with digital products show **Your downloads** on the success page, order detail, and in confirmation emails.
+
+## Digital delivery
+
+When a product has `digital_file`, `digital_url`, or `digital_entry_slug`, a **grant** is created when the order is marked paid. Customers receive tokenized links:
+
+- **Email** — included in order confirmation (when emails are enabled)
+- **Account** — `/commerce/orders/{order_number}` lists active downloads (requires sign-in)
+- **Token URL** — `/commerce/access/{64-char-token}` works from email without sign-in
+
+Delivery types:
+
+| Type | Field | Behaviour |
+|------|-------|-----------|
+| File | `digital_file` | Streams the media file from disk |
+| URL | `digital_url` | Redirects to the configured URL |
+| Entry | `digital_entry_slug` | Redirects to `/{product-type}/{slug}` |
+
+Refunds revoke all grants for the order. Admin order detail supports **Resend delivery email**, **Revoke**, and **Regenerate token** per grant.
+
+Run migration **054** (`cms_commerce_digital_grants`).
 
 ## Order history
 
@@ -67,23 +95,46 @@ When an order is marked **paid** (webhook or success page):
 
 ## Admin
 
-- **Orders** — list, detail, **Export CSV**
+- **Orders** — list with filters (status, email, order #, date range), detail, **Export CSV** (respects filters)
 - **Coupons** — CRUD for `cms_commerce_coupons`
-- **Commerce settings** — enable flag, type slug, currency, shop page title, email/inventory/tax/shipping, Stripe keys
+- **Shipping zones** — country-based rates with optional free-shipping threshold; enable in settings
+- **Tax rates** — per-country basis-point rates when tax mode is **Per country**
+- **Inventory** — low-stock report for tracked `stock_qty` products
+- **Commerce settings** — enable flag, type slug, currency, tax mode (flat / per country / Stripe Tax), shipping zones toggle, email/inventory, Stripe keys
 
 Permission: `manage_commerce` (super_admin and admin roles).
+
+## Tax modes
+
+| Mode | Behaviour |
+|------|-----------|
+| **Flat** | Single `commerce_tax_rate_bps` on subtotal after coupon |
+| **Per country** | Rate from **Tax rates** admin for the cart ship-to country |
+| **Stripe Tax** | `automatic_tax` on Checkout Session (enable Stripe Tax in Dashboard) |
+
+When per-country tax or shipping zones are enabled, customers choose a **Ship to** country on the cart (or on Buy now) so estimates match checkout.
+
+## Shipping zones
+
+Create zones under **Admin → Shipping** with ISO country codes (comma-separated). Leave countries empty on one zone to use it as **rest-of-world fallback**. Enable **Use shipping zones** in Commerce settings. Flat-rate fields remain the fallback when zones are disabled.
 
 ## Architecture
 
 - `App\Commerce\Catalog\ShopCatalogPage` — core `/shop` product catalog
 - `App\Commerce\Product\ProductCatalogEnricher` — live prices on catalog cards
 - `App\Commerce\Customer\CommerceCustomerLinker` — links orders to phpauth_users
+- `App\Commerce\Shipping\ShippingZoneRepository` / `ShippingZoneResolver` — zone CRUD and checkout quotes
+- `App\Commerce\Tax\TaxRateRepository` / `TaxRateResolver` — country tax lookup and Stripe Tax flag
+- `App\Commerce\Inventory\LowStockReportService` — admin low-stock report
+- `App\Commerce\Order\OrderListFilter` — admin order list/export filters
 - `App\Commerce\Product\ProductResolver` — maps entry + field values → `PurchasableProduct`
 - `App\Commerce\Cart\CartService` / `CartResolver` — session cart + coupon code
 - `App\Commerce\Pricing\OrderTotalsCalculator` — subtotal, discount, tax, shipping, total
 - `App\Commerce\Coupon\CouponService` — validate and redeem coupons
 - `App\Commerce\Payment\StripeCheckoutService` — Checkout Session + order creation
 - `App\Commerce\Payment\StripeWebhookHandler` — marks orders paid/cancelled, saves shipping address
-- `App\Commerce\Order\OrderFulfillmentService` — inventory + emails + coupon redemption
+- `App\Commerce\Order\OrderFulfillmentService` — inventory + digital grants + emails + coupon redemption
+- `App\Commerce\Digital\DigitalFulfillmentService` — issue/revoke grants, build access URLs
+- `App\Commerce\Digital\DigitalAccessHandler` — serve file / redirect URL or entry
 - `App\Commerce\Payment\StripeRefundService` — admin refunds
 - `App\Commerce\Order\CommerceOrderCsvExporter` — admin CSV export

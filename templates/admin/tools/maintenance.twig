@@ -7,272 +7,356 @@
 {% endblock %}
 
 {% block admin_hero_sub %}
-  <p class="admin-hero-sub">Keep the database lean and shrink existing library images — without plugins. Upload compression for new files is still toggled on the <a class="admin-link" href="{{ url_for('admin.media.index') }}">Media</a> page.</p>
+  <p class="admin-hero-sub admin-hero-sub--tight">Keep the database lean and shrink existing library images — without plugins.</p>
+{% endblock %}
+
+{% block admin_breadcrumbs %}
+  {% include 'admin/partials/_breadcrumbs.twig' with {
+    breadcrumbs: [
+      { label: 'Maintenance' },
+    ],
+  } %}
 {% endblock %}
 
 {% block admin_content %}
   {% set s = maintenance_stats|default({}) %}
   {% set lib = media_library_stats|default({}) %}
   {% set caps = media_compress_caps|default({}) %}
-
-  <section class="admin-card" style="margin-bottom:1.25rem">
-    <h2 class="admin-card-title">Overview</h2>
-    <ul class="admin-hint" style="margin:0;padding-left:1.25rem;line-height:1.65">
-      <li><strong>Media library:</strong> {{ lib.image_files|default(0) }} image(s), {{ lib.total_files|default(0) }} file(s) total{% if lib.total_bytes|default(0) > 0 %} · ~{{ (lib.total_bytes / 1024 / 1024)|round(1) }} MB on disk{% endif %}</li>
-      <li><strong>Responsive image cache</strong> (<code class="admin-inline-code">/media-rs/…</code>): ~{{ (s.media_derivative_cache_bytes|default(0) / 1024)|round(1) }} KB in <code class="admin-inline-code">storage/cache/media-rs/</code></li>
-      <li><strong>Upload compression</strong> for new files: {{ media_compress_enabled ? 'on' : 'off' }}{% if caps.hint|default('') %} — {{ caps.hint|e }}{% endif %}</li>
-      <li>Public page cache and CSS minify live on <a class="admin-link" href="{{ url_for('admin.tools.cache') }}">Performance</a>.</li>
-    </ul>
-  </section>
-
-  <section class="admin-card" style="margin-bottom:1.25rem">
-    <h2 class="admin-card-title">Database housekeeping</h2>
-    <p class="admin-hint" style="margin-top:0">Remove stale logs and expired tokens. These actions only delete historical data — published content, media, and settings are untouched.</p>
-
-    <div class="admin-table-wrap" style="overflow-x:auto;margin-top:1rem">
-      <table class="admin-table">
-        <thead>
-          <tr>
-            <th scope="col">Data</th>
-            <th scope="col">Rows</th>
-            <th scope="col">Action</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>Expired preview tokens</td>
-            <td>{{ s.preview_tokens_expired|default(0) }} expired · {{ s.preview_tokens_total|default(0) }} total</td>
-            <td>
-              <form method="post" action="{{ url_for('admin.tools.maintenance.process') }}" class="admin-inline-form" onsubmit="return confirm('Delete expired stakeholder preview tokens?');">
-                <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
-                <input type="hidden" name="action" value="purge_preview_tokens" />
-                <button type="submit" class="admin-btn-ghost admin-btn-ghost--sm">Purge expired</button>
-              </form>
-            </td>
-          </tr>
-          <tr>
-            <td>External link click log</td>
-            <td>{{ s.external_link_clicks|default(0) }}</td>
-            <td>
-              <form method="post" action="{{ url_for('admin.tools.maintenance.process') }}" class="admin-maintenance-purge-form admin-inline-form">
-                <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
-                <input type="hidden" name="action" value="purge_external_links" />
-                <label class="admin-hint">Older than <input class="admin-input admin-input--inline" type="number" name="days" min="1" max="3650" value="{{ s.external_link_retention_days|default(0) > 0 ? s.external_link_retention_days : 90 }}" style="width:4.5rem" /> days</label>
-                <button type="submit" class="admin-btn-ghost admin-btn-ghost--sm">Purge</button>
-              </form>
-            </td>
-          </tr>
-          <tr>
-            <td>IP block hit log</td>
-            <td>{{ s.ip_block_hit_buckets|default(0) }}</td>
-            <td>
-              <form method="post" action="{{ url_for('admin.tools.maintenance.process') }}" class="admin-maintenance-purge-form admin-inline-form">
-                <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
-                <input type="hidden" name="action" value="purge_ip_block_hits" />
-                <label class="admin-hint">Older than <input class="admin-input admin-input--inline" type="number" name="days" min="1" max="3650" value="30" style="width:4.5rem" /> days</label>
-                <button type="submit" class="admin-btn-ghost admin-btn-ghost--sm">Purge</button>
-              </form>
-            </td>
-          </tr>
-          <tr>
-            <td>AI chat history</td>
-            <td>{{ s.ai_chat_messages|default(0) }}</td>
-            <td>
-              <form method="post" action="{{ url_for('admin.tools.maintenance.process') }}" class="admin-maintenance-purge-form admin-inline-form">
-                <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
-                <input type="hidden" name="action" value="purge_ai_chat" />
-                <label class="admin-hint">Older than <input class="admin-input admin-input--inline" type="number" name="days" min="1" max="3650" value="{{ s.ai_chat_retention_days|default(30) }}" style="width:4.5rem" /> days</label>
-                <button type="submit" class="admin-btn-ghost admin-btn-ghost--sm">Purge</button>
-              </form>
-            </td>
-          </tr>
-          <tr>
-            <td>404 log (aggregated paths)</td>
-            <td>{{ s.not_found_logs|default(0) }}</td>
-            <td>
-              <form method="post" action="{{ url_for('admin.tools.maintenance.process') }}" class="admin-maintenance-purge-form admin-inline-form">
-                <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
-                <input type="hidden" name="action" value="purge_not_found_logs" />
-                <label class="admin-hint">Not seen in <input class="admin-input admin-input--inline" type="number" name="days" min="1" max="3650" value="90" style="width:4.5rem" /> days</label>
-                <button type="submit" class="admin-btn-ghost admin-btn-ghost--sm">Purge</button>
-              </form>
-            </td>
-          </tr>
-          <tr>
-            <td>404 hit events (detail rows)</td>
-            <td>{{ s.not_found_hit_events|default(0) }}</td>
-            <td>
-              <form method="post" action="{{ url_for('admin.tools.maintenance.process') }}" class="admin-maintenance-purge-form admin-inline-form">
-                <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
-                <input type="hidden" name="action" value="purge_not_found_events" />
-                <label class="admin-hint">Older than <input class="admin-input admin-input--inline" type="number" name="days" min="1" max="3650" value="30" style="width:4.5rem" /> days</label>
-                <button type="submit" class="admin-btn-ghost admin-btn-ghost--sm">Purge</button>
-              </form>
-            </td>
-          </tr>
-          <tr>
-            <td>Staff activity log</td>
-            <td>{{ s.activity_logs|default(0) }}</td>
-            <td>
-              <form method="post" action="{{ url_for('admin.tools.maintenance.process') }}" class="admin-maintenance-purge-form admin-inline-form" onsubmit="return confirm('Delete activity log entries older than the chosen age? This cannot be undone.');">
-                <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
-                <input type="hidden" name="action" value="purge_activity_logs" />
-                <label class="admin-hint">Older than <input class="admin-input admin-input--inline" type="number" name="days" min="30" max="3650" value="180" style="width:4.5rem" /> days</label>
-                <button type="submit" class="admin-btn-ghost admin-btn-ghost--sm">Purge</button>
-              </form>
-            </td>
-          </tr>
-          <tr>
-            <td>Content revisions (pages + entries)</td>
-            <td>{{ s.page_revisions|default(0) }} page · {{ s.entry_revisions|default(0) }} entry</td>
-            <td>
-              <form method="post" action="{{ url_for('admin.tools.maintenance.process') }}" class="admin-inline-form" onsubmit="return confirm('Remove excess revisions beyond the configured per-item limits?\n\nThe newest revisions for each page and entry are kept.');">
-                <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
-                <input type="hidden" name="action" value="purge_excess_revisions" />
-                <button type="submit" class="admin-btn-ghost admin-btn-ghost--sm">Prune excess</button>
-              </form>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-
-    <form method="post" action="{{ url_for('admin.tools.maintenance.process') }}" style="margin-top:1rem" onsubmit="return confirm('Run safe scheduled purges now?\n\nExpired preview tokens, external-link retention (if set), and AI chat retention (if set).');">
-      <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
-      <input type="hidden" name="action" value="run_scheduled" />
-      <button type="submit" class="admin-btn-ghost">Run scheduled purges now</button>
-      <span class="admin-hint" style="margin-left:0.5rem">Same as part of <code class="admin-inline-code">php bin/cms.php schedule:run</code> when auto-purge is enabled below.</span>
-    </form>
-  </section>
-
-  <form class="admin-form" method="post" action="{{ url_for('admin.tools.maintenance.process') }}">
-    <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
-    <input type="hidden" name="action" value="save_revision_retention" />
-    <section class="admin-card" style="margin-bottom:1.25rem">
-      <h2 class="admin-card-title">Revision retention</h2>
-      <p class="admin-hint" style="margin-top:0">Cap how many saved revisions are kept per page or content entry. Older revisions are removed automatically after each save, and you can run a one-time prune above. Set to <strong>0</strong> for unlimited.</p>
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(12rem,1fr));gap:1rem;margin-top:1rem">
-        <label class="admin-form-row">
-          <span class="admin-form-label">Max page revisions</span>
-          <input class="admin-input" type="number" name="revision_retention_page_max" min="0" max="500" value="{{ s.revision_retention_page_max|default(50) }}" />
-        </label>
-        <label class="admin-form-row">
-          <span class="admin-form-label">Max entry revisions</span>
-          <input class="admin-input" type="number" name="revision_retention_entry_max" min="0" max="500" value="{{ s.revision_retention_entry_max|default(50) }}" />
-        </label>
-      </div>
-      <div class="admin-form-actions" style="margin-top:0.75rem">
-        <button type="submit" class="admin-btn-primary">Save limits</button>
-      </div>
-    </section>
-  </form>
-
-  <form class="admin-form" method="post" action="{{ url_for('admin.tools.maintenance.process') }}">
-    <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
-    <input type="hidden" name="action" value="save_auto_purge" />
-    <section class="admin-card" style="margin-bottom:1.25rem">
-      <h2 class="admin-card-title">Automatic housekeeping</h2>
-      <p class="admin-hint" style="margin-top:0">When enabled, <code class="admin-inline-code">schedule:run</code> (cron or web-triggered) also purges expired preview tokens and applies external-link / AI-chat retention from site settings.</p>
-      <label class="admin-check">
-        <input type="checkbox" name="maintenance_auto_purge" value="1" {{ maintenance_auto_purge|default(false) ? 'checked' : '' }} />
-        <span>Run retention purges on each <code class="admin-inline-code">schedule:run</code></span>
-      </label>
-    </section>
-    <div class="admin-form-actions">
-      <button type="submit" class="admin-btn-primary">Save</button>
-    </div>
-  </form>
-
   {% set jc = job_counts|default({}) %}
-  <section class="admin-card" style="margin-bottom:1.25rem">
-    <h2 class="admin-card-title">Background jobs</h2>
-    <p class="admin-hint" style="margin-top:0">Defer heavy work to a CLI worker instead of blocking the admin session. Cron example: <code class="admin-inline-code">*/15 * * * * php bin/cms.php jobs:dispatch &amp;&amp; php bin/cms.php jobs:work --limit=20</code></p>
-    <ul class="admin-hint" style="margin:0.75rem 0 0;padding-left:1.25rem;line-height:1.65">
-      <li><strong>Pending:</strong> {{ jc.pending|default(0) }} · <strong>Running:</strong> {{ jc.running|default(0) }} · <strong>Failed:</strong> {{ jc.failed|default(0) }} · <strong>Completed (24h):</strong> {{ jc.completed_24h|default(0) }}</li>
-      <li><strong>Last worker run (UTC):</strong> {{ jobs_last_worker_at|default('never') }}</li>
-    </ul>
-    <div style="margin-top:0.75rem;display:flex;gap:0.5rem;flex-wrap:wrap">
-      <form method="post" action="{{ url_for('admin.tools.maintenance.process') }}" class="admin-inline-form">
+  {% set lib_mb = lib.total_bytes|default(0) > 0 ? (lib.total_bytes / 1024 / 1024)|round(1) : 0 %}
+  {% set deriv_kb = (s.media_derivative_cache_bytes|default(0) / 1024)|round(1) %}
+
+  <div class="admin-settings-page admin-settings-page--tools">
+    {% include 'admin/tools/_subnav.twig' with { tools_nav_active: 'maintenance' } %}
+
+    <div class="admin-settings-intro admin-settings-intro--maintenance">
+      <div class="admin-settings-intro-icon" aria-hidden="true">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
+        </svg>
+      </div>
+      <div class="admin-settings-intro-body">
+        <p class="admin-settings-intro-title">Housekeeping without plugins</p>
+        <p class="admin-settings-intro-text">
+          Purge stale logs and tokens, cap content revisions, and optimize existing media.
+          Upload compression for new files is toggled on the
+          <a class="admin-link" href="{{ url_for('admin.media.index') }}">Media</a> page.
+          Public page cache and CSS minify live on
+          <a class="admin-link" href="{{ url_for('admin.tools.cache') }}">Performance</a>.
+        </p>
+      </div>
+    </div>
+
+    <div class="admin-metrics admin-hub-metrics" aria-label="Maintenance summary">
+      <article class="admin-metric">
+        <p class="admin-metric-label">Media library</p>
+        <p class="admin-metric-value">{{ lib.image_files|default(0) }}</p>
+        <p class="admin-metric-meta">{{ lib.total_files|default(0) }} files{% if lib_mb > 0 %} · ~{{ lib_mb }} MB{% endif %}</p>
+      </article>
+      <article class="admin-metric">
+        <p class="admin-metric-label">Responsive cache</p>
+        <p class="admin-metric-value admin-metric-value--sm">~{{ deriv_kb }} KB</p>
+        <p class="admin-metric-meta"><code class="admin-inline-code">storage/cache/media-rs/</code></p>
+      </article>
+      <article class="admin-metric{% if jc.failed|default(0) > 0 %} admin-metric--danger{% endif %}">
+        <p class="admin-metric-label">Background jobs</p>
+        <p class="admin-metric-value">{{ jc.pending|default(0) }}</p>
+        <p class="admin-metric-meta">Pending · {{ jc.failed|default(0) }} failed</p>
+      </article>
+      <article class="admin-metric{% if media_compress_enabled %} admin-metric--health-good{% endif %}">
+        <p class="admin-metric-label">Upload compression</p>
+        <p class="admin-metric-value admin-metric-value--sm">{{ media_compress_enabled ? 'On' : 'Off' }}</p>
+        <p class="admin-metric-meta">{% if caps.hint|default('') %}{{ caps.hint|e }}{% else %}New uploads{% endif %}</p>
+      </article>
+    </div>
+
+    <div class="admin-settings-stack">
+      <section class="admin-card admin-settings-card admin-settings-section" id="maintenance-database">
+        <header class="admin-settings-card-head-row">
+          <div>
+            <h2 class="admin-settings-card-title">Database housekeeping</h2>
+            <p class="admin-settings-card-desc" style="margin-bottom:0">Remove stale logs and expired tokens. Published content, media, and settings are untouched.</p>
+          </div>
+        </header>
+
+        <div class="admin-table-wrap admin-tools-purge-table" style="margin-top:0.85rem">
+          <table class="admin-table admin-table--comfortable">
+            <thead>
+              <tr>
+                <th scope="col">Data</th>
+                <th scope="col">Rows</th>
+                <th scope="col">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong class="admin-table-primary">Expired preview tokens</strong></td>
+                <td class="admin-table-muted">{{ s.preview_tokens_expired|default(0) }} expired · {{ s.preview_tokens_total|default(0) }} total</td>
+                <td>
+                  <form method="post" action="{{ url_for('admin.tools.maintenance.process') }}" class="admin-inline-form" onsubmit="return confirm('Delete expired stakeholder preview tokens?');">
+                    <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+                    <input type="hidden" name="action" value="purge_preview_tokens" />
+                    <button type="submit" class="admin-btn-ghost admin-btn-ghost--sm">Purge expired</button>
+                  </form>
+                </td>
+              </tr>
+              <tr>
+                <td><strong class="admin-table-primary">External link click log</strong></td>
+                <td class="admin-table-muted">{{ s.external_link_clicks|default(0) }}</td>
+                <td>
+                  <form method="post" action="{{ url_for('admin.tools.maintenance.process') }}" class="admin-maintenance-purge-form admin-tools-purge-form admin-inline-form">
+                    <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+                    <input type="hidden" name="action" value="purge_external_links" />
+                    <label class="admin-hint admin-tools-purge-label">Older than <input class="admin-input admin-input--inline admin-tools-purge-days" type="number" name="days" min="1" max="3650" value="{{ s.external_link_retention_days|default(0) > 0 ? s.external_link_retention_days : 90 }}" /> days</label>
+                    <button type="submit" class="admin-btn-ghost admin-btn-ghost--sm">Purge</button>
+                  </form>
+                </td>
+              </tr>
+              <tr>
+                <td><strong class="admin-table-primary">IP block hit log</strong></td>
+                <td class="admin-table-muted">{{ s.ip_block_hit_buckets|default(0) }}</td>
+                <td>
+                  <form method="post" action="{{ url_for('admin.tools.maintenance.process') }}" class="admin-maintenance-purge-form admin-tools-purge-form admin-inline-form">
+                    <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+                    <input type="hidden" name="action" value="purge_ip_block_hits" />
+                    <label class="admin-hint admin-tools-purge-label">Older than <input class="admin-input admin-input--inline admin-tools-purge-days" type="number" name="days" min="1" max="3650" value="30" /> days</label>
+                    <button type="submit" class="admin-btn-ghost admin-btn-ghost--sm">Purge</button>
+                  </form>
+                </td>
+              </tr>
+              <tr>
+                <td><strong class="admin-table-primary">AI chat history</strong></td>
+                <td class="admin-table-muted">{{ s.ai_chat_messages|default(0) }}</td>
+                <td>
+                  <form method="post" action="{{ url_for('admin.tools.maintenance.process') }}" class="admin-maintenance-purge-form admin-tools-purge-form admin-inline-form">
+                    <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+                    <input type="hidden" name="action" value="purge_ai_chat" />
+                    <label class="admin-hint admin-tools-purge-label">Older than <input class="admin-input admin-input--inline admin-tools-purge-days" type="number" name="days" min="1" max="3650" value="{{ s.ai_chat_retention_days|default(30) }}" /> days</label>
+                    <button type="submit" class="admin-btn-ghost admin-btn-ghost--sm">Purge</button>
+                  </form>
+                </td>
+              </tr>
+              <tr>
+                <td><strong class="admin-table-primary">404 log (aggregated paths)</strong></td>
+                <td class="admin-table-muted">{{ s.not_found_logs|default(0) }}</td>
+                <td>
+                  <form method="post" action="{{ url_for('admin.tools.maintenance.process') }}" class="admin-maintenance-purge-form admin-tools-purge-form admin-inline-form">
+                    <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+                    <input type="hidden" name="action" value="purge_not_found_logs" />
+                    <label class="admin-hint admin-tools-purge-label">Not seen in <input class="admin-input admin-input--inline admin-tools-purge-days" type="number" name="days" min="1" max="3650" value="90" /> days</label>
+                    <button type="submit" class="admin-btn-ghost admin-btn-ghost--sm">Purge</button>
+                  </form>
+                </td>
+              </tr>
+              <tr>
+                <td><strong class="admin-table-primary">404 hit events (detail rows)</strong></td>
+                <td class="admin-table-muted">{{ s.not_found_hit_events|default(0) }}</td>
+                <td>
+                  <form method="post" action="{{ url_for('admin.tools.maintenance.process') }}" class="admin-maintenance-purge-form admin-tools-purge-form admin-inline-form">
+                    <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+                    <input type="hidden" name="action" value="purge_not_found_events" />
+                    <label class="admin-hint admin-tools-purge-label">Older than <input class="admin-input admin-input--inline admin-tools-purge-days" type="number" name="days" min="1" max="3650" value="30" /> days</label>
+                    <button type="submit" class="admin-btn-ghost admin-btn-ghost--sm">Purge</button>
+                  </form>
+                </td>
+              </tr>
+              <tr>
+                <td><strong class="admin-table-primary">Staff activity log</strong></td>
+                <td class="admin-table-muted">{{ s.activity_logs|default(0) }}</td>
+                <td>
+                  <form method="post" action="{{ url_for('admin.tools.maintenance.process') }}" class="admin-maintenance-purge-form admin-tools-purge-form admin-inline-form" onsubmit="return confirm('Delete activity log entries older than the chosen age? This cannot be undone.');">
+                    <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+                    <input type="hidden" name="action" value="purge_activity_logs" />
+                    <label class="admin-hint admin-tools-purge-label">Older than <input class="admin-input admin-input--inline admin-tools-purge-days" type="number" name="days" min="30" max="3650" value="180" /> days</label>
+                    <button type="submit" class="admin-btn-ghost admin-btn-ghost--sm">Purge</button>
+                  </form>
+                </td>
+              </tr>
+              <tr>
+                <td><strong class="admin-table-primary">Content revisions</strong></td>
+                <td class="admin-table-muted">{{ s.page_revisions|default(0) }} page · {{ s.entry_revisions|default(0) }} entry</td>
+                <td>
+                  <form method="post" action="{{ url_for('admin.tools.maintenance.process') }}" class="admin-inline-form" onsubmit="return confirm('Remove excess revisions beyond the configured per-item limits?\n\nThe newest revisions for each page and entry are kept.');">
+                    <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+                    <input type="hidden" name="action" value="purge_excess_revisions" />
+                    <button type="submit" class="admin-btn-ghost admin-btn-ghost--sm">Prune excess</button>
+                  </form>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <form method="post" action="{{ url_for('admin.tools.maintenance.process') }}" class="admin-tools-scheduled-form" onsubmit="return confirm('Run safe scheduled purges now?\n\nExpired preview tokens, external-link retention (if set), and AI chat retention (if set).');">
+          <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+          <input type="hidden" name="action" value="run_scheduled" />
+          <button type="submit" class="admin-btn-ghost">Run scheduled purges now</button>
+          <span class="admin-hint">Same as part of <code class="admin-inline-code">php bin/cms.php schedule:run</code> when auto-purge is enabled below.</span>
+        </form>
+      </section>
+
+      <div class="admin-settings-row2">
+        <form class="admin-form admin-settings-form" method="post" action="{{ url_for('admin.tools.maintenance.process') }}">
+          <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+          <input type="hidden" name="action" value="save_revision_retention" />
+          <section class="admin-card admin-settings-card admin-settings-card--fill admin-settings-section" id="maintenance-revisions">
+            <h2 class="admin-settings-card-title">Revision retention</h2>
+            <p class="admin-settings-card-desc">Cap saved revisions per page or entry. Set to <strong>0</strong> for unlimited.</p>
+            <div class="admin-form-grid">
+              <div class="admin-field">
+                <label class="admin-label" for="revision_retention_page_max">Max page revisions</label>
+                <input class="admin-input" id="revision_retention_page_max" type="number" name="revision_retention_page_max" min="0" max="500" value="{{ s.revision_retention_page_max|default(50) }}" />
+              </div>
+              <div class="admin-field">
+                <label class="admin-label" for="revision_retention_entry_max">Max entry revisions</label>
+                <input class="admin-input" id="revision_retention_entry_max" type="number" name="revision_retention_entry_max" min="0" max="500" value="{{ s.revision_retention_entry_max|default(50) }}" />
+              </div>
+            </div>
+            <div class="admin-form-actions" style="margin-top:0.75rem">
+              <button type="submit" class="admin-btn-primary">Save limits</button>
+            </div>
+          </section>
+        </form>
+
+        <form class="admin-form admin-settings-form" method="post" action="{{ url_for('admin.tools.maintenance.process') }}">
+          <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+          <input type="hidden" name="action" value="save_auto_purge" />
+          <section class="admin-card admin-settings-card admin-settings-card--fill admin-settings-section" id="maintenance-auto-purge">
+            <h2 class="admin-settings-card-title">Automatic housekeeping</h2>
+            <p class="admin-settings-card-desc">When enabled, <code class="admin-inline-code">schedule:run</code> also purges expired preview tokens and applies retention from site settings.</p>
+            <label class="admin-label admin-settings-check-label">
+              <input type="checkbox" name="maintenance_auto_purge" value="1" {{ maintenance_auto_purge|default(false) ? 'checked' : '' }} />
+              Run retention purges on each <code class="admin-inline-code">schedule:run</code>
+            </label>
+            <div class="admin-form-actions" style="margin-top:0.75rem">
+              <button type="submit" class="admin-btn-primary">Save</button>
+            </div>
+          </section>
+        </form>
+      </div>
+
+      <section class="admin-card admin-settings-card admin-settings-section" id="maintenance-jobs">
+        <header class="admin-settings-card-head-row">
+          <div>
+            <h2 class="admin-settings-card-title">Background jobs</h2>
+            <p class="admin-settings-card-desc" style="margin-bottom:0">
+              Defer heavy work to a CLI worker. Cron example:
+              <code class="admin-inline-code">*/15 * * * * php bin/cms.php jobs:dispatch &amp;&amp; php bin/cms.php jobs:work --limit=20</code>
+            </p>
+          </div>
+          {% if jc.failed|default(0) > 0 %}
+            <span class="admin-pill admin-pill--warn">{{ jc.failed|default(0) }} failed</span>
+          {% endif %}
+        </header>
+
+        <div class="admin-metrics admin-tools-job-metrics" aria-label="Job queue">
+          <article class="admin-metric">
+            <p class="admin-metric-label">Pending</p>
+            <p class="admin-metric-value">{{ jc.pending|default(0) }}</p>
+          </article>
+          <article class="admin-metric">
+            <p class="admin-metric-label">Running</p>
+            <p class="admin-metric-value">{{ jc.running|default(0) }}</p>
+          </article>
+          <article class="admin-metric{% if jc.failed|default(0) > 0 %} admin-metric--danger{% endif %}">
+            <p class="admin-metric-label">Failed</p>
+            <p class="admin-metric-value">{{ jc.failed|default(0) }}</p>
+          </article>
+          <article class="admin-metric admin-metric--health-good">
+            <p class="admin-metric-label">Completed (24h)</p>
+            <p class="admin-metric-value">{{ jc.completed_24h|default(0) }}</p>
+          </article>
+        </div>
+        <p class="admin-hint admin-settings-card-footnote">Last worker run (UTC): <strong>{{ jobs_last_worker_at|default('never') }}</strong></p>
+
+        <div class="admin-tools-action-row">
+          <form method="post" action="{{ url_for('admin.tools.maintenance.process') }}" class="admin-inline-form">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+            <input type="hidden" name="action" value="enqueue_publish_due" />
+            <button type="submit" class="admin-btn-ghost admin-btn-ghost--sm">Queue scheduled publish</button>
+          </form>
+          <form method="post" action="{{ url_for('admin.tools.maintenance.process') }}" class="admin-inline-form">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+            <input type="hidden" name="action" value="enqueue_scheduled_purges" />
+            <button type="submit" class="admin-btn-ghost admin-btn-ghost--sm">Queue retention purges</button>
+          </form>
+        </div>
+
+        {% if recent_jobs|default([])|length > 0 %}
+          <div class="admin-table-wrap" style="margin-top:1rem;overflow-x:auto">
+            <table class="admin-table admin-table--comfortable">
+              <thead>
+                <tr>
+                  <th scope="col">ID</th>
+                  <th scope="col">Type</th>
+                  <th scope="col">Status</th>
+                  <th scope="col">Summary</th>
+                  <th scope="col">Created (UTC)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for job in recent_jobs %}
+                  <tr>
+                    <td>#{{ job.id }}</td>
+                    <td><code class="admin-inline-code">{{ job.type|e }}</code></td>
+                    <td>{{ job.status|e }}</td>
+                    <td class="admin-table-muted">{{ job.resultSummary|default(job.lastError|default('—'))|e }}</td>
+                    <td class="admin-table-muted">{{ job.createdAt|e }}</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% endif %}
+      </section>
+
+      <section class="admin-card admin-settings-card admin-settings-section" id="maintenance-images">
+        <h2 class="admin-settings-card-title">Image library optimization</h2>
+        <p class="admin-settings-card-desc">Re-encode existing JPEG/PNG/WebP with the same compressor used on upload. Animated GIFs are skipped. Runs in small batches so the admin session stays responsive.</p>
+
+        {% if not caps.available|default(false) %}
+          <div class="admin-callout admin-callout--warn" style="margin-top:0.85rem">
+            <p class="admin-callout-title">Unavailable on this server</p>
+            <p class="admin-prose">{{ caps.hint|default('Image optimization is unavailable on this server.')|e }}</p>
+          </div>
+        {% else %}
+          <div
+            id="admin-maintenance-compress"
+            class="admin-maintenance-compress admin-tools-compress"
+            data-batch-url="{{ url_for('admin.tools.maintenance.compress_batch')|e('html_attr') }}"
+            data-csrf="{{ csrf_token()|e('html_attr') }}"
+            data-image-count="{{ lib.image_files|default(0) }}"
+          >
+            <p class="admin-hint" id="admin-maintenance-compress-status" role="status">Ready — {{ lib.image_files|default(0) }} image(s) in the library.</p>
+            <div class="admin-maintenance-compress-bar admin-tools-compress-bar" hidden aria-hidden="true">
+              <div class="admin-maintenance-compress-bar-fill" id="admin-maintenance-compress-bar-fill"></div>
+            </div>
+            <div class="admin-tools-action-row">
+              <button type="button" class="admin-btn-primary" id="admin-maintenance-compress-start">Optimize all images</button>
+              <form method="post" action="{{ url_for('admin.tools.maintenance.process') }}" class="admin-inline-form" onsubmit="return confirm('Queue full library optimization as background jobs?\n\nRequires php bin/cms.php jobs:work on a cron timer.');">
+                <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+                <input type="hidden" name="action" value="enqueue_media_compress" />
+                <button type="submit" class="admin-btn-ghost">Optimize in background</button>
+              </form>
+              <button type="button" class="admin-btn-ghost" id="admin-maintenance-compress-stop" hidden>Stop</button>
+            </div>
+          </div>
+        {% endif %}
+      </section>
+
+      <form class="admin-form" method="post" action="{{ url_for('admin.tools.maintenance.process') }}" onsubmit="return confirm('Clear cached responsive image files?\n\nThey rebuild automatically on the next page view.');">
         <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
-        <input type="hidden" name="action" value="enqueue_publish_due" />
-        <button type="submit" class="admin-btn-ghost admin-btn-ghost--sm">Queue scheduled publish</button>
-      </form>
-      <form method="post" action="{{ url_for('admin.tools.maintenance.process') }}" class="admin-inline-form">
-        <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
-        <input type="hidden" name="action" value="enqueue_scheduled_purges" />
-        <button type="submit" class="admin-btn-ghost admin-btn-ghost--sm">Queue retention purges</button>
+        <input type="hidden" name="action" value="clear_media_derivatives" />
+        <section class="admin-card admin-settings-card admin-settings-section" id="maintenance-derivatives">
+          <h2 class="admin-settings-card-title">Responsive image cache</h2>
+          <p class="admin-settings-card-desc">Clears on-disk derivatives for <code class="admin-inline-code">/media-rs/{width}/{id}</code>. Safe to run after bulk image optimization.</p>
+          <div class="admin-form-actions" style="margin-top:0.75rem">
+            <button type="submit" class="admin-btn-ghost">Clear derivative cache</button>
+          </div>
+        </section>
       </form>
     </div>
-    {% if recent_jobs|default([])|length > 0 %}
-      <div class="admin-table-wrap" style="overflow-x:auto;margin-top:1rem">
-        <table class="admin-table">
-          <thead>
-            <tr>
-              <th scope="col">ID</th>
-              <th scope="col">Type</th>
-              <th scope="col">Status</th>
-              <th scope="col">Summary</th>
-              <th scope="col">Created (UTC)</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for job in recent_jobs %}
-              <tr>
-                <td>#{{ job.id }}</td>
-                <td><code class="admin-inline-code">{{ job.type|e }}</code></td>
-                <td>{{ job.status|e }}</td>
-                <td>{{ job.resultSummary|default(job.lastError|default('—'))|e }}</td>
-                <td>{{ job.createdAt|e }}</td>
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    {% endif %}
-  </section>
-
-  <section class="admin-card" style="margin-bottom:1.25rem">
-    <h2 class="admin-card-title">Image library optimization</h2>
-    <p class="admin-hint" style="margin-top:0">Re-encode existing JPEG/PNG/WebP files with the same compressor used on upload (WebP when supported, max edge cap, quality tuning). Animated GIFs are skipped. Runs in small batches so the admin session stays responsive.</p>
-
-    {% if not caps.available|default(false) %}
-      <p class="admin-field-error" style="margin-top:0.75rem">{{ caps.hint|default('Image optimization is unavailable on this server.')|e }}</p>
-    {% else %}
-      <div
-        id="admin-maintenance-compress"
-        class="admin-maintenance-compress"
-        data-batch-url="{{ url_for('admin.tools.maintenance.compress_batch')|e('html_attr') }}"
-        data-csrf="{{ csrf_token()|e('html_attr') }}"
-        data-image-count="{{ lib.image_files|default(0) }}"
-      >
-        <p class="admin-hint" id="admin-maintenance-compress-status" role="status">Ready — {{ lib.image_files|default(0) }} image(s) in the library.</p>
-        <div class="admin-maintenance-compress-bar" style="height:6px;background:rgba(255,255,255,0.08);border-radius:999px;margin-top:0.75rem;overflow:hidden" hidden aria-hidden="true">
-          <div class="admin-maintenance-compress-bar-fill" id="admin-maintenance-compress-bar-fill" style="height:100%;width:0;background:var(--admin-accent,#6366f1);transition:width 0.2s ease"></div>
-        </div>
-        <div style="margin-top:0.75rem;display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center">
-          <button type="button" class="admin-btn-primary" id="admin-maintenance-compress-start">Optimize all images</button>
-          <form method="post" action="{{ url_for('admin.tools.maintenance.process') }}" class="admin-inline-form" onsubmit="return confirm('Queue full library optimization as background jobs?\n\nRequires php bin/cms.php jobs:work on a cron timer.');">
-            <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
-            <input type="hidden" name="action" value="enqueue_media_compress" />
-            <button type="submit" class="admin-btn-ghost">Optimize in background</button>
-          </form>
-          <button type="button" class="admin-btn-ghost" id="admin-maintenance-compress-stop" hidden>Stop</button>
-        </div>
-      </div>
-    {% endif %}
-  </section>
-
-  <form class="admin-form" method="post" action="{{ url_for('admin.tools.maintenance.process') }}" onsubmit="return confirm('Clear cached responsive image files?\n\nThey rebuild automatically on the next page view.');">
-    <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
-    <input type="hidden" name="action" value="clear_media_derivatives" />
-    <section class="admin-card">
-      <h2 class="admin-card-title">Responsive image cache</h2>
-      <p class="admin-hint" style="margin-top:0">Clears on-disk derivatives for <code class="admin-inline-code">/media-rs/{width}/{id}</code>. Safe to run after bulk image optimization.</p>
-      <div class="admin-form-actions" style="margin-top:0.75rem">
-        <button type="submit" class="admin-btn-ghost">Clear derivative cache</button>
-      </div>
-    </section>
-  </form>
+  </div>
 {% endblock %}
 
 {% block admin_scripts %}

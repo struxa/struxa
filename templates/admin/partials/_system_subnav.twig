@@ -1,0 +1,18 @@
+{# Expects: system_nav_active — users|roles|activity|comments|api_keys #}
+<nav class="admin-settings-toc" aria-label="System sections">
+  {% if cms_can('manage_users') %}
+    <a class="admin-settings-toc-link{{ system_nav_active == 'users' ? ' is-current' : '' }}" href="{{ url_for('admin.users.index') }}">Users</a>
+  {% endif %}
+  {% if cms_can('manage_roles') %}
+    <a class="admin-settings-toc-link{{ system_nav_active == 'roles' ? ' is-current' : '' }}" href="{{ url_for('admin.roles.index') }}">Roles</a>
+  {% endif %}
+  {% if cms_can('view_activity') %}
+    <a class="admin-settings-toc-link{{ system_nav_active == 'activity' ? ' is-current' : '' }}" href="{{ url_for('admin.activity.index') }}">Activity</a>
+  {% endif %}
+  {% if cms_can('manage_comments') %}
+    <a class="admin-settings-toc-link{{ system_nav_active == 'comments' ? ' is-current' : '' }}" href="{{ url_for('admin.comments.index') }}">Comments</a>
+  {% endif %}
+  {% if cms_can('manage_settings') %}
+    <a class="admin-settings-toc-link{{ system_nav_active == 'api_keys' ? ' is-current' : '' }}" href="{{ url_for('admin.system.api_keys') }}">API keys</a>
+  {% endif %}
+</nav>

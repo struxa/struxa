@@ -1,0 +1,37 @@
+{% extends 'admin/base.twig' %}
+{% import 'admin/_ui_macros.twig' as ui %}
+
+{% block admin_title %}Shipping zones{% endblock %}
+{% block admin_hero_title %}<h1 class="admin-hero-title">Shipping zones</h1>{% endblock %}
+{% block admin_hero_sub %}<p class="admin-hero-sub">Country-based shipping rates. Enable zones in Commerce settings. Leave countries empty for a rest-of-world fallback zone.</p>{% endblock %}
+
+{% block admin_content %}
+  <div class="admin-page-toolbar">
+    <a class="admin-btn-primary" href="{{ url_for('admin.commerce.shipping_zones.new') }}">New zone</a>
+    <a class="admin-btn-ghost" href="{{ url_for('admin.commerce.settings') }}">Commerce settings</a>
+  </div>
+
+  {% if shipping_zones is empty %}
+    {{ ui.empty_state('No shipping zones', 'Create zones for UK, EU, rest of world, etc., then enable shipping zones in settings.', url_for('admin.commerce.shipping_zones.new'), 'New zone', '') }}
+  {% else %}
+    <div class="admin-table-wrap">
+      <table class="admin-table">
+        <thead>
+          <tr><th>Name</th><th>Label</th><th>Rate</th><th>Countries</th><th>Active</th><th></th></tr>
+        </thead>
+        <tbody>
+          {% for z in shipping_zones %}
+            <tr>
+              <td>{{ z.name|e }}</td>
+              <td>{{ z.label|e }}</td>
+              <td>{{ (z.priceCents / 100)|number_format(2) }}{% if z.freeShippingMinCents > 0 %} · free ≥ {{ (z.freeShippingMinCents / 100)|number_format(2) }}{% endif %}</td>
+              <td>{% if z.countries is empty %}<em>Fallback</em>{% else %}{{ z.countries|join(', ')|e }}{% endif %}</td>
+              <td>{{ z.isActive ? 'Yes' : 'No' }}</td>
+              <td><a class="admin-link" href="{{ url_for('admin.commerce.shipping_zones.edit', { id: z.id }) }}">Edit</a></td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% endif %}
+{% endblock %}

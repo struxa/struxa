@@ -10,6 +10,8 @@ use App\Commerce\Order\CommerceOrder;
 use App\Commerce\Order\CommerceOrderRepository;
 use App\Commerce\Pricing\OrderTotals;
 use App\Commerce\Product\PurchasableProduct;
+use App\Commerce\Shipping\ShippingZoneResolver;
+use App\Commerce\Tax\TaxRateResolver;
 use Stripe\Checkout\Session;
 use Stripe\Coupon;
 use Stripe\Stripe;
@@ -19,6 +21,8 @@ final class StripeCheckoutService
     public function __construct(
         private readonly CommerceSettings $commerce,
         private readonly CommerceOrderRepository $orders,
+        private readonly TaxRateResolver $taxRates,
+        private readonly ShippingZoneResolver $shippingZones,
     ) {
     }
 
@@ -133,7 +137,7 @@ final class StripeCheckoutService
         Stripe::setApiKey($secret);
 
         $lineItems = array_map(static fn (array $i): array => $i['stripe_line'], $items);
-        if ($totals->taxCents > 0) {
+        if (!$this->taxRates->usesStripeTax() && $totals->taxCents > 0) {
             $lineItems[] = $this->adjustmentLine($currency, $totals->taxCents, 'Tax');
         }
         if ($totals->shippingCents > 0) {
@@ -148,6 +152,10 @@ final class StripeCheckoutService
             'client_reference_id' => (string) $order->id,
             'metadata' => array_merge(['order_number' => $order->orderNumber], $sessionMeta),
         ];
+
+        if ($this->taxRates->usesStripeTax()) {
+            $sessionParams['automatic_tax'] = ['enabled' => true];
+        }
 
         if ($totals->discountCents > 0) {
             try {
@@ -167,7 +175,7 @@ final class StripeCheckoutService
 
         if ($this->commerce->shippingEnabled() || $totals->shippingCents > 0) {
             $sessionParams['shipping_address_collection'] = [
-                'allowed_countries' => $this->commerce->shippingCountries(),
+                'allowed_countries' => $this->shippingZones->checkoutCountryAllowlist(),
             ];
         }
 

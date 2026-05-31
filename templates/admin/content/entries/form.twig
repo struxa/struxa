@@ -40,7 +40,7 @@
 
 {% block admin_title %}{{ is_edit ? 'Edit entry' : 'New entry' }} — {{ content_type.name|e }}{% endblock %}
 
-{% block admin_body_class %}admin-body--entry-edit{% endblock %}
+{% block admin_body_class %}admin-body--dash-ref admin-body--entry-edit{% endblock %}
 
 {% block admin_hero_title %}
   <h1 class="admin-hero-title">{{ is_edit ? (tit|default('Edit entry')|e) : 'New entry' }}</h1>
