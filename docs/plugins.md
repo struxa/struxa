@@ -20,7 +20,7 @@ Each plugin is **`plugins/{slug}/`** where `{slug}` matches `^[a-z0-9]+(?:-[a-z0
 
 1. **Discovery** — `PluginScanner` reads valid `plugin.json` files.
 2. **Activation** — Rows in **`cms_plugins`** mark which slugs are active. Pending `migrations/*.sql` files are applied and recorded in **`cms_plugin_migrations`**.
-3. **Boot** — For each active plugin, autoload is registered, Twig paths added, routes loaded, then `main_class` (if present) is instantiated; if it implements `PluginServiceProviderInterface`, `boot()` runs (nav items, event listeners, reserved URL segments).
+3. **Boot** — For each active plugin, autoload is registered, Twig paths added, routes loaded, then `main_class` (if present) is instantiated; if it implements `PluginServiceProviderInterface`, `boot()` runs (nav items, event listeners, **filters**, reserved URL segments).
 4. **Remove (delete from disk)** — If the plugin root contains **`uninstall.sql`**, it is executed (typically `DROP TABLE` for that plugin’s tables), then **`cms_plugin_migrations`** rows for that slug are deleted so a future reinstall can run migrations again.
 
 ## Reserved URL segments (content type slugs)
@@ -50,6 +50,42 @@ public function boot(PluginBootContext $context): void
 `registerReservedContentSlugs()` is an alias with the same behavior. Invalid or empty segments are ignored. Segments must match `^[a-z0-9]+(?:-[a-z0-9]+)*$` (lowercase).
 
 **Bundled example:** `content-stream-plugin` registers `content-stream` for its staff tool at `/content-stream` (see `ContentStreamServiceProvider`).
+
+## Filter pipeline (`apply_filters`)
+
+Plugins can **transform** core output at runtime (not just react to events). In `boot()`:
+
+```php
+use App\Filter\FilterHook;
+
+public function boot(PluginBootContext $context): void
+{
+    $context->addFilter(FilterHook::SEO_META, function (array $meta, array $ctx): array {
+        if (($ctx['subject'] ?? '') === 'page') {
+            $meta['og_title'] = '[Brand] ' . ($meta['og_title'] ?? '');
+        }
+
+        return $meta;
+    }, 10);
+
+    $context->addFilter(FilterHook::MENU_ITEMS, function (array $items, array $ctx): array {
+        $items[] = ['label' => 'Status', 'href' => '/status', 'target' => '', 'css_class' => ''];
+
+        return $items;
+    });
+}
+```
+
+| Hook constant | Value | Transforms |
+| --- | --- | --- |
+| `FilterHook::SEO_META` | `seo.meta` | Resolved meta array (see `SeoMetaFilter::toArray()`) |
+| `FilterHook::HTML_SANITIZE` | `html.sanitize` | Sanitized HTML string after HTMLPurifier |
+| `FilterHook::MENU_ITEMS` | `menu.items` | Public menu item list for a location |
+| `FilterHook::API_ENTRY_RESPONSE` | `api.entry.response` | REST entry detail JSON payload |
+| `FilterHook::API_PAGE_RESPONSE` | `api.page.response` | REST page detail JSON payload |
+| `FilterHook::API_ENTRY_REQUEST` | `api.entry.request` | Inbound REST entry write body before validation |
+
+Lower **priority** runs first (default `10`). Callbacks receive `(mixed $value, array $context)` and must **return** the next value.
 
 ## Browse and install from the catalog
 

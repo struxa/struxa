@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.1.26",
-    "title": "Struxa 1.1.26",
-    "summary": "Site Health dashboard with pass/fail checks for PHP, database, storage, scheduling, and security; fix edit-session wiring on page and entry edit routes.",
+    "latest_version": "1.1.27",
+    "title": "Struxa 1.1.27",
+    "summary": "Plugin filter pipeline — transform SEO meta, sanitized HTML, menus, and REST API payloads via FilterHook constants and PluginBootContext::addFilter().",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "minor"

@@ -17,6 +17,8 @@ use App\Event\ContentEntryDeletedEvent;
 use App\Event\ContentEntrySavedEvent;
 use App\Event\EventDispatcher;
 use App\Event\Events;
+use App\Filter\FilterRegistry;
+use App\Filter\Filters;
 use App\Event\StorefrontCachesInvalidateEvent;
 use App\Event\UserLoggedInEvent;
 use App\Flash;
@@ -131,6 +133,9 @@ Settings::boot($pdo);
 
 $eventDispatcher = new EventDispatcher();
 Events::set($eventDispatcher);
+
+$filterRegistry = new FilterRegistry();
+Filters::set($filterRegistry);
 
 $authConfig = new Config($pdo, PhpAuthSettings::fromEnv(), PhpAuthSettings::configType());
 $auth = new AppAuth($pdo, $authConfig);

@@ -6,6 +6,7 @@ namespace App\Plugin;
 
 use App\Content\ReservedContentSlugs;
 use App\Event\EventDispatcher;
+use App\Filter\Filters;
 use App\Section\SectionDefinitionProviderInterface;
 use App\Section\SectionDefinitionRegistry;
 use PHPAuth\Auth;
@@ -73,6 +74,18 @@ final class PluginBootContext
     public function events(): EventDispatcher
     {
         return $this->events;
+    }
+
+    /**
+     * Register a filter callback (WordPress-style {@code apply_filters}).
+     *
+     * Use {@see \App\Filter\FilterHook} constants for hook names. Lower priority runs first (default 10).
+     *
+     * @param callable(mixed, array<string, mixed>): mixed $callback
+     */
+    public function addFilter(string $hook, callable $callback, int $priority = 10): void
+    {
+        Filters::add($hook, $callback, $priority);
     }
 
     /**

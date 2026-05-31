@@ -30,6 +30,9 @@ use App\Security\IpBlockPatternValidator;
 use App\Editing\EditLockService;
 use App\Editing\EditSubjectType;
 use App\Dev\PluginDependencyHealthCheck;
+use App\Filter\FilterHook;
+use App\Filter\FilterRegistry;
+use App\Filter\Filters;
 use App\Health\SiteHealthStatus;
 use App\Trash\TrashItemKind;
 use App\Dev\TwigLayoutContractLinter;
@@ -432,6 +435,18 @@ if (SiteHealthStatus::worst([SiteHealthStatus::GOOD, SiteHealthStatus::RECOMMEND
 }
 if (SiteHealthStatus::worst([SiteHealthStatus::GOOD, SiteHealthStatus::CRITICAL]) !== SiteHealthStatus::CRITICAL) {
     $fail('SiteHealthStatus::worst should prefer critical.');
+}
+
+if (!FilterHook::isValid('seo.meta') || FilterHook::isValid('invalid')) {
+    $fail('FilterHook validation failed.');
+}
+
+$filters = new FilterRegistry();
+Filters::set($filters);
+Filters::add(FilterHook::HTML_SANITIZE, static fn (mixed $v): string => (string) $v . '-a', 20);
+Filters::add(FilterHook::HTML_SANITIZE, static fn (mixed $v): string => (string) $v . '-b', 10);
+if (Filters::apply(FilterHook::HTML_SANITIZE, 'x', []) !== 'x-b-a') {
+    $fail('FilterRegistry should apply callbacks in ascending priority order.');
 }
 
 echo "All tests passed.\n";

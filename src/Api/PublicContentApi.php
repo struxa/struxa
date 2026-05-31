@@ -8,6 +8,8 @@ use App\Content\ContentEntry;
 use App\Content\ContentEntryRefsFieldOptions;
 use App\Content\ContentField;
 use App\Content\ContentType;
+use App\Filter\FilterHook;
+use App\Filter\Filters;
 use App\Media\MediaUrlHelper;
 use App\Page\Page;
 use App\Taxonomy\Taxonomy;
@@ -142,7 +144,7 @@ final class PublicContentApi
             ];
         }
 
-        return [
+        return self::filterEntryResponse([
             'entry' => [
                 'id' => $entry->id,
                 'title' => $entry->title,
@@ -161,7 +163,23 @@ final class PublicContentApi
             ],
             'fields' => $fields,
             'taxonomies' => $taxOut,
-        ];
+        ], $type, $entry);
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     * @return array<string, mixed>
+     */
+    private static function filterEntryResponse(array $payload, ContentType $type, ContentEntry $entry): array
+    {
+        $filtered = Filters::apply(FilterHook::API_ENTRY_RESPONSE, $payload, [
+            'content_type_id' => $type->id,
+            'content_type_slug' => $type->slug,
+            'entry_id' => $entry->id,
+            'entry_slug' => $entry->slug,
+        ]);
+
+        return is_array($filtered) ? $filtered : $payload;
     }
 
     /**
@@ -188,7 +206,7 @@ final class PublicContentApi
     {
         $slug = $page->slug;
 
-        return [
+        return self::filterPageResponse([
             'page' => [
                 'id' => $page->id,
                 'title' => $page->title,
@@ -211,7 +229,21 @@ final class PublicContentApi
                 'public_path' => '/p/' . $slug,
                 'public_url' => $siteUrl !== '' ? $siteUrl . '/p/' . $slug : null,
             ],
-        ];
+        ], $page);
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     * @return array<string, mixed>
+     */
+    private static function filterPageResponse(array $payload, Page $page): array
+    {
+        $filtered = Filters::apply(FilterHook::API_PAGE_RESPONSE, $payload, [
+            'page_id' => $page->id,
+            'page_slug' => $page->slug,
+        ]);
+
+        return is_array($filtered) ? $filtered : $payload;
     }
 
     /**

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Menu;
 
+use App\Filter\FilterHook;
+use App\Filter\Filters;
 use App\Page\PageRepository;
 use PDO;
 use PDOException;
@@ -59,7 +61,11 @@ final class MenuPublicLoader
                 ];
             }
 
-            $this->cache[$location] = $out;
+            $this->cache[$location] = self::normalizeItems(Filters::apply(
+                FilterHook::MENU_ITEMS,
+                $out,
+                ['location' => $location, 'menu_id' => $menu->id]
+            ));
 
             return $this->cache[$location];
         } catch (PDOException) {
@@ -94,5 +100,30 @@ final class MenuPublicLoader
         }
 
         return strtolower(rtrim($href, '/')) ?: '/';
+    }
+
+    /**
+     * @param mixed $items
+     * @return list<array{label: string, href: string, target: string, css_class: string}>
+     */
+    private static function normalizeItems(mixed $items): array
+    {
+        if (!is_array($items)) {
+            return [];
+        }
+        $out = [];
+        foreach ($items as $item) {
+            if (!is_array($item)) {
+                continue;
+            }
+            $out[] = [
+                'label' => (string) ($item['label'] ?? ''),
+                'href' => (string) ($item['href'] ?? '#'),
+                'target' => (string) ($item['target'] ?? ''),
+                'css_class' => (string) ($item['css_class'] ?? ''),
+            ];
+        }
+
+        return $out;
     }
 }

@@ -56,7 +56,7 @@ final class SeoService
         $schema = $page->schemaJson !== null && trim($page->schemaJson) !== '' ? trim($page->schemaJson) : null;
         $schema = $this->withBreadcrumbSchema($schema, $breadcrumbs, $siteUrl);
 
-        return new ResolvedSeoMeta(
+        return SeoMetaFilter::apply(new ResolvedSeoMeta(
             htmlTitle: $htmlTitle,
             metaDescription: $desc,
             canonicalAbsoluteUrl: $canonical,
@@ -68,7 +68,11 @@ final class SeoService
             twitterDescription: $this->clip($twDesc, 300),
             twitterImageAbsoluteUrl: $twImg !== '' ? $twImg : null,
             schemaJsonLd: $schema,
-        );
+        ), [
+            'subject' => 'page',
+            'page_id' => $page->id,
+            'slug' => $page->slug,
+        ]);
     }
 
     public function resolveForContentEntry(
@@ -111,7 +115,7 @@ final class SeoService
         $schema = $entry->schemaJson !== null && trim($entry->schemaJson) !== '' ? trim($entry->schemaJson) : null;
         $schema = $this->withBreadcrumbSchema($schema, $breadcrumbs, $siteUrl);
 
-        return new ResolvedSeoMeta(
+        return SeoMetaFilter::apply(new ResolvedSeoMeta(
             htmlTitle: $htmlTitle,
             metaDescription: $desc,
             canonicalAbsoluteUrl: $canonical,
@@ -123,7 +127,13 @@ final class SeoService
             twitterDescription: $this->clip($twDesc, 300),
             twitterImageAbsoluteUrl: $twImg !== '' ? $twImg : null,
             schemaJsonLd: $schema,
-        );
+        ), [
+            'subject' => 'content_entry',
+            'entry_id' => $entry->id,
+            'content_type_id' => $type->id,
+            'type_slug' => $type->slug,
+            'slug' => $entry->slug,
+        ]);
     }
 
     public function resolveForTaxonomyTerm(
@@ -163,7 +173,7 @@ final class SeoService
 
         $schema = $term->schemaJson !== null && trim($term->schemaJson) !== '' ? trim($term->schemaJson) : null;
 
-        return new ResolvedSeoMeta(
+        return SeoMetaFilter::apply(new ResolvedSeoMeta(
             htmlTitle: $htmlTitle,
             metaDescription: $desc,
             canonicalAbsoluteUrl: $canonical,
@@ -175,7 +185,14 @@ final class SeoService
             twitterDescription: $this->clip($twDesc, 300),
             twitterImageAbsoluteUrl: $twImg !== '' ? $twImg : null,
             schemaJsonLd: $schema,
-        );
+        ), [
+            'subject' => 'taxonomy_term',
+            'term_id' => $term->id,
+            'taxonomy_id' => $taxonomy->id,
+            'content_type_id' => $type->id,
+            'type_slug' => $type->slug,
+            'slug' => $term->slug,
+        ]);
     }
 
     /**
@@ -188,7 +205,7 @@ final class SeoService
         $title = trim($settings['default_meta_title'] ?? '') !== '' ? trim($settings['default_meta_title']) : $name;
         $desc = trim($settings['default_meta_description'] ?? '') !== '';
 
-        return new ResolvedSeoMeta(
+        return SeoMetaFilter::apply(new ResolvedSeoMeta(
             htmlTitle: $title,
             metaDescription: $desc ? trim($settings['default_meta_description']) : '',
             canonicalAbsoluteUrl: $siteUrl . '/',
@@ -200,7 +217,7 @@ final class SeoService
             twitterDescription: $desc ? trim($settings['default_meta_description']) : '',
             twitterImageAbsoluteUrl: $this->defaultSiteImage($siteUrl) ?: null,
             schemaJsonLd: null,
-        );
+        ), ['subject' => 'site_home']);
     }
 
     /**
@@ -221,7 +238,7 @@ final class SeoService
 
         $ogImg = $this->defaultSiteImage($siteUrl);
 
-        return new ResolvedSeoMeta(
+        return SeoMetaFilter::apply(new ResolvedSeoMeta(
             htmlTitle: $htmlTitle,
             metaDescription: $desc,
             canonicalAbsoluteUrl: $canonical,
@@ -233,7 +250,11 @@ final class SeoService
             twitterDescription: $this->clip($desc, 300),
             twitterImageAbsoluteUrl: $ogImg !== '' ? $ogImg : null,
             schemaJsonLd: null,
-        );
+        ), [
+            'subject' => 'content_type_index',
+            'content_type_id' => $type->id,
+            'type_slug' => $type->slug,
+        ]);
     }
 
     /**

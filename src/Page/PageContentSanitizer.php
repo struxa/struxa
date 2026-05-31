@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Page;
 
+use App\Filter\FilterHook;
+use App\Filter\Filters;
 use App\Settings\SiteUrlResolver;
 use HTMLPurifier;
 use HTMLPurifier_Config;
@@ -78,9 +80,11 @@ final class PageContentSanitizer
         $this->purifier = new HTMLPurifier($config);
     }
 
-    public function sanitize(string $html): string
+    public function sanitize(string $html, array $context = []): string
     {
-        return $this->purifier->purify($html);
+        $clean = $this->purifier->purify($html);
+
+        return (string) Filters::apply(FilterHook::HTML_SANITIZE, $clean, $context);
     }
 
     public static function fromEnv(): self

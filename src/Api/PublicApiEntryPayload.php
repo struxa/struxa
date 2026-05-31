@@ -6,6 +6,8 @@ namespace App\Api;
 
 use App\Content\ContentEntry;
 use App\Content\ContentField;
+use App\Filter\FilterHook;
+use App\Filter\Filters;
 use App\Taxonomy\Taxonomy;
 
 /**
@@ -90,7 +92,14 @@ final class PublicApiEntryPayload
             }
         }
 
-        return $body;
+        $context = [
+            'is_create' => $isCreate,
+            'content_type_id' => $entry?->contentTypeId,
+            'entry_id' => $entry?->id,
+        ];
+        $filtered = Filters::apply(FilterHook::API_ENTRY_REQUEST, $body, $context);
+
+        return is_array($filtered) ? $filtered : $body;
     }
 
     /**
