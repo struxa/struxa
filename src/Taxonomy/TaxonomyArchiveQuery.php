@@ -17,7 +17,7 @@ final class TaxonomyArchiveQuery
 
     public function countPublishedForTerm(int $termId): int
     {
-        $vis = "e.status = 'published' AND (e.published_at IS NULL OR e.published_at <= NOW(6))";
+        $vis = "e.deleted_at IS NULL AND e.status = 'published' AND (e.published_at IS NULL OR e.published_at <= NOW(6))";
         $stmt = $this->pdo->prepare(
             'SELECT COUNT(DISTINCT e.id) FROM cms_content_entries e
              INNER JOIN cms_content_entry_taxonomy_terms j ON j.content_entry_id = e.id
@@ -37,7 +37,7 @@ final class TaxonomyArchiveQuery
         $perPage = max(1, min(50, $perPage));
         $offset = ($page - 1) * $perPage;
 
-        $vis = "e.status = 'published' AND (e.published_at IS NULL OR e.published_at <= NOW(6))";
+        $vis = "e.deleted_at IS NULL AND e.status = 'published' AND (e.published_at IS NULL OR e.published_at <= NOW(6))";
         $sql = 'SELECT DISTINCT e.* FROM cms_content_entries e
                 INNER JOIN cms_content_entry_taxonomy_terms j ON j.content_entry_id = e.id
                 WHERE j.taxonomy_term_id = ? AND ' . $vis . '

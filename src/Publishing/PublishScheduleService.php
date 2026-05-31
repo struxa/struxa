@@ -69,6 +69,7 @@ final class PublishScheduleService
             "SELECT id, content_type_id FROM cms_content_entries
              WHERE scheduled_publish_at IS NOT NULL
                AND scheduled_publish_at <= NOW(6)
+               AND deleted_at IS NULL
                AND status IN ('draft','in_review','approved')
              LIMIT 100"
         );
@@ -107,6 +108,7 @@ final class PublishScheduleService
             "SELECT id, content_type_id FROM cms_content_entries
              WHERE scheduled_unpublish_at IS NOT NULL
                AND scheduled_unpublish_at <= NOW(6)
+               AND deleted_at IS NULL
                AND status = 'published'
              LIMIT 100"
         );
@@ -144,6 +146,7 @@ final class PublishScheduleService
             "SELECT id FROM cms_pages
              WHERE scheduled_publish_at IS NOT NULL
                AND scheduled_publish_at <= NOW(6)
+               AND deleted_at IS NULL
                AND status IN ('draft','in_review','approved')
              LIMIT 100"
         );
@@ -180,6 +183,7 @@ final class PublishScheduleService
             "SELECT id FROM cms_pages
              WHERE scheduled_unpublish_at IS NOT NULL
                AND scheduled_unpublish_at <= NOW(6)
+               AND deleted_at IS NULL
                AND status = 'published'
              LIMIT 100"
         );

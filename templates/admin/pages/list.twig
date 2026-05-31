@@ -16,6 +16,9 @@
     {% if cms_can('manage_pages') %}
       <a class="admin-btn-primary" href="{{ url_for('admin.pages.new') }}">New page</a>
     {% endif %}
+    {% if cms_can('manage_pages') or cms_can('edit_content') or cms_can('review_content') or cms_can('manage_media') %}
+      <a class="admin-link admin-toolbar-trash-link" href="{{ url_for('admin.trash.index') }}">Trash</a>
+    {% endif %}
   </div>
 
   {% if pages is empty %}
@@ -55,8 +58,8 @@
                     <a href="{{ url_for('admin.pages.edit', { id: p.id }) }}">Edit</a>
                     <a href="{{ url_for('admin.pages.builder', { id: p.id }) }}">Builder</a>
                     {% if cms_can('delete_content') %}
-                      <form method="post" action="{{ url_for('admin.pages.delete', { id: p.id }) }}" onsubmit="return confirm('Delete this page?');">
-                        <button type="submit" class="admin-actions-danger">Delete</button>
+                      <form method="post" action="{{ url_for('admin.pages.delete', { id: p.id }) }}" onsubmit="return confirm('Move this page to trash?');">
+                        <button type="submit" class="admin-actions-danger">Move to trash</button>
                       </form>
                     {% endif %}
                   </div>

@@ -88,9 +88,9 @@
 
   <div class="admin-card admin-card--danger-zone">
     <h2 class="admin-card-title" style="margin-top:0;color:#fca5a5">Danger zone</h2>
-    <p class="admin-hint">Removes the database row and the file under <code class="admin-inline-code">/uploads/</code> (empty folders are cleaned up).</p>
-    <form class="admin-inline-form" method="post" action="{{ url_for('admin.media.delete', { id: media.id }) }}" onsubmit="return confirm('Delete this file permanently?');">
-      <button type="submit" class="admin-btn-danger">Delete file</button>
+    <p class="admin-hint">Moves the file to trash. Restore it from Trash, or permanently delete it there.</p>
+    <form class="admin-inline-form" method="post" action="{{ url_for('admin.media.delete', { id: media.id }) }}" onsubmit="return confirm('Move this file to trash?');">
+      <button type="submit" class="admin-btn-danger">Move to trash</button>
     </form>
   </div>
 {% endblock %}

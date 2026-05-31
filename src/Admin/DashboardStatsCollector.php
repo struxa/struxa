@@ -55,34 +55,34 @@ final class DashboardStatsCollector
         ];
 
         try {
-            $out['pages'] = (int) $this->pdo->query('SELECT COUNT(*) FROM cms_pages')->fetchColumn();
+            $out['pages'] = (int) $this->pdo->query('SELECT COUNT(*) FROM cms_pages WHERE deleted_at IS NULL')->fetchColumn();
             $out['pages_published'] = (int) $this->pdo->query(
-                "SELECT COUNT(*) FROM cms_pages WHERE status = 'published'"
+                "SELECT COUNT(*) FROM cms_pages WHERE deleted_at IS NULL AND status = 'published'"
             )->fetchColumn();
             $out['pages_draft'] = (int) $this->pdo->query(
-                "SELECT COUNT(*) FROM cms_pages WHERE status = 'draft'"
+                "SELECT COUNT(*) FROM cms_pages WHERE deleted_at IS NULL AND status = 'draft'"
             )->fetchColumn();
         } catch (Throwable) {
         }
 
         try {
-            $out['entries'] = (int) $this->pdo->query('SELECT COUNT(*) FROM cms_content_entries')->fetchColumn();
+            $out['entries'] = (int) $this->pdo->query('SELECT COUNT(*) FROM cms_content_entries WHERE deleted_at IS NULL')->fetchColumn();
             $out['entries_published'] = (int) $this->pdo->query(
-                "SELECT COUNT(*) FROM cms_content_entries WHERE status = 'published'"
+                "SELECT COUNT(*) FROM cms_content_entries WHERE deleted_at IS NULL AND status = 'published'"
             )->fetchColumn();
         } catch (Throwable) {
         }
 
         try {
             $out['entries_draft'] = (int) $this->pdo->query(
-                "SELECT COUNT(*) FROM cms_content_entries WHERE status = 'draft'"
+                "SELECT COUNT(*) FROM cms_content_entries WHERE deleted_at IS NULL AND status = 'draft'"
             )->fetchColumn();
         } catch (Throwable) {
         }
 
         try {
             $out['entries_in_review'] = (int) $this->pdo->query(
-                "SELECT COUNT(*) FROM cms_content_entries WHERE status = 'in_review'"
+                "SELECT COUNT(*) FROM cms_content_entries WHERE deleted_at IS NULL AND status = 'in_review'"
             )->fetchColumn();
         } catch (Throwable) {
         }
@@ -93,7 +93,7 @@ final class DashboardStatsCollector
         }
 
         try {
-            $out['media'] = (int) $this->pdo->query('SELECT COUNT(*) FROM cms_media')->fetchColumn();
+            $out['media'] = (int) $this->pdo->query('SELECT COUNT(*) FROM cms_media WHERE deleted_at IS NULL')->fetchColumn();
         } catch (Throwable) {
         }
 
@@ -118,6 +118,7 @@ final class DashboardStatsCollector
             $sql = 'SELECT e.id, e.title, e.slug, e.status, e.updated_at, t.id AS type_id, t.name AS type_name, t.slug AS type_slug
                     FROM cms_content_entries e
                     INNER JOIN cms_content_types t ON t.id = e.content_type_id
+                    WHERE e.deleted_at IS NULL
                     ORDER BY e.updated_at DESC
                     LIMIT 8';
             $stmt = $this->pdo->query($sql);
@@ -132,7 +133,7 @@ final class DashboardStatsCollector
         try {
             $sql = 'SELECT t.name, t.slug, COUNT(e.id) AS cnt
                     FROM cms_content_types t
-                    LEFT JOIN cms_content_entries e ON e.content_type_id = t.id
+                    LEFT JOIN cms_content_entries e ON e.content_type_id = t.id AND e.deleted_at IS NULL
                     GROUP BY t.id, t.name, t.slug
                     ORDER BY t.name ASC';
             $stmt = $this->pdo->query($sql);

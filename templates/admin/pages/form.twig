@@ -53,6 +53,9 @@
 {% endblock %}
 
 {% block admin_content %}
+  {% if is_edit %}
+    {% include 'admin/partials/_edit_session.twig' %}
+  {% endif %}
   <div class="admin-page-edit-layout">
     <div class="admin-page-edit-main admin-page-edit-main--composed">
       <form id="page-edit-form" class="admin-form admin-form--wide admin-form--page-aside-inner admin-page-edit-form--composed" method="post" action="{{ is_edit ? url_for('admin.pages.update', { id: page.id }) : url_for('admin.pages.store') }}">

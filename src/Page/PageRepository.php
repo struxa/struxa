@@ -10,9 +10,11 @@ final class PageRepository
 {
     private const TABLE = 'cms_pages';
 
-    private const SELECT = 'id, title, slug, seo_title, seo_description, focus_keyphrase, tags_json, featured_image_id, canonical_url, seo_noindex, og_title, og_description, og_image_id, twitter_title, twitter_description, twitter_image_id, schema_json, content, status, published_at, scheduled_publish_at, scheduled_unpublish_at, created_at, updated_at';
+    private const SELECT = 'id, title, slug, seo_title, seo_description, focus_keyphrase, tags_json, featured_image_id, canonical_url, seo_noindex, og_title, og_description, og_image_id, twitter_title, twitter_description, twitter_image_id, schema_json, content, status, published_at, scheduled_publish_at, scheduled_unpublish_at, created_at, updated_at, deleted_at, deleted_by';
 
-    private const PUBLIC_WHERE = "status = 'published' AND (published_at IS NULL OR published_at <= NOW(6))";
+    private const NOT_TRASHED = 'deleted_at IS NULL';
+
+    private const PUBLIC_WHERE = "deleted_at IS NULL AND status = 'published' AND (published_at IS NULL OR published_at <= NOW(6))";
 
     public function __construct(private readonly PDO $pdo)
     {
@@ -23,7 +25,7 @@ final class PageRepository
      */
     public function allOrderedByUpdated(): array
     {
-        $sql = 'SELECT ' . self::SELECT . ' FROM ' . self::TABLE . ' ORDER BY updated_at DESC';
+        $sql = 'SELECT ' . self::SELECT . ' FROM ' . self::TABLE . ' WHERE ' . self::NOT_TRASHED . ' ORDER BY updated_at DESC';
         $stmt = $this->pdo->query($sql);
         $out = [];
         while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
@@ -36,7 +38,7 @@ final class PageRepository
     public function findById(int $id): ?Page
     {
         $stmt = $this->pdo->prepare(
-            'SELECT ' . self::SELECT . ' FROM ' . self::TABLE . ' WHERE id = ? LIMIT 1'
+            'SELECT ' . self::SELECT . ' FROM ' . self::TABLE . ' WHERE id = ? AND ' . self::NOT_TRASHED . ' LIMIT 1'
         );
         $stmt->execute([$id]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -60,7 +62,7 @@ final class PageRepository
     {
         $stmt = $this->pdo->prepare(
             'SELECT ' . self::SELECT . ' FROM ' . self::TABLE
-            . ' WHERE slug = ? LIMIT 1'
+            . ' WHERE slug = ? AND ' . self::NOT_TRASHED . ' LIMIT 1'
         );
         $stmt->execute([$slug]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -107,7 +109,7 @@ final class PageRepository
     public function idTitlePairsAll(): array
     {
         $stmt = $this->pdo->query(
-            'SELECT id, title FROM ' . self::TABLE . ' ORDER BY title ASC'
+            'SELECT id, title FROM ' . self::TABLE . ' WHERE ' . self::NOT_TRASHED . ' ORDER BY title ASC'
         );
         $out = [];
         while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
@@ -168,10 +170,10 @@ final class PageRepository
     public function slugExists(string $slug, ?int $exceptId = null): bool
     {
         if ($exceptId === null) {
-            $stmt = $this->pdo->prepare('SELECT 1 FROM ' . self::TABLE . ' WHERE slug = ? LIMIT 1');
+            $stmt = $this->pdo->prepare('SELECT 1 FROM ' . self::TABLE . ' WHERE slug = ? AND ' . self::NOT_TRASHED . ' LIMIT 1');
             $stmt->execute([$slug]);
         } else {
-            $stmt = $this->pdo->prepare('SELECT 1 FROM ' . self::TABLE . ' WHERE slug = ? AND id != ? LIMIT 1');
+            $stmt = $this->pdo->prepare('SELECT 1 FROM ' . self::TABLE . ' WHERE slug = ? AND id != ? AND ' . self::NOT_TRASHED . ' LIMIT 1');
             $stmt->execute([$slug, $exceptId]);
         }
 
@@ -297,9 +299,61 @@ final class PageRepository
         ]);
     }
 
+    public function trash(int $id, ?int $deletedBy = null): bool
+    {
+        $stmt = $this->pdo->prepare(
+            'UPDATE ' . self::TABLE . ' SET deleted_at = NOW(6), deleted_by = ? WHERE id = ? AND ' . self::NOT_TRASHED
+        );
+        $stmt->execute([$deletedBy, $id]);
+
+        return $stmt->rowCount() > 0;
+    }
+
+    public function restore(int $id): bool
+    {
+        $stmt = $this->pdo->prepare(
+            'UPDATE ' . self::TABLE . ' SET deleted_at = NULL, deleted_by = NULL WHERE id = ? AND deleted_at IS NOT NULL'
+        );
+        $stmt->execute([$id]);
+
+        return $stmt->rowCount() > 0;
+    }
+
+    public function purge(int $id): bool
+    {
+        $stmt = $this->pdo->prepare('DELETE FROM ' . self::TABLE . ' WHERE id = ? AND deleted_at IS NOT NULL');
+        $stmt->execute([$id]);
+
+        return $stmt->rowCount() > 0;
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    public function listTrashed(int $limit = 200): array
+    {
+        $limit = max(1, min(500, $limit));
+        $stmt = $this->pdo->prepare(
+            'SELECT id, title, slug, status, deleted_at, deleted_by FROM ' . self::TABLE
+            . ' WHERE deleted_at IS NOT NULL ORDER BY deleted_at DESC LIMIT ' . $limit
+        );
+        $stmt->execute();
+        $out = [];
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            $out[] = $row;
+        }
+
+        return $out;
+    }
+
+    public function countTrashed(): int
+    {
+        return (int) $this->pdo->query('SELECT COUNT(*) FROM ' . self::TABLE . ' WHERE deleted_at IS NOT NULL')->fetchColumn();
+    }
+
+    /** @deprecated Use trash() or purge() */
     public function delete(int $id): void
     {
-        $stmt = $this->pdo->prepare('DELETE FROM ' . self::TABLE . ' WHERE id = ?');
-        $stmt->execute([$id]);
+        $this->purge($id);
     }
 }

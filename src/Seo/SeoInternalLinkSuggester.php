@@ -29,7 +29,7 @@ final class SeoInternalLinkSuggester
         $linkedUrls = self::extractLinkedPaths($currentContentPlain);
 
         $pageSql = "SELECT id, title, slug FROM cms_pages
-            WHERE status = 'published' AND (published_at IS NULL OR published_at <= NOW(6))
+            WHERE deleted_at IS NULL AND status = 'published' AND (published_at IS NULL OR published_at <= NOW(6))
             AND (title LIKE ? OR content LIKE ? OR seo_title LIKE ? OR seo_description LIKE ?)";
         $params = ["%{$phrase}%", "%{$phrase}%", "%{$phrase}%", "%{$phrase}%"];
         if ($exceptPageId !== null) {
@@ -58,7 +58,7 @@ final class SeoInternalLinkSuggester
         $entrySql = "SELECT e.id, e.title, e.slug, t.slug AS type_slug, t.name AS type_name
             FROM cms_content_entries e
             INNER JOIN cms_content_types t ON t.id = e.content_type_id
-            WHERE e.status = 'published' AND (e.published_at IS NULL OR e.published_at <= NOW(6))
+            WHERE e.deleted_at IS NULL AND e.status = 'published' AND (e.published_at IS NULL OR e.published_at <= NOW(6))
             AND t.has_public_route = 1
             AND (e.title LIKE ? OR e.seo_title LIKE ? OR e.seo_description LIKE ?)";
         $entryParams = ["%{$phrase}%", "%{$phrase}%", "%{$phrase}%"];

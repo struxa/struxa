@@ -6,7 +6,11 @@ use App\Admin\AfterSaveRedirect;
 use App\Access\ActivityLogger;
 use App\Access\PermissionSlug;
 use App\Access\WorkflowService;
-use App\Event\Events;
+use App\Editing\ContentAutosaveRepository;
+use App\Editing\EditLockRepository;
+use App\Editing\EditLockService;
+use App\Editing\EditSessionContext;
+use App\Editing\EditSubjectType;
 use App\Event\StorefrontCachesInvalidateEvent;
 use App\Flash;
 use App\Http\Middleware\RequireCmsStaff;
@@ -61,6 +65,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
     $sectionRenderer = new SectionRenderer($sectionManager, new SectionTemplateResolver($sectionManager));
     $sectionValidator = new SectionSchemaValidator($sectionManager);
     $mediaRepo = new MediaRepository($pdo);
+    $editSessions = new EditSessionContext(new EditLockService(new EditLockRepository($pdo)), new ContentAutosaveRepository($pdo));
 
     $adminContext = static function () use ($viewData): array {
         return array_merge($viewData(), []);
@@ -484,7 +489,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 ->withStatus(302);
         })->setName('admin.pages.store');
 
-        $group->get('/pages/{id:[0-9]+}/edit', function (Request $request, Response $response, array $args) use ($twig, $adminContext, $withCmsUser, $repo, $workflow, $pageFormMediaPicker, $pageFormRevisionSidebar, $pageFormFeaturedThumb, $mediaRepo, $pageBuilderPayload): Response {
+        $group->get('/pages/{id:[0-9]+}/edit', function (Request $request, Response $response, array $args) use ($twig, $adminContext, $withCmsUser, $repo, $workflow, $pageFormMediaPicker, $pageFormRevisionSidebar, $pageFormFeaturedThumb, $mediaRepo, $pageBuilderPayload, $editSessions, $cmsUid): Response {
             $id = (int) $args['id'];
             $page = $repo->findById($id);
             if ($page === null) {
@@ -493,8 +498,13 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             /** @var array<string, mixed> $cmsUser */
             $cmsUser = $request->getAttribute('cms_user') ?? [];
             $perms = $cmsUser['permission_slugs'] ?? [];
+            $uid = $cmsUid($request) ?? 0;
+            $editSession = $uid > 0
+                ? $editSessions->forEditForm(EditSubjectType::PAGE, $id, $page->updatedAt, $uid)
+                : [];
 
-            return $twig->render($response, 'admin/pages/form.twig', $withCmsUser($request, array_merge($adminContext(), $pageFormMediaPicker($request), $pageFormRevisionSidebar($id), $pageFormFeaturedThumb($page, null), $pageBuilderPayload($id), [
+            return $twig->render($response, 'admin/pages/form.twig', $withCmsUser($request, array_merge($adminContext(), $pageFormMediaPicker($request), $pageFormRevisionSidebar($id), $pageFormFeaturedThumb($page, null), $pageBuilderPayload($id), $editSession, [
+                'edit_form_id' => 'page-edit-form',
                 'admin_nav' => 'pages',
                 'form_mode' => 'edit',
                 'page' => $page,
@@ -505,7 +515,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             ])));
         })->setName('admin.pages.edit');
 
-        $group->post('/pages/{id:[0-9]+}/edit', function (Request $request, Response $response, array $args) use ($twig, $adminContext, $withCmsUser, $repo, $revisions, $validator, $workflow, $activity, $cmsUid, $pageFormMediaPicker, $pageFormRevisionSidebar, $appendFeaturedMediaError, $pageFormFeaturedThumb, $mediaRepo, $mergePageSeoOld, $pdo, $viewData, $pageBuilderPayload): Response {
+        $group->post('/pages/{id:[0-9]+}/edit', function (Request $request, Response $response, array $args) use ($twig, $adminContext, $withCmsUser, $repo, $revisions, $validator, $workflow, $activity, $cmsUid, $pageFormMediaPicker, $pageFormRevisionSidebar, $appendFeaturedMediaError, $pageFormFeaturedThumb, $mediaRepo, $mergePageSeoOld, $pdo, $viewData, $pageBuilderPayload, $editSessions): Response {
             $id = (int) $args['id'];
             $page = $repo->findById($id);
             if ($page === null) {
@@ -584,6 +594,10 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             }
             $activity->log($cmsUid($request), 'page.updated', 'page', $id, ['title' => $v['title']]);
             Events::dispatch(new StorefrontCachesInvalidateEvent('page_updated'));
+            $saveUid = $cmsUid($request);
+            if ($saveUid !== null) {
+                $editSessions->clearAfterSave(EditSubjectType::PAGE, $id, $saveUid);
+            }
             $parser = RouteContext::fromRequest($request)->getRouteParser();
             $siteUrl = (string) (($viewData())['site_url'] ?? '');
             if (AfterSaveRedirect::wantsPublicView($body)) {
@@ -609,10 +623,10 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             if ($page === null) {
                 throw new HttpNotFoundException($request);
             }
-            $repo->delete($id);
-            $activity->log($cmsUid($request), 'page.deleted', 'page', $id, ['title' => $page->title]);
-            Flash::set('success', 'Page deleted.');
-            Events::dispatch(new StorefrontCachesInvalidateEvent('page_deleted'));
+            $repo->trash($id, $cmsUid($request));
+            $activity->log($cmsUid($request), 'page.trashed', 'page', $id, ['title' => $page->title]);
+            Flash::set('success', 'Page moved to trash.');
+            Events::dispatch(new StorefrontCachesInvalidateEvent('page_trashed'));
 
             return $response
                 ->withHeader('Location', RouteContext::fromRequest($request)->getRouteParser()->urlFor('admin.pages.index'))

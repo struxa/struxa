@@ -33,42 +33,42 @@ final class SeoOverviewService
      */
     public function summary(): array
     {
-        $pagesTotal = (int) $this->pdo->query('SELECT COUNT(*) FROM cms_pages')->fetchColumn();
+        $pagesTotal = (int) $this->pdo->query('SELECT COUNT(*) FROM cms_pages WHERE deleted_at IS NULL')->fetchColumn();
         $pagesPublished = (int) $this->pdo->query(
-            "SELECT COUNT(*) FROM cms_pages WHERE status = 'published' AND (published_at IS NULL OR published_at <= NOW(6))"
+            "SELECT COUNT(*) FROM cms_pages WHERE deleted_at IS NULL AND status = 'published' AND (published_at IS NULL OR published_at <= NOW(6))"
         )->fetchColumn();
         $pagesMissingDesc = (int) $this->pdo->query(
-            "SELECT COUNT(*) FROM cms_pages WHERE status = 'published' AND (published_at IS NULL OR published_at <= NOW(6))
+            "SELECT COUNT(*) FROM cms_pages WHERE deleted_at IS NULL AND status = 'published' AND (published_at IS NULL OR published_at <= NOW(6))
              AND (seo_description IS NULL OR TRIM(seo_description) = '')"
         )->fetchColumn();
         $pagesMissingKp = (int) $this->pdo->query(
-            "SELECT COUNT(*) FROM cms_pages WHERE status = 'published' AND (published_at IS NULL OR published_at <= NOW(6))
+            "SELECT COUNT(*) FROM cms_pages WHERE deleted_at IS NULL AND status = 'published' AND (published_at IS NULL OR published_at <= NOW(6))
              AND (focus_keyphrase IS NULL OR TRIM(focus_keyphrase) = '')"
         )->fetchColumn();
         $pagesNoindex = (int) $this->pdo->query(
-            "SELECT COUNT(*) FROM cms_pages WHERE status = 'published' AND seo_noindex = 1"
+            "SELECT COUNT(*) FROM cms_pages WHERE deleted_at IS NULL AND status = 'published' AND seo_noindex = 1"
         )->fetchColumn();
 
-        $entriesTotal = (int) $this->pdo->query('SELECT COUNT(*) FROM cms_content_entries')->fetchColumn();
+        $entriesTotal = (int) $this->pdo->query('SELECT COUNT(*) FROM cms_content_entries WHERE deleted_at IS NULL')->fetchColumn();
         $entriesPublished = (int) $this->pdo->query(
-            "SELECT COUNT(*) FROM cms_content_entries WHERE status = 'published' AND (published_at IS NULL OR published_at <= NOW(6))"
+            "SELECT COUNT(*) FROM cms_content_entries WHERE deleted_at IS NULL AND status = 'published' AND (published_at IS NULL OR published_at <= NOW(6))"
         )->fetchColumn();
         $entriesMissingDesc = (int) $this->pdo->query(
-            "SELECT COUNT(*) FROM cms_content_entries WHERE status = 'published' AND (published_at IS NULL OR published_at <= NOW(6))
+            "SELECT COUNT(*) FROM cms_content_entries WHERE deleted_at IS NULL AND status = 'published' AND (published_at IS NULL OR published_at <= NOW(6))
              AND (seo_description IS NULL OR TRIM(seo_description) = '')"
         )->fetchColumn();
         $entriesMissingKp = (int) $this->pdo->query(
-            "SELECT COUNT(*) FROM cms_content_entries WHERE status = 'published' AND (published_at IS NULL OR published_at <= NOW(6))
+            "SELECT COUNT(*) FROM cms_content_entries WHERE deleted_at IS NULL AND status = 'published' AND (published_at IS NULL OR published_at <= NOW(6))
              AND (focus_keyphrase IS NULL OR TRIM(focus_keyphrase) = '')"
         )->fetchColumn();
         $entriesNoindex = (int) $this->pdo->query(
-            "SELECT COUNT(*) FROM cms_content_entries WHERE status = 'published' AND seo_noindex = 1"
+            "SELECT COUNT(*) FROM cms_content_entries WHERE deleted_at IS NULL AND status = 'published' AND seo_noindex = 1"
         )->fetchColumn();
 
         $recentPages = [];
         $stmt = $this->pdo->query(
             "SELECT id, title, slug, seo_description, focus_keyphrase FROM cms_pages
-             WHERE status = 'published' AND (published_at IS NULL OR published_at <= NOW(6))
+             WHERE deleted_at IS NULL AND status = 'published' AND (published_at IS NULL OR published_at <= NOW(6))
              AND ((seo_description IS NULL OR TRIM(seo_description) = '') OR (focus_keyphrase IS NULL OR TRIM(focus_keyphrase) = ''))
              ORDER BY updated_at DESC LIMIT 8"
         );
@@ -93,7 +93,7 @@ final class SeoOverviewService
             "SELECT e.id, e.title, e.slug, e.seo_description, e.focus_keyphrase, t.name AS type_name, t.id AS type_id
              FROM cms_content_entries e
              INNER JOIN cms_content_types t ON t.id = e.content_type_id
-             WHERE e.status = 'published' AND (e.published_at IS NULL OR e.published_at <= NOW(6))
+             WHERE e.deleted_at IS NULL AND e.status = 'published' AND (e.published_at IS NULL OR e.published_at <= NOW(6))
              AND ((e.seo_description IS NULL OR TRIM(e.seo_description) = '') OR (e.focus_keyphrase IS NULL OR TRIM(e.focus_keyphrase) = ''))
              ORDER BY e.updated_at DESC LIMIT 8"
         );

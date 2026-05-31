@@ -368,7 +368,7 @@
           class="admin-btn-danger admin-media-bulk-delete"
           id="admin-media-bulk-delete"
           disabled
-        >Delete selected</button>
+        >Move selected to trash</button>
         <div class="admin-media-bulk-move">
           <label class="admin-media-bulk-move-label">
             <span class="admin-table-muted">Move to</span>
@@ -521,9 +521,9 @@
                     <summary class="admin-actions-menu-trigger" aria-label="Actions for {{ row.original_name|e('html_attr') }}">⋯</summary>
                     <div class="admin-actions-menu-panel">
                       <a href="{{ url_for('admin.media.edit', { id: row.id }) }}">Edit metadata</a>
-                      <form method="post" action="{{ url_for('admin.media.delete', { id: row.id }) }}" onsubmit="return confirm('Delete this file permanently?');">
+                      <form method="post" action="{{ url_for('admin.media.delete', { id: row.id }) }}" onsubmit="return confirm('Move this file to trash?');">
                         <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
-                        <button type="submit" class="admin-actions-danger">Delete</button>
+                        <button type="submit" class="admin-actions-danger">Move to trash</button>
                       </form>
                     </div>
                   </details>

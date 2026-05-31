@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.1.24",
-    "title": "Struxa 1.1.24",
-    "summary": "Admin dashboard HUD redesign — unified command-center frame, glass stat tiles, and clearer two-column layout matching the admin theme.",
+    "latest_version": "1.1.25",
+    "title": "Struxa 1.1.25",
+    "summary": "Autosave and edit locking for pages and entries; trash with soft delete, restore, and permanent purge for pages, entries, and media.",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "minor"

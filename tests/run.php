@@ -27,7 +27,10 @@ use App\Seo\BreadcrumbSchemaBuilder;
 use App\Seo\SchemaJsonLdMerger;
 use App\Security\IpBlockMatcher;
 use App\Security\IpBlockPatternValidator;
+use App\Editing\EditLockService;
+use App\Editing\EditSubjectType;
 use App\Dev\PluginDependencyHealthCheck;
+use App\Trash\TrashItemKind;
 use App\Dev\TwigLayoutContractLinter;
 use App\Maintenance\MaintenanceService;
 use App\Media\MediaFolderFilter;
@@ -403,6 +406,24 @@ $quizValues = [['field_key' => 'q1', 'value_text' => 'B']];
 $quizResult = FormQuizScorer::score($quizForm, $quizFields, $quizValues);
 if ($quizResult['score'] !== 10 || !$quizResult['passed']) {
     $fail('FormQuizScorer should score correct quiz answers.');
+}
+
+if (!EditSubjectType::isValid('page') || EditSubjectType::isValid('invalid')) {
+    $fail('EditSubjectType validation failed.');
+}
+
+$lockRef = new ReflectionClass(EditLockService::class);
+/** @var EditLockService $lockSvc */
+$lockSvc = $lockRef->newInstanceWithoutConstructor();
+if (!$lockSvc->isActive(['heartbeat_at' => date('Y-m-d H:i:s')])) {
+    $fail('EditLockService::isActive should accept fresh heartbeat.');
+}
+if ($lockSvc->isActive(['heartbeat_at' => date('Y-m-d H:i:s', time() - EditLockService::TTL_SECONDS - 10)])) {
+    $fail('EditLockService::isActive should reject stale heartbeat.');
+}
+
+if (!TrashItemKind::isValid('page') || !TrashItemKind::isValid('content_entry') || TrashItemKind::isValid('invalid')) {
+    $fail('TrashItemKind validation failed.');
 }
 
 echo "All tests passed.\n";

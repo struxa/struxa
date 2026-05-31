@@ -1,0 +1,80 @@
+{% extends 'admin/base.twig' %}
+{% import 'admin/_ui_macros.twig' as ui %}
+
+{% block admin_title %}Trash{% endblock %}
+
+{% block admin_hero_title %}
+  <h1 class="admin-hero-title">Trash</h1>
+{% endblock %}
+
+{% block admin_hero_sub %}
+  <p class="admin-hero-sub admin-hero-sub--tight">
+    Deleted pages, entries, and media stay here until you restore or permanently remove them.
+    {% if trash_count|default(0) > 0 %}
+      <strong>{{ trash_count }}</strong> item{{ trash_count == 1 ? '' : 's' }} in trash.
+    {% endif %}
+  </p>
+{% endblock %}
+
+{% block admin_content %}
+  {% if trash_items is empty %}
+    {{ ui.empty_state(
+      'Trash is empty',
+      'When you delete a page, entry, or media file, it lands here first so you can undo mistakes.',
+      url_for('admin.pages.index'),
+      'Back to pages',
+      '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>'
+    ) }}
+  {% else %}
+    <div class="admin-table-wrap">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th scope="col">Item</th>
+            <th scope="col">Type</th>
+            <th scope="col">Deleted</th>
+            <th scope="col" class="admin-table-col-actions"><span class="admin-table-muted">Actions</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in trash_items %}
+            <tr>
+              <td>
+                <strong>{{ item.title|e }}</strong>
+                {% if item.subtitle|default('') != '' %}
+                  <div class="admin-table-muted admin-trash-sub">{{ item.subtitle|e }}</div>
+                {% endif %}
+              </td>
+              <td>
+                {% if item.kind == 'page' %}
+                  Page
+                {% elseif item.kind == 'content_entry' %}
+                  Entry
+                {% else %}
+                  Media
+                {% endif %}
+              </td>
+              <td class="admin-table-muted">{{ item.deleted_at|slice(0, 16)|replace({'T': ' '}) }}</td>
+              <td class="admin-table-actions">
+                <form class="admin-inline-form" method="post" action="{{ url_for('admin.trash.restore') }}">
+                  <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+                  <input type="hidden" name="kind" value="{{ item.kind|e('html_attr') }}" />
+                  <input type="hidden" name="id" value="{{ item.id }}" />
+                  <button type="submit" class="admin-btn-ghost admin-btn-ghost--sm">Restore</button>
+                </form>
+                {% if cms_can('delete_content') %}
+                  <form class="admin-inline-form" method="post" action="{{ url_for('admin.trash.purge') }}" onsubmit="return confirm('Permanently delete this item? This cannot be undone.');">
+                    <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+                    <input type="hidden" name="kind" value="{{ item.kind|e('html_attr') }}" />
+                    <input type="hidden" name="id" value="{{ item.id }}" />
+                    <button type="submit" class="admin-btn-ghost admin-btn-ghost--sm admin-actions-danger">Delete forever</button>
+                  </form>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% endif %}
+{% endblock %}

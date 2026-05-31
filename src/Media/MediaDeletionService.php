@@ -12,16 +12,53 @@ final class MediaDeletionService
     ) {
     }
 
-    public function delete(int $id): void
+    /** Move to trash (keeps file on disk). */
+    public function trash(int $id, ?int $deletedBy = null): bool
     {
-        $media = $this->repository->findById($id);
-        if ($media === null) {
-            return;
+        if ($this->repository->findById($id) === null) {
+            return false;
         }
 
-        $webPath = $media->path;
-        MediaStorage::unlinkManagedFile($this->projectRoot, $webPath);
+        return $this->repository->trash($id, $deletedBy);
+    }
+
+    /** Permanently delete a trashed file. */
+    public function purge(int $id): bool
+    {
+        $path = $this->repository->pathForTrashedId($id);
+        if ($path === null) {
+            return false;
+        }
+
+        MediaStorage::unlinkManagedFile($this->projectRoot, $path);
         $this->repository->deleteById($id);
+
+        return true;
+    }
+
+    /**
+     * @param list<int|string> $ids
+     */
+    public function trashMany(array $ids, ?int $deletedBy = null): int
+    {
+        $count = 0;
+        foreach ($ids as $raw) {
+            $id = (int) $raw;
+            if ($id < 1) {
+                continue;
+            }
+            if ($this->trash($id, $deletedBy)) {
+                $count++;
+            }
+        }
+
+        return $count;
+    }
+
+    /** @deprecated Use trash(); purge() from trash screen for permanent removal. */
+    public function delete(int $id): void
+    {
+        $this->trash($id);
     }
 
     /**
@@ -29,20 +66,6 @@ final class MediaDeletionService
      */
     public function deleteMany(array $ids): int
     {
-        $deleted = 0;
-        foreach ($ids as $raw) {
-            $id = (int) $raw;
-            if ($id < 1) {
-                continue;
-            }
-            $before = $this->repository->findById($id);
-            if ($before === null) {
-                continue;
-            }
-            $this->delete($id);
-            $deleted++;
-        }
-
-        return $deleted;
+        return $this->trashMany($ids);
     }
 }

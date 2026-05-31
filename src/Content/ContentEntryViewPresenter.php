@@ -87,7 +87,7 @@ final class ContentEntryViewPresenter
             'SELECT e.*, t.slug AS type_slug, t.has_public_route
              FROM cms_content_entries e
              INNER JOIN cms_content_types t ON t.id = e.content_type_id
-             WHERE e.id IN (' . $placeholders . ')'
+             WHERE e.id IN (' . $placeholders . ') AND e.deleted_at IS NULL'
         );
         $stmt->execute($ids);
         /** @var array<int, array<string, mixed>> $byId */

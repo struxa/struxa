@@ -79,6 +79,9 @@
 {% endblock %}
 
 {% block admin_content %}
+  {% if is_edit %}
+    {% include 'admin/partials/_edit_session.twig' %}
+  {% endif %}
   <div class="admin-page-edit-layout">
     {% set _elw = entry_link_warnings|default([]) %}
     {% if _elw is iterable and _elw|length > 0 %}
@@ -333,9 +336,9 @@
 
         <div class="admin-card admin-page-edit-aside-card admin-entry-aside-danger">
           <h2 class="admin-card-title admin-entry-aside-danger-title">Danger zone</h2>
-          <form method="post" action="{{ url_for('admin.content_types.entries.delete', { id: content_type.id, entryId: entry.id }) }}" onsubmit="return confirm('Delete this entry permanently?');">
+          <form method="post" action="{{ url_for('admin.content_types.entries.delete', { id: content_type.id, entryId: entry.id }) }}" onsubmit="return confirm('Move this entry to trash?');">
             <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
-            <button type="submit" class="admin-btn-danger admin-btn-danger--block">Delete entry</button>
+            <button type="submit" class="admin-btn-danger admin-btn-danger--block">Move to trash</button>
           </form>
         </div>
       {% endif %}

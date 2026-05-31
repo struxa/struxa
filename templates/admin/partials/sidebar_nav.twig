@@ -100,7 +100,7 @@
     </details>
   {% endif %}
 
-  <details class="admin-nav-group" {{ nav in ['pages','content_types','media','forms','seo_sitemap'] ? 'open' : '' }}>
+  <details class="admin-nav-group" {{ nav in ['pages','content_types','media','forms','seo_sitemap','trash'] ? 'open' : '' }}>
     <summary class="admin-nav-group-title">Content</summary>
     <div class="admin-nav-group-items">
       {# Pages: use sidebar pin only (avoids duplicate nav) #}
@@ -120,6 +120,12 @@
         <a href="{{ url_for('admin.media.index') }}" class="{{ nav == 'media' ? 'is-active' : '' }}">
           <svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
           Media library
+        </a>
+      {% endif %}
+      {% if cms_can('manage_pages') or cms_can('edit_content') or cms_can('review_content') or cms_can('manage_media') %}
+        <a href="{{ url_for('admin.trash.index') }}" class="{{ nav == 'trash' ? 'is-active' : '' }}">
+          <svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+          Trash
         </a>
       {% endif %}
       {% if cms_can('manage_settings') %}

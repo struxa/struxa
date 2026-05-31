@@ -122,7 +122,8 @@ final class ContentSearchService
             $matchParams[] = $likeParam;
         }
 
-        $where = 'e.status = \'published\'
+        $where = 'e.deleted_at IS NULL
+            AND e.status = \'published\'
             AND COALESCE(e.seo_noindex, 0) = 0
             AND (e.published_at IS NULL OR e.published_at <= NOW())
             AND t.has_public_route = 1

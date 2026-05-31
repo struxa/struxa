@@ -513,10 +513,10 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 ->withStatus(302);
         })->setName('admin.media.update');
 
-        $group->post('/media/{id:[0-9]+}/delete', function (Request $request, Response $response, array $args) use ($deleteService): Response {
+        $group->post('/media/{id:[0-9]+}/delete', function (Request $request, Response $response, array $args) use ($deleteService, $cmsUserId): Response {
             $id = (int) $args['id'];
-            $deleteService->delete($id);
-            Flash::set('success', 'Media removed.');
+            $deleteService->trash($id, $cmsUserId($request));
+            Flash::set('success', 'Media moved to trash.');
 
             return $response
                 ->withHeader('Location', RouteContext::fromRequest($request)->getRouteParser()->urlFor('admin.media.index'))
@@ -533,7 +533,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
 
             $deleted = $deleteService->deleteMany($raw);
             if ($deleted > 0) {
-                Flash::set('success', $deleted === 1 ? '1 file removed.' : $deleted . ' files removed.');
+                Flash::set('success', $deleted === 1 ? '1 file moved to trash.' : $deleted . ' files moved to trash.');
             } else {
                 Flash::set('error', 'No files were selected.');
             }

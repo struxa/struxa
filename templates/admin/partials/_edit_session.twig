@@ -1,0 +1,60 @@
+{% if edit_session_enabled|default(false) %}
+  <div
+    id="admin-edit-lock-banner"
+    class="admin-edit-lock-banner"
+    role="alert"
+    hidden
+  >
+    <div class="admin-edit-lock-banner-inner">
+      <span class="admin-edit-lock-banner-icon" aria-hidden="true">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="11" width="18" height="11" rx="2" />
+          <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+        </svg>
+      </span>
+      <p class="admin-edit-lock-banner-text">
+        <strong data-edit-lock-who>Another editor</strong> is working on this item.
+        Your changes are paused until they finish or you take over.
+      </p>
+      <button type="button" class="admin-btn-ghost admin-btn-ghost--sm" id="admin-edit-lock-takeover">
+        Take over editing
+      </button>
+    </div>
+  </div>
+
+  {% if edit_autosave_offer is not null %}
+    <div id="admin-edit-autosave-banner" class="admin-edit-autosave-banner" role="status">
+      <div class="admin-edit-autosave-banner-inner">
+        <p class="admin-edit-autosave-banner-text">
+          A newer <strong>autosaved draft</strong> from
+          {{ edit_autosave_offer.updated_at|slice(0, 16)|replace({'T': ' '}) }}
+          is available.
+        </p>
+        <div class="admin-edit-autosave-banner-actions">
+          <button type="button" class="admin-btn-primary admin-btn-primary--sm" id="admin-edit-autosave-restore">
+            Restore draft
+          </button>
+          <button type="button" class="admin-btn-ghost admin-btn-ghost--sm" id="admin-edit-autosave-dismiss">
+            Keep current
+          </button>
+        </div>
+      </div>
+    </div>
+  {% endif %}
+
+  <script type="application/json" id="admin-edit-session-config">
+    {{- {
+      enabled: true,
+      sessionUrl: url_for('admin.editing.session'),
+      csrfToken: csrf_token(),
+      subjectType: edit_subject_type,
+      subjectId: edit_subject_id,
+      formId: edit_form_id|default(''),
+      heartbeatMs: 25000,
+      initialBlocked: (edit_lock_status.active|default(false)) and not (edit_lock_status.is_mine|default(false)),
+      initialHolder: (edit_lock_status.active|default(false)) and not (edit_lock_status.is_mine|default(false)) ? edit_lock_status.holder : null,
+      autosavePayload: edit_autosave_offer ? edit_autosave_offer.payload : null
+    }|json_encode|raw -}}
+  </script>
+  <script src="{{ asset('js/admin-edit-session.js') }}" defer></script>
+{% endif %}

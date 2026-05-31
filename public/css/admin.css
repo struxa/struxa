@@ -1758,6 +1758,15 @@
   white-space: nowrap;
 }
 
+.admin-trash-sub {
+  white-space: normal;
+  margin-top: 0.15rem;
+}
+
+.admin-toolbar-trash-link {
+  margin-left: auto;
+}
+
 .admin-table-actions {
   text-align: right;
   white-space: nowrap;
@@ -1851,6 +1860,66 @@
 
 .admin-form--wide {
   max-width: min(100%, 58rem);
+}
+
+/* Collaborative editing: lock + autosave banners */
+.admin-edit-lock-banner,
+.admin-edit-autosave-banner {
+  margin-bottom: 1rem;
+  border-radius: calc(var(--admin-radius) + 2px);
+  border: 1px solid rgba(123, 97, 255, 0.28);
+  background:
+    linear-gradient(135deg, rgba(123, 97, 255, 0.12), rgba(251, 146, 60, 0.08)),
+    var(--admin-card);
+}
+
+.admin-edit-lock-banner {
+  border-color: rgba(251, 146, 60, 0.4);
+}
+
+.admin-edit-lock-banner-inner,
+.admin-edit-autosave-banner-inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1rem;
+  padding: 0.85rem 1rem;
+}
+
+.admin-edit-lock-banner-icon {
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 10px;
+  background: rgba(251, 146, 60, 0.16);
+  color: #fdba74;
+  flex-shrink: 0;
+}
+
+.admin-edit-lock-banner-text,
+.admin-edit-autosave-banner-text {
+  margin: 0;
+  flex: 1 1 12rem;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  color: var(--admin-text);
+}
+
+.admin-edit-autosave-banner {
+  border-color: rgba(45, 212, 191, 0.35);
+}
+
+.admin-edit-autosave-banner-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.admin-btn-primary--sm,
+.admin-btn-ghost--sm {
+  padding: 0.35rem 0.65rem;
+  font-size: 0.75rem;
 }
 
 /* Page edit: main editor + SEO column, metadata sidebar */

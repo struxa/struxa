@@ -9,6 +9,7 @@ use PDO;
 final class MediaRepository
 {
     private const TABLE = 'cms_media';
+    private const NOT_TRASHED = 'deleted_at IS NULL';
     private const SELECT_COLS = 'id, filename, original_name, mime_type, extension, file_size, path, alt_text, title, caption,
                     width, height, uploaded_by, folder_id, created_at, updated_at';
 
@@ -19,7 +20,7 @@ final class MediaRepository
     public function findById(int $id): ?Media
     {
         $stmt = $this->pdo->prepare(
-            'SELECT ' . self::SELECT_COLS . ' FROM ' . self::TABLE . ' WHERE id = ? LIMIT 1'
+            'SELECT ' . self::SELECT_COLS . ' FROM ' . self::TABLE . ' WHERE id = ? AND ' . self::NOT_TRASHED . ' LIMIT 1'
         );
         $stmt->execute([$id]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -29,7 +30,7 @@ final class MediaRepository
 
     public function existsId(int $id): bool
     {
-        $stmt = $this->pdo->prepare('SELECT 1 FROM ' . self::TABLE . ' WHERE id = ? LIMIT 1');
+        $stmt = $this->pdo->prepare('SELECT 1 FROM ' . self::TABLE . ' WHERE id = ? AND ' . self::NOT_TRASHED . ' LIMIT 1');
         $stmt->execute([$id]);
 
         return (bool) $stmt->fetchColumn();
@@ -132,7 +133,7 @@ final class MediaRepository
         $limit = max(1, min(50, $limit));
         $stmt = $this->pdo->prepare(
             'SELECT ' . self::SELECT_COLS . ' FROM ' . self::TABLE . "
-             WHERE mime_type LIKE 'image/%' AND id > ?
+             WHERE mime_type LIKE 'image/%' AND id > ? AND deleted_at IS NULL
              ORDER BY id ASC
              LIMIT " . $limit
         );
@@ -145,10 +146,71 @@ final class MediaRepository
         return $out;
     }
 
+    public function trash(int $id, ?int $deletedBy = null): bool
+    {
+        $stmt = $this->pdo->prepare(
+            'UPDATE ' . self::TABLE . ' SET deleted_at = NOW(6), deleted_by = ? WHERE id = ? AND ' . self::NOT_TRASHED
+        );
+        $stmt->execute([$deletedBy, $id]);
+
+        return $stmt->rowCount() > 0;
+    }
+
+    public function restore(int $id): bool
+    {
+        $stmt = $this->pdo->prepare(
+            'UPDATE ' . self::TABLE . ' SET deleted_at = NULL, deleted_by = NULL WHERE id = ? AND deleted_at IS NOT NULL'
+        );
+        $stmt->execute([$id]);
+
+        return $stmt->rowCount() > 0;
+    }
+
     public function deleteById(int $id): void
     {
-        $stmt = $this->pdo->prepare('DELETE FROM ' . self::TABLE . ' WHERE id = ?');
+        $stmt = $this->pdo->prepare('DELETE FROM ' . self::TABLE . ' WHERE id = ? AND deleted_at IS NOT NULL');
         $stmt->execute([$id]);
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    public function listTrashed(int $limit = 200): array
+    {
+        $limit = max(1, min(500, $limit));
+        $stmt = $this->pdo->prepare(
+            'SELECT id, filename, original_name, mime_type, deleted_at FROM ' . self::TABLE
+            . ' WHERE deleted_at IS NOT NULL ORDER BY deleted_at DESC LIMIT ' . $limit
+        );
+        $stmt->execute();
+        $out = [];
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            $out[] = $row;
+        }
+
+        return $out;
+    }
+
+    public function countTrashed(): int
+    {
+        return (int) $this->pdo->query('SELECT COUNT(*) FROM ' . self::TABLE . ' WHERE deleted_at IS NOT NULL')->fetchColumn();
+    }
+
+    public function isTrashed(int $id): bool
+    {
+        $stmt = $this->pdo->prepare('SELECT 1 FROM ' . self::TABLE . ' WHERE id = ? AND deleted_at IS NOT NULL LIMIT 1');
+        $stmt->execute([$id]);
+
+        return (bool) $stmt->fetchColumn();
+    }
+
+    public function pathForTrashedId(int $id): ?string
+    {
+        $stmt = $this->pdo->prepare('SELECT path FROM ' . self::TABLE . ' WHERE id = ? AND deleted_at IS NOT NULL LIMIT 1');
+        $stmt->execute([$id]);
+        $path = $stmt->fetchColumn();
+
+        return $path === false ? null : (string) $path;
     }
 
     /**
@@ -158,7 +220,7 @@ final class MediaRepository
     {
         $limit = max(1, min(500, $limit));
         $sql = 'SELECT id, filename, original_name, mime_type, path FROM ' . self::TABLE
-            . " WHERE mime_type LIKE 'image/%' ORDER BY created_at DESC LIMIT " . $limit;
+            . " WHERE mime_type LIKE 'image/%' AND deleted_at IS NULL ORDER BY created_at DESC LIMIT " . $limit;
         $stmt = $this->pdo->query($sql);
         $out = [];
         while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
@@ -231,7 +293,7 @@ final class MediaRepository
             'SELECT COUNT(*) AS total_files,
                     COALESCE(SUM(file_size), 0) AS total_bytes,
                     SUM(CASE WHEN mime_type LIKE \'image/%\' THEN 1 ELSE 0 END) AS image_files
-             FROM ' . self::TABLE
+             FROM ' . self::TABLE . ' WHERE deleted_at IS NULL'
         );
         $row = $stmt !== false ? $stmt->fetch(PDO::FETCH_ASSOC) : false;
 
@@ -249,6 +311,9 @@ final class MediaRepository
     {
         $clauses = [];
         $params = [];
+
+        $deletedCol = $alias !== '' ? $alias . '.deleted_at IS NULL' : 'deleted_at IS NULL';
+        $clauses[] = $deletedCol;
 
         $q = trim($search);
         if ($q !== '') {
@@ -269,10 +334,6 @@ final class MediaRepository
                 $clauses[] = $col . ' = ?';
                 $params[] = $folderFilter->folderId;
             }
-        }
-
-        if ($clauses === []) {
-            return ['', []];
         }
 
         return [' WHERE ' . implode(' AND ', $clauses), $params];

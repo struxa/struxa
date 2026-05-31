@@ -18,6 +18,11 @@ use App\Content\ContentFieldValidator;
 use App\Content\ContentSlugger;
 use App\Content\ContentTypeRepository;
 use App\Content\ContentTypeValidator;
+use App\Editing\ContentAutosaveRepository;
+use App\Editing\EditLockRepository;
+use App\Editing\EditLockService;
+use App\Editing\EditSessionContext;
+use App\Editing\EditSubjectType;
 use App\Event\ContentEntryDeletedEvent;
 use App\Event\ContentEntrySavedEvent;
 use App\Event\Events;
@@ -73,6 +78,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
     $entryTaxonomyValidator = new EntryTaxonomyValidator();
     $workflow = new WorkflowService();
     $entryRevRepo = new ContentEntryRevisionRepository($pdo);
+    $editSessions = new EditSessionContext(new EditLockService(new EditLockRepository($pdo)), new ContentAutosaveRepository($pdo));
     $entrySections = new ContentEntrySectionRepository($pdo);
     $sectionManager = new SectionManager();
     $sectionValidator = new SectionSchemaValidator($sectionManager);
@@ -912,7 +918,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 ->withStatus(302);
         })->setName('admin.content_types.entries.store')->add($permEntryCreate);
 
-        $group->get('/content-types/{id:[0-9]+}/entries/{entryId:[0-9]+}/edit', function (Request $request, Response $response, array $args) use ($twig, $adminContext, $withCmsUser, $types, $fields, $entries, $values, $mediaRepo, $taxonomyRepo, $taxonomyTermRepo, $entryTaxonomyRepo, $workflow, $entryRevRepo, $pdo, $entryFormMediaContext, $entryPrimaryRichtextTextareaId, $entryBuilderPayload): Response {
+        $group->get('/content-types/{id:[0-9]+}/entries/{entryId:[0-9]+}/edit', function (Request $request, Response $response, array $args) use ($twig, $adminContext, $withCmsUser, $types, $fields, $entries, $values, $mediaRepo, $taxonomyRepo, $taxonomyTermRepo, $entryTaxonomyRepo, $workflow, $entryRevRepo, $pdo, $entryFormMediaContext, $entryPrimaryRichtextTextareaId, $entryBuilderPayload, $editSessions, $cmsUserId): Response {
             $id = (int) $args['id'];
             $entryId = (int) $args['entryId'];
             $t = $types->findById($id);
@@ -956,7 +962,18 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 'entry_revision_rows' => $entryRevRepo->listForEntry($entryId, 15),
                 'entry_primary_richtext_textarea_id' => $entryPrimaryRichtextTextareaId($fieldList),
                 'entry_link_warnings' => $entryLinkWarnings,
+                'edit_form_id' => 'entry-edit-form',
             ], $entryFormMediaContext($request, $mediaRepo, $pdo, $entry, null));
+
+            $uid = $cmsUserId($request);
+            if ($uid !== null) {
+                $payload = array_merge($payload, $editSessions->forEditForm(
+                    EditSubjectType::CONTENT_ENTRY,
+                    $entryId,
+                    $entry->updatedAt,
+                    $uid
+                ));
+            }
 
             if ($t->supportsBlockBuilder) {
                 $payload = array_merge($payload, $entryBuilderPayload($entryId));
@@ -987,7 +1004,8 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             $viewData,
             $mergeEntrySeoOld,
             $entryFormMediaContext,
-            $entryPrimaryRichtextTextareaId
+            $entryPrimaryRichtextTextareaId,
+            $editSessions
         ): Response {
             $id = (int) $args['id'];
             $entryId = (int) $args['entryId'];
@@ -1109,6 +1127,10 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             EntryTaxonomySync::sync($entryId, $taxResult['term_ids'], $entryTaxonomyRepo);
             $activity->log($cmsUserId($request), 'content_entry.updated', 'content_entry', $entryId, ['content_type_id' => $id]);
             Events::dispatch(new ContentEntrySavedEvent($entryId, $id, false));
+            $saveUid = $cmsUserId($request);
+            if ($saveUid !== null) {
+                $editSessions->clearAfterSave(EditSubjectType::CONTENT_ENTRY, $entryId, $saveUid);
+            }
             $parser = RouteContext::fromRequest($request)->getRouteParser();
             $siteUrl = (string) (($viewData())['site_url'] ?? '');
             if (AfterSaveRedirect::wantsPublicView($body)) {
@@ -1550,9 +1572,10 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 throw new HttpNotFoundException($request);
             }
             Events::dispatch(new ContentEntryDeletedEvent($entryId, $id));
-            $activity->log($cmsUserId($request), 'content_entry.deleted', 'content_entry', $entryId, ['content_type_id' => $id]);
-            $entries->delete($entryId);
-            Flash::set('success', 'Entry deleted.');
+            $activity->log($cmsUserId($request), 'content_entry.trashed', 'content_entry', $entryId, ['content_type_id' => $id]);
+            $entries->trash($entryId, $cmsUserId($request));
+            Flash::set('success', 'Entry moved to trash.');
+            Events::dispatch(new StorefrontCachesInvalidateEvent('content_entry_trashed'));
 
             return $response
                 ->withHeader('Location', RouteContext::fromRequest($request)->getRouteParser()->urlFor('admin.content_types.entries.index', ['id' => (string) $id]))
