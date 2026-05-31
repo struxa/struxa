@@ -67,6 +67,8 @@ use App\Form\FormQuizScorer;
 use App\Form\FormSlugger;
 use App\Form\FormValidator;
 use App\Manifest\ManifestMeta;
+use App\Mobile\MobileBootstrapService;
+use App\Mobile\MobileSettings;
 use Slim\Psr7\Factory\ServerRequestFactory;
 
 $fail = static function (string $msg): void {
@@ -778,6 +780,32 @@ if (ContentSearchService::sanitizeQuery('a') !== '' || ContentSearchService::san
 
 if (PageDuplicationService::copyTitle('About') !== 'About (Copy)') {
     $fail('PageDuplicationService should append (Copy) to titles.');
+}
+
+if (!FilterHook::isValid('mobile.bootstrap')) {
+    $fail('FilterHook should allow mobile.bootstrap.');
+}
+if (FilterHook::requiredCapability(FilterHook::MOBILE_BOOTSTRAP) !== PluginCapability::FRONTEND_RENDER) {
+    $fail('FilterHook::MOBILE_BOOTSTRAP should require frontend.render.');
+}
+
+$tabs = MobileSettings::defaultTabs(true, true, 2);
+if (count($tabs) !== 4 || $tabs[0]['type'] !== 'home' || $tabs[3]['type'] !== 'shop') {
+    $fail('MobileSettings::defaultTabs should include home, content, search, and shop.');
+}
+$parsed = MobileSettings::parseTabsJson('[{"id":"home","label":"Home","type":"home"},{"id":"bad id","label":"X","type":"x"}]');
+if (count($parsed) !== 1 || $parsed[0]['id'] !== 'home') {
+    $fail('MobileSettings::parseTabsJson should accept valid tabs and reject invalid ids.');
+}
+if (MobileSettings::parseTabsJson('not-json') !== []) {
+    $fail('MobileSettings::parseTabsJson should return [] for invalid JSON.');
+}
+
+if (MobileBootstrapService::absoluteUrl('https://example.com', '/logo.svg') !== 'https://example.com/logo.svg') {
+    $fail('MobileBootstrapService::absoluteUrl should join site URL and path.');
+}
+if (MobileBootstrapService::absoluteUrl('https://example.com', 'https://cdn.test/x.png') !== 'https://cdn.test/x.png') {
+    $fail('MobileBootstrapService::absoluteUrl should pass through absolute URLs.');
 }
 
 echo "All tests passed.\n";

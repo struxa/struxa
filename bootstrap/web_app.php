@@ -671,6 +671,7 @@ $app->get('/logout', function (Request $request, Response $response) use ($twig,
 (require $root . '/routes/public_seo.php')($app, $pdo, $viewData);
 
 (require $root . '/routes/public_api.php')($app, $twig, $pdo, $viewData);
+(require $root . '/routes/mobile_api.php')($app, $pdo, $themeManager, $viewData);
 (require $root . '/routes/public_comments.php')($app, $pdo, $root, $auth);
 (require $root . '/routes/public_forms.php')($app, $twig, $pdo, $root, $viewData);
 (require $root . '/routes/public_external_link_tracking.php')($app, $pdo, $root, $auth);
@@ -692,6 +693,7 @@ SectionDefinitionRegistry::instance()->registerProvider(new CoreSectionDefinitio
 (require $root . '/routes/admin_editing.php')($app, $auth, $pdo);
 (require $root . '/routes/admin_settings.php')($app, $twig, $auth, $pdo, $viewData);
 (require $root . '/routes/admin_search.php')($app, $twig, $auth, $pdo, $viewData);
+(require $root . '/routes/admin_mobile.php')($app, $twig, $auth, $pdo, $themeManager, $viewData);
 (require $root . '/routes/admin_cache.php')($app, $twig, $auth, $pdo, $viewData);
 (require $root . '/routes/admin_maintenance.php')($app, $twig, $auth, $pdo, $viewData);
 (require $root . '/routes/admin_privacy.php')($app, $twig, $auth, $pdo, $viewData);

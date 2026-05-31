@@ -47,6 +47,9 @@ final class FilterHook
     /** Media upload metadata before storage (array: filename, size, mime, allowed, block_message?). */
     public const MEDIA_UPLOAD = 'media.upload';
 
+    /** Mobile bootstrap JSON payload before response ({@see \App\Mobile\MobileBootstrapService::build()} shape). */
+    public const MOBILE_BOOTSTRAP = 'mobile.bootstrap';
+
     /** @var list<string> */
     private const ALLOWED = [
         self::SEO_META,
@@ -60,6 +63,7 @@ final class FilterHook
         self::USER_LOGIN,
         self::CONTENT_SAVE,
         self::MEDIA_UPLOAD,
+        self::MOBILE_BOOTSTRAP,
     ];
 
     /** @var array<string, string> hook => capability */
@@ -75,6 +79,7 @@ final class FilterHook
         self::USER_LOGIN => PluginCapability::USER_READ,
         self::CONTENT_SAVE => PluginCapability::DATABASE_WRITE,
         self::MEDIA_UPLOAD => PluginCapability::MEDIA_UPLOAD,
+        self::MOBILE_BOOTSTRAP => PluginCapability::FRONTEND_RENDER,
     ];
 
     public static function isValid(string $hook): bool

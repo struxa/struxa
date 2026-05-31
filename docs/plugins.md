@@ -139,6 +139,7 @@ public function boot(PluginBootContext $context): void
 | `FilterHook::USER_LOGIN` | `user.login` | Login payload; set `allowed` => false to block |
 | `FilterHook::CONTENT_SAVE` | `content.save` | Entry save POST body before validation |
 | `FilterHook::MEDIA_UPLOAD` | `media.upload` | Upload metadata before storage |
+| `FilterHook::MOBILE_BOOTSTRAP` | `mobile.bootstrap` | Mobile bootstrap JSON payload before response |
 
 Lower **priority** runs first (default `10`). Callbacks receive `(mixed $value, array $context)` and must **return** the next value.
 

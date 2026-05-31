@@ -184,7 +184,7 @@
   {% endif %}
 
   {% if cms_can('manage_settings') or cms_can('view_link_analytics') %}
-    <details class="admin-nav-group" {{ nav in ['settings','seo_overview','seo_redirects','seo_not_found','cache_tools','maintenance_tools','privacy_tools','site_health','analytics_external_links','settings_search','admin_content_search'] ? 'open' : '' }}>
+    <details class="admin-nav-group" {{ nav in ['settings','seo_overview','seo_redirects','seo_not_found','cache_tools','maintenance_tools','privacy_tools','site_health','analytics_external_links','settings_search','settings_mobile','admin_content_search'] ? 'open' : '' }}>
       <summary class="admin-nav-group-title">Site</summary>
       <div class="admin-nav-group-items">
         {% if cms_can('manage_settings') %}
@@ -225,6 +225,10 @@
           <a href="{{ url_for('admin.settings.search') }}" class="{{ nav == 'settings_search' ? 'is-active' : '' }}">
             <svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>
             Search
+          </a>
+          <a href="{{ url_for('admin.settings.mobile') }}" class="{{ nav == 'settings_mobile' ? 'is-active' : '' }}">
+            <svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M12 18h.01"/></svg>
+            Mobile app
           </a>
         {% endif %}
         {% if cms_can('view_link_analytics') %}
