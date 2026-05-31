@@ -28,8 +28,12 @@ use App\Page\PageTagParser;
 use App\Page\PageValidator;
 use App\Preview\PreviewTokenRepository;
 use App\Support\LineDiff;
+use App\Section\BlockBuilderActionHandler;
+use App\Section\BlockBuilderHost;
 use App\Section\PageSectionRepository;
 use App\Section\PageSection;
+use App\Section\PageSectionStore;
+use App\Section\SectionPatternRepository;
 use App\Section\SectionManager;
 use App\Section\SectionRenderer;
 use App\Section\SectionSchemaValidator;
@@ -63,7 +67,9 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
     $workflow = new WorkflowService();
     $activity = new ActivityLogger($pdo);
     $pageSections = new PageSectionRepository($pdo);
+    $sectionPatterns = new SectionPatternRepository($pdo);
     $sectionManager = new SectionManager();
+    $builderHandler = new BlockBuilderActionHandler($sectionManager, $sectionPatterns);
     $sectionRenderer = new SectionRenderer($sectionManager, new SectionTemplateResolver($sectionManager));
     $sectionValidator = new SectionSchemaValidator($sectionManager);
     $mediaRepo = new MediaRepository($pdo);
@@ -150,7 +156,9 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
         $appendFeaturedMediaError,
         $pageFormFeaturedThumb,
         $mergePageSeoOld,
-        $editSessions
+        $editSessions,
+        $sectionPatterns,
+        $builderHandler
     ): void {
         $pageFormMediaPicker = static function (Request $request) use ($mediaRepo): array {
             /** @var array<string, mixed> $cmsUser */
@@ -206,7 +214,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             $sectionLabels[$p['key']] = $p['label'];
         }
 
-        $pageBuilderPayload = static function (int $pageId) use ($pageSections, $sectionManager, $sectionLabels, $pageHost): array {
+        $pageBuilderPayload = static function (int $pageId) use ($pageSections, $sectionManager, $sectionLabels, $pageHost, $sectionPatterns): array {
             $palette = $sectionManager->palette($pageHost);
             $icons = [];
             foreach ($palette as $p) {
@@ -219,6 +227,8 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 'page_builder_section_palette_grouped' => $sectionManager->paletteGrouped($pageHost),
                 'page_builder_section_icons' => $icons,
                 'page_builder_section_labels' => $sectionLabels,
+                'page_builder_section_patterns' => $sectionPatterns->listForHost($pageHost),
+                'page_builder_host' => $pageHost,
             ];
         };
 
@@ -993,24 +1003,24 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             $adminContext,
             $withCmsUser,
             $repo,
-            $pageSections,
-            $sectionManager,
-            $sectionLabels
+            $pageBuilderPayload
         ): Response {
             $id = (int) $args['id'];
             $page = $repo->findById($id);
             if ($page === null) {
                 throw new HttpNotFoundException($request);
             }
+            $builderData = $pageBuilderPayload($id);
 
             return $twig->render($response, 'admin/pages/builder.twig', $withCmsUser($request, array_merge($adminContext(), [
                 'admin_nav' => 'pages',
                 'page' => $page,
-                'section_rows' => $pageSections->listForPage($id),
-                'section_palette' => $sectionManager->palette($pageHost),
-                'section_palette_grouped' => $sectionManager->paletteGrouped($pageHost),
-                'section_labels' => $sectionLabels,
-                'section_icons' => array_column($sectionManager->palette($pageHost), 'icon', 'key'),
+                'section_rows' => $builderData['page_builder_section_rows'],
+                'section_palette_grouped' => $builderData['page_builder_section_palette_grouped'],
+                'section_labels' => $builderData['page_builder_section_labels'],
+                'section_icons' => $builderData['page_builder_section_icons'],
+                'section_patterns' => $builderData['page_builder_section_patterns'],
+                'builder_host' => $builderData['page_builder_host'],
                 'builder_panel_standalone' => true,
             ])));
         })->setName('admin.pages.builder');
@@ -1018,8 +1028,10 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
         $group->post('/pages/{id:[0-9]+}/builder', function (Request $request, Response $response, array $args) use (
             $repo,
             $pageSections,
-            $sectionManager,
-            $redirectAfterBuilderAction
+            $builderHandler,
+            $redirectAfterBuilderAction,
+            $cmsUid,
+            $pageHost
         ): Response {
             $id = (int) $args['id'];
             $page = $repo->findById($id);
@@ -1028,110 +1040,28 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             }
             $body = $request->getParsedBody();
             $body = is_array($body) ? $body : [];
-            $action = (string) ($body['_action'] ?? '');
             $url = $redirectAfterBuilderAction($request, $id);
+            $wantsJson = str_contains(strtolower($request->getHeaderLine('Accept')), 'application/json')
+                || (string) ($body['_format'] ?? '') === 'json';
+            $store = new PageSectionStore($pageSections);
+            $result = $builderHandler->handle(
+                $body,
+                $id,
+                $store,
+                $url,
+                $wantsJson,
+                'page_section',
+                $pageHost,
+                $cmsUid($request),
+            );
+            BlockBuilderActionHandler::applyFlash($result);
+            if ($result['kind'] === 'json') {
+                $response->getBody()->write(json_encode($result['json'] ?? ['ok' => false], JSON_THROW_ON_ERROR));
 
-            if ($action === 'add') {
-                $key = trim((string) ($body['section_key'] ?? ''));
-                if (!$sectionManager->has($key)) {
-                    Flash::set('error', 'Unknown section type.');
-                } else {
-                    $sort = $pageSections->nextSortOrder($id);
-                    $pageSections->insert(
-                        $id,
-                        $sort,
-                        $key,
-                        $sectionManager->defaultData($key),
-                        $sectionManager->defaultOptions($key)
-                    );
-                    Flash::set('success', 'Section added.');
-                    Events::dispatch(new StorefrontCachesInvalidateEvent('page_section_added'));
-                }
-
-                return $response->withHeader('Location', $url)->withStatus(302);
+                return $response->withHeader('Content-Type', 'application/json; charset=utf-8');
             }
 
-            if ($action === 'delete') {
-                $sid = isset($body['section_id']) ? (int) $body['section_id'] : 0;
-                if ($sid > 0 && $pageSections->belongsToPage($sid, $id)) {
-                    $pageSections->delete($sid);
-                    Flash::set('success', 'Section removed.');
-                    Events::dispatch(new StorefrontCachesInvalidateEvent('page_section_deleted'));
-                }
-
-                return $response->withHeader('Location', $url)->withStatus(302);
-            }
-
-            if ($action === 'duplicate') {
-                $sid = isset($body['section_id']) ? (int) $body['section_id'] : 0;
-                $src = $sid > 0 ? $pageSections->findById($sid) : null;
-                if ($src !== null && $src->pageId === $id) {
-                    $pageSections->insert($id, $pageSections->nextSortOrder($id), $src->sectionKey, $src->data, $src->options);
-                    Flash::set('success', 'Section duplicated.');
-                    Events::dispatch(new StorefrontCachesInvalidateEvent('page_section_duplicated'));
-                }
-
-                return $response->withHeader('Location', $url)->withStatus(302);
-            }
-
-            if ($action === 'move') {
-                $sid = isset($body['section_id']) ? (int) $body['section_id'] : 0;
-                $dir = (string) ($body['direction'] ?? '');
-                $rows = $pageSections->listForPage($id);
-                $ids = array_map(static fn (PageSection $r): int => $r->id, $rows);
-                $idx = array_search($sid, $ids, true);
-                if ($idx !== false) {
-                    if ($dir === 'up' && $idx > 0) {
-                        $tmp = $ids[$idx - 1];
-                        $ids[$idx - 1] = $ids[$idx];
-                        $ids[$idx] = $tmp;
-                        $pageSections->reorderForPage($id, $ids);
-                        Flash::set('success', 'Order updated.');
-                        Events::dispatch(new StorefrontCachesInvalidateEvent('page_sections_reordered'));
-                    } elseif ($dir === 'down' && $idx < count($ids) - 1) {
-                        $tmp = $ids[$idx + 1];
-                        $ids[$idx + 1] = $ids[$idx];
-                        $ids[$idx] = $tmp;
-                        $pageSections->reorderForPage($id, $ids);
-                        Flash::set('success', 'Order updated.');
-                        Events::dispatch(new StorefrontCachesInvalidateEvent('page_sections_reordered'));
-                    }
-                }
-
-                return $response->withHeader('Location', $url)->withStatus(302);
-            }
-
-            if ($action === 'reorder') {
-                $order = $body['order'] ?? [];
-                $order = is_array($order) ? $order : [];
-                $ids = [];
-                foreach ($order as $v) {
-                    $ids[] = (int) $v;
-                }
-                $ids = array_values(array_filter($ids, static fn (int $i): bool => $i > 0));
-                $saved = false;
-                if ($ids !== []) {
-                    $pageSections->reorderForPage($id, $ids);
-                    $saved = true;
-                    Events::dispatch(new StorefrontCachesInvalidateEvent('page_sections_reordered'));
-                }
-
-                $wantsJson = str_contains(strtolower($request->getHeaderLine('Accept')), 'application/json')
-                    || (string) ($body['_format'] ?? '') === 'json';
-                if ($wantsJson) {
-                    $response->getBody()->write(json_encode(['ok' => $saved]));
-
-                    return $response->withHeader('Content-Type', 'application/json; charset=utf-8');
-                }
-
-                if ($saved) {
-                    Flash::set('success', 'Order saved.');
-                }
-
-                return $response->withHeader('Location', $url)->withStatus(302);
-            }
-
-            return $response->withHeader('Location', $url)->withStatus(302);
+            return $response->withHeader('Location', $result['url'] ?? $url)->withStatus(302);
         });
     })->add($permPages)->add($middleware);
 };

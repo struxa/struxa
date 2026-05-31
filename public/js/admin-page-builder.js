@@ -199,7 +199,31 @@
     if (e.key !== "Escape") return;
     if (palette && !palette.hidden) closePalette();
     if (drawer && !drawer.hidden) closeDrawer();
+    var patternDialog = document.getElementById("admin-pb-pattern-dialog");
+    if (patternDialog && patternDialog.open) patternDialog.close();
   });
+
+  var patternDialog = document.getElementById("admin-pb-pattern-dialog");
+  var patternSectionInput = document.getElementById("admin-pb-pattern-section-id");
+  var patternNameInput = document.getElementById("admin-pb-pattern-name");
+  if (patternDialog) {
+    root.querySelectorAll("[data-admin-pb-save-pattern]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var sid = btn.getAttribute("data-admin-pb-save-pattern") || "";
+        if (patternSectionInput) patternSectionInput.value = sid;
+        if (patternNameInput) {
+          patternNameInput.value = "";
+          patternNameInput.focus();
+        }
+        var desc = document.getElementById("admin-pb-pattern-description");
+        if (desc) desc.value = "";
+        if (typeof patternDialog.showModal === "function") patternDialog.showModal();
+      });
+    });
+    document.getElementById("admin-pb-pattern-cancel")?.addEventListener("click", function () {
+      patternDialog.close();
+    });
+  }
 
   if (!list) return;
 

@@ -662,6 +662,7 @@ $app->get('/logout', function (Request $request, Response $response) use ($twig,
 SectionDefinitionRegistry::instance()->registerProvider(new CoreSectionDefinitionProvider());
 
 (require $root . '/routes/admin_pages.php')($app, $twig, $auth, $pdo, $viewData);
+(require $root . '/routes/admin_section_patterns.php')($app, $twig, $auth, $pdo, $viewData);
 (require $root . '/routes/admin_trash.php')($app, $twig, $auth, $pdo, $viewData);
 (require $root . '/routes/admin_editing.php')($app, $auth, $pdo);
 (require $root . '/routes/admin_settings.php')($app, $twig, $auth, $pdo, $viewData);

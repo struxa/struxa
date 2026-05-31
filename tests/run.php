@@ -40,6 +40,7 @@ use App\Jobs\JobHandlerContext;
 use App\Jobs\JobHandlerRegistry;
 use App\Jobs\JobStatus;
 use App\Jobs\JobType;
+use App\Section\SectionPatternHost;
 use App\Trash\TrashItemKind;
 use App\Dev\TwigLayoutContractLinter;
 use App\Maintenance\MaintenanceService;
@@ -516,6 +517,16 @@ if ($legacy === null || ($legacy['to_url'] ?? '') !== 'https://site.test/p/new-p
 $result = new SlugRedirectResult(true, '/p/foo', 'https://site.test/p/bar', 2);
 if (!str_contains($result->flashSuffix(), '/p/foo') || !str_contains($result->flashSuffix(), '2 older redirect')) {
     $fail('SlugRedirectResult flashSuffix should describe redirect and chain updates.');
+}
+
+if (!SectionPatternHost::isValid('both') || SectionPatternHost::isValid('invalid')) {
+    $fail('SectionPatternHost validation failed.');
+}
+if (!SectionPatternHost::supports(SectionPatternHost::BOTH, SectionPatternHost::PAGE)) {
+    $fail('SectionPatternHost should allow both on pages.');
+}
+if (SectionPatternHost::supports(SectionPatternHost::PAGE, SectionPatternHost::CONTENT_ENTRY)) {
+    $fail('SectionPatternHost page-only should not match content entry host.');
 }
 
 echo "All tests passed.\n";

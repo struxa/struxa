@@ -10254,6 +10254,30 @@ body.admin-pb-palette-open {
   line-height: 1.35;
 }
 
+.admin-pb-palette-card--pattern {
+  border-color: rgba(45, 212, 191, 0.22);
+  background: rgba(45, 212, 191, 0.06);
+}
+
+.admin-pb-pattern-dialog {
+  border: 1px solid var(--admin-border);
+  border-radius: var(--admin-radius-sm);
+  padding: 1.25rem 1.35rem;
+  max-width: 28rem;
+  width: calc(100% - 2rem);
+  background: var(--admin-card);
+  color: var(--admin-text);
+}
+
+.admin-pb-pattern-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.55);
+}
+
+.admin-pb-pattern-dialog-title {
+  margin: 0 0 0.35rem;
+  font-size: 1.05rem;
+}
+
 @media (max-width: 720px) {
   .admin-pb-row {
     flex-wrap: wrap;

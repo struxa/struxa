@@ -1,0 +1,61 @@
+{% extends 'admin/base.twig' %}
+
+{% block admin_title %}Section patterns{% endblock %}
+
+{% block admin_hero_title %}
+  <h1 class="admin-hero-title">Section patterns</h1>
+{% endblock %}
+
+{% block admin_hero_sub %}
+  <p class="admin-hint" style="margin-top:0">Named, reusable block snippets for the visual builder on pages and content entries. Save patterns from any block’s row menu, then insert them from <strong>Add block → Saved patterns</strong>.</p>
+{% endblock %}
+
+{% block admin_content %}
+  <section class="admin-card">
+    {% if pattern_rows is empty %}
+      <p class="admin-hint" style="margin:0">No patterns yet. Open a page or entry with the visual builder, configure a block, and choose <strong>Save as pattern</strong>.</p>
+    {% else %}
+      <div class="admin-table-wrap" style="overflow-x:auto">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th scope="col">Name</th>
+              <th scope="col">Block type</th>
+              <th scope="col">Scope</th>
+              <th scope="col">Updated</th>
+              <th scope="col">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in pattern_rows %}
+              <tr>
+                <td>
+                  <strong>{{ row.name|e }}</strong>
+                  {% if row.description %}
+                    <p class="admin-hint" style="margin:0.25rem 0 0">{{ row.description|e }}</p>
+                  {% endif %}
+                  <code class="admin-inline-code">{{ row.slug|e }}</code>
+                </td>
+                <td>{{ section_labels[row.sectionKey]|default(row.sectionKey)|e }}</td>
+                <td>
+                  {% if row.host == 'page' %}Pages only
+                  {% elseif row.host == 'content_entry' %}Entries only
+                  {% else %}Pages and entries
+                  {% endif %}
+                </td>
+                <td>{{ row.updatedAt|e }}</td>
+                <td>
+                  <a class="admin-link" href="{{ url_for('admin.sections.patterns.edit', { id: row.id }) }}">Edit</a>
+                  <form method="post" action="{{ url_for('admin.sections.patterns.delete', { id: row.id }) }}" class="admin-inline-form" style="margin-left:0.5rem" onsubmit="return confirm('Delete pattern “{{ row.name|e('js') }}”?');">
+                    <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+                    <button type="submit" class="admin-btn-ghost admin-btn-ghost--sm">Delete</button>
+                  </form>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% endif %}
+  </section>
+{% endblock %}

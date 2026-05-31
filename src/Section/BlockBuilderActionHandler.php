@@ -13,8 +13,10 @@ use App\Flash;
  */
 final class BlockBuilderActionHandler
 {
-    public function __construct(private readonly SectionManager $sections)
-    {
+    public function __construct(
+        private readonly SectionManager $sections,
+        private readonly ?SectionPatternRepository $patterns = null,
+    ) {
     }
 
     /**
@@ -35,6 +37,8 @@ final class BlockBuilderActionHandler
         string $redirectUrl,
         bool $wantsJsonReorder,
         string $invalidatePrefix,
+        string $builderHost = BlockBuilderHost::PAGE,
+        ?int $createdBy = null,
     ): array {
         $action = (string) ($body['_action'] ?? '');
 
@@ -53,6 +57,14 @@ final class BlockBuilderActionHandler
             Events::dispatch(new StorefrontCachesInvalidateEvent($invalidatePrefix . '_added'));
 
             return ['kind' => 'redirect', 'url' => $redirectUrl, 'flash_success' => 'Section added.'];
+        }
+
+        if ($action === 'add_from_pattern') {
+            return $this->addFromPattern($body, $subjectId, $store, $redirectUrl, $invalidatePrefix, $builderHost);
+        }
+
+        if ($action === 'save_as_pattern') {
+            return $this->saveAsPattern($body, $subjectId, $store, $redirectUrl, $builderHost, $createdBy);
         }
 
         if ($action === 'delete') {
@@ -143,6 +155,97 @@ final class BlockBuilderActionHandler
         }
 
         return ['kind' => 'redirect', 'url' => $redirectUrl];
+    }
+
+    /**
+     * @param array<string, mixed> $body
+     *
+     * @return array{kind: 'redirect', url: string, flash_error?: string, flash_success?: string}
+     */
+    private function addFromPattern(
+        array $body,
+        int $subjectId,
+        SectionStoreInterface $store,
+        string $redirectUrl,
+        string $invalidatePrefix,
+        string $builderHost,
+    ): array {
+        if ($this->patterns === null || !$this->patterns->tableExists()) {
+            return ['kind' => 'redirect', 'url' => $redirectUrl, 'flash_error' => 'Section patterns are unavailable.'];
+        }
+
+        $patternId = isset($body['pattern_id']) ? (int) $body['pattern_id'] : 0;
+        $pattern = $patternId > 0 ? $this->patterns->findById($patternId) : null;
+        if ($pattern === null || !$pattern->supportsHost($builderHost)) {
+            return ['kind' => 'redirect', 'url' => $redirectUrl, 'flash_error' => 'Pattern not found.'];
+        }
+        if (!$this->sections->has($pattern->sectionKey)) {
+            return ['kind' => 'redirect', 'url' => $redirectUrl, 'flash_error' => 'Pattern block type is not available on this site.'];
+        }
+
+        $store->insert(
+            $subjectId,
+            $store->nextSortOrder($subjectId),
+            $pattern->sectionKey,
+            $pattern->data,
+            $pattern->options,
+        );
+        Events::dispatch(new StorefrontCachesInvalidateEvent($invalidatePrefix . '_pattern_added'));
+
+        return ['kind' => 'redirect', 'url' => $redirectUrl, 'flash_success' => 'Pattern “' . $pattern->name . '” inserted.'];
+    }
+
+    /**
+     * @param array<string, mixed> $body
+     *
+     * @return array{kind: 'redirect', url: string, flash_error?: string, flash_success?: string}
+     */
+    private function saveAsPattern(
+        array $body,
+        int $subjectId,
+        SectionStoreInterface $store,
+        string $redirectUrl,
+        string $builderHost,
+        ?int $createdBy,
+    ): array {
+        if ($this->patterns === null || !$this->patterns->tableExists()) {
+            return ['kind' => 'redirect', 'url' => $redirectUrl, 'flash_error' => 'Section patterns are unavailable. Run migrations.'];
+        }
+
+        $name = trim((string) ($body['pattern_name'] ?? ''));
+        if ($name === '') {
+            return ['kind' => 'redirect', 'url' => $redirectUrl, 'flash_error' => 'Pattern name is required.'];
+        }
+
+        $sid = isset($body['section_id']) ? (int) $body['section_id'] : 0;
+        $src = $sid > 0 ? $store->findById($sid) : null;
+        if ($src === null || !$store->belongs($sid, $subjectId)) {
+            return ['kind' => 'redirect', 'url' => $redirectUrl, 'flash_error' => 'Section not found.'];
+        }
+
+        $host = trim((string) ($body['pattern_host'] ?? $builderHost));
+        if (!SectionPatternHost::isValid($host)) {
+            $host = $builderHost;
+        }
+
+        $description = trim((string) ($body['pattern_description'] ?? ''));
+        $slug = SectionPatternSlugger::ensureUnique(
+            $this->patterns,
+            SectionPatternSlugger::slugify($name),
+        );
+
+        $this->patterns->insert(
+            $name,
+            $slug,
+            $description !== '' ? $description : null,
+            $host,
+            (string) $src->sectionKey,
+            is_array($src->data) ? $src->data : [],
+            is_array($src->options) ? $src->options : [],
+            $createdBy,
+        );
+
+        return ['kind' => 'redirect', 'url' => $redirectUrl, 'flash_success' => 'Pattern “' . $name . '” saved.'];
     }
 
     /**

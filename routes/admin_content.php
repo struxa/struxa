@@ -51,6 +51,7 @@ use App\Section\ContentEntrySection;
 use App\Section\ContentEntrySectionRepository;
 use App\Section\ContentEntrySectionStore;
 use App\Section\SectionManager;
+use App\Section\SectionPatternRepository;
 use App\Section\SectionSchemaValidator;
 use PHPAuth\Auth;
 use Psr\Http\Message\ResponseInterface as Response;
@@ -82,9 +83,10 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
     $entryRevRepo = new ContentEntryRevisionRepository($pdo);
     $editSessions = new EditSessionContext(new EditLockService(new EditLockRepository($pdo)), new ContentAutosaveRepository($pdo));
     $entrySections = new ContentEntrySectionRepository($pdo);
+    $sectionPatterns = new SectionPatternRepository($pdo);
     $sectionManager = new SectionManager();
     $sectionValidator = new SectionSchemaValidator($sectionManager);
-    $builderHandler = new BlockBuilderActionHandler($sectionManager);
+    $builderHandler = new BlockBuilderActionHandler($sectionManager, $sectionPatterns);
     $activity = new ActivityLogger($pdo);
     $permDelete = new RequirePermission($pdo, [PermissionSlug::DELETE_CONTENT]);
     $permTypes = new RequirePermission($pdo, [PermissionSlug::MANAGE_CONTENT_TYPES]);
@@ -124,7 +126,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
         return $labels;
     };
 
-    $entryBuilderPayload = static function (int $entryId) use ($entrySections, $sectionManager, $entryBuilderHost, $sectionLabelsForHost): array {
+    $entryBuilderPayload = static function (int $entryId) use ($entrySections, $sectionManager, $entryBuilderHost, $sectionLabelsForHost, $sectionPatterns): array {
         $palette = $sectionManager->palette($entryBuilderHost);
         $icons = [];
         foreach ($palette as $p) {
@@ -137,6 +139,8 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             'entry_builder_section_palette_grouped' => $sectionManager->paletteGrouped($entryBuilderHost),
             'entry_builder_section_labels' => $labels,
             'entry_builder_section_icons' => $icons,
+            'entry_builder_section_patterns' => $sectionPatterns->listForHost($entryBuilderHost),
+            'entry_builder_host' => $entryBuilderHost,
         ];
     };
 
@@ -1358,6 +1362,8 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 'section_palette_grouped' => $builderData['entry_builder_section_palette_grouped'],
                 'section_labels' => $builderData['entry_builder_section_labels'],
                 'section_icons' => $builderData['entry_builder_section_icons'],
+                'section_patterns' => $builderData['entry_builder_section_patterns'],
+                'builder_host' => $builderData['entry_builder_host'],
                 'builder_panel_standalone' => true,
             ])));
         })->setName('admin.content_types.entries.builder')->add($permEntryEdit);
@@ -1366,7 +1372,9 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             $builderHandler,
             $entrySections,
             $redirectAfterEntryBuilderAction,
-            $assertEntryBuilderContext
+            $assertEntryBuilderContext,
+            $entryBuilderHost,
+            $cmsUserId
         ): Response {
             $id = (int) $args['id'];
             $entryId = (int) $args['entryId'];
@@ -1377,7 +1385,16 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             $wantsJson = str_contains(strtolower($request->getHeaderLine('Accept')), 'application/json')
                 || (string) ($body['_format'] ?? '') === 'json';
             $store = new ContentEntrySectionStore($entrySections);
-            $result = $builderHandler->handle($body, $entryId, $store, $url, $wantsJson, 'content_entry_section');
+            $result = $builderHandler->handle(
+                $body,
+                $entryId,
+                $store,
+                $url,
+                $wantsJson,
+                'content_entry_section',
+                $entryBuilderHost,
+                $cmsUserId($request),
+            );
             BlockBuilderActionHandler::applyFlash($result);
             if ($result['kind'] === 'json') {
                 $response->getBody()->write(json_encode($result['json'] ?? ['ok' => false], JSON_THROW_ON_ERROR));

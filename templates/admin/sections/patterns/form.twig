@@ -1,0 +1,60 @@
+{% extends 'admin/base.twig' %}
+
+{% block admin_title %}Edit pattern{% endblock %}
+
+{% block admin_hero_title %}
+  <h1 class="admin-hero-title">Edit pattern</h1>
+{% endblock %}
+
+{% block admin_hero_sub %}
+  <p class="admin-hint" style="margin-top:0"><a class="admin-link" href="{{ url_for('admin.sections.patterns.index') }}">← All patterns</a></p>
+{% endblock %}
+
+{% block admin_content %}
+  {% set f_name = old is not null ? old.name : pattern.name %}
+  {% set f_slug = old is not null ? old.slug : pattern.slug %}
+  {% set f_desc = old is not null ? old.description : (pattern.description ?? '') %}
+  {% set f_host = old is not null ? old.host : pattern.host %}
+
+  <form class="admin-form admin-form--wide" method="post" action="{{ url_for('admin.sections.patterns.update', { id: pattern.id }) }}">
+    <section class="admin-card" style="margin-bottom:1.25rem">
+      <h2 class="admin-card-title">Pattern details</h2>
+      <p class="admin-hint">Block content is edited on pages/entries. Here you can rename the pattern, adjust scope, and update the slug used internally.</p>
+
+      <div class="admin-form-grid" style="margin-top:1rem">
+        <div class="admin-field admin-field--full {{ errors.name is defined ? 'admin-field--error' : '' }}">
+          <label class="admin-label" for="pattern-name">Name</label>
+          <input class="admin-input" id="pattern-name" name="name" type="text" value="{{ f_name|e }}" required maxlength="120" />
+          {% if errors.name is defined %}<p class="admin-field-error">{{ errors.name|e }}</p>{% endif %}
+        </div>
+        <div class="admin-field admin-field--full">
+          <label class="admin-label" for="pattern-slug">Slug</label>
+          <input class="admin-input" id="pattern-slug" name="slug" type="text" value="{{ f_slug|e }}" maxlength="120" />
+          <p class="admin-hint">Optional — blank uses the name.</p>
+        </div>
+        <div class="admin-field admin-field--full">
+          <label class="admin-label" for="pattern-description">Description</label>
+          <textarea class="admin-textarea" id="pattern-description" name="description" rows="2" maxlength="500">{{ f_desc|e }}</textarea>
+        </div>
+        <div class="admin-field admin-field--full {{ errors.host is defined ? 'admin-field--error' : '' }}">
+          <label class="admin-label" for="pattern-host">Available on</label>
+          <select class="admin-select" id="pattern-host" name="host">
+            <option value="both" {{ f_host == 'both' ? 'selected' : '' }}>Pages and content entries</option>
+            <option value="page" {{ f_host == 'page' ? 'selected' : '' }}>Pages only</option>
+            <option value="content_entry" {{ f_host == 'content_entry' ? 'selected' : '' }}>Content entries only</option>
+          </select>
+          {% if errors.host is defined %}<p class="admin-field-error">{{ errors.host|e }}</p>{% endif %}
+        </div>
+        <div class="admin-field admin-field--full">
+          <label class="admin-label">Block type</label>
+          <p class="admin-hint" style="margin:0"><code class="admin-inline-code">{{ pattern.sectionKey|e }}</code> — {{ section_labels[pattern.sectionKey]|default(pattern.sectionKey)|e }}</p>
+        </div>
+      </div>
+    </section>
+
+    <div class="admin-form-actions">
+      <button type="submit" class="admin-btn-primary">Save pattern</button>
+      <a class="admin-btn-ghost" href="{{ url_for('admin.sections.patterns.index') }}">Cancel</a>
+    </div>
+  </form>
+{% endblock %}

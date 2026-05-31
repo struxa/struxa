@@ -73,6 +73,7 @@
               <input type="hidden" name="section_id" value="{{ row.id }}" />
               <button type="submit" class="admin-btn-ghost admin-btn-ghost--sm">Duplicate</button>
             </form>
+            <button type="button" class="admin-btn-ghost admin-btn-ghost--sm" data-admin-pb-save-pattern="{{ row.id }}">Save as pattern</button>
             <form method="post" action="{{ _builder_action|e('html_attr') }}" class="admin-inline-form" onsubmit="return confirm('Remove this block?');">
               <input type="hidden" name="_action" value="delete" />
               <input type="hidden" name="section_id" value="{{ row.id }}" />
@@ -96,6 +97,24 @@
         <button type="button" class="admin-pb-palette-x" id="admin-pb-palette-dismiss" aria-label="Close">×</button>
       </header>
       <div class="admin-pb-palette-body">
+        {% if section_patterns|default([])|length > 0 %}
+          <section class="admin-pb-palette-group" aria-label="Saved patterns">
+            <h4 class="admin-pb-palette-group-title">Saved patterns</h4>
+            <div class="admin-pb-palette-grid">
+              {% for pattern in section_patterns %}
+                <form method="post" action="{{ _builder_action|e('html_attr') }}" class="admin-pb-palette-card-form">
+                  <input type="hidden" name="_action" value="add_from_pattern" />
+                  <input type="hidden" name="pattern_id" value="{{ pattern.id }}" />
+                  <button type="submit" class="admin-pb-palette-card admin-pb-palette-card--pattern">
+                    <span class="admin-pb-palette-card-icon">{% include 'admin/pages/_block_icon.twig' with { icon: section_icons[pattern.sectionKey]|default('block') } %}</span>
+                    <span class="admin-pb-palette-card-label">{{ pattern.name|e }}</span>
+                    <span class="admin-pb-palette-card-desc">{{ section_labels[pattern.sectionKey]|default(pattern.sectionKey)|e }}{% if pattern.description %} — {{ pattern.description|e }}{% endif %}</span>
+                  </button>
+                </form>
+              {% endfor %}
+            </div>
+          </section>
+        {% endif %}
         {% for group in _palette_groups %}
           <section class="admin-pb-palette-group" aria-label="{{ group.label|e('html_attr') }}">
             <h4 class="admin-pb-palette-group-title">{{ group.label|e }}</h4>
@@ -126,4 +145,26 @@
       <p class="admin-pb-drawer-loading" id="admin-pb-drawer-loading">Loading…</p>
     </div>
   </div>
+
+  <dialog class="admin-pb-pattern-dialog" id="admin-pb-pattern-dialog">
+    <form method="post" action="{{ _builder_action|e('html_attr') }}" class="admin-form">
+      <input type="hidden" name="_action" value="save_as_pattern" />
+      <input type="hidden" name="section_id" id="admin-pb-pattern-section-id" value="" />
+      <input type="hidden" name="pattern_host" value="{{ builder_host|default('page')|e('html_attr') }}" />
+      <h3 class="admin-pb-pattern-dialog-title">Save as pattern</h3>
+      <p class="admin-hint">Reuse this block’s content and options on other pages or entries (depending on scope).</p>
+      <div class="admin-field admin-field--full" style="margin-top:0.75rem">
+        <label class="admin-label" for="admin-pb-pattern-name">Pattern name</label>
+        <input class="admin-input" id="admin-pb-pattern-name" name="pattern_name" type="text" required maxlength="120" />
+      </div>
+      <div class="admin-field admin-field--full">
+        <label class="admin-label" for="admin-pb-pattern-description">Description (optional)</label>
+        <textarea class="admin-textarea" id="admin-pb-pattern-description" name="pattern_description" rows="2" maxlength="500"></textarea>
+      </div>
+      <div class="admin-form-actions" style="margin-top:1rem">
+        <button type="submit" class="admin-btn-primary">Save pattern</button>
+        <button type="button" class="admin-btn-ghost" id="admin-pb-pattern-cancel">Cancel</button>
+      </div>
+    </form>
+  </dialog>
 </div>
