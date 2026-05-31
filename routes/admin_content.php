@@ -42,6 +42,8 @@ use App\Media\MediaUploadService;
 use App\Media\MediaUrlHelper;
 use App\Menu\MenuItemRepository;
 use App\Seo\RedirectRepository;
+use App\Seo\SlugChangeRedirectService;
+use App\Seo\SlugRedirectResult;
 use App\Seo\SeoFormParser;
 use App\Section\BlockBuilderActionHandler;
 use App\Section\BlockBuilderHost;
@@ -438,7 +440,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             ])));
         })->setName('admin.content_types.edit');
 
-        $g->post('/content-types/{id:[0-9]+}/edit', function (Request $request, Response $response, array $args) use ($twig, $adminContext, $withCmsUser, $types, $typeValidator): Response {
+        $group->post('/content-types/{id:[0-9]+}/edit', function (Request $request, Response $response, array $args) use ($twig, $adminContext, $withCmsUser, $types, $typeValidator, $entries, $pdo, $viewData): Response {
             $id = (int) $args['id'];
             $t = $types->findById($id);
             if ($t === null) {
@@ -458,6 +460,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             }
             $v = $result['values'];
             $slug = ContentSlugger::ensureUniqueType($types, $v['slug'], $id);
+            $oldTypeSlug = $t->slug;
             $types->update(
                 $id,
                 $v['name'],
@@ -469,7 +472,18 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 $v['supports_featured_image'],
                 $v['supports_block_builder']
             );
-            Flash::set('success', 'Content type updated.');
+            $redirectCount = 0;
+            if ($oldTypeSlug !== $slug) {
+                $siteUrl = (string) (($viewData())['site_url'] ?? '');
+                $redirectCount = (new SlugChangeRedirectService(new RedirectRepository($pdo)))->forContentTypeSlug(
+                    $types->findById($id) ?? $t,
+                    $oldTypeSlug,
+                    $slug,
+                    $entries,
+                    $siteUrl,
+                );
+            }
+            Flash::set('success', SlugChangeRedirectService::appendBulkFlash('Content type updated.', $redirectCount));
             Events::dispatch(new StorefrontCachesInvalidateEvent('content_type_updated'));
 
             return $response
@@ -1115,12 +1129,17 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 $v['scheduled_unpublish_at'] ?? null
             );
             if ($entry->status === 'published' && $t->hasPublicRoute && $oldSlug !== $slug) {
-                $base = rtrim((string) ($viewData()['site_url'] ?? ''), '/');
-                (new RedirectRepository($pdo))->upsertPath(
-                    '/' . $t->slug . '/' . $oldSlug,
-                    $base . '/' . $t->slug . '/' . $slug,
-                    301
+                $siteUrl = (string) (($viewData())['site_url'] ?? '');
+                $slugRedirect = (new SlugChangeRedirectService(new RedirectRepository($pdo)))->forEntry(
+                    $t,
+                    $oldSlug,
+                    $slug,
+                    $v['status'],
+                    $v['published_at'] ?? null,
+                    $siteUrl,
                 );
+            } else {
+                $slugRedirect = SlugRedirectResult::none();
             }
             foreach ($fieldList as $f) {
                 $values->upsert($entryId, $f->id, $v['custom'][$f->id] ?? null);
@@ -1137,13 +1156,13 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             if (AfterSaveRedirect::wantsPublicView($body)) {
                 $viewUrl = AfterSaveRedirect::entryPublicUrl($siteUrl, $t, $slug, $v['status'], $v['published_at'] ?? null);
                 if ($viewUrl !== null) {
-                    Flash::set('success', 'Entry updated.');
+                    Flash::set('success', SlugChangeRedirectService::appendFlash('Entry updated.', $slugRedirect));
 
                     return $response->withHeader('Location', $viewUrl)->withStatus(302);
                 }
                 Flash::set('success', 'Entry saved. Publish it and ensure the type has a public route to view it on the site.');
             } else {
-                Flash::set('success', 'Entry updated.');
+                Flash::set('success', SlugChangeRedirectService::appendFlash('Entry updated.', $slugRedirect));
             }
 
             return $response
@@ -1473,7 +1492,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 ->withStatus(302);
         })->setName('admin.content_types.entries.preview_link')->add($permEntryEdit);
 
-        $group->post('/content-types/{id:[0-9]+}/entries/{entryId:[0-9]+}/revisions/{revId:[0-9]+}/restore', function (Request $request, Response $response, array $args) use ($types, $entries, $values, $entryRevRepo, $workflow, $activity, $cmsUserId, $captureEntryRevision, $restoreEntrySectionsFromRevision): Response {
+        $group->post('/content-types/{id:[0-9]+}/entries/{entryId:[0-9]+}/revisions/{revId:[0-9]+}/restore', function (Request $request, Response $response, array $args) use ($types, $entries, $values, $entryRevRepo, $workflow, $activity, $cmsUserId, $captureEntryRevision, $restoreEntrySectionsFromRevision, $pdo, $viewData): Response {
             $id = (int) $args['id'];
             $entryId = (int) $args['entryId'];
             $revId = (int) $args['revId'];
@@ -1524,6 +1543,8 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             $twD = isset($er['twitter_description']) && (string) $er['twitter_description'] !== '' ? (string) $er['twitter_description'] : null;
             $twImg = isset($er['twitter_image_id']) && $er['twitter_image_id'] !== null && $er['twitter_image_id'] !== '' ? (int) $er['twitter_image_id'] : null;
             $schema = isset($er['schema_json']) && (string) $er['schema_json'] !== '' ? (string) $er['schema_json'] : null;
+            $oldSlug = $entry->slug;
+            $newSlug = (string) $er['slug'];
             $entries->update(
                 $entryId,
                 (string) $er['title'],
@@ -1557,8 +1578,20 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             if ($t->supportsBlockBuilder) {
                 $restoreEntrySectionsFromRevision($entryId, $snap);
             }
+            $slugRedirect = SlugRedirectResult::none();
+            if ($entry->status === 'published' && $t->hasPublicRoute && $oldSlug !== $newSlug) {
+                $siteUrl = (string) (($viewData())['site_url'] ?? '');
+                $slugRedirect = (new SlugChangeRedirectService(new RedirectRepository($pdo)))->forEntry(
+                    $t,
+                    $oldSlug,
+                    $newSlug,
+                    $targetStatus,
+                    $pub,
+                    $siteUrl,
+                );
+            }
             $activity->log($cmsUserId($request), 'content_entry.revision_restored', 'content_entry', $entryId, ['revision_id' => $revId]);
-            Flash::set('success', 'Revision restored.');
+            Flash::set('success', SlugChangeRedirectService::appendFlash('Revision restored.', $slugRedirect));
             Events::dispatch(new StorefrontCachesInvalidateEvent('content_entry_revision_restored'));
 
             return $response

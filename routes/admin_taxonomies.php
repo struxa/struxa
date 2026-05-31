@@ -17,6 +17,9 @@ use App\Taxonomy\TaxonomyTermValidator;
 use App\Taxonomy\TaxonomyType;
 use App\Taxonomy\TaxonomyValidator;
 use App\Media\MediaRepository;
+use App\Seo\RedirectRepository;
+use App\Seo\SlugChangeRedirectService;
+use App\Seo\SlugRedirectResult;
 use App\Seo\SeoFormParser;
 use PHPAuth\Auth;
 use Psr\Http\Message\ResponseInterface as Response;
@@ -143,7 +146,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             ])));
         })->setName('admin.content_types.taxonomies.edit');
 
-        $group->post('/content-types/{id:[0-9]+}/taxonomies/{taxId:[0-9]+}/edit', function (Request $request, Response $response, array $args) use ($twig, $adminContext, $withCmsUser, $types, $tax, $taxValidator): Response {
+        $group->post('/content-types/{id:[0-9]+}/taxonomies/{taxId:[0-9]+}/edit', function (Request $request, Response $response, array $args) use ($twig, $adminContext, $withCmsUser, $types, $tax, $taxValidator, $terms, $pdo, $viewData): Response {
             $id = (int) $args['id'];
             $taxId = (int) $args['taxId'];
             $t = $types->findById($id);
@@ -167,8 +170,21 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 ])));
             }
             $v = $result['values'];
+            $oldTaxSlug = $tx->slug;
             $tax->update($taxId, $v['name'], $v['slug'], $v['description'], $v['taxonomy_type'], $v['is_hierarchical']);
-            Flash::set('success', 'Taxonomy updated.');
+            $redirectCount = 0;
+            if ($oldTaxSlug !== $v['slug']) {
+                $siteUrl = (string) (($viewData())['site_url'] ?? '');
+                $redirectCount = (new SlugChangeRedirectService(new RedirectRepository($pdo)))->forTaxonomySlug(
+                    $t,
+                    $tx,
+                    $oldTaxSlug,
+                    $v['slug'],
+                    $terms,
+                    $siteUrl,
+                );
+            }
+            Flash::set('success', SlugChangeRedirectService::appendBulkFlash('Taxonomy updated.', $redirectCount));
             Events::dispatch(new StorefrontCachesInvalidateEvent('taxonomy_updated'));
 
             return $response
@@ -382,7 +398,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             ])));
         })->setName('admin.content_types.taxonomies.terms.edit');
 
-        $group->post('/content-types/{id:[0-9]+}/taxonomies/{taxId:[0-9]+}/terms/{termId:[0-9]+}/edit', function (Request $request, Response $response, array $args) use ($twig, $adminContext, $withCmsUser, $types, $tax, $terms, $termValidator, $mediaRepo): Response {
+        $group->post('/content-types/{id:[0-9]+}/taxonomies/{taxId:[0-9]+}/terms/{termId:[0-9]+}/edit', function (Request $request, Response $response, array $args) use ($twig, $adminContext, $withCmsUser, $types, $tax, $terms, $termValidator, $mediaRepo, $pdo, $viewData): Response {
             $id = (int) $args['id'];
             $taxId = (int) $args['taxId'];
             $termId = (int) $args['termId'];
@@ -434,6 +450,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 ])));
             }
             $v = $result['values'];
+            $oldTermSlug = $tr->slug;
             $slug = TaxonomyTermSlugger::ensureUnique($terms, $taxId, $v['slug'], $termId);
             $terms->update(
                 $termId,
@@ -455,7 +472,18 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 $seo['twitter_image_id'],
                 $seo['schema_json']
             );
-            Flash::set('success', 'Term updated.');
+            $slugRedirect = SlugRedirectResult::none();
+            if ($oldTermSlug !== $slug) {
+                $siteUrl = (string) (($viewData())['site_url'] ?? '');
+                $slugRedirect = (new SlugChangeRedirectService(new RedirectRepository($pdo)))->forTaxonomyTerm(
+                    $t,
+                    $tx,
+                    $oldTermSlug,
+                    $slug,
+                    $siteUrl,
+                );
+            }
+            Flash::set('success', SlugChangeRedirectService::appendFlash('Term updated.', $slugRedirect));
             Events::dispatch(new StorefrontCachesInvalidateEvent('taxonomy_term_updated'));
 
             return $response

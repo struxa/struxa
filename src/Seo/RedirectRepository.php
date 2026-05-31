@@ -145,4 +145,43 @@ final class RedirectRepository
             $this->insert($fromPath, $toUrl, $statusCode);
         }
     }
+
+    /**
+     * Point existing redirects at a new destination when a slug changes (flatten chains).
+     */
+    public function retargetDestinations(string $oldDestinationPath, string $newToUrl): int
+    {
+        $oldDestinationPath = self::normalizePath($oldDestinationPath);
+        $updated = 0;
+
+        foreach ($this->allOrdered() as $row) {
+            $toPath = self::destinationPath((string) $row['to_url']);
+            if ($toPath === null || self::normalizePath($toPath) !== $oldDestinationPath) {
+                continue;
+            }
+            $this->update(
+                (int) $row['id'],
+                (string) $row['from_path'],
+                $newToUrl,
+                (int) $row['status_code'],
+            );
+            ++$updated;
+        }
+
+        return $updated;
+    }
+
+    private static function destinationPath(string $toUrl): ?string
+    {
+        $toUrl = trim($toUrl);
+        if ($toUrl === '') {
+            return null;
+        }
+        if (str_starts_with($toUrl, '/')) {
+            return $toUrl;
+        }
+        $path = parse_url($toUrl, PHP_URL_PATH);
+
+        return is_string($path) && $path !== '' ? $path : null;
+    }
 }

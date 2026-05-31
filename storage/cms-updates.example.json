@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.1.29",
-    "title": "Struxa 1.1.29",
-    "summary": "Background job queue — cms_jobs table, CLI worker (jobs:work), deferred maintenance, publish, media compression, and sitemap warm.",
+    "latest_version": "1.1.30",
+    "title": "Struxa 1.1.30",
+    "summary": "Auto 301 redirects on slug change — pages, entries, content types, and taxonomy archives with redirect chain flattening.",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "minor"

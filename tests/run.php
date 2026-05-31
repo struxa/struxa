@@ -20,6 +20,8 @@ use App\Plugin\PluginAdminNavGrouper;
 use App\Plugin\PluginScanner;
 use App\Search\ContentSearchService;
 use App\Seo\ExternalLinkPolicy;
+use App\Seo\RedirectRepository;
+use App\Seo\SlugRedirectResult;
 use App\Seo\MetaTagBuilder;
 use App\Seo\SeoContentAnalyzer;
 use App\Seo\SeoFormParser;
@@ -486,6 +488,34 @@ $handlerCtx = new JobHandlerContext(
 $result = $jobHandlers->handle($testJob, $handlerCtx);
 if (($result['ok'] ?? false) !== true || ($result['message'] ?? '') !== 'hi') {
     $fail('JobHandlerRegistry should dispatch registered handlers.');
+}
+
+$redirectPdo = new PDO('sqlite::memory:');
+$redirectPdo->exec(
+    'CREATE TABLE cms_redirects (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        from_path TEXT NOT NULL,
+        to_url TEXT NOT NULL,
+        status_code INTEGER NOT NULL DEFAULT 301,
+        hit_count INTEGER NOT NULL DEFAULT 0,
+        updated_at TEXT NULL
+    )'
+);
+$redirectRepo = new RedirectRepository($redirectPdo);
+$redirectRepo->upsertPath('/p/middle', 'https://site.test/p/middle', 301);
+$redirectRepo->insert('/p/legacy', 'https://site.test/p/middle', 301);
+$updated = $redirectRepo->retargetDestinations('/p/middle', 'https://site.test/p/new-post');
+if ($updated < 1) {
+    $fail('RedirectRepository::retargetDestinations should update redirects pointing at the old path.');
+}
+$legacy = $redirectRepo->findByPath('/p/legacy');
+if ($legacy === null || ($legacy['to_url'] ?? '') !== 'https://site.test/p/new-post') {
+    $fail('Redirect chain should point legacy path at the newest slug URL.');
+}
+
+$result = new SlugRedirectResult(true, '/p/foo', 'https://site.test/p/bar', 2);
+if (!str_contains($result->flashSuffix(), '/p/foo') || !str_contains($result->flashSuffix(), '2 older redirect')) {
+    $fail('SlugRedirectResult flashSuffix should describe redirect and chain updates.');
 }
 
 echo "All tests passed.\n";

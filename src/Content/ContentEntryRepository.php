@@ -338,6 +338,24 @@ final class ContentEntryRepository
     }
 
     /**
+     * @return list<string>
+     */
+    public function publishedSlugsForType(int $contentTypeId): array
+    {
+        $stmt = $this->pdo->prepare(
+            'SELECT slug FROM ' . self::TABLE . ' WHERE content_type_id = ? AND ' . self::PUBLIC_ENTRY_WHERE
+            . ' ORDER BY slug ASC'
+        );
+        $stmt->execute([$contentTypeId]);
+        $out = [];
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            $out[] = (string) $row['slug'];
+        }
+
+        return $out;
+    }
+
+    /**
      * @return int new id
      */
     public function insert(

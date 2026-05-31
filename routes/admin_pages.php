@@ -37,6 +37,8 @@ use App\Section\SectionTemplateResolver;
 use App\Seo\ExternalLinkPolicy;
 use App\Seo\MetaTagBuilder;
 use App\Seo\RedirectRepository;
+use App\Seo\SlugChangeRedirectService;
+use App\Seo\SlugRedirectResult;
 use App\Seo\SeoFormParser;
 use App\Seo\SeoService;
 use App\Settings;
@@ -589,9 +591,17 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 $v['scheduled_unpublish_at'] ?? null,
                 $cmsUid($request)
             );
+            $slugRedirect = SlugRedirectResult::none();
             if ($page->status === 'published' && $oldSlug !== $slug) {
-                $base = rtrim((string) ($viewData()['site_url'] ?? ''), '/');
-                (new RedirectRepository($pdo))->upsertPath('/p/' . $oldSlug, $base . '/p/' . $slug, 301);
+                $siteUrl = (string) (($viewData())['site_url'] ?? '');
+                $slugRedirect = (new SlugChangeRedirectService(new RedirectRepository($pdo)))->forPage(
+                    $id,
+                    $oldSlug,
+                    $slug,
+                    $v['status'],
+                    $v['published_at'] ?? null,
+                    $siteUrl,
+                );
             }
             $activity->log($cmsUid($request), 'page.updated', 'page', $id, ['title' => $v['title']]);
             Events::dispatch(new StorefrontCachesInvalidateEvent('page_updated'));
@@ -604,13 +614,13 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             if (AfterSaveRedirect::wantsPublicView($body)) {
                 $viewUrl = AfterSaveRedirect::pagePublicUrl($siteUrl, $slug, $v['status'], $id, $v['published_at'] ?? null);
                 if ($viewUrl !== null) {
-                    Flash::set('success', 'Page updated.');
+                    Flash::set('success', SlugChangeRedirectService::appendFlash('Page updated.', $slugRedirect));
 
                     return $response->withHeader('Location', $viewUrl)->withStatus(302);
                 }
                 Flash::set('success', 'Page saved. Publish it to view on the site.');
             } else {
-                Flash::set('success', 'Page updated.');
+                Flash::set('success', SlugChangeRedirectService::appendFlash('Page updated.', $slugRedirect));
             }
 
             return $response
@@ -736,7 +746,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 ->withStatus(302);
         })->setName('admin.pages.preview_link');
 
-        $group->post('/pages/{id:[0-9]+}/revisions/{revId:[0-9]+}/restore', function (Request $request, Response $response, array $args) use ($repo, $revisions, $workflow, $activity, $cmsUid, $mediaRepo, $capturePageRevision, $restoreSectionsFromRevision): Response {
+        $group->post('/pages/{id:[0-9]+}/revisions/{revId:[0-9]+}/restore', function (Request $request, Response $response, array $args) use ($repo, $revisions, $workflow, $activity, $cmsUid, $mediaRepo, $capturePageRevision, $restoreSectionsFromRevision, $pdo, $viewData): Response {
             $id = (int) $args['id'];
             $revId = (int) $args['revId'];
             $page = $repo->findById($id);
@@ -757,6 +767,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             }
 
             $capturePageRevision($page, $cmsUid($request));
+            $oldSlug = $page->slug;
             $restoredBody = PageContentSanitizer::fromEnv()->sanitize((string) $rev['content']);
             $revSeoT = isset($rev['seo_title']) && (string) $rev['seo_title'] !== '' ? (string) $rev['seo_title'] : null;
             $revSeoD = isset($rev['seo_description']) && (string) $rev['seo_description'] !== '' ? (string) $rev['seo_description'] : null;
@@ -817,8 +828,21 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             if (array_key_exists('sections_json', $rev) && $rev['sections_json'] !== null) {
                 $restoreSectionsFromRevision($id, (string) $rev['sections_json']);
             }
+            $newSlug = (string) $rev['slug'];
+            $slugRedirect = SlugRedirectResult::none();
+            if ($page->status === 'published' && $oldSlug !== $newSlug) {
+                $siteUrl = (string) (($viewData())['site_url'] ?? '');
+                $slugRedirect = (new SlugChangeRedirectService(new RedirectRepository($pdo)))->forPage(
+                    $id,
+                    $oldSlug,
+                    $newSlug,
+                    $targetStatus,
+                    $revPublishedAt,
+                    $siteUrl,
+                );
+            }
             $activity->log($cmsUid($request), 'page.revision_restored', 'page', $id, ['revision_id' => $revId]);
-            Flash::set('success', 'Revision restored.');
+            Flash::set('success', SlugChangeRedirectService::appendFlash('Revision restored.', $slugRedirect));
             Events::dispatch(new StorefrontCachesInvalidateEvent('page_revision_restored'));
 
             return $response

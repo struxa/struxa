@@ -16,6 +16,21 @@
 {% endblock %}
 
 {% block admin_content %}
+  <form class="admin-form" method="post" action="{{ url_for('admin.seo.redirects.settings') }}" style="margin-bottom:1.25rem">
+    <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+    <section class="admin-card admin-settings-card admin-role-edit-card">
+      <h2 class="admin-settings-card-title">Automatic slug redirects</h2>
+      <p class="admin-settings-card-desc">When a published page, entry, content type, or taxonomy term slug changes, Struxa adds a 301 redirect from the old URL to the new one and updates older redirects in the chain.</p>
+      <label class="admin-check" style="margin-top:0.75rem">
+        <input type="checkbox" name="seo_auto_redirect_slug_change" value="1" {{ seo_auto_redirect_slug_change|default(true) ? 'checked' : '' }} />
+        <span>Create 301 redirects on slug change</span>
+      </label>
+      <div class="admin-form-actions" style="margin-top:0.75rem">
+        <button type="submit" class="admin-btn-ghost">Save setting</button>
+      </div>
+    </section>
+  </form>
+
   <section class="admin-card admin-settings-card admin-role-edit-card" style="margin-bottom:1.25rem">
     <h2 class="admin-settings-card-title">Add or replace redirect</h2>
     <p class="admin-settings-card-desc">If the path already exists, its destination is updated.</p>

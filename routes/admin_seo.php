@@ -13,6 +13,7 @@ use App\Security\IpBlockMatcher;
 use App\Security\IpBlockRepository;
 use App\Seo\NotFoundLogRepository;
 use App\Seo\RedirectRepository;
+use App\Seo\SlugChangeRedirectService;
 use App\Seo\SeoContentAnalyzer;
 use App\Seo\SeoInternalLinkSuggester;
 use App\Seo\SeoOverviewService;
@@ -156,8 +157,22 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 'admin_nav' => 'seo_redirects',
                 'form_errors' => [],
                 'form_old' => ['from_path' => $prefill, 'to_url' => '', 'status_code' => '301'],
+                'seo_auto_redirect_slug_change' => SlugChangeRedirectService::isEnabled(),
             ], $p)));
         })->setName('admin.seo.redirects');
+
+        $group->post('/seo/redirects/settings', function (Request $request, Response $response) use ($pdo): Response {
+            $body = $request->getParsedBody();
+            $body = is_array($body) ? $body : [];
+            $enabled = !empty($body['seo_auto_redirect_slug_change']);
+            (new SettingsRepository($pdo))->upsert(SlugChangeRedirectService::SETTING_KEY, $enabled ? '1' : '0', true);
+            Settings::reload($pdo);
+            Flash::set('success', 'Redirect settings saved.');
+
+            return $response
+                ->withHeader('Location', RouteContext::fromRequest($request)->getRouteParser()->urlFor('admin.seo.redirects'))
+                ->withStatus(302);
+        })->setName('admin.seo.redirects.settings');
 
         $group->post('/seo/redirects', function (Request $request, Response $response) use ($twig, $adminContext, $withCmsUser, $redirects, $parseRedirectBody, $redirectListPerPage, $paginateRedirects): Response {
             $body = $request->getParsedBody();

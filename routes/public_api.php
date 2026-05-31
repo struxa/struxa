@@ -31,6 +31,7 @@ use App\Section\SectionManager;
 use App\Section\SectionRenderer;
 use App\Section\SectionTemplateResolver;
 use App\Seo\RedirectRepository;
+use App\Seo\SlugChangeRedirectService;
 use App\Seo\SeoFormParser;
 use App\Taxonomy\ContentEntryTaxonomyRepository;
 use App\Taxonomy\EntryTaxonomySync;
@@ -469,10 +470,13 @@ return static function (App $app, Twig $twig, \PDO $pdo, callable $viewData): vo
             );
             if ($entry->status === 'published' && $t->hasPublicRoute && $oldSlug !== $newSlug) {
                 $base = rtrim((string) (($viewData())['site_url'] ?? ''), '/');
-                (new RedirectRepository($pdo))->upsertPath(
-                    '/' . $t->slug . '/' . $oldSlug,
-                    $base . '/' . $t->slug . '/' . $newSlug,
-                    301
+                (new SlugChangeRedirectService(new RedirectRepository($pdo)))->forEntry(
+                    $t,
+                    $oldSlug,
+                    $newSlug,
+                    $v['status'],
+                    $v['published_at'] ?? null,
+                    $base,
                 );
             }
             foreach ($fieldList as $f) {
