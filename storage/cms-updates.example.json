@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.1.35",
-    "title": "Struxa 1.1.35",
-    "summary": "Plugin sandbox and performance timing, plugins card UI, bulk entry actions, revision retention and GDPR privacy tools, unified admin search, page/entry duplicate, redesigned pages list.",
+    "latest_version": "1.1.36",
+    "title": "Struxa 1.1.36",
+    "summary": "Fix route closure scope for page duplicate, entry duplicate, and bulk entry actions.",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "minor"

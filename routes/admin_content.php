@@ -376,7 +376,10 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
         $entryFormMediaContext,
         $entryPrimaryRichtextTextareaId,
         $editSessions,
-        $entryBuilderHost
+        $entryBuilderHost,
+        $redirectToEntryIndex,
+        $entryBulkFlash,
+        $entryDuplicator
     ): void {
         $group->get('/content-types', function (Request $request, Response $response) use ($twig, $adminContext, $withCmsUser, $types, $entries, $fields): Response {
             $cards = ContentAdminTree::cards($types, $entries, $fields);

@@ -160,7 +160,8 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
         $mergePageSeoOld,
         $editSessions,
         $sectionPatterns,
-        $builderHandler
+        $builderHandler,
+        $pageDuplicator
     ): void {
         $pageFormMediaPicker = static function (Request $request) use ($mediaRepo): array {
             /** @var array<string, mixed> $cmsUser */
