@@ -1,0 +1,131 @@
+{% extends 'admin/base.twig' %}
+
+{% block admin_title %}Commerce settings{% endblock %}
+
+{% block admin_hero_title %}
+  <h1 class="admin-hero-title">Commerce settings</h1>
+{% endblock %}
+
+{% block admin_hero_sub %}
+  <p class="admin-hero-sub">Sell content-type entries with Stripe Checkout. Products use field keys <code class="admin-inline-code">price_cents</code>, <code class="admin-inline-code">purchasable</code>, optional <code class="admin-inline-code">stripe_price_id</code>, and optional <code class="admin-inline-code">stock_qty</code> for inventory.</p>
+{% endblock %}
+
+{% block admin_content %}
+  <div class="admin-page-toolbar" style="margin-bottom:1rem">
+    <a class="admin-btn-ghost" href="{{ url_for('admin.commerce.orders') }}">View orders</a>
+    <a class="admin-btn-ghost" href="{{ url_for('admin.commerce.coupons') }}">Coupons</a>
+    <a class="admin-btn-ghost" href="{{ url_for('admin.tools.blueprints') }}">Import product blueprint</a>
+  </div>
+
+  <section class="admin-card">
+    <h2 class="admin-card-title">Store</h2>
+    <form class="admin-form admin-form-stack" method="post" action="{{ url_for('admin.commerce.settings.save') }}" style="max-width:36rem">
+      <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+      <label class="admin-check">
+        <input type="checkbox" name="commerce_enabled" value="1" {% if commerce_enabled %}checked{% endif %} />
+        Enable commerce (Stripe Checkout on product entries)
+      </label>
+      <div class="admin-field">
+        <label class="admin-label" for="commerce_product_type_slug">Product content type slug</label>
+        <input class="admin-input" id="commerce_product_type_slug" name="commerce_product_type_slug" value="{{ commerce_product_type_slug|e('html_attr') }}" required pattern="[a-z0-9]+(?:-[a-z0-9]+)*" />
+        <p class="admin-hint">Only entries of this type can be purchased. Default: <code class="admin-inline-code">product</code>.</p>
+      </div>
+      <div class="admin-field">
+        <label class="admin-label" for="commerce_currency">Default currency</label>
+        <input class="admin-input" id="commerce_currency" name="commerce_currency" value="{{ commerce_currency|e('html_attr') }}" required maxlength="3" pattern="[a-z]{3}" />
+        <p class="admin-hint">ISO code used when creating Stripe prices (e.g. <code class="admin-inline-code">gbp</code>, <code class="admin-inline-code">usd</code>).</p>
+      </div>
+      <div class="admin-field">
+        <label class="admin-label" for="commerce_notify_email">Order notification email</label>
+        <input class="admin-input" id="commerce_notify_email" name="commerce_notify_email" type="email" value="{{ commerce_notify_email|e('html_attr') }}" placeholder="orders@example.com" />
+        <p class="admin-hint">Optional. Receives a copy when an order is paid (uses PHP <code class="admin-inline-code">mail()</code>).</p>
+      </div>
+      <label class="admin-check">
+        <input type="checkbox" name="commerce_send_order_emails" value="1" {% if commerce_send_order_emails %}checked{% endif %} />
+        Send customer order confirmation emails
+      </label>
+      <label class="admin-check">
+        <input type="checkbox" name="commerce_track_inventory" value="1" {% if commerce_track_inventory %}checked{% endif %} />
+        Track inventory (<code class="admin-inline-code">stock_qty</code> field on products)
+      </label>
+      <h3 class="admin-card-title" style="margin-top:1.25rem">Tax</h3>
+      <label class="admin-check">
+        <input type="checkbox" name="commerce_tax_enabled" value="1" {% if commerce_tax_enabled %}checked{% endif %} />
+        Apply flat tax rate at checkout
+      </label>
+      <div class="admin-field">
+        <label class="admin-label" for="commerce_tax_rate_bps">Tax rate (basis points)</label>
+        <input class="admin-input" id="commerce_tax_rate_bps" name="commerce_tax_rate_bps" type="number" min="0" max="10000" value="{{ commerce_tax_rate_bps|e('html_attr') }}" />
+        <p class="admin-hint">2000 = 20%. Applied to subtotal after coupon discount.</p>
+      </div>
+      <h3 class="admin-card-title" style="margin-top:1.25rem">Shipping</h3>
+      <label class="admin-check">
+        <input type="checkbox" name="commerce_shipping_enabled" value="1" {% if commerce_shipping_enabled %}checked{% endif %} />
+        Charge flat-rate shipping at checkout
+      </label>
+      <div class="admin-field">
+        <label class="admin-label" for="commerce_shipping_label">Shipping label</label>
+        <input class="admin-input" id="commerce_shipping_label" name="commerce_shipping_label" value="{{ commerce_shipping_label|e('html_attr') }}" />
+      </div>
+      <div class="admin-field">
+        <label class="admin-label" for="commerce_shipping_flat_cents">Flat shipping (cents)</label>
+        <input class="admin-input" id="commerce_shipping_flat_cents" name="commerce_shipping_flat_cents" type="number" min="0" value="{{ commerce_shipping_flat_cents|e('html_attr') }}" />
+        <p class="admin-hint">499 = £4.99. Set free-shipping threshold to waive this fee.</p>
+      </div>
+      <div class="admin-field">
+        <label class="admin-label" for="commerce_free_shipping_min_cents">Free shipping min subtotal (cents, after discount)</label>
+        <input class="admin-input" id="commerce_free_shipping_min_cents" name="commerce_free_shipping_min_cents" type="number" min="0" value="{{ commerce_free_shipping_min_cents|e('html_attr') }}" />
+        <p class="admin-hint">0 = always charge flat rate when shipping is enabled.</p>
+      </div>
+      <div class="admin-field">
+        <label class="admin-label" for="commerce_shipping_countries">Shipping countries (ISO codes)</label>
+        <input class="admin-input" id="commerce_shipping_countries" name="commerce_shipping_countries" value="{{ commerce_shipping_countries|e('html_attr') }}" placeholder="GB, US, IE" />
+        <p class="admin-hint">Comma-separated. Stripe collects a shipping address at checkout when shipping is enabled.</p>
+      </div>
+      <h3 class="admin-card-title" style="margin-top:1.25rem">Shop page</h3>
+      <p class="admin-hint">Public catalog at <code class="admin-inline-code">/shop</code> lists the configured product content type with live Stripe prices.</p>
+      <div class="admin-field">
+        <label class="admin-label" for="commerce_shop_title">Shop page title</label>
+        <input class="admin-input" id="commerce_shop_title" name="commerce_shop_title" value="{{ commerce_shop_title|e('html_attr') }}" />
+      </div>
+      <div class="admin-field">
+        <label class="admin-label" for="commerce_shop_description">Shop page description</label>
+        <textarea class="admin-input" id="commerce_shop_description" name="commerce_shop_description" rows="2">{{ commerce_shop_description|e }}</textarea>
+      </div>
+      <button class="admin-btn-primary" type="submit">Save store settings</button>
+    </form>
+  </section>
+
+  <section class="admin-card" style="margin-top:1rem">
+    <h2 class="admin-card-title">Stripe</h2>
+    <p class="admin-hint">Webhook URL: <code class="admin-inline-code">{{ webhook_url|e }}</code> — subscribe to <strong>checkout.session.completed</strong> and <strong>checkout.session.expired</strong>.</p>
+    <form class="admin-form admin-form-stack" method="post" action="{{ url_for('admin.commerce.settings.stripe') }}" style="max-width:36rem;margin-top:1rem">
+      <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+      <div class="admin-field">
+        <label class="admin-label" for="stripe_secret_key">Secret key</label>
+        {% if stripe_keys.secret.stored %}
+          <p class="admin-hint">Stored: {{ stripe_keys.secret.masked|e }}</p>
+        {% endif %}
+        <input class="admin-input" id="stripe_secret_key" name="stripe_secret_key" type="password" autocomplete="off" placeholder="sk_live_… or sk_test_…" />
+        <label class="admin-check"><input type="checkbox" name="stripe_secret_clear" value="1" /> Remove stored secret key</label>
+      </div>
+      <div class="admin-field">
+        <label class="admin-label" for="stripe_publishable_key">Publishable key</label>
+        {% if stripe_keys.publishable.stored %}
+          <p class="admin-hint">Stored: {{ stripe_keys.publishable.masked|e }}</p>
+        {% endif %}
+        <input class="admin-input" id="stripe_publishable_key" name="stripe_publishable_key" type="text" autocomplete="off" placeholder="pk_live_… or pk_test_…" />
+        <label class="admin-check"><input type="checkbox" name="stripe_publishable_clear" value="1" /> Remove publishable key</label>
+      </div>
+      <div class="admin-field">
+        <label class="admin-label" for="stripe_webhook_secret">Webhook signing secret</label>
+        {% if stripe_keys.webhook.stored %}
+          <p class="admin-hint">Stored: {{ stripe_keys.webhook.masked|e }}</p>
+        {% endif %}
+        <input class="admin-input" id="stripe_webhook_secret" name="stripe_webhook_secret" type="password" autocomplete="off" placeholder="whsec_…" />
+        <label class="admin-check"><input type="checkbox" name="stripe_webhook_clear" value="1" /> Remove webhook secret</label>
+      </div>
+      <button class="admin-btn-primary" type="submit">Save Stripe keys</button>
+    </form>
+  </section>
+{% endblock %}

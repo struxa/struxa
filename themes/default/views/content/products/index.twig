@@ -1,19 +1,20 @@
 {% extends 'layouts/base.twig' %}
 
-{% block title %}{{ content_type.name|e }} — {{ settings.site_name|default('Site')|e }}{% endblock %}
+{% block title %}{{ content_index_title|default(content_type.name)|e }} — {{ settings.site_name|default('Site')|e }}{% endblock %}
 {% block meta_description %}{{ content_index_description|default(settings.default_meta_description|default(''))|e }}{% endblock %}
 {% block og_title %}{{ content_type.name|e }}{% endblock %}
 {% block og_description %}{{ content_index_description|default(settings.default_meta_description|default(''))|e }}{% endblock %}
 {% block twitter_title %}{{ content_type.name|e }}{% endblock %}
 {% block twitter_description %}{{ content_index_description|default(settings.default_meta_description|default(''))|e }}{% endblock %}
 
-{% block canonical_href %}{{ site_url }}/{{ content_type.slug }}{% if index_page > 1 %}?page={{ index_page }}{% endif %}{% endblock %}
+{% block canonical_href %}{{ site_url }}{% if commerce_shop_page|default(false) %}/shop{% else %}/{{ content_type.slug }}{% endif %}{% if index_page > 1 %}?page={{ index_page }}{% endif %}{% endblock %}
 
 {% block body %}
 <main id="main-content">
   {% include 'content/_index_grid.twig' with {
     section_modifier: 'product-catalog',
-    eyebrow_label: 'Apps & platforms',
+    eyebrow_label: commerce_shop_page|default(false) ? 'Shop' : 'Apps & platforms',
+    blog_archive_title: content_index_title|default(content_type.name),
     empty_message: 'No products yet. Import the products showcase blueprint or publish your first entry.',
     read_more_label: 'View product →',
     newer_label: 'Newer',

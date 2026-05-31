@@ -1,0 +1,61 @@
+{% extends 'admin/base.twig' %}
+
+{% block admin_title %}Coupons{% endblock %}
+
+{% block admin_hero_title %}
+  <h1 class="admin-hero-title">Coupons</h1>
+{% endblock %}
+
+{% block admin_hero_sub %}
+  <p class="admin-hero-sub">Discount codes applied at cart checkout. Customers enter codes on the cart page.</p>
+{% endblock %}
+
+{% block admin_content %}
+  <div class="admin-page-toolbar" style="margin-bottom:1rem">
+    <a class="admin-btn-primary" href="{{ url_for('admin.commerce.coupons.new') }}">New coupon</a>
+    <a class="admin-btn-ghost" href="{{ url_for('admin.commerce.settings') }}">Commerce settings</a>
+  </div>
+
+  <section class="admin-card">
+    <div class="admin-table-wrap">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>Code</th>
+            <th>Discount</th>
+            <th>Min subtotal</th>
+            <th>Uses</th>
+            <th>Status</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for c in coupons %}
+            <tr>
+              <td><code class="admin-inline-code">{{ c.code|e }}</code></td>
+              <td>
+                {% if c.discountType == 'percent' %}
+                  {{ c.amount }}%
+                {% else %}
+                  {{ (c.amount / 100)|number_format(2) }}
+                {% endif %}
+              </td>
+              <td>{{ (c.minSubtotalCents / 100)|number_format(2) }}</td>
+              <td>{{ c.usesCount }}{% if c.maxUses %} / {{ c.maxUses }}{% endif %}</td>
+              <td>
+                {% if c.active and not c.isExpired() %}
+                  <span class="admin-badge admin-badge--ok">Active</span>
+                {% else %}
+                  <span class="admin-badge admin-badge--muted">Inactive</span>
+                {% endif %}
+              </td>
+              <td><a class="admin-link" href="{{ url_for('admin.commerce.coupons.edit', {id: c.id}) }}">Edit</a></td>
+            </tr>
+          {% else %}
+            <tr><td colspan="6">No coupons yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+{% endblock %}

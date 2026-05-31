@@ -1,0 +1,22 @@
+<div class="theme-commerce-buy-actions">
+  <p class="theme-commerce-price">{{ commerce_product.formattedPrice() }}</p>
+  {% if commerce_product.stockQty is not null %}
+    <p class="theme-commerce-stock">{{ commerce_product.stockQty }} in stock</p>
+  {% endif %}
+  {% if commerce_product.isInStock(1) %}
+    <form class="theme-commerce-buy" method="post" action="{{ url_for('public.commerce.checkout') }}">
+      <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+      <input type="hidden" name="content_entry_id" value="{{ commerce_product.entryId }}" />
+      <button type="submit" class="theme-btn theme-commerce-buy-btn">Buy now</button>
+    </form>
+    <form class="theme-commerce-add-cart" method="post" action="{{ url_for('public.commerce.cart.add') }}">
+      <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+      <input type="hidden" name="content_entry_id" value="{{ commerce_product.entryId }}" />
+      <input type="hidden" name="return_to" value="/{{ commerce_product.contentTypeSlug|e('url') }}/{{ commerce_product.entrySlug|e('url') }}" />
+      <button type="submit" class="theme-btn theme-btn--ghost">Add to cart</button>
+    </form>
+  {% else %}
+    <p class="theme-commerce-out-of-stock">Out of stock</p>
+  {% endif %}
+  <p class="theme-commerce-cart-link"><a href="{{ url_for('public.commerce.cart') }}">View cart{% if commerce_cart_count|default(0) > 0 %} ({{ commerce_cart_count }}){% endif %}</a> · <a href="{{ url_for('public.commerce.orders') }}">My orders</a></p>
+</div>

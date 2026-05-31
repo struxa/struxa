@@ -2,6 +2,9 @@
 
 declare(strict_types=1);
 
+use App\Commerce\CommerceSettings;
+use App\Commerce\Product\ProductCatalogEnricher;
+use App\Commerce\Product\ProductResolver;
 use App\Content\ContentEntryRepository;
 use App\Content\ContentEntryValueRepository;
 use App\Content\ContentFieldRepository;
@@ -27,6 +30,9 @@ return static function (App $app, Twig $twig, \PDO $pdo, callable $viewData): vo
     $values = new ContentEntryValueRepository($pdo);
     $mediaUrls = new MediaUrlHelper($pdo);
     $indexCardBuilder = new PublicContentIndexCardBuilder($fields, $values, $mediaUrls);
+    $commerce = new CommerceSettings($pdo);
+    $products = new ProductResolver($pdo, $commerce, $fields);
+    $catalogEnricher = new ProductCatalogEnricher($products, $entries, $values);
 
     $app->get('/{typeSlug}', function (Request $request, Response $response, array $args) use (
         $twig,
@@ -34,7 +40,8 @@ return static function (App $app, Twig $twig, \PDO $pdo, callable $viewData): vo
         $types,
         $entries,
         $mediaUrls,
-        $indexCardBuilder
+        $indexCardBuilder,
+        $catalogEnricher
     ): Response {
         $typeSlug = (string) ($args['typeSlug'] ?? '');
         if (ReservedContentSlugs::isReserved($typeSlug)) {
@@ -55,7 +62,7 @@ return static function (App $app, Twig $twig, \PDO $pdo, callable $viewData): vo
             $page = $totalPages;
         }
         $rows = $entries->publishedForContentTypePaged($type->id, $page, $perPage);
-        $indexRows = $indexCardBuilder->buildForEntries($type, $rows);
+        $indexRows = $catalogEnricher->enrich($type, $indexCardBuilder->buildForEntries($type, $rows));
 
         $tpl = ContentViewTemplates::resolve($twig->getEnvironment(), ContentViewTemplates::contentIndex($type->slug));
 

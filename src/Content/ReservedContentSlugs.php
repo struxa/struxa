@@ -28,6 +28,8 @@ final class ReservedContentSlugs
         'search',
         'comments',
         'forms',
+        'commerce',
+        'shop',
         'uploads',
         'css',
         'js',

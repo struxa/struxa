@@ -1,0 +1,33 @@
+{% extends 'base.twig' %}
+
+{% block title %}Track order — {{ settings.site_name|default('Site')|e }}{% endblock %}
+
+{% block body %}
+<main class="theme-content-entry theme-commerce-order-lookup">
+  <h1>Track your order</h1>
+  <p>Enter the order number from your confirmation and the email used at checkout.</p>
+  <p><a href="{{ url_for('public.commerce.orders') }}">My orders</a> · <a href="{{ url_for('public.commerce.cart') }}">Cart</a></p>
+
+  <form method="post" action="{{ url_for('public.commerce.orders.lookup.submit') }}" class="theme-commerce-lookup-form">
+    <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+    <label>
+      Order number
+      <input type="text" name="order_number" value="{{ lookup_order_number|default('')|e('html_attr') }}" placeholder="STX-…" required />
+    </label>
+    <label>
+      Email
+      <input type="email" name="email" value="{{ lookup_email|default('')|e('html_attr') }}" required />
+    </label>
+    <button type="submit" class="theme-btn">Find order</button>
+  </form>
+
+  {% if lookup_error %}
+    <p class="theme-commerce-cart-error">{{ lookup_error|e }}</p>
+  {% endif %}
+
+  {% if lookup_order %}
+    <h2>Order {{ lookup_order.orderNumber|e }}</h2>
+    {% include 'commerce/_order_detail.twig' with { order: lookup_order } %}
+  {% endif %}
+</main>
+{% endblock %}

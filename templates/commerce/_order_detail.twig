@@ -1,0 +1,46 @@
+<section class="theme-commerce-order-detail">
+  <dl class="theme-commerce-order-meta">
+    <dt>Status</dt><dd>{{ order.status|replace({'_': ' '})|e }}</dd>
+    <dt>Placed</dt><dd>{{ order.createdAt|e }}</dd>
+    {% if order.paidAt %}<dt>Paid</dt><dd>{{ order.paidAt|e }}</dd>{% endif %}
+    {% if order.customerEmail %}<dt>Email</dt><dd>{{ order.customerEmail|e }}</dd>{% endif %}
+  </dl>
+
+  <h2>Items</h2>
+  <ul class="theme-commerce-order-items">
+    {% for item in order.items %}
+      <li>
+        <span class="theme-commerce-order-item-title">{{ item.title|e }}</span>
+        <span class="theme-commerce-order-item-qty">× {{ item.quantity }}</span>
+        <span class="theme-commerce-order-item-price">{{ (item.lineTotalCents / 100)|number_format(2) }} {{ order.currency|upper|e }}</span>
+      </li>
+    {% endfor %}
+  </ul>
+
+  <dl class="theme-commerce-order-totals">
+    <dt>Subtotal</dt><dd>{{ (order.subtotalCents / 100)|number_format(2) }} {{ order.currency|upper|e }}</dd>
+    {% if order.discountCents > 0 %}
+      <dt>Discount{% if order.couponCode %} ({{ order.couponCode|e }}){% endif %}</dt>
+      <dd>−{{ (order.discountCents / 100)|number_format(2) }} {{ order.currency|upper|e }}</dd>
+    {% endif %}
+    {% if order.taxCents > 0 %}
+      <dt>Tax</dt><dd>{{ (order.taxCents / 100)|number_format(2) }} {{ order.currency|upper|e }}</dd>
+    {% endif %}
+    {% if order.shippingCents > 0 %}
+      <dt>{{ order.shippingLabel|default('Shipping')|e }}</dt>
+      <dd>{{ (order.shippingCents / 100)|number_format(2) }} {{ order.currency|upper|e }}</dd>
+    {% endif %}
+    <dt><strong>Total</strong></dt>
+    <dd><strong>{{ (order.totalCents / 100)|number_format(2) }} {{ order.currency|upper|e }}</strong></dd>
+  </dl>
+
+  {% set ship_lines = order.shippingAddressLines() %}
+  {% if ship_lines is not empty %}
+    <h2>Shipping address</h2>
+    <address class="theme-commerce-shipping-address">
+      {% for line in ship_lines %}
+        {{ line|e }}{% if not loop.last %}<br />{% endif %}
+      {% endfor %}
+    </address>
+  {% endif %}
+</section>

@@ -1,0 +1,83 @@
+{% extends 'admin/base.twig' %}
+{% import 'admin/_ui_macros.twig' as ui %}
+
+{% block admin_title %}Order {{ order.orderNumber|e }}{% endblock %}
+
+{% block admin_hero_title %}
+  <h1 class="admin-hero-title">Order {{ order.orderNumber|e }}</h1>
+{% endblock %}
+
+{% block admin_hero_sub %}
+  <p class="admin-hero-sub"><a class="admin-link" href="{{ url_for('admin.commerce.orders') }}">← All orders</a></p>
+{% endblock %}
+
+{% block admin_content %}
+  <section class="admin-card">
+    <div class="admin-card-head">
+      <h2 class="admin-card-title">Summary</h2>
+      {{ ui.status_badge(order.status) }}
+    </div>
+    <dl class="admin-dl">
+      <dt>Subtotal</dt><dd>{{ (order.subtotalCents / 100)|number_format(2) }} {{ order.currency|upper|e }}</dd>
+      {% if order.discountCents > 0 %}
+        <dt>Discount{% if order.couponCode %} ({{ order.couponCode|e }}){% endif %}</dt>
+        <dd>−{{ (order.discountCents / 100)|number_format(2) }} {{ order.currency|upper|e }}</dd>
+      {% endif %}
+      {% if order.taxCents > 0 %}
+        <dt>Tax</dt><dd>{{ (order.taxCents / 100)|number_format(2) }} {{ order.currency|upper|e }}</dd>
+      {% endif %}
+      {% if order.shippingCents > 0 %}
+        <dt>{{ order.shippingLabel|default('Shipping')|e }}</dt>
+        <dd>{{ (order.shippingCents / 100)|number_format(2) }} {{ order.currency|upper|e }}</dd>
+      {% endif %}
+      <dt>Total</dt><dd>{{ (order.totalCents / 100)|number_format(2) }} {{ order.currency|upper|e }}</dd>
+      <dt>Customer email</dt><dd>{{ order.customerEmail|default('—')|e }}</dd>
+      {% if order.customerUserId %}<dt>Account</dt><dd>User #{{ order.customerUserId }}</dd>{% endif %}
+      <dt>Created</dt><dd>{{ order.createdAt|e }}</dd>
+      {% if order.paidAt %}<dt>Paid</dt><dd>{{ order.paidAt|e }}</dd>{% endif %}
+      {% if order.confirmationEmailSentAt %}<dt>Confirmation email</dt><dd>Sent {{ order.confirmationEmailSentAt|e }}</dd>{% endif %}
+      {% if order.stripeCheckoutSessionId %}<dt>Stripe session</dt><dd><code class="admin-inline-code">{{ order.stripeCheckoutSessionId|e }}</code></dd>{% endif %}
+      {% if order.stripePaymentIntentId %}<dt>Payment intent</dt><dd><code class="admin-inline-code">{{ order.stripePaymentIntentId|e }}</code></dd>{% endif %}
+      {% if order.stripeRefundId %}<dt>Stripe refund</dt><dd><code class="admin-inline-code">{{ order.stripeRefundId|e }}</code></dd>{% endif %}
+      {% set ship_lines = order.shippingAddressLines() %}
+      {% if ship_lines is not empty %}
+        <dt>Ship to</dt>
+        <dd>{% for line in ship_lines %}{{ line|e }}{% if not loop.last %}<br />{% endif %}{% endfor %}</dd>
+      {% endif %}
+    </dl>
+    {% if order.status == 'paid' %}
+      <form method="post" action="{{ url_for('admin.commerce.orders.refund', {id: order.id}) }}" style="margin-top:1rem" onsubmit="return confirm('Refund this order in Stripe? Inventory will be restored if tracking is enabled.');">
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+        <button class="admin-btn-ghost" type="submit">Refund order</button>
+      </form>
+    {% endif %}
+  </section>
+
+  <section class="admin-card" style="margin-top:1rem">
+    <h2 class="admin-card-title">Line items</h2>
+    <div class="admin-table-wrap">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>Product</th>
+            <th>Entry ID</th>
+            <th>Qty</th>
+            <th>Unit</th>
+            <th>Line total</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in order.items %}
+            <tr>
+              <td>{{ item.title|e }}</td>
+              <td>{{ item.contentEntryId }}</td>
+              <td>{{ item.quantity }}</td>
+              <td>{{ (item.unitPriceCents / 100)|number_format(2) }}</td>
+              <td>{{ (item.lineTotalCents / 100)|number_format(2) }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+{% endblock %}

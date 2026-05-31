@@ -223,7 +223,7 @@ Host your own registry: publish the **`struxa-dist/`** folder (see **`struxa-dis
 
 See **`plugins/hello-plugin`**, **`plugins/seo-helper-plugin`**, **`plugins/analytics-widget-plugin`**, **`plugins/content-stream-plugin`** (OpenAI-backed public form + admin API settings), and **`plugins/mailing-list-plugin`** (multiple lists, email validation, storefront signup) for small, copy-paste-friendly patterns.
 
-**Commerce:** **`plugins/stripe-store-plugin`** adds Stripe Checkout for purchasable content entries (e.g. products) without core code changes. Run its SQL migration, **`composer install` at the project root** (Stripe PHP is required in the root `composer.json`), activate the plugin, add optional content fields `stripe_price_id` / `stripe_amount_cents`, and include `<script src="…/stripe-store/embed.js" defer></script>` on your storefront layout.
+**Commerce:** Core **Commerce** (Admin → Orders / Commerce settings) sells purchasable **content-type** entries via Stripe Checkout. See **`docs/commerce.md`**. The legacy **`plugins/stripe-store-plugin`** path is superseded by core for new sites.
 
 ## Plugin Composer dependencies
 

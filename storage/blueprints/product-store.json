@@ -1,0 +1,96 @@
+{
+    "cms_blueprint_version": "1.0",
+    "label": "Showcase: Product store",
+    "description": "Simple product catalog content type with price fields for Struxa core commerce (Stripe Checkout).",
+    "settings": {
+        "site_tagline": "Shop structured products powered by content types.",
+        "default_meta_title": "Shop",
+        "default_meta_description": "Browse and buy products."
+    },
+    "content_types": [
+        {
+            "slug": "product",
+            "name": "Product",
+            "description": "Purchasable catalog items. Enable commerce in Admin → Commerce and configure Stripe.",
+            "has_public_route": true,
+            "supports_seo": true,
+            "supports_featured_image": true,
+            "fields": [
+                {
+                    "field_key": "summary",
+                    "label": "Short summary",
+                    "field_type": "textarea",
+                    "sort_order": 10
+                },
+                {
+                    "field_key": "description",
+                    "label": "Description",
+                    "field_type": "richtext",
+                    "sort_order": 20
+                },
+                {
+                    "field_key": "price_cents",
+                    "label": "Price (cents)",
+                    "field_type": "number",
+                    "sort_order": 30,
+                    "is_required": true,
+                    "help_text": "Integer minor units, e.g. 1999 = £19.99. Ignored when stripe_price_id is set."
+                },
+                {
+                    "field_key": "purchasable",
+                    "label": "Available to buy",
+                    "field_type": "boolean",
+                    "sort_order": 40,
+                    "default_value": "1"
+                },
+                {
+                    "field_key": "stripe_price_id",
+                    "label": "Stripe Price ID (optional)",
+                    "field_type": "text",
+                    "sort_order": 50,
+                    "help_text": "Use price_… from Stripe Dashboard instead of ad-hoc price_cents."
+                },
+                {
+                    "field_key": "sku",
+                    "label": "SKU",
+                    "field_type": "text",
+                    "sort_order": 60
+                },
+                {
+                    "field_key": "stock_qty",
+                    "label": "Stock quantity",
+                    "field_type": "number",
+                    "sort_order": 70,
+                    "help_text": "Leave empty for unlimited stock. Decremented when orders are paid (if inventory tracking is enabled)."
+                }
+            ],
+            "taxonomies": [
+                {
+                    "slug": "product-category",
+                    "name": "Product categories",
+                    "taxonomy_type": "category",
+                    "is_hierarchical": true,
+                    "terms": [
+                        { "slug": "featured", "name": "Featured" }
+                    ]
+                }
+            ]
+        }
+    ],
+    "entries": [
+        {
+            "type_slug": "product",
+            "title": "Example product",
+            "slug": "example-product",
+            "status": "published",
+            "field_values": {
+                "summary": "A sample product entry for testing Stripe Checkout.",
+                "description": "<p>Replace with your own copy. Set <strong>price_cents</strong> and enable commerce in the admin.</p>",
+                "price_cents": "2499",
+                "purchasable": "1",
+                "sku": "DEMO-001",
+                "stock_qty": "10"
+            }
+        }
+    ]
+}

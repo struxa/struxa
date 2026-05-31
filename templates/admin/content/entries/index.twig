@@ -149,7 +149,7 @@
                 <div class="admin-entry-bulk-term-list">
                   {% for row in rows %}
                     {% set term = row.term %}
-                    <label class="admin-check" style="padding-left:{{ row.depth * 1rem }}rem">
+                    <label class="admin-check" style="padding-left: {{ row.depth }}rem">
                       <input type="checkbox" value="{{ term.id }}" data-entry-bulk-term="1" />
                       <span>{{ term.name|e }}</span>
                     </label>

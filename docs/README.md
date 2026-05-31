@@ -9,6 +9,7 @@ This folder describes how the CMS is structured and how to extend it locally.
 | [plugins.md](plugins.md) | `plugin.json`, routes, service providers |
 | [blueprints.md](blueprints.md) | Importable structure packages |
 | [content-types.md](content-types.md) | Types, fields, entries, public routes |
+| [commerce.md](commerce.md) | Content-type products, Stripe Checkout, orders |
 | [docker.md](docker.md) | Local containers and environment |
 | [migrations.md](migrations.md) | SQL migrations workflow |
 

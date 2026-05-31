@@ -169,7 +169,9 @@
               {% endif %}
             {% endif %}
             <h3><a href="{{ site_url }}/{{ content_type.slug|e }}/{{ row.slug|e }}">{{ row.title|e }}</a></h3>
-            {% if item.price_plain|default('')|trim != '' %}
+            {% if item.commerce_product is defined and item.commerce_product %}
+              <p class="product-card-price">{{ item.commerce_product.formattedPrice() }}</p>
+            {% elseif item.price_plain|default('')|trim != '' %}
               <p class="product-card-price">{{ item.price_plain|e }}</p>
             {% endif %}
             {% if item.excerpt_plain %}
@@ -177,7 +179,16 @@
             {% endif %}
             {% if _is_product_catalog %}
               <div class="blog-card-actions">
-                {% if item.buy_url|default('')|trim != '' %}
+                {% if item.commerce_product is defined and item.commerce_product and item.commerce_in_stock|default(false) %}
+                  <form method="post" action="{{ url_for('public.commerce.cart.add') }}" class="blog-card-add-cart-form">
+                    <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+                    <input type="hidden" name="content_entry_id" value="{{ item.commerce_product.entryId }}" />
+                    <input type="hidden" name="return_to" value="{{ shop_pager_route|default('') == 'public.commerce.shop' ? url_for('public.commerce.shop') : '/' ~ content_type.slug|e('url') }}" />
+                    <button type="submit" class="btn btn-primary blog-card-btn-buy">Add to cart</button>
+                  </form>
+                {% elseif item.commerce_product is defined and item.commerce_product %}
+                  <span class="product-card-out-of-stock">Out of stock</span>
+                {% elseif item.buy_url|default('')|trim != '' %}
                   <a class="btn btn-primary blog-card-btn-buy" href="{{ item.buy_url|trim|e('html_attr') }}" rel="noopener noreferrer">{{ (item.buy_label|default('')|trim != '' ? item.buy_label : 'Buy now')|e }}</a>
                 {% endif %}
                 <a class="btn btn-ghost blog-card-cta" href="{{ site_url }}/{{ content_type.slug|e }}/{{ row.slug|e }}">{{ read_more_label|e }}</a>
@@ -192,7 +203,7 @@
     {% endif %}
 
     {% if not archive_hide_pager|default(false) %}
-    {% set _pager_base = url_for('public.content_type_index', { typeSlug: content_type.slug }) %}
+    {% set _pager_base = shop_pager_route|default('') != '' ? url_for(shop_pager_route) : url_for('public.content_type_index', { typeSlug: content_type.slug }) %}
     <nav class="blog-pager blog-pager--numbered" aria-label="{{ 'Pagination'|e }}">
       {% if index_page > 1 %}
         <a class="btn btn-ghost blog-pager__step" rel="prev" href="{{ _pager_base }}?page={{ index_page - 1 }}">{{ newer_label|e }}</a>

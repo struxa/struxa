@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.1.37",
-    "title": "Struxa 1.1.37",
-    "summary": "Fix admin pages list: compute status counts in PHP instead of unsupported Twig selectattr filter.",
+    "latest_version": "1.1.38",
+    "title": "Struxa 1.1.38",
+    "summary": "Core commerce: Stripe Checkout, cart, orders, coupons, tax/shipping, customer accounts, and /shop catalog. Fix admin entry list Twig syntax for taxonomy bulk indent.",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "minor"

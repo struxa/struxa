@@ -6,6 +6,8 @@ namespace App\Http\Middleware;
 
 use App\Cache\CacheConfig;
 use App\Cache\CacheManager;
+use App\Commerce\Cart\CartService;
+use App\Commerce\CommerceSettings;
 use App\Locale\SiteLocale;
 use App\CmsVersion;
 use App\Media\SiteBrandingResolver;
@@ -154,6 +156,19 @@ final class TwigCmsGlobals implements MiddlewareInterface
         $env->addGlobal('plugin_admin_nav_groups', $partition['groups']);
         $env->addGlobal('cms_public_page_cache_on', CacheConfig::publicCacheEnabled());
         $env->addGlobal('cms_version', CmsVersion::CURRENT);
+
+        $commerceSettings = new CommerceSettings($this->pdo);
+        $env->addGlobal('commerce_enabled', $commerceSettings->isEnabled());
+        $cartCount = 0;
+        if ($commerceSettings->isEnabled()) {
+            if (session_status() !== PHP_SESSION_ACTIVE) {
+                @session_start();
+            }
+            if (session_status() === PHP_SESSION_ACTIVE) {
+                $cartCount = (new CartService())->count();
+            }
+        }
+        $env->addGlobal('commerce_cart_count', $cartCount);
 
         $adminPath = $this->normalizeRequestPath($request->getUri()->getPath());
         $internalForUpdates = $internal ?? (new CacheManager(

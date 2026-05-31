@@ -34,6 +34,10 @@ final class CsrfProtectionMiddleware implements MiddlewareInterface
             return $handler->handle($request);
         }
 
+        if ($path === '/commerce/stripe/webhook' || str_starts_with($path, '/commerce/stripe/webhook')) {
+            return $handler->handle($request);
+        }
+
         if ($path === '/stripe-store/checkout') {
             return $handler->handle($request);
         }
@@ -77,6 +81,18 @@ final class CsrfProtectionMiddleware implements MiddlewareInterface
         }
 
         if (preg_match('#^/forms/[a-z0-9]+(?:-[a-z0-9]+)*/submit$#', $path) === 1) {
+            return true;
+        }
+
+        if ($path === '/commerce/checkout') {
+            return true;
+        }
+
+        if (in_array($path, ['/commerce/cart/add', '/commerce/cart/update', '/commerce/cart/checkout', '/commerce/cart/coupon'], true)) {
+            return true;
+        }
+
+        if ($path === '/commerce/orders/lookup') {
             return true;
         }
 

@@ -1,0 +1,65 @@
+{% extends 'admin/base.twig' %}
+
+{% block admin_title %}{{ coupon ? 'Edit coupon' : 'New coupon' }}{% endblock %}
+
+{% block admin_hero_title %}
+  <h1 class="admin-hero-title">{{ coupon ? 'Edit coupon' : 'New coupon' }}</h1>
+{% endblock %}
+
+{% block admin_hero_sub %}
+  <p class="admin-hero-sub"><a class="admin-link" href="{{ url_for('admin.commerce.coupons') }}">← All coupons</a></p>
+{% endblock %}
+
+{% block admin_content %}
+  <section class="admin-card">
+    <form class="admin-form admin-form-stack" method="post" action="{{ coupon ? url_for('admin.commerce.coupons.update', {id: coupon.id}) : url_for('admin.commerce.coupons.create') }}" style="max-width:36rem">
+      <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+      {% if coupon %}
+        <div class="admin-field">
+          <label class="admin-label">Code</label>
+          <p><code class="admin-inline-code">{{ coupon.code|e }}</code></p>
+        </div>
+      {% else %}
+        <div class="admin-field">
+          <label class="admin-label" for="code">Code</label>
+          <input class="admin-input" id="code" name="code" required maxlength="64" pattern="[A-Za-z0-9_-]{2,64}" autocomplete="off" />
+        </div>
+      {% endif %}
+      <div class="admin-field">
+        <label class="admin-label" for="discount_type">Discount type</label>
+        <select class="admin-input" id="discount_type" name="discount_type">
+          <option value="fixed" {% if coupon and coupon.discountType == 'fixed' %}selected{% endif %}>Fixed amount (cents)</option>
+          <option value="percent" {% if coupon and coupon.discountType == 'percent' %}selected{% endif %}>Percent off</option>
+        </select>
+      </div>
+      <div class="admin-field">
+        <label class="admin-label" for="amount">Amount</label>
+        <input class="admin-input" id="amount" name="amount" type="number" min="1" required value="{{ coupon ? coupon.amount : '' }}" />
+        <p class="admin-hint">Fixed: cents (500 = £5). Percent: 1–100.</p>
+      </div>
+      <div class="admin-field">
+        <label class="admin-label" for="min_subtotal_cents">Minimum subtotal (cents)</label>
+        <input class="admin-input" id="min_subtotal_cents" name="min_subtotal_cents" type="number" min="0" value="{{ coupon ? coupon.minSubtotalCents : 0 }}" />
+      </div>
+      <div class="admin-field">
+        <label class="admin-label" for="max_uses">Max uses (optional)</label>
+        <input class="admin-input" id="max_uses" name="max_uses" type="number" min="1" value="{{ coupon and coupon.maxUses ? coupon.maxUses : '' }}" />
+      </div>
+      <div class="admin-field">
+        <label class="admin-label" for="expires_at">Expires at (optional)</label>
+        <input class="admin-input" id="expires_at" name="expires_at" type="datetime-local" value="{{ coupon and coupon.expiresAt ? coupon.expiresAt|date('Y-m-d\\TH:i') : '' }}" />
+      </div>
+      <label class="admin-check">
+        <input type="checkbox" name="active" value="1" {% if not coupon or coupon.active %}checked{% endif %} />
+        Active
+      </label>
+      <button class="admin-btn-primary" type="submit">{{ coupon ? 'Save changes' : 'Create coupon' }}</button>
+    </form>
+    {% if coupon %}
+      <form method="post" action="{{ url_for('admin.commerce.coupons.delete', {id: coupon.id}) }}" style="margin-top:1rem" onsubmit="return confirm('Delete this coupon?');">
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+        <button class="admin-btn-ghost" type="submit">Delete coupon</button>
+      </form>
+    {% endif %}
+  </section>
+{% endblock %}

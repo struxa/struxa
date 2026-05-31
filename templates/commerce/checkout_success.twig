@@ -1,0 +1,27 @@
+{% extends 'base.twig' %}
+
+{% block title %}Order confirmed — {{ settings.site_name|default('Site')|e }}{% endblock %}
+
+{% block body %}
+<main class="theme-content-entry theme-commerce-success">
+  <article class="theme-commerce-success-card">
+    <h1>Thank you for your order</h1>
+    {% if commerce_order %}
+      <p class="theme-commerce-success-lead">Order <strong>{{ commerce_order.orderNumber|e }}</strong> has been received.</p>
+      {% if commerce_order.status == 'paid' %}
+        <p class="theme-commerce-success-note">Payment confirmed. We will email you a receipt if an address was provided at checkout.</p>
+      {% else %}
+        <p class="theme-commerce-success-note">Your payment is being processed. Refresh this page in a moment if status has not updated yet.</p>
+      {% endif %}
+      <dl class="theme-commerce-success-meta">
+        <dt>Status</dt><dd>{{ commerce_order.status|replace({'_': ' '})|e }}</dd>
+        <dt>Total</dt><dd>{{ (commerce_order.totalCents / 100)|number_format(2) }} {{ commerce_order.currency|upper|e }}</dd>
+      </dl>
+      <p><a href="{{ url_for('public.commerce.orders.lookup') }}">Track this order</a>{% if logged_in %} · <a href="{{ url_for('public.commerce.orders') }}">My orders</a>{% endif %}</p>
+    {% else %}
+      <p class="theme-commerce-success-lead">Your checkout session completed. If you do not see order details yet, check your email for a Stripe receipt.</p>
+    {% endif %}
+    <p><a href="{{ url_for('home') }}">Back to home</a></p>
+  </article>
+</main>
+{% endblock %}

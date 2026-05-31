@@ -100,7 +100,7 @@
     </details>
   {% endif %}
 
-  <details class="admin-nav-group" {{ nav in ['pages','content_types','media','forms','seo_overview','seo_sitemap','trash','section_patterns'] ? 'open' : '' }}>
+  <details class="admin-nav-group" {{ nav in ['pages','content_types','media','forms','commerce_orders','commerce_coupons','commerce_settings','seo_overview','seo_sitemap','trash','section_patterns'] ? 'open' : '' }}>
     <summary class="admin-nav-group-title">Content</summary>
     <div class="admin-nav-group-items">
       {# Pages: use sidebar pin only (avoids duplicate nav) #}
@@ -120,6 +120,20 @@
         <a href="{{ url_for('admin.forms.index') }}" class="{{ nav == 'forms' ? 'is-active' : '' }}">
           <svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 9h10M7 13h6"/></svg>
           Forms
+        </a>
+      {% endif %}
+      {% if cms_can('manage_commerce') %}
+        <a href="{{ url_for('admin.commerce.orders') }}" class="{{ nav == 'commerce_orders' ? 'is-active' : '' }}">
+          <svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+          Orders
+        </a>
+        <a href="{{ url_for('admin.commerce.coupons') }}" class="{{ nav == 'commerce_coupons' ? 'is-active' : '' }}">
+          <svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M20 12V8H6a2 2 0 0 1-2-2c0-1.1.9-2 2-2h12v4"/><path d="M4 6v12c0 1.1.9 2 2 2h14v-4"/><path d="M18 12a2 2 0 0 0-2 2c0 1.1.9 2 2 2h4v-4h-4z"/></svg>
+          Coupons
+        </a>
+        <a href="{{ url_for('admin.commerce.settings') }}" class="{{ nav == 'commerce_settings' ? 'is-active' : '' }}">
+          <svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
+          Commerce
         </a>
       {% endif %}
       {% if cms_can('manage_media') %}

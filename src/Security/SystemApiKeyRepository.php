@@ -85,4 +85,19 @@ final class SystemApiKeyRepository
 
         return $st->rowCount() > 0;
     }
+
+    public function deleteByProviderAndName(string $provider, string $name): bool
+    {
+        $provider = trim($provider);
+        $name = trim($name);
+        if ($provider === '' || $name === '') {
+            return false;
+        }
+        $st = $this->pdo->prepare(
+            'DELETE FROM cms_system_api_keys WHERE provider = :provider AND key_name = :key_name LIMIT 1'
+        );
+        $st->execute([':provider' => $provider, ':key_name' => $name]);
+
+        return $st->rowCount() > 0;
+    }
 }

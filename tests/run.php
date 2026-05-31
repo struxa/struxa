@@ -395,6 +395,44 @@ if ($unfiled->toQueryParams() !== ['folder' => 'unfiled']) {
 if (!ReservedContentSlugs::isReserved('forms')) {
     $fail('ReservedContentSlugs should treat core segment "forms" as reserved.');
 }
+if (!ReservedContentSlugs::isReserved('commerce')) {
+    $fail('ReservedContentSlugs should treat core segment "commerce" as reserved.');
+}
+if (!ReservedContentSlugs::isReserved('shop')) {
+    $fail('ReservedContentSlugs should treat core segment "shop" as reserved.');
+}
+
+use App\Commerce\Product\PurchasableProduct;
+$pp = new PurchasableProduct(1, 2, 'product', 'demo', 'Demo', 1999, 'gbp', null, 'SKU-1', null);
+if ($pp->formattedPrice() !== '£19.99') {
+    $fail('PurchasableProduct::formattedPrice should format GBP.');
+}
+if (!$pp->isInStock(1)) {
+    $fail('PurchasableProduct with null stock should be in stock.');
+}
+$limited = new PurchasableProduct(1, 2, 'product', 'demo', 'Demo', 1999, 'gbp', null, 'SKU-1', 2);
+if (!$limited->isInStock(2) || $limited->isInStock(3)) {
+    $fail('PurchasableProduct::isInStock should respect stock_qty.');
+}
+
+use App\Commerce\Coupon\CommerceCoupon;
+$coupon = new CommerceCoupon(1, 'SAVE10', 'percent', 10, 0, null, 0, true, null, '', '');
+if ($coupon->discountForSubtotal(2000) !== 200) {
+    $fail('CommerceCoupon percent discount should be 10% of subtotal.');
+}
+$fixed = new CommerceCoupon(2, 'FIVE', 'fixed', 500, 1000, null, 0, true, null, '', '');
+if ($fixed->discountForSubtotal(999) !== 0 || $fixed->discountForSubtotal(1500) !== 500) {
+    $fail('CommerceCoupon fixed discount should respect min subtotal and cap at subtotal.');
+}
+
+use App\Commerce\Order\ShippingAddressFormatter;
+$addr = ShippingAddressFormatter::lines([
+    'name' => 'Jane Doe',
+    'address' => ['line1' => '1 High St', 'city' => 'London', 'postal_code' => 'SW1A 1AA', 'country' => 'GB'],
+]);
+if (count($addr) < 3 || !str_contains(implode(' ', $addr), 'Jane Doe')) {
+    $fail('ShippingAddressFormatter should format address lines.');
+}
 
 $fields = [
     ['id' => 1, 'field_key' => 'email', 'field_type' => FormFieldType::EMAIL, 'label' => 'Email', 'required' => 1],

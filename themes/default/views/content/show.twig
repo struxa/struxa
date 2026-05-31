@@ -52,18 +52,28 @@
       </figure>
     {% endif %}
 
+    {% if commerce_product is defined and commerce_product %}
+      <div class="theme-commerce-buy-wrap">
+        {% include 'commerce/_buy_form.twig' %}
+      </div>
+    {% endif %}
+
     {% if content_entry_has_sections|default(false) and content_entry_sections_html|default('')|trim != '' %}
       <div class="theme-cms-sections theme-content-entry-sections" data-strux-sections>{{ content_entry_sections_html|raw }}</div>
     {% endif %}
 
     <div class="theme-cms-body">
       {% for row in content_field_rows %}
+        {% if commerce_product is defined and commerce_product and row.field_key in ['price_cents', 'purchasable', 'stripe_price_id', 'sku', 'stock_qty'] %}
+          {# Shown via commerce buy form #}
+        {% else %}
         <section class="theme-field-block" data-field-key="{{ row.field_key|e('html_attr') }}">
           <h2 class="theme-field-label">{{ row.label|e }}</h2>
           <div class="theme-field-value theme-field-value--{{ row.field_type|e('html_attr') }}">
             {{ row.html|raw }}
           </div>
         </section>
+        {% endif %}
       {% endfor %}
     </div>
     {% include 'partials/comments_widget.twig' %}

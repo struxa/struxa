@@ -1,0 +1,11 @@
+{% extends 'base.twig' %}
+
+{% block title %}Order {{ order.orderNumber|e }} — {{ settings.site_name|default('Site')|e }}{% endblock %}
+
+{% block body %}
+<main class="theme-content-entry theme-commerce-order-page">
+  <h1>Order {{ order.orderNumber|e }}</h1>
+  <p><a href="{{ url_for('public.commerce.orders') }}">← My orders</a> · <a href="{{ url_for('public.commerce.cart') }}">Cart</a></p>
+  {% include 'commerce/_order_detail.twig' with { order: order } %}
+</main>
+{% endblock %}

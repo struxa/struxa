@@ -11,6 +11,8 @@ use App\Content\ContentTypeRepository;
 use App\Content\ContentViewTemplates;
 use App\Comment\CommentRepository;
 use App\Comment\CommentThreadBuilder;
+use App\Commerce\CommerceSettings;
+use App\Commerce\Product\ProductResolver;
 use App\Content\ReservedContentSlugs;
 use App\Media\MediaUrlHelper;
 use App\Seo\MetaTagBuilder;
@@ -34,6 +36,8 @@ return static function (App $app, Twig $twig, \PDO $pdo, callable $viewData): vo
     $values = new ContentEntryValueRepository($pdo);
     $mediaUrls = new MediaUrlHelper($pdo);
     $entryTaxonomies = new ContentEntryTaxonomyRepository($pdo);
+    $commerceSettings = new CommerceSettings($pdo);
+    $productResolver = new ProductResolver($pdo, $commerceSettings, $fields);
 
     $app->get('/{typeSlug}/{entrySlug}', function (Request $request, Response $response, array $args) use (
         $twig,
@@ -44,7 +48,8 @@ return static function (App $app, Twig $twig, \PDO $pdo, callable $viewData): vo
         $entries,
         $values,
         $mediaUrls,
-        $entryTaxonomies
+        $entryTaxonomies,
+        $productResolver
     ): Response {
         $typeSlug = (string) ($args['typeSlug'] ?? '');
         $entrySlug = (string) ($args['entrySlug'] ?? '');
@@ -156,6 +161,7 @@ return static function (App $app, Twig $twig, \PDO $pdo, callable $viewData): vo
             'content_entry_has_sections' => $hasSections,
             'content_entry_sections_html' => $sectionsHtml,
             'entry_taxonomy_groups' => $entryTaxonomies->termsGroupedForEntry($entry->id),
+            'commerce_product' => $productResolver->resolvePublished($type, $entry, $valueMap),
             'comments_thread_key' => $threadKey,
             'comments_return_to' => $returnTo,
             'comments_pager_base' => $basePath,

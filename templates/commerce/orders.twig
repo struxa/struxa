@@ -1,0 +1,28 @@
+{% extends 'base.twig' %}
+
+{% block title %}My orders — {{ settings.site_name|default('Site')|e }}{% endblock %}
+
+{% block body %}
+<main class="theme-content-entry theme-commerce-orders">
+  <h1>My orders</h1>
+  <p><a href="{{ url_for('public.commerce.orders.lookup') }}">Look up an order by number</a> · <a href="{{ url_for('public.commerce.cart') }}">Cart{% if commerce_cart_count|default(0) > 0 %} ({{ commerce_cart_count }}){% endif %}</a></p>
+
+  {% if orders_requires_login %}
+    <p>Sign in to see orders linked to your account email.</p>
+    <p><a href="{{ url_for('login') }}">Sign in</a></p>
+  {% elseif customer_orders is empty %}
+    <p>No orders yet for your account.</p>
+  {% else %}
+    <ul class="theme-commerce-orders-list">
+      {% for o in customer_orders %}
+        <li>
+          <a href="{{ url_for('public.commerce.orders.show', {order_number: o.orderNumber}) }}"><strong>{{ o.orderNumber|e }}</strong></a>
+          — {{ o.status|replace({'_': ' '})|e }}
+          — {{ (o.totalCents / 100)|number_format(2) }} {{ o.currency|upper|e }}
+          <span class="theme-commerce-order-date">{{ o.createdAt|e }}</span>
+        </li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+</main>
+{% endblock %}
