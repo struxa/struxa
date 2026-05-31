@@ -35,7 +35,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
     $activity = new ActivityLogger($pdo);
     $repo = new PluginRepository($pdo);
     $scanner = new PluginScanner($root);
-    $validator = new PluginValidator();
+    $validator = new PluginValidator($pdo);
     $manager = new PluginManager($root, $repo, $scanner, $validator);
     $migrationRunner = new PluginMigrationRunner($pdo);
     $catalogLoader = new PluginCatalogLoader($root);
@@ -77,7 +77,9 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             $adminContext,
             $withCmsUser,
             $repo,
-            $manager
+            $manager,
+            $validator,
+            $scanner
         ): Response {
             $discovered = $manager->syncDiscoveredToDatabase();
             $slugs = [];
@@ -93,10 +95,13 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             $rows = [];
             foreach ($discovered as $p) {
                 $db = $repo->findBySlug($p->manifest->slug);
+                $isActive = $db !== null && $db->isActive;
+                $report = $validator->compatibilityReport($p, $scanner);
                 $rows[] = [
                     'discovered' => $p,
                     'record' => $db,
-                    'is_active' => $db !== null && $db->isActive,
+                    'is_active' => $isActive,
+                    'compatibility' => $report,
                 ];
             }
 
@@ -185,9 +190,9 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             }
 
             $manager->registerAutoloadForPlugin($discovered);
-            $errors = $validator->activationErrors($discovered, $scanner);
-            if ($errors !== []) {
-                Flash::set('error', implode(' ', $errors));
+            $report = $validator->compatibilityReport($discovered, $scanner);
+            if (!$report->canActivate()) {
+                Flash::set('error', 'Cannot activate ' . $slug . ': ' . implode(' ', $report->activationErrors()));
 
                 return $response->withHeader('Location', $back)->withStatus(302);
             }

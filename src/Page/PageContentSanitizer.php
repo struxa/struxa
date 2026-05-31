@@ -6,6 +6,7 @@ namespace App\Page;
 
 use App\Filter\FilterHook;
 use App\Filter\Filters;
+use App\Richtext\RichtextOEmbedExpander;
 use App\Settings\SiteUrlResolver;
 use HTMLPurifier;
 use HTMLPurifier_Config;
@@ -39,13 +40,13 @@ final class PageContentSanitizer
             'table[style|class]', 'thead', 'tbody', 'tfoot', 'tr', 'th[style|colspan|rowspan|scope]', 'td[style|colspan|rowspan]',
             'colgroup', 'col[style|span]',
             'hr[style|class]',
-            'iframe[src|width|height|frameborder|title|class]',
+            'iframe[src|width|height|frameborder|title|class|scrolling]',
         ]);
         $config->set('HTML.Allowed', $allowed);
         $config->set('HTML.SafeIframe', true);
         $config->set(
             'URI.SafeIframeRegexp',
-            '%^(https?:)?//(www\.youtube\.com/embed/[\w\-]+|www\.youtube-nocookie\.com/embed/[\w\-]+|player\.vimeo\.com/video/\d+)(\\?[\w&=.~\-]*)?%i'
+            '%^(https?:)?//(www\.youtube\.com/embed/[\w\-]+|www\.youtube-nocookie\.com/embed/[\w\-]+|player\.vimeo\.com/video/\d+|platform\.twitter\.com/embed/Tweet\.html)(\\?[\w&=.\-~]*)?%i'
         );
         $config->set('CSS.AllowedProperties', [
             'text-align', 'color', 'background-color', 'margin', 'margin-left', 'margin-right', 'margin-top', 'margin-bottom',
@@ -63,6 +64,9 @@ final class PageContentSanitizer
             'cms-intro',
             'cms-callout',
             'cms-caption',
+            'cms-oembed',
+            'cms-oembed--youtube',
+            'cms-oembed--twitter',
             'mce-pagebreak',
         ], $codeLangClasses));
         $config->set('URI.AllowedSchemes', ['http' => true, 'https' => true, 'mailto' => true]);
@@ -82,7 +86,8 @@ final class PageContentSanitizer
 
     public function sanitize(string $html, array $context = []): string
     {
-        $clean = $this->purifier->purify($html);
+        $expanded = RichtextOEmbedExpander::expand($html);
+        $clean = $this->purifier->purify($expanded);
 
         return (string) Filters::apply(FilterHook::HTML_SANITIZE, $clean, $context);
     }

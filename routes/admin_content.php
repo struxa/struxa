@@ -330,7 +330,8 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
         $mergeEntrySeoOld,
         $entryFormMediaContext,
         $entryPrimaryRichtextTextareaId,
-        $editSessions
+        $editSessions,
+        $entryBuilderHost
     ): void {
         $group->get('/content-types', function (Request $request, Response $response) use ($twig, $adminContext, $withCmsUser, $types, $entries, $fields): Response {
             $cards = ContentAdminTree::cards($types, $entries, $fields);
@@ -374,7 +375,9 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             $workflow,
             $entryRevRepo,
             $activity,
-            $permDelete
+            $permDelete,
+            $pdo,
+            $viewData
         ): void {
         $g->get('/content-types/new', function (Request $request, Response $response) use ($twig, $adminContext, $withCmsUser): Response {
             return $twig->render($response, 'admin/content/types/form.twig', $withCmsUser($request, array_merge($adminContext(), [
@@ -444,7 +447,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             ])));
         })->setName('admin.content_types.edit');
 
-        $group->post('/content-types/{id:[0-9]+}/edit', function (Request $request, Response $response, array $args) use ($twig, $adminContext, $withCmsUser, $types, $typeValidator, $entries, $pdo, $viewData): Response {
+        $g->post('/content-types/{id:[0-9]+}/edit', function (Request $request, Response $response, array $args) use ($twig, $adminContext, $withCmsUser, $types, $typeValidator, $entries, $pdo, $viewData): Response {
             $id = (int) $args['id'];
             $t = $types->findById($id);
             if ($t === null) {

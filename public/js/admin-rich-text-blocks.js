@@ -225,6 +225,9 @@
 
     initInFlight.add(taId);
     var cfg = getConfig(taId, autosavePrefix);
+    if (window.cmsRichTextOembed && typeof window.cmsRichTextOembed.applyToConfig === 'function') {
+      window.cmsRichTextOembed.applyToConfig(cfg);
+    }
     var started = tinymce.init(cfg);
     var done = function (editor) {
       initInFlight.delete(taId);

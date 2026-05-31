@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Plugin;
 
+use App\Filter\FilterHook;
 use App\Manifest\ManifestMeta;
 
 /**
@@ -43,9 +44,25 @@ final class PluginManifest
          * When true, every {@see PluginBootContext::registerAdminNavItem} link is grouped under this
          * plugin's {@code name} in the sidebar (Extensions → …), like multiple child plugins under a parent,
          * without splitting the codebase across folders. Mutually exclusive with {@see parentPluginSlug}
-         * in {@code plugin.json} (activation validates).
-         */
+     * in {@code plugin.json} (activation validates).
+     */
         public readonly bool $nestedAdminNav = false,
+        /** @var array<string, string> slug => semver constraint */
+        public readonly array $requiresPlugins = [],
+        /** @var list<string> */
+        public readonly array $conflicts = [],
+        /** @var list<string> PHP extension names */
+        public readonly array $requiresExt = [],
+        /** @var list<string> */
+        public readonly array $capabilities = [],
+        /** @var list<string> filter hook names from {@see FilterHook} */
+        public readonly array $hookFilters = [],
+        /** @var list<string> event short names from {@see PluginKnownEvents} */
+        public readonly array $hookEvents = [],
+        public readonly string $databaseMigrationsPath = 'migrations',
+        /** @var list<string> tables this plugin owns (documentation / preflight) */
+        public readonly array $databaseTables = [],
+        public readonly ?string $maxCmsVersion = null,
     ) {
     }
 
@@ -106,6 +123,15 @@ final class PluginManifest
                 : null,
             parentPluginSlug: self::parseParentPluginSlug($data, $slug),
             nestedAdminNav: self::parseNestedAdminNav($data),
+            requiresPlugins: self::parseRequiresPlugins($data),
+            conflicts: self::parseSlugList($data['conflicts'] ?? null, $slug),
+            requiresExt: self::parseStringList($data['requires_ext'] ?? $data['requiresExt'] ?? null),
+            capabilities: self::parseStringList($data['capabilities'] ?? null),
+            hookFilters: self::parseHookFilters($data['hooks'] ?? null),
+            hookEvents: self::parseHookEvents($data['hooks'] ?? null),
+            databaseMigrationsPath: self::parseDatabaseMigrationsPath($data['database'] ?? null),
+            databaseTables: self::parseDatabaseTables($data['database'] ?? null),
+            maxCmsVersion: self::parseOptionalVersion($data, 'max_cms_version', 'maxCmsVersion'),
         );
     }
 
@@ -140,6 +166,28 @@ final class PluginManifest
     /**
      * @return array<string, mixed>
      */
+    public function contractSummary(): array
+    {
+        return [
+            'requires_plugins' => $this->requiresPlugins,
+            'conflicts' => $this->conflicts,
+            'requires_ext' => $this->requiresExt,
+            'capabilities' => $this->capabilities,
+            'hooks' => [
+                'filters' => $this->hookFilters,
+                'events' => $this->hookEvents,
+            ],
+            'database' => [
+                'migrations' => $this->databaseMigrationsPath,
+                'tables' => $this->databaseTables,
+            ],
+            'max_cms_version' => $this->maxCmsVersion,
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
     public function marketplaceMeta(): array
     {
         return [
@@ -166,6 +214,166 @@ final class PluginManifest
         $v = trim($v);
 
         return $v === '' || strlen($v) > $max ? null : $v;
+    }
+
+    /**
+     * @param array<string, mixed> $data
+     * @return array<string, string>
+     */
+    private static function parseRequiresPlugins(array $data): array
+    {
+        $raw = $data['requires_plugins'] ?? $data['requiresPlugins'] ?? null;
+        if ($raw === null) {
+            return [];
+        }
+        $out = [];
+        if (is_array($raw) && array_is_list($raw)) {
+            foreach ($raw as $slug) {
+                if (!is_string($slug)) {
+                    continue;
+                }
+                $s = trim($slug);
+                if ($s !== '' && preg_match('/^[a-z0-9]+(?:-[a-z0-9]+)*$/', $s)) {
+                    $out[$s] = '*';
+                }
+            }
+
+            return $out;
+        }
+        if (!is_array($raw)) {
+            return [];
+        }
+        foreach ($raw as $slug => $constraint) {
+            if (!is_string($slug)) {
+                continue;
+            }
+            $s = trim($slug);
+            if ($s === '' || !preg_match('/^[a-z0-9]+(?:-[a-z0-9]+)*$/', $s)) {
+                continue;
+            }
+            $c = is_string($constraint) ? trim($constraint) : '*';
+            $out[$s] = $c !== '' ? $c : '*';
+        }
+
+        return $out;
+    }
+
+    /**
+     * @param mixed $raw
+     * @return list<string>
+     */
+    private static function parseStringList(mixed $raw): array
+    {
+        if (!is_array($raw)) {
+            return [];
+        }
+        $out = [];
+        foreach ($raw as $item) {
+            if (!is_string($item)) {
+                continue;
+            }
+            $s = trim($item);
+            if ($s !== '') {
+                $out[] = $s;
+            }
+        }
+
+        return array_values(array_unique($out));
+    }
+
+    /**
+     * @param mixed $raw
+     * @return list<string>
+     */
+    private static function parseSlugList(mixed $raw, string $selfSlug): array
+    {
+        $list = self::parseStringList($raw);
+        $out = [];
+        foreach ($list as $slug) {
+            if (strcasecmp($slug, $selfSlug) === 0) {
+                continue;
+            }
+            if (preg_match('/^[a-z0-9]+(?:-[a-z0-9]+)*$/', $slug)) {
+                $out[] = $slug;
+            }
+        }
+
+        return $out;
+    }
+
+    /**
+     * @param mixed $hooks
+     * @return list<string>
+     */
+    private static function parseHookFilters(mixed $hooks): array
+    {
+        if (!is_array($hooks)) {
+            return [];
+        }
+        $raw = $hooks['filters'] ?? null;
+
+        return self::parseStringList($raw);
+    }
+
+    /**
+     * @param mixed $hooks
+     * @return list<string>
+     */
+    private static function parseHookEvents(mixed $hooks): array
+    {
+        if (!is_array($hooks)) {
+            return [];
+        }
+        $raw = $hooks['events'] ?? null;
+
+        return self::parseStringList($raw);
+    }
+
+    /**
+     * @param mixed $database
+     */
+    private static function parseDatabaseMigrationsPath(mixed $database): string
+    {
+        if (!is_array($database)) {
+            return 'migrations';
+        }
+        $path = $database['migrations'] ?? 'migrations';
+        if (!is_string($path) || trim($path) === '') {
+            return 'migrations';
+        }
+        $path = trim(str_replace('\\', '/', $path), '/');
+        if (str_contains($path, '..') || str_starts_with($path, '/')) {
+            return 'migrations';
+        }
+
+        return $path;
+    }
+
+    /**
+     * @param mixed $database
+     * @return list<string>
+     */
+    private static function parseDatabaseTables(mixed $database): array
+    {
+        if (!is_array($database)) {
+            return [];
+        }
+
+        return self::parseStringList($database['tables'] ?? null);
+    }
+
+    /**
+     * @param array<string, mixed> $data
+     */
+    private static function parseOptionalVersion(array $data, string $snake, string $camel): ?string
+    {
+        $raw = $data[$snake] ?? $data[$camel] ?? null;
+        if (!is_string($raw)) {
+            return null;
+        }
+        $v = trim($raw);
+
+        return $v !== '' ? $v : null;
     }
 
 }

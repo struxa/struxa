@@ -16,6 +16,9 @@ use App\Content\RichtextTabsShortcode;
 use App\Analytics\ExternalLinkClickRepository;
 use App\Content\ReservedContentSlugs;
 use App\Http\SafeRedirectPath;
+use App\Plugin\PluginCapability;
+use App\Plugin\PluginSemverConstraint;
+use App\Plugin\PluginManifest;
 use App\Plugin\PluginAdminNavGrouper;
 use App\Plugin\PluginScanner;
 use App\Search\ContentSearchService;
@@ -40,6 +43,9 @@ use App\Jobs\JobHandlerContext;
 use App\Jobs\JobHandlerRegistry;
 use App\Jobs\JobStatus;
 use App\Jobs\JobType;
+use App\Richtext\OEmbedUrlParser;
+use App\Richtext\RichtextOEmbedExpander;
+use App\Page\PageContentSanitizer;
 use App\Section\SectionPatternHost;
 use App\Trash\TrashItemKind;
 use App\Dev\TwigLayoutContractLinter;
@@ -527,6 +533,49 @@ if (!SectionPatternHost::supports(SectionPatternHost::BOTH, SectionPatternHost::
 }
 if (SectionPatternHost::supports(SectionPatternHost::PAGE, SectionPatternHost::CONTENT_ENTRY)) {
     $fail('SectionPatternHost page-only should not match content entry host.');
+}
+
+$yt = OEmbedUrlParser::parse('https://www.youtube.com/watch?v=dQw4w9WgXcQ');
+if ($yt === null || $yt->provider !== 'youtube' || $yt->id !== 'dQw4w9WgXcQ') {
+    $fail('OEmbedUrlParser should parse YouTube watch URLs.');
+}
+$tw = OEmbedUrlParser::parse('https://x.com/jack/status/1234567890123456789');
+if ($tw === null || $tw->provider !== 'twitter' || $tw->id !== '1234567890123456789') {
+    $fail('OEmbedUrlParser should parse X status URLs.');
+}
+$expanded = RichtextOEmbedExpander::expand('<p>https://youtu.be/dQw4w9WgXcQ</p>');
+if (!str_contains($expanded, 'cms-oembed--youtube') || !str_contains($expanded, 'youtube-nocookie.com/embed/dQw4w9WgXcQ')) {
+    $fail('RichtextOEmbedExpander should convert standalone YouTube URLs.');
+}
+$san = PageContentSanitizer::fromEnv()->sanitize($expanded);
+if (!str_contains($san, 'cms-oembed--youtube') || !str_contains($san, 'youtube-nocookie.com/embed/dQw4w9WgXcQ')) {
+    $fail('PageContentSanitizer should keep YouTube oEmbed markup.');
+}
+$twExpanded = RichtextOEmbedExpander::expand('<p><a href="https://twitter.com/n/status/999">link</a></p>');
+if ($twExpanded === null || !str_contains($twExpanded, 'cms-oembed--twitter')) {
+    $fail('RichtextOEmbedExpander should convert linked tweet URLs.');
+}
+
+if (!PluginSemverConstraint::satisfies('1.2.0', '^1.0.0')) {
+    $fail('PluginSemverConstraint should accept compatible caret range.');
+}
+if (PluginSemverConstraint::satisfies('2.0.0', '^1.0.0')) {
+    $fail('PluginSemverConstraint should reject major mismatch for caret.');
+}
+if (!PluginCapability::isValid('database.write') || PluginCapability::isValid('invalid.cap')) {
+    $fail('PluginCapability validation failed.');
+}
+$manifest = PluginManifest::fromArray([
+    'name' => 'Test',
+    'slug' => 'test-plugin',
+    'version' => '1.0.0',
+    'requires_plugins' => ['base-plugin' => '^1.0'],
+    'capabilities' => ['admin.nav'],
+    'hooks' => ['filters' => ['seo.meta'], 'events' => ['ContentEntrySavedEvent']],
+    'database' => ['tables' => ['cms_test_items']],
+], 'test-plugin');
+if ($manifest->requiresPlugins['base-plugin'] !== '^1.0' || $manifest->hookFilters !== ['seo.meta']) {
+    $fail('PluginManifest should parse contract fields.');
 }
 
 echo "All tests passed.\n";

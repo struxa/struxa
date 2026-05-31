@@ -135,3 +135,26 @@ hr.mce-pagebreak {
   border-top: 2px dashed #52525b;
   margin: 2rem 0;
 }
+
+.cms-oembed {
+  margin: 0 0 1rem;
+  max-width: 100%;
+}
+
+.cms-oembed iframe {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  border: 0;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.cms-oembed--youtube iframe {
+  aspect-ratio: 16 / 9;
+  min-height: 200px;
+}
+
+.cms-oembed--twitter iframe {
+  min-height: 320px;
+}

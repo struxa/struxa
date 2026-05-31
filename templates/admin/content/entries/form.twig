@@ -397,7 +397,9 @@
 
 {% block admin_scripts %}
   {% if fields|filter(f => f.fieldType == 'richtext') is not empty %}
+    <script>window.CMS_RICHTEXT_OEMBED_URL = {{ url_for('admin.richtext.oembed')|json_encode|raw }};</script>
     <script src="https://cdn.jsdelivr.net/npm/tinymce@7.9.2/tinymce.min.js" id="cms-tinymce-cdn" referrerpolicy="origin"></script>
+    <script src="/js/admin-rich-text-oembed.js"></script>
     <script src="/js/admin-rich-text-blocks.js"></script>
   {% endif %}
   {% if media_picker_enabled|default(false) %}

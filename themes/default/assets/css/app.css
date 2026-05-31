@@ -909,6 +909,38 @@ body.theme-default a {
   margin: 0 0 1.25rem;
 }
 
+.theme-cms-body.cms-prose .cms-oembed {
+  margin: 0 0 1.25rem;
+  max-width: 100%;
+}
+
+.theme-cms-body.cms-prose .cms-oembed--youtube iframe {
+  aspect-ratio: 16 / 9;
+  min-height: 200px;
+}
+
+.theme-cms-body.cms-prose .cms-oembed--twitter iframe {
+  min-height: 360px;
+}
+
+.theme-field-value--richtext .cms-oembed {
+  margin: 0 0 1rem;
+}
+
+.theme-field-value--richtext .cms-oembed--youtube iframe {
+  aspect-ratio: 16 / 9;
+  min-height: 200px;
+}
+
+.theme-field-value--richtext iframe {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  border: 0;
+  border-radius: var(--theme-radius);
+  margin: 0 0 1rem;
+}
+
 .theme-content-meta {
   margin: -0.5rem 0 1.5rem;
   font-size: 0.875rem;

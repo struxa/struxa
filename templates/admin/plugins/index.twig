@@ -8,7 +8,7 @@
 {% endblock %}
 
 {% block admin_hero_sub %}
-  <p class="admin-hero-sub">Filesystem packages under <code class="admin-inline-code">/plugins</code>. Activate to load routes, views, and migrations.</p>
+  <p class="admin-hero-sub">Filesystem packages under <code class="admin-inline-code">/plugins</code>. Compatibility is checked before activation — CMS version, PHP, dependencies, and migrations.</p>
 {% endblock %}
 
 {% block admin_content %}
@@ -28,19 +28,20 @@
   {% if plugin_rows is empty %}
     {{ ui.empty_state(
       'No plugins detected',
-      'Add a folder with plugin.json and src/. Activate to register admin routes and run migrations.',
+      'Add a folder with plugin.json and src/. Declare requires_cms_version, capabilities, and hooks in the manifest.',
       '',
       '',
       '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>'
     ) }}
   {% else %}
     <div class="admin-table-wrap">
-      <table class="admin-table">
+      <table class="admin-table admin-table--plugins">
         <thead>
           <tr>
             <th scope="col">Plugin</th>
             <th scope="col">Slug</th>
             <th scope="col">Version</th>
+            <th scope="col">Compatibility</th>
             <th scope="col">Status</th>
             <th class="admin-table-col-actions" scope="col"><span class="admin-table-muted">Actions</span></th>
           </tr>
@@ -48,6 +49,7 @@
         <tbody>
           {% for row in plugin_rows %}
             {% set m = row.discovered.manifest %}
+            {% set compat = row.compatibility %}
             <tr>
               <td>
                 <strong>{{ m.name|e }}</strong>
@@ -57,6 +59,18 @@
                 {% if m.author %}
                   <div class="admin-hint" style="margin-top:0.15rem">by {{ m.author|e }}</div>
                 {% endif %}
+                {% if m.requiresCmsVersion or m.requiresPhp or m.requiresPlugins is not empty or m.capabilities is not empty %}
+                  <div class="admin-hint admin-plugin-contract" style="margin-top:0.5rem;line-height:1.45">
+                    {% if m.requiresCmsVersion %}<span class="admin-pill">Struxa {{ m.requiresCmsVersion|e }}+</span>{% endif %}
+                    {% if m.requiresPhp %}<span class="admin-pill">PHP {{ m.requiresPhp|e }}+</span>{% endif %}
+                    {% for dep, ver in m.requiresPlugins %}
+                      <span class="admin-pill">needs {{ dep|e }}{% if ver != '*' %} {{ ver|e }}{% endif %}</span>
+                    {% endfor %}
+                    {% if m.capabilities is not empty %}
+                      <span class="admin-pill">{{ m.capabilities|length }} capability(ies)</span>
+                    {% endif %}
+                  </div>
+                {% endif %}
                 {% if m.homepage or m.repositoryUrl or m.license or m.category or m.tags is not empty %}
                   <div class="admin-hint" style="margin-top:0.5rem;line-height:1.5">
                     {% if m.category %}<span class="admin-pill">{{ m.category|e }}</span>{% endif %}
@@ -64,13 +78,49 @@
                     {% if m.testedUpTo %}<span class="admin-pill">Tested: {{ m.testedUpTo|e }}</span>{% endif %}
                     {% if m.homepage %}<a class="admin-link" href="{{ m.homepage|e('html_attr') }}" target="_blank" rel="noopener">Homepage</a>{% endif %}
                     {% if m.repositoryUrl %} · <a class="admin-link" href="{{ m.repositoryUrl|e('html_attr') }}" target="_blank" rel="noopener">Repo</a>{% endif %}
-                    {% if m.supportUrl %} · <a class="admin-link" href="{{ m.supportUrl|e('html_attr') }}" target="_blank" rel="noopener">Support</a>{% endif %}
-                    {% if m.tags is not empty %}<div style="margin-top:0.35rem">{{ m.tags|join(', ')|e }}</div>{% endif %}
                   </div>
                 {% endif %}
               </td>
               <td><code class="admin-inline-code">{{ m.slug|e }}</code></td>
               <td class="admin-table-muted">{{ m.version|e }}</td>
+              <td class="admin-plugin-compat-cell">
+                {% if compat.statusLabel == 'blocked' %}
+                  <span class="admin-badge admin-badge--draft">Blocked</span>
+                {% elseif compat.statusLabel == 'warnings' %}
+                  <span class="admin-badge admin-badge--review">Warnings</span>
+                {% else %}
+                  <span class="admin-badge admin-badge--ok">Ready</span>
+                {% endif %}
+                {% if compat.errors is not empty or compat.warnings is not empty or compat.checks is not empty %}
+                  <details class="admin-plugin-compat-details">
+                    <summary>Details</summary>
+                    {% if compat.errors is not empty %}
+                      <ul class="admin-plugin-compat-list admin-plugin-compat-list--error">
+                        {% for err in compat.errors %}
+                          <li>{{ err|e }}</li>
+                        {% endfor %}
+                      </ul>
+                    {% endif %}
+                    {% if compat.warnings is not empty %}
+                      <ul class="admin-plugin-compat-list admin-plugin-compat-list--warn">
+                        {% for warn in compat.warnings %}
+                          <li>{{ warn|e }}</li>
+                        {% endfor %}
+                      </ul>
+                    {% endif %}
+                    {% if compat.checks is not empty %}
+                      <ul class="admin-plugin-compat-checks">
+                        {% for check in compat.checks %}
+                          <li class="admin-plugin-compat-check admin-plugin-compat-check--{{ check.status|e('html_attr') }}">
+                            <span class="admin-plugin-compat-check-label">{{ check.label|e }}</span>
+                            <span class="admin-plugin-compat-check-detail">{{ check.detail|e }}</span>
+                          </li>
+                        {% endfor %}
+                      </ul>
+                    {% endif %}
+                  </details>
+                {% endif %}
+              </td>
               <td>
                 {% if row.is_active %}
                   <span class="admin-badge admin-badge--ok">Active</span>
@@ -88,10 +138,14 @@
                         <button type="submit">Deactivate</button>
                       </form>
                     {% else %}
-                      <form method="post" action="{{ url_for('admin.extensions.plugins.activate') }}">
-                        <input type="hidden" name="slug" value="{{ m.slug|e('html_attr') }}" />
-                        <button type="submit">Activate</button>
-                      </form>
+                      {% if compat.canActivate %}
+                        <form method="post" action="{{ url_for('admin.extensions.plugins.activate') }}">
+                          <input type="hidden" name="slug" value="{{ m.slug|e('html_attr') }}" />
+                          <button type="submit">Activate</button>
+                        </form>
+                      {% else %}
+                        <p class="admin-plugin-compat-blocked-hint">Fix compatibility errors before activating.</p>
+                      {% endif %}
                     {% endif %}
                     <form
                       method="post"

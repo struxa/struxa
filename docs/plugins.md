@@ -6,8 +6,57 @@ Each plugin is **`plugins/{slug}/`** where `{slug}` matches `^[a-z0-9]+(?:-[a-z0
 
 ## Required files
 
-- **`plugin.json`** — Manifest: `name`, `slug`, `version`, `author`, optional `main_class`, `autoload.psr4`, marketplace fields, CMS/PHP requirements.
+- **`plugin.json`** — Manifest (see **Manifest contract** below): `name`, `slug`, `version`, `author`, optional `main_class`, `autoload.psr4`, marketplace fields, CMS/PHP requirements, capabilities, hooks, database declarations.
 - **`src/`** — PHP source (PSR-4 as declared in `plugin.json`).
+
+## Manifest contract (Phase 1)
+
+Plugins declare what they need and what they touch. Struxa validates this **before activation** and shows a compatibility report in **Extensions → Plugins**.
+
+| Field | Type | Purpose |
+| --- | --- | --- |
+| `name`, `slug`, `version`, `author`, `description` | string | Identity (required: name, slug, version) |
+| `requires_cms_version` / `min_cms_version` | semver | Minimum Struxa version |
+| `max_cms_version` | semver | Block activation on newer CMS (optional) |
+| `tested_up_to` | semver | Warning only if site CMS is newer |
+| `requires_php` | semver | Minimum PHP version |
+| `requires_ext` | string[] | Required PHP extensions (`curl`, `json`, …) |
+| `requires_plugins` | object or string[] | `{ "other-plugin": "^1.0" }` or `["other-plugin"]` — must be **installed and active** |
+| `conflicts` | string[] | Slugs that cannot be active at the same time |
+| `capabilities` | string[] | Declared APIs: `database.read`, `database.write`, `filesystem.write`, `admin.nav`, `frontend.render`, `user.read`, `settings.write`, `media.upload` |
+| `hooks.filters` | string[] | Filter hooks from `FilterHook::*` the plugin uses |
+| `hooks.events` | string[] | Events the plugin listens to (e.g. `ContentEntrySavedEvent`) |
+| `database.migrations` | string | Relative path to SQL folder (default `migrations`) |
+| `database.tables` | string[] | Tables owned by this plugin (documentation + preflight) |
+
+Example:
+
+```json
+{
+  "name": "My Plugin",
+  "slug": "my-plugin",
+  "version": "1.0.0",
+  "author": "Example Co",
+  "requires_cms_version": "1.1.33",
+  "requires_php": "8.2",
+  "requires_ext": ["json"],
+  "requires_plugins": { "base-plugin": "^1.0.0" },
+  "conflicts": ["legacy-plugin"],
+  "capabilities": ["database.write", "admin.nav", "frontend.render"],
+  "hooks": {
+    "filters": ["seo.meta", "menu.items"],
+    "events": ["ContentEntrySavedEvent", "UserLoggedInEvent"]
+  },
+  "database": {
+    "migrations": "migrations",
+    "tables": ["cms_my_plugin_items"]
+  }
+}
+```
+
+**Activation checks:** PHP/CMS version, extensions, plugin dependencies (semver), conflicts, manifest hook/capability names, main class, pending migrations (with warnings for destructive SQL). If any **error** fails, activation is blocked with a clear message. **Warnings** (e.g. untested CMS version, `ALTER TABLE` migrations) are shown but do not block.
+
+Plugins cannot modify core files — only files under `plugins/{slug}/` are loaded.
 
 ## Optional
 

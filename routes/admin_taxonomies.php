@@ -59,7 +59,9 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
         $terms,
         $taxValidator,
         $termValidator,
-        $mediaRepo
+        $mediaRepo,
+        $pdo,
+        $viewData
     ): void {
         $group->get('/content-types/{id:[0-9]+}/taxonomies', function (Request $request, Response $response, array $args) use ($twig, $adminContext, $withCmsUser, $types, $tax): Response {
             $id = (int) $args['id'];

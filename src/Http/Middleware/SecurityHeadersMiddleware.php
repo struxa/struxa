@@ -46,7 +46,7 @@ final class SecurityHeadersMiddleware implements MiddlewareInterface
                     "font-src 'self' https://fonts.gstatic.com " . $jsdelivr . ' data:; ' .
                     "img-src 'self' data: https: blob:; " .
                     "connect-src 'self' " . $jsdelivr . '; ' .
-                    "frame-src 'self' blob: data:; " .
+                    "frame-src 'self' blob: data: https://www.youtube.com https://www.youtube-nocookie.com https://player.vimeo.com https://platform.twitter.com; " .
                     "frame-ancestors 'none'; " .
                     "base-uri 'self'; " .
                     "form-action 'self'");

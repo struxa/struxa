@@ -663,6 +663,7 @@ SectionDefinitionRegistry::instance()->registerProvider(new CoreSectionDefinitio
 
 (require $root . '/routes/admin_pages.php')($app, $twig, $auth, $pdo, $viewData);
 (require $root . '/routes/admin_section_patterns.php')($app, $twig, $auth, $pdo, $viewData);
+(require $root . '/routes/admin_richtext.php')($app, $twig, $auth, $pdo, $viewData);
 (require $root . '/routes/admin_trash.php')($app, $twig, $auth, $pdo, $viewData);
 (require $root . '/routes/admin_editing.php')($app, $auth, $pdo);
 (require $root . '/routes/admin_settings.php')($app, $twig, $auth, $pdo, $viewData);
@@ -686,7 +687,7 @@ SectionDefinitionRegistry::instance()->registerProvider(new CoreSectionDefinitio
 (require $root . '/routes/admin_plugins.php')($app, $twig, $auth, $pdo, $viewData);
 
 $pluginRepo = new PluginRepository($pdo);
-$pluginManager = new PluginManager($root, $pluginRepo, new PluginScanner($root), new PluginValidator());
+$pluginManager = new PluginManager($root, $pluginRepo, new PluginScanner($root), new PluginValidator($pdo));
 $pluginContexts = $pluginManager->registerActivePublicRoutes($app, $twig, $auth, $pdo, $viewData, $eventDispatcher);
 
 (require $root . '/routes/public_search.php')($app, $twig, $pdo, $root, $viewData);

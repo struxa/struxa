@@ -75,7 +75,7 @@
 
         <div class="admin-field admin-field--full admin-page-edit--order-editor {{ errors.content is defined ? 'admin-field--error' : '' }}">
           <label class="admin-label" for="page-content">Body content</label>
-          <p class="admin-hint admin-editor-hint-visual" style="margin-top:0">Optional if the page uses the <strong>Page builder</strong> below. Tip: select text for the floating bar; <strong>Formats → Paragraph styles</strong> for lead and callout blocks; <em>Insert → Media</em> for YouTube or Vimeo.</p>
+          <p class="admin-hint admin-editor-hint-visual" style="margin-top:0">Optional if the page uses the <strong>Page builder</strong> below. Tip: select text for the floating bar; <strong>Formats → Paragraph styles</strong> for lead and callout blocks; paste a YouTube or X (Twitter) URL on its own line to embed it, or use <em>Insert → Media</em>.</p>
           <p class="admin-hint admin-editor-hint-html" style="margin-top:0;display:none" hidden>Raw HTML — switches back to <strong>Rich text</strong> to use the visual toolbar. Save works in either mode.</p>
           <div class="admin-page-editor" id="page-editor-root">
             <div class="admin-editor-mode-bar">
@@ -326,6 +326,8 @@
 {% endblock %}
 
 {% block admin_scripts %}
+  <script>window.CMS_RICHTEXT_OEMBED_URL = {{ url_for('admin.richtext.oembed')|json_encode|raw }};</script>
+  <script src="/js/admin-rich-text-oembed.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/tinymce@7.9.2/tinymce.min.js" referrerpolicy="origin"></script>
   <script>
     document.addEventListener('DOMContentLoaded', function () {
@@ -357,7 +359,7 @@
       }
 
       function getConfig() {
-        return {
+        var cfg = {
           license_key: 'gpl',
           base_url: 'https://cdn.jsdelivr.net/npm/tinymce@7.9.2',
           suffix: '.min',
@@ -458,6 +460,10 @@
             });
           },
         };
+        if (window.cmsRichTextOembed && typeof window.cmsRichTextOembed.applyToConfig === 'function') {
+          window.cmsRichTextOembed.applyToConfig(cfg);
+        }
+        return cfg;
       }
 
       function setMode(mode) {

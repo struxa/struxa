@@ -1937,6 +1937,81 @@
   border: 1px solid rgba(120, 113, 108, 0.35);
 }
 
+.admin-plugin-compat-cell {
+  min-width: 9rem;
+  vertical-align: top;
+}
+
+.admin-plugin-compat-details {
+  margin-top: 0.45rem;
+  font-size: 0.8125rem;
+}
+
+.admin-plugin-compat-details summary {
+  cursor: pointer;
+  color: var(--admin-accent);
+  font-weight: 600;
+}
+
+.admin-plugin-compat-list {
+  margin: 0.45rem 0 0;
+  padding-left: 1.1rem;
+  line-height: 1.4;
+}
+
+.admin-plugin-compat-list--error {
+  color: #fca5a5;
+}
+
+.admin-plugin-compat-list--warn {
+  color: #fcd34d;
+}
+
+.admin-plugin-compat-checks {
+  margin: 0.45rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.admin-plugin-compat-check {
+  display: grid;
+  gap: 0.1rem;
+  margin-bottom: 0.35rem;
+  padding: 0.35rem 0.45rem;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.admin-plugin-compat-check-label {
+  font-weight: 700;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--admin-dim);
+}
+
+.admin-plugin-compat-check-detail {
+  font-size: 0.8125rem;
+  line-height: 1.35;
+}
+
+.admin-plugin-compat-check--error {
+  border-color: rgba(248, 113, 113, 0.35);
+}
+
+.admin-plugin-compat-check--warn {
+  border-color: rgba(251, 191, 36, 0.35);
+}
+
+.admin-plugin-compat-blocked-hint {
+  margin: 0;
+  padding: 0.5rem 0.65rem;
+  font-size: 0.8125rem;
+  line-height: 1.35;
+  color: var(--admin-dim);
+}
+
 .admin-form {
   max-width: 44rem;
 }
