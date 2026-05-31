@@ -150,6 +150,54 @@
     </div>
   </form>
 
+  {% set jc = job_counts|default({}) %}
+  <section class="admin-card" style="margin-bottom:1.25rem">
+    <h2 class="admin-card-title">Background jobs</h2>
+    <p class="admin-hint" style="margin-top:0">Defer heavy work to a CLI worker instead of blocking the admin session. Cron example: <code class="admin-inline-code">*/15 * * * * php bin/cms.php jobs:dispatch &amp;&amp; php bin/cms.php jobs:work --limit=20</code></p>
+    <ul class="admin-hint" style="margin:0.75rem 0 0;padding-left:1.25rem;line-height:1.65">
+      <li><strong>Pending:</strong> {{ jc.pending|default(0) }} · <strong>Running:</strong> {{ jc.running|default(0) }} · <strong>Failed:</strong> {{ jc.failed|default(0) }} · <strong>Completed (24h):</strong> {{ jc.completed_24h|default(0) }}</li>
+      <li><strong>Last worker run (UTC):</strong> {{ jobs_last_worker_at|default('never') }}</li>
+    </ul>
+    <div style="margin-top:0.75rem;display:flex;gap:0.5rem;flex-wrap:wrap">
+      <form method="post" action="{{ url_for('admin.tools.maintenance.process') }}" class="admin-inline-form">
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+        <input type="hidden" name="action" value="enqueue_publish_due" />
+        <button type="submit" class="admin-btn-ghost admin-btn-ghost--sm">Queue scheduled publish</button>
+      </form>
+      <form method="post" action="{{ url_for('admin.tools.maintenance.process') }}" class="admin-inline-form">
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+        <input type="hidden" name="action" value="enqueue_scheduled_purges" />
+        <button type="submit" class="admin-btn-ghost admin-btn-ghost--sm">Queue retention purges</button>
+      </form>
+    </div>
+    {% if recent_jobs|default([])|length > 0 %}
+      <div class="admin-table-wrap" style="overflow-x:auto;margin-top:1rem">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th scope="col">ID</th>
+              <th scope="col">Type</th>
+              <th scope="col">Status</th>
+              <th scope="col">Summary</th>
+              <th scope="col">Created (UTC)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for job in recent_jobs %}
+              <tr>
+                <td>#{{ job.id }}</td>
+                <td><code class="admin-inline-code">{{ job.type|e }}</code></td>
+                <td>{{ job.status|e }}</td>
+                <td>{{ job.resultSummary|default(job.lastError|default('—'))|e }}</td>
+                <td>{{ job.createdAt|e }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% endif %}
+  </section>
+
   <section class="admin-card" style="margin-bottom:1.25rem">
     <h2 class="admin-card-title">Image library optimization</h2>
     <p class="admin-hint" style="margin-top:0">Re-encode existing JPEG/PNG/WebP files with the same compressor used on upload (WebP when supported, max edge cap, quality tuning). Animated GIFs are skipped. Runs in small batches so the admin session stays responsive.</p>
@@ -170,6 +218,11 @@
         </div>
         <div style="margin-top:0.75rem;display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center">
           <button type="button" class="admin-btn-primary" id="admin-maintenance-compress-start">Optimize all images</button>
+          <form method="post" action="{{ url_for('admin.tools.maintenance.process') }}" class="admin-inline-form" onsubmit="return confirm('Queue full library optimization as background jobs?\n\nRequires php bin/cms.php jobs:work on a cron timer.');">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+            <input type="hidden" name="action" value="enqueue_media_compress" />
+            <button type="submit" class="admin-btn-ghost">Optimize in background</button>
+          </form>
           <button type="button" class="admin-btn-ghost" id="admin-maintenance-compress-stop" hidden>Stop</button>
         </div>
       </div>

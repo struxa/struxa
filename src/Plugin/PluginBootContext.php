@@ -7,6 +7,7 @@ namespace App\Plugin;
 use App\Content\ReservedContentSlugs;
 use App\Event\EventDispatcher;
 use App\Filter\Filters;
+use App\Jobs\Jobs;
 use App\Section\SectionDefinitionProviderInterface;
 use App\Section\SectionDefinitionRegistry;
 use PHPAuth\Auth;
@@ -86,6 +87,24 @@ final class PluginBootContext
     public function addFilter(string $hook, callable $callback, int $priority = 10): void
     {
         Filters::add($hook, $callback, $priority);
+    }
+
+    /**
+     * Register a background job handler (processed by {@code php bin/cms.php jobs:work}).
+     *
+     * @param callable(\App\Jobs\Job, \App\Jobs\JobHandlerContext): array<string, mixed> $handler
+     */
+    public function registerJobHandler(string $type, callable $handler): void
+    {
+        Jobs::registerHandler($type, $handler);
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     */
+    public function enqueueJob(string $type, array $payload = [], ?string $dedupeKey = null): int
+    {
+        return Jobs::enqueue($type, $payload, $dedupeKey);
     }
 
     /**

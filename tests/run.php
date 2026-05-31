@@ -34,6 +34,10 @@ use App\Filter\FilterHook;
 use App\Filter\FilterRegistry;
 use App\Filter\Filters;
 use App\Health\SiteHealthStatus;
+use App\Jobs\JobHandlerContext;
+use App\Jobs\JobHandlerRegistry;
+use App\Jobs\JobStatus;
+use App\Jobs\JobType;
 use App\Trash\TrashItemKind;
 use App\Dev\TwigLayoutContractLinter;
 use App\Maintenance\MaintenanceService;
@@ -447,6 +451,41 @@ Filters::add(FilterHook::HTML_SANITIZE, static fn (mixed $v): string => (string)
 Filters::add(FilterHook::HTML_SANITIZE, static fn (mixed $v): string => (string) $v . '-b', 10);
 if (Filters::apply(FilterHook::HTML_SANITIZE, 'x', []) !== 'x-b-a') {
     $fail('FilterRegistry should apply callbacks in ascending priority order.');
+}
+
+if (!JobStatus::isValid('pending') || JobStatus::isValid('bogus')) {
+    $fail('JobStatus validation failed.');
+}
+if (!JobStatus::isTerminal(JobStatus::COMPLETED) || JobStatus::isTerminal(JobStatus::PENDING)) {
+    $fail('JobStatus::isTerminal failed.');
+}
+if (!JobType::isBuiltin(JobType::SITEMAP_WARM) || JobType::isBuiltin('custom.job')) {
+    $fail('JobType::isBuiltin failed.');
+}
+
+$jobHandlers = new JobHandlerRegistry();
+$jobHandlers->register('test.echo', static function ($job, JobHandlerContext $ctx): array {
+    return ['ok' => true, 'message' => (string) ($job->payload['msg'] ?? '')];
+});
+$testJob = \App\Jobs\Job::fromRow([
+    'id' => 1,
+    'queue' => 'default',
+    'type' => 'test.echo',
+    'payload' => json_encode(['msg' => 'hi'], JSON_THROW_ON_ERROR),
+    'status' => JobStatus::PENDING,
+    'available_at' => gmdate('Y-m-d H:i:s'),
+    'attempts' => 0,
+    'max_attempts' => 3,
+    'created_at' => gmdate('Y-m-d H:i:s'),
+]);
+$handlerCtx = new JobHandlerContext(
+    new PDO('sqlite::memory:'),
+    $root,
+    new \App\Jobs\JobQueue(new \App\Jobs\JobRepository(new PDO('sqlite::memory:'))),
+);
+$result = $jobHandlers->handle($testJob, $handlerCtx);
+if (($result['ok'] ?? false) !== true || ($result['message'] ?? '') !== 'hi') {
+    $fail('JobHandlerRegistry should dispatch registered handlers.');
 }
 
 echo "All tests passed.\n";

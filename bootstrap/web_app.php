@@ -19,6 +19,7 @@ use App\Event\EventDispatcher;
 use App\Event\Events;
 use App\Filter\FilterRegistry;
 use App\Filter\Filters;
+use App\Jobs\Jobs;
 use App\Event\StorefrontCachesInvalidateEvent;
 use App\Event\UserLoggedInEvent;
 use App\Flash;
@@ -136,6 +137,8 @@ Events::set($eventDispatcher);
 
 $filterRegistry = new FilterRegistry();
 Filters::set($filterRegistry);
+
+Jobs::boot($pdo, $root);
 
 $authConfig = new Config($pdo, PhpAuthSettings::fromEnv(), PhpAuthSettings::configType());
 $auth = new AppAuth($pdo, $authConfig);

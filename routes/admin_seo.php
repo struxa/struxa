@@ -6,6 +6,7 @@ use App\Access\PermissionSlug;
 use App\Event\Events;
 use App\Event\StorefrontCachesInvalidateEvent;
 use App\Flash;
+use App\Jobs\Jobs;
 use App\Http\Middleware\RequireCmsStaff;
 use App\Http\Middleware\RequirePermission;
 use App\Security\IpBlockMatcher;
@@ -359,6 +360,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             Settings::reload($pdo);
             Flash::set('success', 'Sitemap settings saved.');
             Events::dispatch(new StorefrontCachesInvalidateEvent('sitemap_settings'));
+            Jobs::queue()->enqueueSitemapWarm();
 
             return $response
                 ->withHeader('Location', RouteContext::fromRequest($request)->getRouteParser()->urlFor('admin.seo.sitemap'))

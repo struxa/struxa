@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.1.28",
-    "title": "Struxa 1.1.28",
-    "summary": "Fix admin sidebar on Trash — pass cms_user so permission-gated nav links render correctly.",
+    "latest_version": "1.1.29",
+    "title": "Struxa 1.1.29",
+    "summary": "Background job queue — cms_jobs table, CLI worker (jobs:work), deferred maintenance, publish, media compression, and sitemap warm.",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "minor"

@@ -9,6 +9,8 @@ use App\CmsVersion;
 use App\Database\Migrator;
 use App\Dev\PluginDependencyHealthCheck;
 use App\Dev\PluginDependencyHealthIssue;
+use App\Jobs\JobRepository;
+use App\Jobs\JobRunTracker;
 use App\Maintenance\MaintenanceService;
 use App\Media\MediaCompressionSettings;
 use App\Publishing\PublishScheduleService;
@@ -297,6 +299,50 @@ final class SiteHealthService
             );
         }
 
+        $jobRepo = new JobRepository($this->pdo);
+        if ($jobRepo->tableExists()) {
+            $jobCounts = $jobRepo->counts();
+            $failedJobs = (int) ($jobCounts['failed'] ?? 0);
+            $pendingJobs = (int) ($jobCounts['pending'] ?? 0);
+            $lastWorker = JobRunTracker::lastRunAt();
+
+            if ($failedJobs > 0) {
+                $jobStatus = SiteHealthStatus::RECOMMENDED;
+                $jobMessage = $failedJobs . ' background job(s) failed. Check Speed & maintenance → Background jobs.';
+            } elseif ($pendingJobs > 0 && $lastWorker === null) {
+                $jobStatus = SiteHealthStatus::RECOMMENDED;
+                $jobMessage = $pendingJobs . ' job(s) pending but the worker has never run. Add cron: php bin/cms.php jobs:work';
+            } elseif ($pendingJobs > 50) {
+                $jobStatus = SiteHealthStatus::RECOMMENDED;
+                $jobMessage = $pendingJobs . ' jobs waiting in queue. Ensure jobs:work runs on a schedule.';
+            } elseif ($pendingJobs > 0 && $lastWorker !== null) {
+                $workerAgeHours = (time() - strtotime($lastWorker . ' UTC')) / 3600;
+                if ($workerAgeHours > 48) {
+                    $jobStatus = SiteHealthStatus::RECOMMENDED;
+                    $jobMessage = 'Worker last ran ' . round($workerAgeHours) . ' hours ago with ' . $pendingJobs . ' pending job(s).';
+                } else {
+                    $jobStatus = SiteHealthStatus::GOOD;
+                    $jobMessage = $pendingJobs . ' job(s) pending; worker ran at ' . $lastWorker . ' UTC.';
+                }
+            } else {
+                $jobStatus = SiteHealthStatus::GOOD;
+                $jobMessage = $lastWorker !== null
+                    ? 'Background job queue is idle. Worker last ran at ' . $lastWorker . ' UTC.'
+                    : 'Background job queue is idle. Use jobs:dispatch + jobs:work on cron for deferred tasks.';
+            }
+
+            $checks[] = new SiteHealthCheck(
+                'background_jobs',
+                'Background job queue',
+                $jobStatus,
+                $jobMessage,
+                'operations',
+                null,
+                'admin.tools.maintenance',
+                $failedJobs > 0 || $pendingJobs > 0 ? 'Open maintenance' : null,
+            );
+        }
+
         return $checks;
     }
 
@@ -450,6 +496,7 @@ final class SiteHealthService
 
         $info['Public cache'] = CacheConfig::publicCacheEnabled() ? 'On' : 'Off';
         $info['Maintenance auto-purge'] = Settings::get('maintenance_auto_purge', '0') === '1' ? 'On' : 'Off';
+        $info['Job worker (UTC)'] = JobRunTracker::lastRunAt() ?? 'Never';
 
         return $info;
     }

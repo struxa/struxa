@@ -87,6 +87,30 @@ public function boot(PluginBootContext $context): void
 
 Lower **priority** runs first (default `10`). Callbacks receive `(mixed $value, array $context)` and must **return** the next value.
 
+## Background jobs
+
+Defer heavy work to a CLI worker instead of blocking HTTP requests. Cron example:
+
+```bash
+*/15 * * * * php bin/cms.php jobs:dispatch && php bin/cms.php jobs:work --limit=20
+```
+
+In `boot()`:
+
+```php
+public function boot(PluginBootContext $context): void
+{
+    $context->registerJobHandler('my-plugin.rebuild-index', function (\App\Jobs\Job $job, \App\Jobs\JobHandlerContext $ctx): array {
+        // $job->payload, $ctx->pdo, $ctx->projectRoot
+        return ['ok' => true, 'message' => 'Index rebuilt.'];
+    });
+
+    $context->enqueueJob('my-plugin.rebuild-index', ['full' => true], 'my-plugin.rebuild-index');
+}
+```
+
+Handlers return `['ok' => true|false, 'message' => '…', 'retry' => bool?, 'chain' => list<…>?]`. Built-in types include `maintenance.purge_scheduled`, `schedule.publish_due`, `media.compress_batch`, and `sitemap.warm`.
+
 ## Browse and install from the catalog
 
 **Extensions → Plugins → Browse catalog** installs packages from the same distribution registry as themes (`https://struxapoint.com/struxa-dist/repo.json` by default). The catalog’s **`plugins`** array lists slug, metadata, and **`download_url`** (HTTPS ZIP). After install, **Activate** the plugin to run migrations and load routes.
