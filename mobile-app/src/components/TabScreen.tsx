@@ -2,6 +2,7 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import type { BootstrapData, MobileTab } from '../types/bootstrap';
 import type { SiteTheme } from '../theme/siteTheme';
+import { ContentBrowser } from './content/ContentBrowser';
 
 type Props = {
   bootstrap: BootstrapData;
@@ -14,7 +15,7 @@ export function TabScreen({ bootstrap, tab, theme }: Props) {
     case 'home':
       return <HomeScreen bootstrap={bootstrap} theme={theme} />;
     case 'content':
-      return <ContentScreen bootstrap={bootstrap} theme={theme} />;
+      return <ContentBrowser bootstrap={bootstrap} theme={theme} />;
     case 'search':
       return <SearchScreen bootstrap={bootstrap} theme={theme} />;
     case 'shop':
@@ -54,53 +55,23 @@ function HomeScreen({ bootstrap, theme }: Omit<Props, 'tab'>) {
         <Text style={[styles.cardLabel, { color: theme.textMuted }]}>Powered by Struxa</Text>
         <Text style={[styles.cardValue, { color: theme.text }]}>{bootstrap.cms_version}</Text>
       </View>
-      {bootstrap.navigation.header.length > 0 ? (
+      {bootstrap.content_types.length > 0 ? (
         <>
-          <Text style={[styles.sectionTitle, { color: theme.text }]}>Quick links</Text>
-          {bootstrap.navigation.header.map((item) => (
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>Content on this site</Text>
+          {bootstrap.content_types.map((type) => (
             <View
-              key={`${item.label}-${item.href}`}
-              style={[styles.linkRow, { borderColor: theme.border }]}
+              key={type.slug}
+              style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}
             >
-              <Text style={[styles.linkLabel, { color: theme.text }]}>{item.label}</Text>
-              <Text numberOfLines={1} style={[styles.linkHref, { color: theme.textMuted }]}>
-                {item.href}
-              </Text>
+              <Text style={[styles.cardValue, { color: theme.text }]}>{type.name}</Text>
+              <Text style={[styles.cardLabel, { color: theme.textMuted }]}>{type.route}</Text>
             </View>
           ))}
           <Text style={[styles.phaseNote, { color: theme.textMuted }]}>
-            Phase 3 will open these links in-app. For now this screen confirms branding and bootstrap data.
+            Open the Browse tab to read published entries.
           </Text>
         </>
       ) : null}
-    </ScreenShell>
-  );
-}
-
-function ContentScreen({ bootstrap, theme }: Omit<Props, 'tab'>) {
-  return (
-    <ScreenShell theme={theme} title="Browse content">
-      {bootstrap.content_types.length === 0 ? (
-        <Text style={[styles.lead, { color: theme.textMuted }]}>
-          This site has no public content types yet.
-        </Text>
-      ) : (
-        bootstrap.content_types.map((type) => (
-          <View
-            key={type.slug}
-            style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}
-          >
-            <Text style={[styles.cardValue, { color: theme.text }]}>{type.name}</Text>
-            <Text style={[styles.cardLabel, { color: theme.textMuted }]}>{type.route}</Text>
-            {type.description ? (
-              <Text style={[styles.cardBody, { color: theme.textMuted }]}>{type.description}</Text>
-            ) : null}
-          </View>
-        ))
-      )}
-      <Text style={[styles.phaseNote, { color: theme.textMuted }]}>
-        Phase 3 will load published entries from the REST/GraphQL API.
-      </Text>
     </ScreenShell>
   );
 }
@@ -115,7 +86,7 @@ function SearchScreen({ bootstrap, theme }: Omit<Props, 'tab'>) {
           : 'Search is not enabled on this site.'}
       </Text>
       <Text style={[styles.phaseNote, { color: theme.textMuted }]}>
-        Phase 3 will query the public search API from here.
+        Phase 4+ can wire the public search page into this tab.
       </Text>
     </ScreenShell>
   );
@@ -149,9 +120,6 @@ function PlaceholderScreen({ bootstrap, tab, theme }: Props) {
     <ScreenShell theme={theme} title={tab.label}>
       <Text style={[styles.lead, { color: theme.textMuted }]}>
         Custom tab type <Text style={{ color: theme.accent }}>{tab.type}</Text> for {bootstrap.site.name}.
-      </Text>
-      <Text style={[styles.phaseNote, { color: theme.textMuted }]}>
-        Plugin-defined tab types can render here in a later phase.
       </Text>
     </ScreenShell>
   );
@@ -195,23 +163,6 @@ const styles = StyleSheet.create({
   cardValue: {
     fontSize: 18,
     fontWeight: '700',
-  },
-  cardBody: {
-    fontSize: 14,
-    lineHeight: 20,
-    marginTop: 4,
-  },
-  linkRow: {
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    paddingVertical: 12,
-    gap: 4,
-  },
-  linkLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  linkHref: {
-    fontSize: 12,
   },
   phaseNote: {
     fontSize: 13,

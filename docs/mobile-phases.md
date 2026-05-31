@@ -35,14 +35,13 @@ See [mobile-app/README.md](../mobile-app/README.md) for run instructions.
 
 ---
 
-## Phase 3 — Read-only content
+## Phase 3 — Read-only content (done)
 
 **Goal:** Browse published content in the app.
 
-- Use existing `/api/v1` REST or GraphQL with **read-only API key** stored server-side or per-site config (not in app binary for multi-tenant)
-- Alternative: new public read endpoints scoped to mobile (no key) for published entries only
-- Content type list → entry list → entry detail
-- Featured images, pagination
+- Public mobile content API (no API key): `GET /api/v1/mobile/content/{typeSlug}/entries` and `.../entries/{entrySlug}`
+- Published entries only; reuses `PublicContentApi` detail shape + `API_ENTRY_RESPONSE` filter
+- App: content type list → entry list (pagination) → entry detail with featured images
 
 **Deliverable:** Blog/products/content types readable in app.
 

@@ -112,6 +112,7 @@ final class MobileBootstrapService
                 'rest_base' => $siteUrl . '/api/v1',
                 'graphql' => $siteUrl . '/api/v1/graphql',
                 'bootstrap' => $siteUrl . '/api/v1/mobile/bootstrap',
+                'content_base' => $siteUrl . '/api/v1/mobile/content',
             ],
             'mobile' => [
                 'welcome_title' => $welcomeTitle,
@@ -124,7 +125,7 @@ final class MobileBootstrapService
                     'slug' => $t->slug,
                     'name' => $t->name,
                     'description' => $t->description ?? '',
-                    'route' => '/c/' . rawurlencode($t->slug),
+                    'route' => '/' . rawurlencode($t->slug),
                     'supports_featured_image' => $t->supportsFeaturedImage,
                 ],
                 $contentTypes

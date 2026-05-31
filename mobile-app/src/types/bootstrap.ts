@@ -48,6 +48,7 @@ export type BootstrapData = {
     rest_base: string;
     graphql: string;
     bootstrap: string;
+    content_base: string;
   };
   mobile: {
     welcome_title: string;

@@ -23,13 +23,14 @@ Scan the QR code with Expo Go, or press `i` / `a` for iOS/Android simulator.
 2. Enter your site URL, e.g. `http://localhost:3439` (simulator) or `https://yourdomain.com`
 3. The app fetches `GET /api/v1/mobile/bootstrap` and shows a branded tab shell
 
-## Features (Phase 2)
+## Features (Phase 2–3)
 
 - **Site registry** — add, remove, switch sites (AsyncStorage)
 - **Bootstrap fetch + cache** — 5-minute TTL per site, pull-to-refresh via header ↻
 - **Theming** — accent color, logo, site name from bootstrap
 - **Dynamic tab bar** — from `mobile.tabs` in bootstrap
-- **Placeholder screens** — home, browse, search, shop (content APIs in Phase 3)
+- **Content browsing** — type list → entry list (pagination) → entry detail with images
+- **Placeholder screens** — search, shop (later phases)
 
 ## Project layout
 

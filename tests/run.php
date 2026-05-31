@@ -808,5 +808,9 @@ if (MobileBootstrapService::absoluteUrl('https://example.com', 'https://cdn.test
     $fail('MobileBootstrapService::absoluteUrl should pass through absolute URLs.');
 }
 
+if (\App\Mobile\MobileContentService::PER_PAGE_DEFAULT !== 20 || \App\Mobile\MobileContentService::PER_PAGE_MAX !== 30) {
+    $fail('MobileContentService pagination constants should match mobile API defaults.');
+}
+
 echo "All tests passed.\n";
 exit(0);
