@@ -54,8 +54,9 @@ final class StruxaCatalogAdminRouteRegistrar
             return;
         }
 
+        // Register when the package is on disk (row may exist with is_active=0 after boot circuit breaker).
         $db = $plugins->findBySlug('struxa-admin');
-        if ($db === null || !$db->isActive) {
+        if ($db === null) {
             return;
         }
 

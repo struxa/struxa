@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.1.58",
-    "title": "Struxa 1.1.58",
-    "summary": "Fix catalog admin route registration (class_exists check ran before plugin autoload).",
+    "latest_version": "1.1.59",
+    "title": "Struxa 1.1.59",
+    "summary": "Register catalog admin routes when plugin row exists even if circuit breaker set is_active=0.",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "patch"
