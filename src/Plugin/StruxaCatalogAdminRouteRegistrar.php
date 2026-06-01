@@ -31,6 +31,13 @@ final class StruxaCatalogAdminRouteRegistrar
 {
     private const ROUTE_SUBMISSIONS = 'admin.struxa_catalog.submissions';
 
+    private static ?string $lastRegisterError = null;
+
+    public static function lastRegisterError(): ?string
+    {
+        return self::$lastRegisterError;
+    }
+
     /**
      * @param callable(): array<string, mixed> $viewData
      */
@@ -116,14 +123,15 @@ final class StruxaCatalogAdminRouteRegistrar
         );
 
         try {
-            self::register($app, $ctx);
+            self::$lastRegisterError = null;
+            self::register($app, $ctx, $auth);
         } catch (\Throwable $e) {
-            error_log('[plugin] Core catalog admin routes failed: ' . $e->getMessage()
-                . ' in ' . $e->getFile() . ':' . $e->getLine());
+            self::$lastRegisterError = $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine();
+            error_log('[plugin] Core catalog admin routes failed: ' . self::$lastRegisterError);
         }
     }
 
-    public static function register(App $app, PluginBootContext $ctx): void
+    public static function register(App $app, PluginBootContext $ctx, Auth $auth): void
     {
         if (self::namedRouteExists($app, self::ROUTE_SUBMISSIONS)) {
             return;
@@ -131,7 +139,6 @@ final class StruxaCatalogAdminRouteRegistrar
 
         $twig = $ctx->twig();
         $pdo = $ctx->pdo();
-        $auth = $ctx->auth();
         $root = $ctx->projectRoot();
         $ns = '@plugin_struxa_admin';
 

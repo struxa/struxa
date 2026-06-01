@@ -79,8 +79,13 @@ foreach ($app->getRouteCollector()->getRoutes() as $route) {
 
 if ($admin === []) {
     echo "\nNO admin.struxa_catalog.* routes.\n";
+    if (class_exists(\App\Plugin\StruxaCatalogAdminRouteRegistrar::class)) {
+        $last = \App\Plugin\StruxaCatalogAdminRouteRegistrar::lastRegisterError();
+        if (is_string($last) && $last !== '') {
+            echo "lastRegisterError: $last\n";
+        }
+    }
     echo "Check error_log for: Catalog admin routes skipped / Core catalog admin routes failed\n";
-    echo "If skipReason is none, run: grep catalog error_log | tail -5\n";
     exit(1);
 }
 
