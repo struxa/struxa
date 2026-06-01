@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.1.64",
-    "title": "Struxa 1.1.64",
-    "summary": "Plugin update checks: GitHub API fallback when raw.githubusercontent.com is blocked, shorter GitHub cache TTL, and visible update-check errors on the Extensions page.",
+    "latest_version": "1.1.65",
+    "title": "Struxa 1.1.65",
+    "summary": "Fix GitHub plugin updates: download ZIPs with cURL (not fopen-only) and try codeload.github.com as fallback.",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "patch"

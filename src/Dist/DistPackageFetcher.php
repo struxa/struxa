@@ -81,12 +81,39 @@ final class DistPackageFetcher
 
     private function httpGetLimited(string $url, int $maxBytes): ?string
     {
+        if (!str_starts_with($url, 'https://')) {
+            return null;
+        }
+
+        $ua = 'Struxa-DistPackage/1.1 (+https://struxapoint.com)';
+
+        if (function_exists('curl_init')) {
+            $ch = curl_init($url);
+            if ($ch !== false) {
+                curl_setopt_array($ch, [
+                    CURLOPT_RETURNTRANSFER => true,
+                    CURLOPT_FOLLOWLOCATION => true,
+                    CURLOPT_MAXREDIRS => 8,
+                    CURLOPT_CONNECTTIMEOUT => 15,
+                    CURLOPT_TIMEOUT => 120,
+                    CURLOPT_HTTPHEADER => ['User-Agent: ' . $ua],
+                    CURLOPT_SSL_VERIFYPEER => true,
+                    CURLOPT_SSL_VERIFYHOST => 2,
+                ]);
+                $raw = curl_exec($ch);
+                $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                if (is_string($raw) && $code >= 200 && $code < 300 && $raw !== '' && strlen($raw) < $maxBytes) {
+                    return $raw;
+                }
+            }
+        }
+
         $ctx = stream_context_create([
             'http' => [
                 'timeout' => 120,
                 'follow_location' => 1,
                 'max_redirects' => 8,
-                'header' => "User-Agent: Struxa-DistPackage/1.0\r\n",
+                'header' => "User-Agent: {$ua}\r\n",
             ],
             'ssl' => [
                 'verify_peer' => true,

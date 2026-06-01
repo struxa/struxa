@@ -92,17 +92,34 @@ final class PluginRemoteInstaller
             return 'Invalid GitHub repository.';
         }
 
-        $zipUrl = sprintf(
-            'https://github.com/%s/%s/archive/refs/heads/%s.zip',
-            rawurlencode($owner),
-            rawurlencode($repo),
-            rawurlencode($ref),
-        );
-        if (!ThemeRemoteInstaller::isDownloadUrlHostAllowed($zipUrl)) {
-            return 'Download URL is not allowed.';
+        $urls = [
+            sprintf(
+                'https://codeload.github.com/%s/%s/zip/refs/heads/%s',
+                rawurlencode($owner),
+                rawurlencode($repo),
+                rawurlencode($ref),
+            ),
+            sprintf(
+                'https://github.com/%s/%s/archive/refs/heads/%s.zip',
+                rawurlencode($owner),
+                rawurlencode($repo),
+                rawurlencode($ref),
+            ),
+        ];
+
+        $lastErr = 'Could not download the plugin package from GitHub.';
+        foreach ($urls as $zipUrl) {
+            if (!ThemeRemoteInstaller::isDownloadUrlHostAllowed($zipUrl)) {
+                continue;
+            }
+            $err = $this->fetchAndDeploy($slug, $zipUrl, true);
+            if ($err === null) {
+                return null;
+            }
+            $lastErr = $err;
         }
 
-        return $this->fetchAndDeploy($slug, $zipUrl, true);
+        return $lastErr;
     }
 
     private function fetchAndDeploy(string $slug, string $downloadUrl, bool $replace): ?string
