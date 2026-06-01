@@ -101,6 +101,8 @@ final class PluginManager
         EventDispatcher $events,
     ): void {
         if (!class_exists(StruxaCatalogAdminRouteRegistrar::class)) {
+            error_log('[plugin] StruxaCatalogAdminRouteRegistrar class not loadable — deploy src/Plugin/StruxaCatalogAdminRouteRegistrar.php (CMS 1.1.56+)');
+
             return;
         }
 

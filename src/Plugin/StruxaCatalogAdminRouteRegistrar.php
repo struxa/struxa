@@ -34,6 +34,41 @@ final class StruxaCatalogAdminRouteRegistrar
     /**
      * @param callable(): array<string, mixed> $viewData
      */
+    /**
+     * Human-readable reason when {@see registerIfNeeded()} would not register routes (for CLI diagnostics).
+     */
+    public static function skipReason(
+        App $app,
+        Twig $twig,
+        PluginRepository $plugins,
+        PluginScanner $scanner,
+    ): ?string {
+        if (self::namedRouteExists($app, self::ROUTE_SUBMISSIONS)) {
+            return 'already_registered';
+        }
+
+        $discovered = $scanner->findBySlug('struxa-admin');
+        if ($discovered === null) {
+            return 'plugin_not_on_disk';
+        }
+
+        if ($plugins->findBySlug('struxa-admin') === null) {
+            return 'no_cms_plugins_row';
+        }
+
+        $loader = $twig->getEnvironment()->getLoader();
+        if (!$loader instanceof FilesystemLoader) {
+            return 'twig_loader_not_filesystem:' . $loader::class;
+        }
+
+        PluginManager::registerPsr4Autoload($discovered);
+        if (!class_exists(CatalogSettings::class)) {
+            return 'catalog_settings_class_not_loadable';
+        }
+
+        return null;
+    }
+
     public static function registerIfNeeded(
         App $app,
         Twig $twig,
@@ -45,7 +80,8 @@ final class StruxaCatalogAdminRouteRegistrar
         PluginRepository $plugins,
         PluginScanner $scanner,
     ): void {
-        if (self::namedRouteExists($app, self::ROUTE_SUBMISSIONS)) {
+        $skip = self::skipReason($app, $twig, $plugins, $scanner);
+        if ($skip !== null) {
             return;
         }
 
@@ -54,21 +90,11 @@ final class StruxaCatalogAdminRouteRegistrar
             return;
         }
 
-        // Register when the package is on disk (row may exist with is_active=0 after boot circuit breaker).
-        $db = $plugins->findBySlug('struxa-admin');
-        if ($db === null) {
-            return;
-        }
-
         $loader = $twig->getEnvironment()->getLoader();
         if (!$loader instanceof FilesystemLoader) {
             return;
         }
 
-        PluginManager::registerAutoloadForPlugin($discovered);
-        if (!class_exists(CatalogSettings::class)) {
-            return;
-        }
         $views = $discovered->rootPath . '/views';
         if (is_dir($views)) {
             $loader->addPath($views, PluginManager::twigNamespaceForSlug('struxa-admin'));
