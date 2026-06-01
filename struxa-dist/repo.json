@@ -1,6 +1,6 @@
 {
     "catalog_version": 1,
-    "generated_at": "2026-06-01T10:40:28+00:00",
+    "generated_at": "2026-06-02T12:00:00+00:00",
     "themes": [
         {
             "slug": "default",
@@ -20,6 +20,15 @@
             "author": "Struxa",
             "download_url": "https://struxapoint.com/struxa-dist/zips/struxa-admin.zip",
             "requires_cms_version": "1.0.52"
+        },
+        {
+            "slug": "knowledge-base-plugin",
+            "name": "Knowledge Base",
+            "version": "1.0.2",
+            "description": "Built-in Struxa CMS documentation wiki for staff. Optional public storefront at /kb.",
+            "author": "Struxa",
+            "download_url": "https://struxapoint.com/struxa-dist/zips/knowledge-base-plugin.zip",
+            "requires_cms_version": "1.1.33"
         }
     ]
 }
