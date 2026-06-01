@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.1.53",
-    "title": "Struxa 1.1.53",
-    "summary": "Preload plugin main_class for compatibility checks; clearer missing-file hints; includes 1.1.52 plugin autoload and remove fixes.",
+    "latest_version": "1.1.54",
+    "title": "Struxa 1.1.54",
+    "summary": "Safe plugin catalog links when admin routes are missing; plugin admin routes always register under Admin load scope.",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "patch"

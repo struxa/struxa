@@ -59,6 +59,14 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
         return $id > 0 ? $id : null;
     };
 
+    $namedRouteUrl = static function (Request $request, string $name): ?string {
+        try {
+            return RouteContext::fromRequest($request)->getRouteParser()->urlFor($name);
+        } catch (\Throwable) {
+            return null;
+        }
+    };
+
     $app->group('/admin', function (\Slim\Routing\RouteCollectorProxy $group) use (
         $twig,
         $adminContext,
@@ -73,7 +81,8 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
         $pdo,
         $catalogLoader,
         $remoteInstaller,
-        $pluginPerformance
+        $pluginPerformance,
+        $namedRouteUrl
     ): void {
         $group->get('/extensions/plugins', function (Request $request, Response $response) use (
             $twig,
@@ -83,7 +92,8 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             $manager,
             $validator,
             $scanner,
-            $pluginPerformance
+            $pluginPerformance,
+            $namedRouteUrl
         ): Response {
             $discovered = $manager->syncDiscoveredToDatabase();
             $slugs = [];
@@ -143,6 +153,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 'plugin_rows' => $rows,
                 'plugin_summary' => $summary,
                 'plugin_orphans' => $orphans,
+                'struxa_catalog_submissions_url' => $namedRouteUrl($request, 'admin.struxa_catalog.submissions'),
                 'plugin_perf_thresholds' => [
                     'boot_ms' => PluginPerformanceRegistry::BOOT_SLOW_MS,
                     'hook_ms' => PluginPerformanceRegistry::HOOK_SLOW_MS,
@@ -157,7 +168,8 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             $withCmsUser,
             $catalogLoader,
             $scanner,
-            $repo
+            $repo,
+            $namedRouteUrl
         ): Response {
             $loaded = $catalogLoader->load();
             $installed = [];
@@ -170,7 +182,9 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 }
             }
             $struxaAdminRow = $repo->findBySlug('struxa-admin');
-            $struxaAdminActive = $struxaAdminRow !== null && $struxaAdminRow->isActive;
+            $struxaAdminActive = $struxaAdminOnDisk
+                && $struxaAdminRow !== null
+                && $struxaAdminRow->isActive;
 
             return $twig->render($response, 'admin/plugins/browse.twig', $withCmsUser($request, array_merge($adminContext(), [
                 'admin_nav' => 'extensions_plugins',
@@ -180,6 +194,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 'installed_plugin_slugs' => $installed,
                 'struxa_admin_on_disk' => $struxaAdminOnDisk,
                 'struxa_admin_active' => $struxaAdminActive,
+                'struxa_catalog_submissions_url' => $namedRouteUrl($request, 'admin.struxa_catalog.submissions'),
             ])));
         })->setName('admin.extensions.plugins.browse');
 
@@ -338,5 +353,38 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
 
             return $response->withHeader('Location', $back)->withStatus(302);
         })->setName('admin.extensions.plugins.remove');
+
+        $group->post('/extensions/plugins/purge-orphan', function (Request $request, Response $response) use (
+            $scanner,
+            $repo,
+            $activity,
+            $cmsUid
+        ): Response {
+            $body = $request->getParsedBody();
+            $slug = is_array($body) ? trim((string) ($body['slug'] ?? '')) : '';
+            $parser = RouteContext::fromRequest($request)->getRouteParser();
+            $back = $parser->urlFor('admin.extensions.plugins.index');
+            if ($slug === '' || !preg_match('/^[a-z0-9]+(?:-[a-z0-9]+)*$/', $slug)) {
+                Flash::set('error', 'Invalid plugin.');
+
+                return $response->withHeader('Location', $back)->withStatus(302);
+            }
+            if ($scanner->findBySlug($slug) !== null) {
+                Flash::set('error', 'Plugin folder still exists on disk. Use Remove on the installed plugins list instead.');
+
+                return $response->withHeader('Location', $back)->withStatus(302);
+            }
+            if ($repo->findBySlug($slug) === null) {
+                Flash::set('error', 'No database row for that plugin.');
+
+                return $response->withHeader('Location', $back)->withStatus(302);
+            }
+            $repo->deleteBySlug($slug);
+            $scanner->clearDiscoverCache();
+            $activity->log($cmsUid($request), 'plugin.orphan_purged', 'plugin', null, ['slug' => $slug]);
+            Flash::set('success', 'Removed database record for "' . $slug . '". You can reinstall from the catalog when ready.');
+
+            return $response->withHeader('Location', $back)->withStatus(302);
+        })->setName('admin.extensions.plugins.purge_orphan');
     })->add($permPlugins)->add($middleware);
 };

@@ -30,12 +30,21 @@
     <div class="admin-toolbar-actions" style="display:flex;gap:0.5rem;flex-wrap:wrap">
       <a class="admin-btn-primary" href="{{ url_for('admin.extensions.plugins.browse') }}">Browse catalog</a>
       {% for row in plugin_rows|default([]) %}
-        {% if row.discovered.manifest.slug == 'struxa-admin' and row.is_active %}
-          <a class="admin-btn-ghost" href="{{ url_for('admin.struxa_catalog.submissions') }}">Catalog submissions</a>
+        {% if row.discovered.manifest.slug == 'struxa-admin' and row.is_active and struxa_catalog_submissions_url|default(null) %}
+          <a class="admin-btn-ghost" href="{{ struxa_catalog_submissions_url }}">Catalog submissions</a>
         {% endif %}
       {% endfor %}
     </div>
   </div>
+
+  {% for row in plugin_rows|default([]) %}
+    {% if row.discovered.manifest.slug == 'struxa-admin' and row.is_active and not struxa_catalog_submissions_url|default(null) %}
+      <div class="admin-plugin-notice admin-plugin-notice--info" role="status">
+        <strong>Struxa Catalog Admin</strong> is active but its admin routes did not load.
+        Reinstall from <code class="admin-inline-code">public/struxa-dist/zips/struxa-admin.zip</code> (v1.0.2+), run migrations, clear cache, and check the PHP error log for <code class="admin-inline-code">[plugin] Skipped admin routes</code>.
+      </div>
+    {% endif %}
+  {% endfor %}
 
   {% if plugin_circuit_breaker %}
     <div class="admin-plugin-notice admin-plugin-notice--info" role="status">
@@ -50,6 +59,14 @@
       {% for o in plugin_orphans %}
         <code class="admin-inline-code">{{ o.slug|e }}</code>{% if not loop.last %}, {% endif %}
       {% endfor %}
+      <div style="margin-top:0.75rem;display:flex;flex-wrap:wrap;gap:0.5rem">
+        {% for o in plugin_orphans %}
+          <form method="post" action="{{ url_for('admin.extensions.plugins.purge_orphan') }}" class="admin-inline-form" onsubmit="return confirm('Remove the database record for {{ o.slug|e('js') }}? This does not delete any files (there are none on disk).');">
+            <input type="hidden" name="slug" value="{{ o.slug|e('html_attr') }}">
+            <button type="submit" class="admin-btn-ghost admin-btn-ghost--sm">Purge {{ o.slug|e }} from database</button>
+          </form>
+        {% endfor %}
+      </div>
     </div>
   {% endif %}
 

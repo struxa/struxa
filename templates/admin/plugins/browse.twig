@@ -11,8 +11,8 @@
   <p class="admin-hero-sub admin-hero-sub--tight">
     <a class="admin-link" href="{{ url_for('admin.extensions.plugins.index') }}">← Installed plugins</a>
     · Install from the Struxa distribution catalog (same registry as themes).
-    {% if struxa_admin_active|default(false) %}
-      · <a class="admin-link" href="{{ url_for('admin.struxa_catalog.submissions') }}">Catalog submissions</a>
+    {% if struxa_admin_active|default(false) and struxa_catalog_submissions_url|default(null) %}
+      · <a class="admin-link" href="{{ struxa_catalog_submissions_url }}">Catalog submissions</a>
     {% endif %}
   </p>
 {% endblock %}

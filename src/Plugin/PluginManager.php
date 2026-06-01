@@ -34,7 +34,7 @@ final class PluginManager
      *
      * @param callable(): array<string, mixed> $viewData
      *
-     * @return list<PluginBootContext> Pass to registerActiveAdminRoutes() and bootActivePluginLifecycle()
+     * @return list<PluginBootContext> Pass to bootActivePluginLifecycle()
      */
     public function registerActivePublicRoutes(
         App $app,
@@ -61,10 +61,20 @@ final class PluginManager
      * Plugin admin routes must register before public `/{typeSlug}/{entrySlug}` or URLs like
      * /admin/hello-plugin are claimed by the variable route and FastRoute rejects static duplicates.
      *
-     * @param list<PluginBootContext> $contexts
+     * Uses {@see PluginLoadScope::Admin} so routes register on every request, not only when the
+     * current URI matched the public plugin load scope.
+     *
+     * @param callable(): array<string, mixed> $viewData
      */
-    public function registerActiveAdminRoutes(App $app, array $contexts): void
-    {
+    public function registerActiveAdminRoutes(
+        App $app,
+        Twig $twig,
+        Auth $auth,
+        \PDO $pdo,
+        callable $viewData,
+        EventDispatcher $events,
+    ): void {
+        $contexts = $this->createActiveContexts($app, $twig, $auth, $pdo, $viewData, $events, PluginLoadScope::Admin);
         foreach ($contexts as $ctx) {
             try {
                 $this->loadRouteFile($ctx->pluginRoot() . '/routes/admin.php', $app, $ctx, false);

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Middleware;
 
+use App\Http\NamedRouteUrl;
 use App\Cache\CacheConfig;
 use App\Cache\CacheManager;
 use App\Commerce\Cart\CartService;
@@ -31,9 +32,12 @@ use Psr\Http\Server\RequestHandlerInterface;
 use RuntimeException;
 use Slim\Interfaces\RouteParserInterface;
 use Slim\Views\Twig;
+use Twig\TwigFunction;
 
 final class TwigCmsGlobals implements MiddlewareInterface
 {
+    private static bool $routeUrlFunctionRegistered = false;
+
     public function __construct(
         private readonly Twig $twig,
         private readonly PDO $pdo,
@@ -46,6 +50,20 @@ final class TwigCmsGlobals implements MiddlewareInterface
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
         $env = $this->twig->getEnvironment();
+        if (!self::$routeUrlFunctionRegistered && $this->routeParser !== null) {
+            $parser = $this->routeParser;
+            $env->addFunction(new TwigFunction('cms_route_url', static function (string $name, array $params = []) use ($parser): ?string {
+                $stringParams = [];
+                foreach ($params as $k => $v) {
+                    if (is_string($k) && is_string($v)) {
+                        $stringParams[$k] = $v;
+                    }
+                }
+
+                return NamedRouteUrl::tryFor($parser, $name, $stringParams);
+            }));
+            self::$routeUrlFunctionRegistered = true;
+        }
         $ttl = CacheConfig::internalTtlSeconds();
         $internal = $this->cacheManager?->internal();
 
