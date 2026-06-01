@@ -1070,7 +1070,8 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             $entryFormMediaContext,
             $entryPrimaryRichtextTextareaId,
             $entryRefsFormContext,
-            $viewData
+            $viewData,
+            $captureEntryRevision
         ): Response {
             $id = (int) $args['id'];
             $t = $types->findById($id);
@@ -1296,7 +1297,8 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             $entryFormMediaContext,
             $entryPrimaryRichtextTextareaId,
             $editSessions,
-            $entryRefsFormContext
+            $entryRefsFormContext,
+            $captureEntryRevision
         ): Response {
             $id = (int) $args['id'];
             $entryId = (int) $args['entryId'];
