@@ -12,7 +12,7 @@ use Psr\Http\Server\RequestHandlerInterface;
 use Slim\Psr7\Response;
 
 /**
- * Rate limits POST /login, POST /register, and all /api/v1 traffic per client IP.
+ * Rate limits POST /login, POST /register, mobile auth, checkout, and all /api/v1 traffic per client IP.
  */
 final class ThrottlingMiddleware implements MiddlewareInterface
 {
@@ -41,6 +41,34 @@ final class ThrottlingMiddleware implements MiddlewareInterface
             $max = $this->intEnv('CMS_REGISTER_MAX_ATTEMPTS_PER_HOUR', 10);
             if (!$this->limiter->hit('register', $ip, $max, 3600)) {
                 return $this->tooMany('Too many sign-up attempts. Try again in an hour.');
+            }
+        }
+
+        if ($method === 'POST' && $path === '/api/v1/mobile/auth/login') {
+            $max = $this->intEnv('CMS_LOGIN_MAX_ATTEMPTS_PER_QUARTER_HOUR', 40);
+            if (!$this->limiter->hit('mobile_login', $ip, $max, 900)) {
+                return $this->apiTooMany('Too many sign-in attempts. Try again in a few minutes.', 900);
+            }
+        }
+
+        if ($method === 'POST' && $path === '/api/v1/mobile/auth/register') {
+            $max = $this->intEnv('CMS_REGISTER_MAX_ATTEMPTS_PER_HOUR', 10);
+            if (!$this->limiter->hit('mobile_register', $ip, $max, 3600)) {
+                return $this->apiTooMany('Too many sign-up attempts. Try again in an hour.', 3600);
+            }
+        }
+
+        if ($method === 'POST' && $path === '/api/v1/mobile/auth/refresh') {
+            $max = $this->intEnv('CMS_MOBILE_REFRESH_MAX_PER_HOUR', 60);
+            if (!$this->limiter->hit('mobile_refresh', $ip, $max, 3600)) {
+                return $this->apiTooMany('Too many token refresh attempts. Try again later.', 3600);
+            }
+        }
+
+        if ($method === 'POST' && $path === '/api/v1/mobile/commerce/checkout') {
+            $max = $this->intEnv('CMS_MOBILE_CHECKOUT_MAX_PER_HOUR', 20);
+            if (!$this->limiter->hit('mobile_checkout', $ip, $max, 3600)) {
+                return $this->apiTooMany('Too many checkout attempts. Try again later.', 3600);
             }
         }
 
@@ -84,5 +112,19 @@ final class ThrottlingMiddleware implements MiddlewareInterface
         );
 
         return $r->withHeader('Content-Type', 'text/html; charset=utf-8')->withHeader('Retry-After', '900');
+    }
+
+    private function apiTooMany(string $message, int $retryAfterSeconds): ResponseInterface
+    {
+        $r = new Response(429);
+        $r->getBody()->write(json_encode([
+            'ok' => false,
+            'error' => 'rate_limited',
+            'message' => $message,
+        ], JSON_THROW_ON_ERROR));
+
+        return $r
+            ->withHeader('Content-Type', 'application/json; charset=utf-8')
+            ->withHeader('Retry-After', (string) max(1, $retryAfterSeconds));
     }
 }

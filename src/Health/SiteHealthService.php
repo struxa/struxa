@@ -407,6 +407,22 @@ final class SiteHealthService
             'security',
         );
 
+        $siteKey = trim((string) ($_ENV['PHPAUTH_SITE_KEY'] ?? ''));
+        $weakKey = $siteKey === ''
+            || $siteKey === \App\PhpAuthSettings::DEV_SITE_KEY
+            || strlen($siteKey) < \App\PhpAuthSettings::MIN_SITE_KEY_LENGTH;
+        $checks[] = new SiteHealthCheck(
+            'phpauth_site_key',
+            'PHPAUTH_SITE_KEY',
+            $weakKey ? SiteHealthStatus::CRITICAL : SiteHealthStatus::GOOD,
+            $weakKey
+                ? 'Set PHPAUTH_SITE_KEY in .env to a random string of at least '
+                . (string) \App\PhpAuthSettings::MIN_SITE_KEY_LENGTH
+                . ' characters (used for session cookie binding).'
+                : 'PHPAUTH_SITE_KEY is set to a strong value.',
+            'security',
+        );
+
         return $checks;
     }
 

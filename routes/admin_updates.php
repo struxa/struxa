@@ -2,7 +2,9 @@
 
 declare(strict_types=1);
 
+use App\Access\PermissionSlug;
 use App\Http\Middleware\RequireCmsStaff;
+use App\Http\Middleware\RequirePermission;
 use App\SiteProfile\SiteProfileRepository;
 use App\Update\CmsSelfUpdater;
 use App\Update\CmsUpdateChecker;
@@ -118,5 +120,5 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
 
             return $jsonResponse($response, $result, $result['ok'] ? 200 : 422);
         })->setName('admin.updates.apply');
-    })->add($middleware);
+    })->add($perm)->add($middleware);
 };

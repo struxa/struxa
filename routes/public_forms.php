@@ -12,6 +12,7 @@ use App\Form\FormRenderer;
 use App\Form\FormRepository;
 use App\Form\FormValidator;
 use App\Http\ClientIp;
+use App\Http\SafeRedirectPath;
 use App\Security\FileRateLimiter;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
@@ -77,9 +78,8 @@ return static function (App $app, Twig $twig, \PDO $pdo, string $projectRoot, ca
         $body = $request->getParsedBody();
         $body = is_array($body) ? $body : [];
 
-        $returnTo = isset($body['return_to']) && is_string($body['return_to']) && str_starts_with($body['return_to'], '/')
-            ? $body['return_to']
-            : $formUrl;
+        $rawReturnTo = isset($body['return_to']) && is_string($body['return_to']) ? $body['return_to'] : null;
+        $returnTo = SafeRedirectPath::afterLogin($rawReturnTo, $formUrl);
 
         $ip = ClientIp::fromRequest($request);
         if (!$rate->hit('forms_submit_1m', $ip, 8, 60) || !$rate->hit('forms_submit_1h', $ip, 40, 3600)) {
@@ -132,7 +132,9 @@ return static function (App $app, Twig $twig, \PDO $pdo, string $projectRoot, ca
         }
 
         if (($form['confirmation_type'] ?? 'message') === 'redirect' && !empty($form['confirmation_redirect_url'])) {
-            return $response->withHeader('Location', (string) $form['confirmation_redirect_url'])->withStatus(302);
+            $confirmUrl = SafeRedirectPath::afterLogin((string) $form['confirmation_redirect_url'], $formUrl);
+
+            return $response->withHeader('Location', $confirmUrl)->withStatus(302);
         }
 
         if (($form['form_type'] ?? 'standard') === 'quiz') {

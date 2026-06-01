@@ -137,6 +137,8 @@ try {
 
 Settings::boot($pdo);
 
+PhpAuthSettings::assertInstalledSiteKeyOrExit($root);
+
 $eventDispatcher = new EventDispatcher();
 Events::set($eventDispatcher);
 

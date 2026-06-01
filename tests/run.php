@@ -834,6 +834,10 @@ $pluginTab = MobileSettings::parseTabsJson('[{"id":"x","label":"X","type":"plugi
 if (($pluginTab[0]['plugin_slug'] ?? '') !== 'demo' || ($pluginTab[0]['url'] ?? '') !== 'https://example.com/p') {
     $fail('MobileSettings::parseTabsJson should preserve plugin tab optional fields.');
 }
+$insecureTab = MobileSettings::parseTabsJson('[{"id":"web","label":"Web","type":"url","url":"http://example.com"}]');
+if (isset($insecureTab[0]['url'])) {
+    $fail('MobileSettings::parseTabsJson should reject non-HTTPS tab URLs.');
+}
 
 $slugs = MobileSettings::parseSlugListJson('["post","page"]');
 if ($slugs !== ['post', 'page']) {

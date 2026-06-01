@@ -1,11 +1,50 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
+import { Platform } from 'react-native';
 
 import type { SiteAuthSession } from '../types/auth';
 
 const AUTH_PREFIX = '@struxa/auth:';
+const useSecureStore = Platform.OS !== 'web';
+
+async function readRaw(siteId: string): Promise<string | null> {
+  const key = `${AUTH_PREFIX}${siteId}`;
+  if (useSecureStore) {
+    const secure = await SecureStore.getItemAsync(key);
+    if (secure) {
+      return secure;
+    }
+    const legacy = await AsyncStorage.getItem(key);
+    if (legacy) {
+      await SecureStore.setItemAsync(key, legacy);
+      await AsyncStorage.removeItem(key);
+      return legacy;
+    }
+    return null;
+  }
+  return AsyncStorage.getItem(key);
+}
+
+async function writeRaw(siteId: string, value: string): Promise<void> {
+  const key = `${AUTH_PREFIX}${siteId}`;
+  if (useSecureStore) {
+    await SecureStore.setItemAsync(key, value);
+    await AsyncStorage.removeItem(key);
+    return;
+  }
+  await AsyncStorage.setItem(key, value);
+}
+
+async function removeRaw(siteId: string): Promise<void> {
+  const key = `${AUTH_PREFIX}${siteId}`;
+  if (useSecureStore) {
+    await SecureStore.deleteItemAsync(key);
+  }
+  await AsyncStorage.removeItem(key);
+}
 
 export async function loadSiteAuth(siteId: string): Promise<SiteAuthSession | null> {
-  const raw = await AsyncStorage.getItem(`${AUTH_PREFIX}${siteId}`);
+  const raw = await readRaw(siteId);
   if (!raw) {
     return null;
   }
@@ -21,11 +60,11 @@ export async function loadSiteAuth(siteId: string): Promise<SiteAuthSession | nu
 }
 
 export async function saveSiteAuth(siteId: string, session: SiteAuthSession): Promise<void> {
-  await AsyncStorage.setItem(`${AUTH_PREFIX}${siteId}`, JSON.stringify(session));
+  await writeRaw(siteId, JSON.stringify(session));
 }
 
 export async function clearSiteAuth(siteId: string): Promise<void> {
-  await AsyncStorage.removeItem(`${AUTH_PREFIX}${siteId}`);
+  await removeRaw(siteId);
 }
 
 export function sessionFromAuthResponse(data: {

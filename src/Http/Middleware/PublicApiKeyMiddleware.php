@@ -93,7 +93,7 @@ final class PublicApiKeyMiddleware implements MiddlewareInterface
         $raw = $_ENV['CMS_PUBLIC_API_KEY_SCOPES'] ?? getenv('CMS_PUBLIC_API_KEY_SCOPES');
         $s = is_string($raw) ? trim($raw) : '';
         if ($s === '') {
-            return ['read', 'read_drafts', 'write'];
+            return ['read'];
         }
         $parts = array_map('trim', explode(',', $s));
 

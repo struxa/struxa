@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.1.49",
-    "title": "Struxa 1.1.49",
-    "summary": "Mobile app admin (content types & sections), commerce/auth API hardening, client UI polish, migration 057.",
+    "latest_version": "1.1.50",
+    "title": "Struxa 1.1.50",
+    "summary": "Redesigned admin dashboard layout, CMS-wide security hardening (redirects, API scopes, site key).",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "minor"

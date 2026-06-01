@@ -37,6 +37,7 @@ final class MobileCommerceService
 {
     public const PER_PAGE_DEFAULT = 20;
     public const PER_PAGE_MAX = 30;
+    public const MAX_CART_LINES = 50;
 
     private readonly CommerceSettings $commerce;
     private readonly ProductResolver $products;
@@ -607,6 +608,13 @@ final class MobileCommerceService
      */
     private function parseLinesInput(array $linesInput): array
     {
+        if (count($linesInput) > self::MAX_CART_LINES) {
+            throw new MobileCommerceException(
+                'cart_too_large',
+                sprintf('Cart cannot contain more than %d line items.', self::MAX_CART_LINES),
+            );
+        }
+
         $out = [];
         foreach ($linesInput as $line) {
             if (!is_array($line)) {

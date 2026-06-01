@@ -65,6 +65,62 @@ final class MobileRefreshTokenRepository
         return $row === false ? null : $row;
     }
 
+    /**
+     * Atomically revoke and return an active refresh token (prevents parallel refresh races).
+     *
+     * @return array{id: int, phpauth_user_id: int, expires_at: string}|null
+     */
+    public function consumeActiveByPlainToken(string $plainToken): ?array
+    {
+        $plainToken = trim($plainToken);
+        if ($plainToken === '') {
+            return null;
+        }
+
+        $hash = hash('sha256', $plainToken);
+        $this->pdo->beginTransaction();
+        try {
+            $stmt = $this->pdo->prepare(
+                'SELECT id, phpauth_user_id, expires_at
+                 FROM cms_mobile_refresh_tokens
+                 WHERE token_hash = ? AND revoked_at IS NULL AND expires_at > UTC_TIMESTAMP()
+                 LIMIT 1
+                 FOR UPDATE'
+            );
+            $stmt->execute([$hash]);
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+            if ($row === false) {
+                $this->pdo->commit();
+
+                return null;
+            }
+
+            $this->revokeById((int) $row['id']);
+            $this->pdo->commit();
+
+            return $row;
+        } catch (\Throwable $e) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
+            throw $e;
+        }
+    }
+
+    public function revokeAllForUser(int $phpauthUserId): void
+    {
+        if ($phpauthUserId < 1) {
+            return;
+        }
+
+        $stmt = $this->pdo->prepare(
+            'UPDATE cms_mobile_refresh_tokens
+             SET revoked_at = UTC_TIMESTAMP()
+             WHERE phpauth_user_id = ? AND revoked_at IS NULL'
+        );
+        $stmt->execute([$phpauthUserId]);
+    }
+
     public function revokeById(int $id): void
     {
         $stmt = $this->pdo->prepare(

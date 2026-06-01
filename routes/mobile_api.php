@@ -91,7 +91,7 @@ return static function (App $app, \PDO $pdo, \App\Theme\ThemeManager $themeManag
             'ok' => false,
             'error' => 'mobile_disabled',
             'message' => 'Mobile app access is disabled for this site.',
-        ], 403);
+        ], 403, true);
     };
 
     $app->get('/api/v1/mobile/bootstrap', function (Request $request, Response $response) use ($bootstrap, $json, $mobileDisabled): Response {

@@ -122,7 +122,7 @@ final class MobileAuthService
     {
         $this->assertEnabled();
 
-        $row = $this->refreshRepo()->findActiveByPlainToken($refreshToken);
+        $row = $this->refreshRepo()->consumeActiveByPlainToken($refreshToken);
         if ($row === null) {
             throw new MobileAuthException('invalid_refresh_token', 'Refresh token is invalid or expired.', 401);
         }
@@ -132,8 +132,6 @@ final class MobileAuthService
         if ($profile === null || !$profile['is_active']) {
             throw new MobileAuthException('invalid_refresh_token', 'Account is not available.', 401);
         }
-
-        $this->refreshRepo()->revokeById((int) $row['id']);
 
         return $this->issueAuthResponse($uid);
     }
@@ -150,10 +148,7 @@ final class MobileAuthService
     public function me(int $userId): array
     {
         $this->assertEnabled();
-        $profile = $this->userProfile($userId);
-        if ($profile === null) {
-            throw new MobileAuthException('not_found', 'User not found.', 404);
-        }
+        $profile = $this->requireActiveProfile($userId);
 
         return ['user' => $profile];
     }
@@ -172,7 +167,12 @@ final class MobileAuthService
             throw new MobileAuthException('invalid_token', 'Invalid access token.', 401);
         }
 
-        return ['userId' => $uid, 'email' => $email];
+        $profile = $this->requireActiveProfile($uid);
+        if (strcasecmp($profile['email'], $email) !== 0) {
+            throw new MobileAuthException('invalid_token', 'Invalid access token.', 401);
+        }
+
+        return ['userId' => $uid, 'email' => $profile['email']];
     }
 
     private static function extractBearerToken(string $header): string
@@ -205,6 +205,8 @@ final class MobileAuthService
             throw new MobileAuthException('account_inactive', 'Account is not activated.', 403);
         }
 
+        $this->refreshRepo()->revokeAllForUser($uid);
+
         $access = MobileJwt::issueAccessToken($uid, $profile['email']);
         $refresh = $this->refreshRepo()->create($uid);
 
@@ -216,6 +218,22 @@ final class MobileAuthService
             'token_type' => 'Bearer',
             'user' => $profile,
         ];
+    }
+
+    /**
+     * @return array{id: int, email: string, username: ?string, display_name: ?string, is_active: bool, is_cms_staff: bool}
+     */
+    private function requireActiveProfile(int $uid): array
+    {
+        $profile = $this->userProfile($uid);
+        if ($profile === null) {
+            throw new MobileAuthException('not_found', 'User not found.', 404);
+        }
+        if (!$profile['is_active']) {
+            throw new MobileAuthException('account_inactive', 'Account is not activated.', 403);
+        }
+
+        return $profile;
     }
 
     /**

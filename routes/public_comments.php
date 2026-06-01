@@ -7,6 +7,7 @@ use App\Comment\CommentRepository;
 use App\Comment\CommentValidator;
 use App\Flash;
 use App\Http\ClientIp;
+use App\Http\SafeRedirectPath;
 use App\Security\FileRateLimiter;
 use App\Auth\PhpAuthUsernameRepository;
 use PHPAuth\Auth;
@@ -53,15 +54,11 @@ return static function (App $app, \PDO $pdo, string $projectRoot, Auth $auth): v
     ): Response {
         $body = $request->getParsedBody();
         $body = is_array($body) ? $body : [];
-        $returnTo = isset($body['return_to']) && is_string($body['return_to']) && str_starts_with($body['return_to'], '/')
-            ? $body['return_to']
-            : '/';
+        $rawReturnTo = isset($body['return_to']) && is_string($body['return_to']) ? $body['return_to'] : null;
+        $returnTo = SafeRedirectPath::afterLogin($rawReturnTo, '/');
         $loc = $returnTo . '#comments';
         $parser = RouteContext::fromRequest($request)->getRouteParser();
-        $loginUrl = $parser->urlFor('login');
-        if ($returnTo !== '' && str_starts_with($returnTo, '/') && !str_starts_with($returnTo, '//')) {
-            $loginUrl .= '?' . http_build_query(['next' => $returnTo]);
-        }
+        $loginUrl = $parser->urlFor('login') . '?' . http_build_query(['next' => $returnTo]);
 
         if (!$auth->isLogged()) {
             Flash::set('error', 'Sign in to post a comment.');
@@ -115,14 +112,10 @@ return static function (App $app, \PDO $pdo, string $projectRoot, Auth $auth): v
     $app->post('/comments/like', function (Request $request, Response $response) use ($repo, $likes, $likeRate, $auth, $accountDisplay): Response {
         $body = $request->getParsedBody();
         $body = is_array($body) ? $body : [];
-        $returnTo = isset($body['return_to']) && is_string($body['return_to']) && str_starts_with($body['return_to'], '/')
-            ? $body['return_to']
-            : '/';
+        $rawReturnTo = isset($body['return_to']) && is_string($body['return_to']) ? $body['return_to'] : null;
+        $returnTo = SafeRedirectPath::afterLogin($rawReturnTo, '/');
         $parser = RouteContext::fromRequest($request)->getRouteParser();
-        $loginUrl = $parser->urlFor('login');
-        if ($returnTo !== '' && str_starts_with($returnTo, '/') && !str_starts_with($returnTo, '//')) {
-            $loginUrl .= '?' . http_build_query(['next' => $returnTo]);
-        }
+        $loginUrl = $parser->urlFor('login') . '?' . http_build_query(['next' => $returnTo]);
 
         if (!$auth->isLogged()) {
             Flash::set('error', 'Sign in to like comments.');

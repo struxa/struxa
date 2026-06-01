@@ -166,7 +166,7 @@ final class MobileSettings
                 continue;
             }
             $id = self::cleanTabToken((string) ($row['id'] ?? ''));
-            $label = trim((string) ($row['label'] ?? ''));
+            $label = mb_substr(trim((string) ($row['label'] ?? '')), 0, 120);
             $type = self::cleanTabToken((string) ($row['type'] ?? ''));
             if ($id === '' || $label === '' || $type === '') {
                 continue;
@@ -360,7 +360,7 @@ final class MobileSettings
             $out['screen'] = strtolower($screen);
         }
         $url = trim((string) ($row['url'] ?? ''));
-        if ($url !== '' && preg_match('#^https?://#i', $url) === 1 && mb_strlen($url) <= 500) {
+        if ($url !== '' && preg_match('#^https://#i', $url) === 1 && mb_strlen($url) <= 500) {
             $out['url'] = $url;
         }
 

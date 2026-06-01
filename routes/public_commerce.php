@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Commerce\Catalog\ShopCatalogPage;
+use App\Http\SafeRedirectPath;
 use App\Commerce\Customer\CommerceCustomerLinker;
 use App\Commerce\Cart\CartResolver;
 use App\Commerce\Cart\CartService;
@@ -131,9 +132,9 @@ return static function (App $app, Twig $twig, \PDO $pdo, callable $viewData): vo
         $body = is_array($body) ? $body : [];
         $entryId = isset($body['content_entry_id']) ? (int) $body['content_entry_id'] : 0;
         $qty = isset($body['quantity']) ? (int) $body['quantity'] : 1;
-        $back = isset($body['return_to']) && is_string($body['return_to']) && str_starts_with($body['return_to'], '/')
-            ? $body['return_to']
-            : RouteContext::fromRequest($request)->getRouteParser()->urlFor('public.commerce.cart');
+        $cartUrl = RouteContext::fromRequest($request)->getRouteParser()->urlFor('public.commerce.cart');
+        $rawBack = isset($body['return_to']) && is_string($body['return_to']) ? $body['return_to'] : null;
+        $back = SafeRedirectPath::afterLogin($rawBack, $cartUrl);
 
         if ($entryId < 1) {
             Flash::set('error', 'Missing product.');

@@ -7079,7 +7079,453 @@ body.admin-nav-open {
   max-width: 36rem;
 }
 
-/* —— Dashboard HUD —— */
+/* —— Dashboard layout (refined) —— */
+.admin-dash-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.admin-dash-kpis {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+@media (min-width: 900px) {
+  .admin-dash-kpis {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.admin-dash-kpi {
+  --dash-kpi-accent: #7b61ff;
+  --dash-kpi-bg: rgba(123, 97, 255, 0.14);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  min-height: 6.5rem;
+  padding: 1.15rem 1.2rem;
+  border-radius: calc(var(--admin-radius) + 2px);
+  border: 1px solid var(--admin-border);
+  background: var(--admin-card);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04) inset;
+  text-decoration: none;
+  color: inherit;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.22s ease,
+    transform 0.22s var(--admin-ease);
+}
+
+a.admin-dash-kpi {
+  cursor: pointer;
+}
+
+a.admin-dash-kpi:hover {
+  transform: translateY(-2px);
+  border-color: rgba(123, 97, 255, 0.35);
+  box-shadow: 0 16px 40px -24px rgba(123, 97, 255, 0.28);
+}
+
+.admin-dash-kpi-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.admin-dash-kpi-label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--admin-dim);
+}
+
+.admin-dash-kpi-value {
+  font-size: clamp(1.65rem, 2.8vw, 2rem);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  color: var(--admin-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-dash-kpi-meta {
+  font-size: 0.75rem;
+  color: var(--admin-muted);
+  line-height: 1.35;
+}
+
+.admin-dash-kpi-icon {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 3.25rem;
+  height: 3.25rem;
+  border-radius: 50%;
+  background: var(--dash-kpi-bg);
+  color: var(--dash-kpi-accent);
+}
+
+.admin-dash-kpi-icon svg {
+  width: 1.35rem;
+  height: 1.35rem;
+}
+
+.admin-dash-kpi--pages {
+  --dash-kpi-accent: #a5b4fc;
+  --dash-kpi-bg: rgba(129, 140, 248, 0.18);
+}
+
+.admin-dash-kpi--entries {
+  --dash-kpi-accent: #5eead4;
+  --dash-kpi-bg: rgba(45, 212, 191, 0.16);
+}
+
+.admin-dash-kpi--media {
+  --dash-kpi-accent: #7dd3fc;
+  --dash-kpi-bg: rgba(56, 189, 248, 0.16);
+}
+
+.admin-dash-kpi--review {
+  --dash-kpi-accent: #fdba74;
+  --dash-kpi-bg: rgba(251, 146, 60, 0.16);
+}
+
+.admin-dash-kpi--review.is-hot {
+  border-color: rgba(251, 146, 60, 0.35);
+}
+
+.admin-dash-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+@media (min-width: 1100px) {
+  .admin-dash-layout {
+    grid-template-columns: minmax(15rem, 17.5rem) minmax(0, 1fr) minmax(14rem, 16.5rem);
+  }
+}
+
+.admin-dash-aside,
+.admin-dash-main,
+.admin-dash-rail {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-width: 0;
+}
+
+.admin-dash-profile {
+  position: relative;
+  overflow: hidden;
+  border-radius: calc(var(--admin-radius) + 2px);
+  border: 1px solid var(--admin-border);
+  background: var(--admin-card);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04) inset;
+}
+
+.admin-dash-profile-banner {
+  height: 5.5rem;
+  background:
+    linear-gradient(125deg, rgba(123, 97, 255, 0.55) 0%, rgba(56, 189, 248, 0.28) 55%, rgba(45, 212, 191, 0.2) 100%),
+    rgba(22, 27, 51, 0.9);
+}
+
+.admin-dash-profile-body {
+  position: relative;
+  margin-top: -2rem;
+  padding: 0 1.15rem 1.15rem;
+}
+
+.admin-dash-profile-avatar {
+  display: grid;
+  place-items: center;
+  width: 4rem;
+  height: 4rem;
+  margin-bottom: 0.65rem;
+  border-radius: 50%;
+  border: 3px solid var(--admin-card);
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: #e9d5ff;
+  background: linear-gradient(145deg, #6e45e2, #7b61ff);
+  box-shadow: 0 8px 24px -8px rgba(123, 97, 255, 0.55);
+}
+
+.admin-dash-profile-name {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--admin-text);
+}
+
+.admin-dash-profile-role {
+  margin: 0.15rem 0 0;
+  font-size: 0.8125rem;
+  color: var(--admin-dim);
+}
+
+.admin-dash-profile-site {
+  margin: 0.2rem 0 0.85rem;
+  font-size: 0.75rem;
+  color: var(--admin-muted);
+}
+
+.admin-dash-profile-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.65rem;
+  margin: 0 0 0.85rem;
+  padding: 0.75rem 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.admin-dash-profile-stat {
+  text-align: center;
+}
+
+.admin-dash-profile-stat dt {
+  margin: 0 0 0.15rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--admin-dim);
+}
+
+.admin-dash-profile-stat dd {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--admin-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-dash-profile-foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.admin-dash-profile-chip {
+  padding: 0.28rem 0.55rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  border-radius: 999px;
+  color: #c4b5fd;
+  background: rgba(123, 97, 255, 0.12);
+  border: 1px solid rgba(123, 97, 255, 0.22);
+}
+
+.admin-dash-card {
+  padding: 1.15rem 1.2rem;
+  border-radius: calc(var(--admin-radius) + 2px);
+  border: 1px solid var(--admin-border);
+  background: var(--admin-card);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04) inset;
+}
+
+.admin-dash-card--onboard {
+  border-color: rgba(45, 212, 191, 0.28);
+  background:
+    linear-gradient(160deg, rgba(45, 212, 191, 0.06), transparent 55%),
+    var(--admin-card);
+}
+
+.admin-dash-card-head {
+  margin-bottom: 1rem;
+}
+
+.admin-dash-card-head--row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.admin-dash-card-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--admin-text);
+}
+
+.admin-dash-card-lead {
+  margin: 0.35rem 0 0;
+  font-size: 0.8125rem;
+  color: var(--admin-dim);
+  line-height: 1.45;
+}
+
+.admin-dash-card-foot {
+  margin-top: 0.85rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.admin-dash-card-link {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: #a78bfa;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.admin-dash-card-link:hover {
+  color: #c4b5fd;
+  text-decoration: underline;
+}
+
+.admin-dash-card--compact {
+  padding: 0.85rem 1rem;
+}
+
+.admin-dash-mini-metrics {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+
+.admin-dash-mini-metrics a {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.1rem;
+  padding: 0.65rem 0.5rem;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(0, 0, 0, 0.18);
+  text-decoration: none;
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease;
+}
+
+.admin-dash-mini-metrics a:hover {
+  border-color: rgba(123, 97, 255, 0.28);
+  background: rgba(123, 97, 255, 0.08);
+}
+
+.admin-dash-mini-value {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--admin-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-dash-mini-label {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--admin-dim);
+}
+
+.admin-dash-timeline {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  max-height: min(24rem, 55vh);
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(123, 97, 255, 0.35) transparent;
+}
+
+.admin-dash-timeline-item {
+  display: grid;
+  grid-template-columns: 4.5rem minmax(0, 1fr);
+  gap: 0.85rem;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.admin-dash-timeline-item:last-child {
+  border-bottom: none;
+}
+
+.admin-dash-timeline-date {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: var(--admin-dim);
+  line-height: 1.35;
+}
+
+.admin-dash-timeline-title {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--admin-text);
+  text-transform: capitalize;
+}
+
+.admin-dash-timeline-sub,
+.admin-dash-timeline-meta {
+  margin: 0.12rem 0 0;
+  font-size: 0.75rem;
+  color: var(--admin-muted);
+  line-height: 1.4;
+}
+
+.admin-dash-links {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.admin-dash-link {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.55rem 0.65rem;
+  border-radius: 10px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--admin-text);
+  text-decoration: none;
+  transition: background 0.18s ease;
+}
+
+.admin-dash-link:hover {
+  background: rgba(123, 97, 255, 0.1);
+}
+
+.admin-dash-link-icon {
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 8px;
+  background: rgba(123, 97, 255, 0.14);
+  color: #c4b5fd;
+}
+
+.admin-dash-link-icon svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.admin-dash-card--workflow .admin-dash-pulse-grid {
+  margin-top: 0;
+}
+
+.admin-body--dashboard .admin-hero-title--dash {
+  background: none;
+  -webkit-background-clip: unset;
+  background-clip: unset;
+  color: var(--admin-text);
+}
+
+/* —— Dashboard HUD (legacy; unused by current template) —— */
 .admin-dash-hud {
   position: relative;
   display: flex;
@@ -7477,12 +7923,6 @@ a.admin-dash-stat:hover .admin-dash-stat-go {
 
 .admin-dash-panel--onboard .admin-dash-panel-glow {
   background: radial-gradient(circle, rgba(45, 212, 191, 0.18), transparent 68%);
-}
-
-.admin-dash-shell {
-  display: flex;
-  flex-direction: column;
-  gap: 1.35rem;
 }
 
 .admin-body--dashboard .admin-hero-title--dash {

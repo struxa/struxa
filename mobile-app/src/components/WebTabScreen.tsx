@@ -29,9 +29,17 @@ export function WebTabScreen({ bootstrap, tab, theme }: Props) {
     );
   }
 
+  if (!/^https:\/\//i.test(url)) {
+    return (
+      <View style={[styles.center, { backgroundColor: theme.background }]}>
+        <ErrorView message="This tab URL must use HTTPS." theme={theme} />
+      </View>
+    );
+  }
+
   return (
     <WebView
-      originWhitelist={['*']}
+      originWhitelist={['https://*']}
       pullToRefreshEnabled
       renderLoading={() => (
         <View style={styles.loader}>
