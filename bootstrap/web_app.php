@@ -734,7 +734,9 @@ $pluginContexts = $pluginManager->registerActivePublicRoutes($app, $twig, $auth,
 (require $root . '/routes/public_pages.php')($app, $twig, $pdo, $viewData);
 // Before public_taxonomy_archive: FastRoute errors if plugin admin adds /admin/.../... after /{a}/{b}/{c}.
 $pluginManager->registerActiveAdminRoutes($app, $twig, $auth, $pdo, $viewData, $eventDispatcher);
-$pluginManager->registerStruxaCatalogAdminRoutesIfNeeded($app, $twig, $auth, $pdo, $viewData, $eventDispatcher);
+if (method_exists($pluginManager, 'registerStruxaCatalogAdminRoutesIfNeeded')) {
+    $pluginManager->registerStruxaCatalogAdminRoutesIfNeeded($app, $twig, $auth, $pdo, $viewData, $eventDispatcher);
+}
 (require $root . '/routes/public_taxonomy_archive.php')($app, $twig, $pdo, $viewData);
 (require $root . '/routes/public_content_lists.php')($app, $twig, $pdo, $viewData);
 (require $root . '/routes/public_content_index.php')($app, $twig, $pdo, $viewData);

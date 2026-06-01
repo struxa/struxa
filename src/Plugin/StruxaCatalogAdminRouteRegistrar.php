@@ -49,7 +49,7 @@ final class StruxaCatalogAdminRouteRegistrar
             return;
         }
 
-        if (!class_exists(CatalogSettings::class)) {
+        if (!class_exists(CatalogSettings::class, false)) {
             return;
         }
 

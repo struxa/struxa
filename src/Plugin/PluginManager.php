@@ -100,17 +100,25 @@ final class PluginManager
         callable $viewData,
         EventDispatcher $events,
     ): void {
-        StruxaCatalogAdminRouteRegistrar::registerIfNeeded(
-            $app,
-            $twig,
-            $auth,
-            $pdo,
-            $viewData,
-            $events,
-            $this->projectRoot,
-            $this->plugins,
-            $this->scanner,
-        );
+        if (!class_exists(StruxaCatalogAdminRouteRegistrar::class)) {
+            return;
+        }
+
+        try {
+            StruxaCatalogAdminRouteRegistrar::registerIfNeeded(
+                $app,
+                $twig,
+                $auth,
+                $pdo,
+                $viewData,
+                $events,
+                $this->projectRoot,
+                $this->plugins,
+                $this->scanner,
+            );
+        } catch (\Throwable $e) {
+            error_log('[plugin] Catalog admin route registration skipped: ' . $e->getMessage());
+        }
     }
 
     /**
