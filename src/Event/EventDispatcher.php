@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Event;
 
 use App\Plugin\PluginPerformanceRegistry;
+use App\Support\ClassUtil;
 
 /**
  * Typed event bus: listeners register by concrete event class name.
@@ -35,7 +36,7 @@ final class EventDispatcher
             ($item['callback'])($event);
             if ($perf !== null) {
                 $ms = (hrtime(true) - $start) / 1_000_000;
-                $perf->recordHookCall('event:' . class_basename($class), $ms, $item['plugin_slug']);
+                $perf->recordHookCall('event:' . ClassUtil::shortName($class), $ms, $item['plugin_slug']);
             }
         }
     }

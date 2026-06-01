@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.1.51",
-    "title": "Struxa 1.1.51",
-    "summary": "Distribution catalog install fixes, background jobs admin UI, revision compare UX, config sync, content lists, admin SVG sizing, struxa-admin in catalog.",
+    "latest_version": "1.1.52",
+    "title": "Struxa 1.1.52",
+    "summary": "Plugin compatibility autoload before activation checks, fix plugin remove (ClassUtil), admin SVG sizing.",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "patch"

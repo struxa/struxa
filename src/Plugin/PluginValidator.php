@@ -40,6 +40,8 @@ final class PluginValidator
      */
     private function legacyActivationErrors(DiscoveredPlugin $plugin, ?PluginScanner $scanner): array
     {
+        PluginManager::registerPsr4Autoload($plugin);
+
         $errors = [];
         $m = $plugin->manifest;
 

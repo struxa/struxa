@@ -17,6 +17,9 @@ use Twig\Loader\FilesystemLoader;
  */
 final class PluginManager
 {
+    /** @var array<string, true> */
+    private static array $autoloadRegisteredForSlug = [];
+
     public function __construct(
         private readonly string $projectRoot,
         private readonly PluginRepository $plugins,
@@ -186,6 +189,20 @@ final class PluginManager
 
     public function registerAutoloadForPlugin(DiscoveredPlugin $plugin): void
     {
+        self::registerPsr4Autoload($plugin);
+    }
+
+    /**
+     * Register plugin.json psr4 autoload once per slug (safe before compatibility checks on inactive plugins).
+     */
+    public static function registerPsr4Autoload(DiscoveredPlugin $plugin): void
+    {
+        $slug = $plugin->manifest->slug;
+        if (isset(self::$autoloadRegisteredForSlug[$slug])) {
+            return;
+        }
+        self::$autoloadRegisteredForSlug[$slug] = true;
+
         $psr4 = $plugin->manifest->autoloadPsr4;
         if ($psr4 === null) {
             return;

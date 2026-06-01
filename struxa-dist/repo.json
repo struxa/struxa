@@ -1,6 +1,6 @@
 {
     "catalog_version": 1,
-    "generated_at": "2026-06-01T09:46:24+00:00",
+    "generated_at": "2026-06-01T10:37:50+00:00",
     "themes": [
         {
             "slug": "default",
@@ -15,7 +15,7 @@
         {
             "slug": "struxa-admin",
             "name": "Struxa Catalog Admin",
-            "version": "1.0.1",
+            "version": "1.0.2",
             "description": "Community plugin and theme submissions, admin review, and struxa-dist catalog publishing for struxapoint.com.",
             "author": "Struxa",
             "download_url": "https://struxapoint.com/struxa-dist/zips/struxa-admin.zip",

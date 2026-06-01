@@ -22,6 +22,8 @@ final class PluginCompatibilityChecker
 
     public function check(DiscoveredPlugin $plugin, ?PluginScanner $scanner = null, bool $includeMigrationPreflight = true): PluginCompatibilityReport
     {
+        PluginManager::registerPsr4Autoload($plugin);
+
         $errors = [];
         $warnings = [];
         $checks = [];

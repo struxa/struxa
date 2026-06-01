@@ -10,6 +10,7 @@ use App\Filter\Filters;
 use App\Jobs\Jobs;
 use App\Section\SectionDefinitionProviderInterface;
 use App\Section\SectionDefinitionRegistry;
+use App\Support\ClassUtil;
 use PHPAuth\Auth;
 use Slim\App;
 use Slim\Views\Twig;
@@ -138,7 +139,7 @@ final class PluginBootContext
      */
     public function listenEvent(string $eventClass, callable $listener): void
     {
-        $short = class_basename($eventClass);
+        $short = ClassUtil::shortName($eventClass);
         $resolved = PluginKnownEvents::resolveClass($short);
         if ($resolved === null || $resolved !== $eventClass) {
             throw new PluginCapabilityException(
