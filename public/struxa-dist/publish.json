@@ -1,0 +1,9 @@
+{
+  "themes": ["default"],
+  "plugins": [
+    "struxa-admin",
+    "knowledge-base-plugin",
+    "forum-plugin"
+  ],
+  "include_plugins": true
+}

@@ -13,6 +13,10 @@ struxa-dist/                 ← upload to site docroot (e.g. public_html/struxa
 
 CMS sites download from `https://struxapoint.com/struxa-dist/repo.json` and install ZIPs from `https://struxapoint.com/struxa-dist/zips/{slug}.zip`.
 
+**On struxapoint.com** the live folder is `~/public_html/struxapoint/public/struxa-dist/` (not the repo root `struxa-dist/` alone).
+
+**Struxa Catalog Admin** (`struxa-admin` plugin) can **regenerate** `repo.json` from `public/struxa-dist/publish.json` plus whatever ZIPs exist in `public/struxa-dist/zips/`. If `publish.json` there only lists `struxa-admin`, other plugins disappear from the catalog. Keep `public/struxa-dist/publish.json` in sync with `struxa-dist/publish.json` in git.
+
 ## 1. Build from the CMS repo
 
 From the **Struxa CMS** repo root, rebuild ZIPs and `repo.json` after changing themes/plugins:
@@ -31,8 +35,15 @@ Upload **`struxa-dist/`** (including `repo.json`, `zips/`, and `.htaccess`) to y
 | `https://struxapoint.com/struxa-dist/zips/{slug}.zip` | `struxa-dist/zips/{slug}.zip` |
 
 ```bash
-rsync -avz struxa-dist/ USER@HOST:public_html/struxa-dist/
+rsync -avz public/struxa-dist/ USER@HOST:~/public_html/struxapoint/public/struxa-dist/
 curl -sS https://struxapoint.com/struxa-dist/repo.json | head
+```
+
+On the server (after git pull):
+
+```bash
+cd ~/public_html/struxapoint
+bash scripts/deploy-struxa-dist-on-server.sh
 ```
 
 ## 3. Optional: GitHub mirror (`struxa/struxa-dist`)

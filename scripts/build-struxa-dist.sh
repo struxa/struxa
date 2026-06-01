@@ -72,4 +72,14 @@ done
 echo "==> Generating repo.json from manifests"
 php "$ROOT/bin/build-struxa-dist-catalog.php"
 
-echo "==> Done. Publish $DIST to https://struxapoint.com/struxa-dist/ (repo.json + zips/)"
+PUBLIC_DIST="$ROOT/public/struxa-dist"
+echo "==> Syncing to public/struxa-dist/ (served at /struxa-dist/ on struxapoint)"
+mkdir -p "$PUBLIC_DIST/zips"
+cp "$DIST/repo.json" "$PUBLIC_DIST/repo.json"
+cp "$DIST/publish.json" "$PUBLIC_DIST/publish.json"
+for zip in "$ZIPS"/*.zip; do
+  [[ -f "$zip" ]] || continue
+  cp "$zip" "$PUBLIC_DIST/zips/$(basename "$zip")"
+done
+
+echo "==> Done. Deploy public/struxa-dist/ to ~/public_html/struxapoint/public/struxa-dist/ on the server."
