@@ -82,6 +82,8 @@ final class StruxaCatalogAdminRouteRegistrar
     ): void {
         $skip = self::skipReason($app, $twig, $plugins, $scanner);
         if ($skip !== null) {
+            error_log('[plugin] Catalog admin routes skipped: ' . $skip);
+
             return;
         }
 

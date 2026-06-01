@@ -44,25 +44,8 @@ php -l src/Plugin/StruxaCatalogAdminRouteRegistrar.php
 php -l src/Plugin/PluginManager.php
 
 echo "==> Bootstrap + route check..."
-php -r '
-$_SERVER["REQUEST_URI"] = "/admin";
-$_SERVER["REQUEST_METHOD"] = "GET";
-$app = require "bootstrap/web_app.php";
-$found = false;
-foreach ($app->getRouteCollector()->getRoutes() as $r) {
-  $n = $r->getName();
-  if (is_string($n) && str_contains($n, "struxa_catalog")) {
-    echo "  route: $n\n";
-    $found = true;
-  }
-}
-if (!$found) {
-  echo "ERROR: No struxa_catalog routes registered.\n";
-  echo "Check: plugins/struxa-admin on disk, is_active=1, error_log for [plugin].\n";
-  exit 1;
-}
-echo "OK: catalog admin routes registered.\n";
-' 2>&1 | grep -v fieldFormContext || true
+fetch scripts/verify-catalog-admin-routes.php
+php scripts/verify-catalog-admin-routes.php 2>&1 | grep -v fieldFormContext || true
 
 echo "==> Clear cache..."
 php bin/cms.php cache:clear 2>/dev/null || true
