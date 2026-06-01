@@ -1,11 +1,11 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.1.63",
-    "title": "Struxa 1.1.63",
-    "summary": "Plugin updates prefer GitHub when repository_url is set: version check and download from the plugin repo, not struxa-dist catalog ZIPs.",
+    "latest_version": "1.1.64",
+    "title": "Struxa 1.1.64",
+    "summary": "Plugin update checks: GitHub API fallback when raw.githubusercontent.com is blocked, shorter GitHub cache TTL, and visible update-check errors on the Extensions page.",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
-    "severity": "minor"
+    "severity": "patch"
   }
 }

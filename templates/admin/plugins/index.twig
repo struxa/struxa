@@ -129,6 +129,9 @@
                 {% if upd and upd.update_available and upd.latest_version %}
                   <span class="admin-plugin-card-meta-sep">·</span>
                   <span class="admin-plugin-update-hint">v{{ upd.latest_version|e }} available{% if upd.source %} ({{ upd.source|e }}){% endif %}</span>
+                {% elseif upd and upd.latest_version and not upd.update_available %}
+                  <span class="admin-plugin-card-meta-sep">·</span>
+                  <span class="admin-text-muted">remote v{{ upd.latest_version|e }}{% if upd.source %} ({{ upd.source|e }}){% endif %}</span>
                 {% endif %}
                 {% if m.author %}
                   <span class="admin-plugin-card-meta-sep">·</span>
@@ -151,6 +154,9 @@
           <div class="admin-plugin-card-body">
             {% if m.description %}
               <p class="admin-plugin-card-desc">{{ m.description|e }}</p>
+            {% endif %}
+            {% if upd and upd.error and not upd.update_available %}
+              <p class="admin-plugin-compat-blocked-hint">Update check: {{ upd.error|e }}</p>
             {% endif %}
 
             {% if m.requiresCmsVersion or m.requiresPhp or m.requiresPlugins is not empty or m.capabilities is not empty or m.category or m.license or m.testedUpTo %}

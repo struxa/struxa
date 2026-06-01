@@ -25,9 +25,11 @@ final class PluginUpdateChecker
 {
     private const CACHE_KEY_CATALOG = 'plugin_update_catalog_map_v1';
 
-    private const CACHE_KEY_GITHUB_PREFIX = 'plugin_update_github_v1_';
+    private const CACHE_KEY_GITHUB_PREFIX = 'plugin_update_github_v2_';
 
     private const CACHE_TTL = 3600;
+
+    private const GITHUB_CACHE_TTL = 300;
 
     private const MAX_JSON_BYTES = 32_768;
 
@@ -213,6 +215,28 @@ final class PluginUpdateChecker
             rawurlencode($ref),
         );
         $raw = $this->httpGetLimited($url);
+        $version = $raw !== null && $raw !== '' ? $this->versionFromPluginJsonRaw($raw) : null;
+        if ($version === null) {
+            $version = $this->fetchGithubPluginVersionViaApi($owner, $repo, $ref);
+        }
+        if ($version === null || $version === '') {
+            return null;
+        }
+
+        $this->cache->set($key, $version, self::GITHUB_CACHE_TTL);
+
+        return $version;
+    }
+
+    private function fetchGithubPluginVersionViaApi(string $owner, string $repo, string $ref): ?string
+    {
+        $url = sprintf(
+            'https://api.github.com/repos/%s/%s/contents/plugin.json?ref=%s',
+            rawurlencode($owner),
+            rawurlencode($repo),
+            rawurlencode($ref),
+        );
+        $raw = $this->httpGetLimited($url, 'application/vnd.github+json');
         if ($raw === null || $raw === '') {
             return null;
         }
@@ -227,14 +251,33 @@ final class PluginUpdateChecker
             return null;
         }
 
-        $version = isset($data['version']) && is_string($data['version']) ? trim($data['version']) : '';
-        if ($version === '') {
+        $encoding = isset($data['encoding']) && is_string($data['encoding']) ? strtolower($data['encoding']) : '';
+        $content = isset($data['content']) && is_string($data['content']) ? $data['content'] : '';
+        if ($encoding !== 'base64' || $content === '') {
             return null;
         }
 
-        $this->cache->set($key, $version, self::CACHE_TTL);
+        $content = str_replace(["\r", "\n", ' '], '', $content);
+        $decoded = base64_decode($content, true);
 
-        return $version;
+        return $decoded !== false ? $this->versionFromPluginJsonRaw($decoded) : null;
+    }
+
+    private function versionFromPluginJsonRaw(string $raw): ?string
+    {
+        try {
+            /** @var mixed $data */
+            $data = json_decode($raw, true, 32, JSON_THROW_ON_ERROR);
+        } catch (\JsonException) {
+            return null;
+        }
+        if (!is_array($data)) {
+            return null;
+        }
+
+        $version = isset($data['version']) && is_string($data['version']) ? trim($data['version']) : '';
+
+        return $version !== '' ? $version : null;
     }
 
     private function normalizeVersion(string $version): string
@@ -250,13 +293,13 @@ final class PluginUpdateChecker
         return $version;
     }
 
-    private function httpGetLimited(string $url): ?string
+    private function httpGetLimited(string $url, string $accept = 'application/json'): ?string
     {
         if (!str_starts_with($url, 'https://')) {
             return null;
         }
 
-        $ua = 'Struxa-PluginUpdateCheck/1.0 (+https://struxapoint.com)';
+        $ua = 'Struxa-PluginUpdateCheck/1.1 (+https://struxapoint.com)';
 
         if (function_exists('curl_init')) {
             $ch = curl_init($url);
@@ -267,7 +310,7 @@ final class PluginUpdateChecker
                     CURLOPT_MAXREDIRS => 5,
                     CURLOPT_CONNECTTIMEOUT => 10,
                     CURLOPT_TIMEOUT => 20,
-                    CURLOPT_HTTPHEADER => ['Accept: application/json', 'User-Agent: ' . $ua],
+                    CURLOPT_HTTPHEADER => ['Accept: ' . $accept, 'User-Agent: ' . $ua],
                     CURLOPT_SSL_VERIFYPEER => true,
                     CURLOPT_SSL_VERIFYHOST => 2,
                 ]);
@@ -282,7 +325,11 @@ final class PluginUpdateChecker
         $ctx = stream_context_create([
             'http' => [
                 'timeout' => 15,
-                'header' => "Accept: application/json\r\nUser-Agent: {$ua}\r\n",
+                'header' => "Accept: {$accept}\r\nUser-Agent: {$ua}\r\n",
+            ],
+            'ssl' => [
+                'verify_peer' => true,
+                'verify_peer_name' => true,
             ],
         ]);
         $raw = @file_get_contents($url, false, $ctx);
