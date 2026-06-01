@@ -7,6 +7,8 @@ declare(strict_types=1);
  * Run: php scripts/verify-catalog-admin-routes.php
  */
 
+const VERIFY_SCRIPT_VERSION = '2026-06-01b';
+
 $root = dirname(__DIR__);
 chdir($root);
 
@@ -19,11 +21,26 @@ if (is_readable($root . '/.env')) {
 $registrarFile = $root . '/src/Plugin/StruxaCatalogAdminRouteRegistrar.php';
 $registrarSrc = is_file($registrarFile) ? (string) file_get_contents($registrarFile) : '';
 
-echo "=== Catalog admin route verify ===\n\n";
+echo "=== Catalog admin route verify (" . VERIFY_SCRIPT_VERSION . ") ===\n\n";
+
 echo 'registerPsr4Autoload in registrar: '
     . (str_contains($registrarSrc, 'PluginManager::registerPsr4Autoload($discovered)') ? "yes\n" : "NO — curl registrar from GitHub main\n");
-echo 'static registerAutoloadForPlugin in registrar: '
-    . (preg_match('/PluginManager::registerAutoloadForPlugin\s*\(/', $registrarSrc) === 1 ? "BAD — old file\n" : "no\n");
+
+$hasAuthParamFix = preg_match(
+    '/function register\s*\(\s*App\s+\$app\s*,\s*PluginBootContext\s+\$ctx\s*,\s*Auth\s+\$auth\s*\)/',
+    $registrarSrc
+) === 1;
+echo 'register(..., Auth $auth) signature (user.read fix): '
+    . ($hasAuthParamFix ? "yes\n" : "NO — curl latest StruxaCatalogAdminRouteRegistrar.php\n");
+
+$usesCtxAuth = preg_match('/\$auth\s*=\s*\$ctx->auth\s*\(\s*\)/', $registrarSrc) === 1;
+echo 'uses $ctx->auth() in register(): '
+    . ($usesCtxAuth ? "BAD — old registrar\n" : "no\n");
+
+$pluginJson = $root . '/plugins/struxa-admin/plugin.json';
+$pluginSrc = is_file($pluginJson) ? (string) file_get_contents($pluginJson) : '';
+echo 'plugin.json has user.read: '
+    . (str_contains($pluginSrc, 'user.read') ? "yes\n" : "no (optional if registrar has Auth fix)\n");
 
 $dbHost = $_ENV['DB_HOST'] ?? '127.0.0.1';
 $dbPort = $_ENV['DB_PORT'] ?? '3306';
@@ -67,6 +84,11 @@ if (class_exists(\App\Plugin\StruxaCatalogAdminRouteRegistrar::class)) {
         new \App\Plugin\PluginScanner($root),
     );
     echo 'skipReason: ' . ($skip ?? 'none') . "\n";
+
+    $last = \App\Plugin\StruxaCatalogAdminRouteRegistrar::lastRegisterError();
+    if (is_string($last) && $last !== '') {
+        echo 'lastRegisterError: ' . $last . "\n";
+    }
 }
 
 $admin = [];
@@ -79,13 +101,35 @@ foreach ($app->getRouteCollector()->getRoutes() as $route) {
 
 if ($admin === []) {
     echo "\nNO admin.struxa_catalog.* routes.\n";
-    if (class_exists(\App\Plugin\StruxaCatalogAdminRouteRegistrar::class)) {
-        $last = \App\Plugin\StruxaCatalogAdminRouteRegistrar::lastRegisterError();
-        if (is_string($last) && $last !== '') {
-            echo "lastRegisterError: $last\n";
+
+    $logCandidates = [
+        $root . '/error_log',
+        dirname($root) . '/error_log',
+        '/home/bushell/logs/error_log',
+    ];
+    foreach ($logCandidates as $logPath) {
+        if (!is_readable($logPath)) {
+            continue;
+        }
+        $lines = [];
+        foreach (file($logPath, FILE_IGNORE_NEW_LINES) ?: [] as $line) {
+            if (str_contains($line, 'catalog admin') || str_contains($line, 'Catalog admin')) {
+                $lines[] = $line;
+            }
+        }
+        if ($lines !== []) {
+            echo "\nRecent catalog lines from $logPath:\n";
+            foreach (array_slice($lines, -5) as $line) {
+                echo '  ' . $line . "\n";
+            }
+            break;
         }
     }
-    echo "Check error_log for: Catalog admin routes skipped / Core catalog admin routes failed\n";
+
+    if (!$hasAuthParamFix) {
+        echo "\nFIX: curl -fsSL https://raw.githubusercontent.com/struxa/struxa/main/src/Plugin/StruxaCatalogAdminRouteRegistrar.php -o src/Plugin/StruxaCatalogAdminRouteRegistrar.php\n";
+    }
+
     exit(1);
 }
 
