@@ -407,7 +407,8 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             $activity->log($cmsUid($request), 'plugin.repaired', 'plugin', null, ['slug' => 'struxa-admin']);
             Flash::set(
                 'success',
-                'Struxa Catalog Admin repaired (database row, migrations, active flag). Reload this page — catalog links should work.'
+                'Struxa Catalog Admin repaired (database row, migrations, active flag). Reload this page. '
+                . 'If the repair notice remains, apply CMS update 1.1.56+ (core catalog routes).'
             );
             Events::dispatch(new StorefrontCachesInvalidateEvent('plugin_repaired'));
 

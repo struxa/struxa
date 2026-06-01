@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.1.55",
-    "title": "Struxa 1.1.55",
-    "summary": "One-click Repair catalog admin for struxa-admin (no DB access); retries route registration when active but URLs missing.",
+    "latest_version": "1.1.56",
+    "title": "Struxa 1.1.56",
+    "summary": "Register Struxa Catalog Admin routes from core CMS (fixes missing catalog URLs after repair on some hosts).",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "patch"
