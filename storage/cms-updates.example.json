@@ -1,11 +1,11 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.1.62",
-    "title": "Struxa 1.1.62",
-    "summary": "Fix content entry save: captureEntryRevision was missing from POST create/edit route closures.",
+    "latest_version": "1.1.63",
+    "title": "Struxa 1.1.63",
+    "summary": "Plugin updates prefer GitHub when repository_url is set: version check and download from the plugin repo, not struxa-dist catalog ZIPs.",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
-    "severity": "patch"
+    "severity": "minor"
   }
 }

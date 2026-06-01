@@ -7,7 +7,10 @@ namespace App\Plugin;
 use App\Cache\FileCache;
 
 /**
- * Compares installed plugin versions with the distribution catalog and optional GitHub plugin.json.
+ * Compares installed plugin versions with GitHub (when repository_url is set) or the distribution catalog.
+ *
+ * Plugins with a GitHub repository_url are checked against plugin.json on the configured ref (default main).
+ * Updates download from GitHub, not the struxa-dist catalog ZIPs.
  *
  * @phpstan-type PluginUpdateStatus array{
  *   update_available: bool,
@@ -49,6 +52,30 @@ final class PluginUpdateChecker
             'error' => null,
         ];
 
+        $repoUrl = $plugin->manifest->repositoryUrl;
+        $github = ($repoUrl !== null && $repoUrl !== '')
+            ? self::parseGithubRepositoryUrl($repoUrl)
+            : null;
+
+        if ($github !== null) {
+            $remote = $this->fetchGithubPluginVersion($github['owner'], $github['repo'], self::resolveGithubRef());
+            if ($remote === null) {
+                $base['error'] = 'Could not read plugin.json from GitHub.';
+            } else {
+                $ghLatest = $this->normalizeVersion($remote);
+                if ($ghLatest !== '') {
+                    $base['latest_version'] = $ghLatest;
+                    $base['source'] = 'github';
+                    if (version_compare($ghLatest, $installed, '>')) {
+                        $base['update_available'] = true;
+                        $base['can_update'] = true;
+                    }
+
+                    return $base;
+                }
+            }
+        }
+
         if ($catalogEntry !== null) {
             $latest = $this->normalizeVersion($catalogEntry->version);
             if ($latest !== '' && version_compare($latest, $installed, '>')) {
@@ -65,40 +92,6 @@ final class PluginUpdateChecker
                 $base['latest_version'] = $latest;
                 $base['source'] = 'catalog';
             }
-        }
-
-        $repoUrl = $plugin->manifest->repositoryUrl;
-        if ($repoUrl === null || $repoUrl === '') {
-            return $base;
-        }
-
-        $github = self::parseGithubRepositoryUrl($repoUrl);
-        if ($github === null) {
-            return $base;
-        }
-
-        $remote = $this->fetchGithubPluginVersion($github['owner'], $github['repo'], $this->githubRef());
-        if ($remote === null) {
-            if ($base['latest_version'] === null) {
-                $base['error'] = 'Could not read plugin.json from GitHub.';
-            }
-
-            return $base;
-        }
-
-        $ghLatest = $this->normalizeVersion($remote);
-        if ($ghLatest === '') {
-            return $base;
-        }
-
-        if ($base['latest_version'] === null || version_compare($ghLatest, $base['latest_version'], '>')) {
-            $base['latest_version'] = $ghLatest;
-            $base['source'] = 'github';
-        }
-
-        if (version_compare($ghLatest, $installed, '>')) {
-            $base['update_available'] = true;
-            $base['can_update'] = true;
         }
 
         return $base;
@@ -195,7 +188,7 @@ final class PluginUpdateChecker
         return ['owner' => $m[1], 'repo' => $m[2]];
     }
 
-    private function githubRef(): string
+    public static function resolveGithubRef(): string
     {
         $ref = trim((string) ($_ENV['STRUXA_PLUGIN_UPDATE_GITHUB_REF'] ?? getenv('STRUXA_PLUGIN_UPDATE_GITHUB_REF') ?: ''));
         if ($ref === '') {

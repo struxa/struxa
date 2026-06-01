@@ -295,7 +295,17 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             }
 
             $err = null;
-            if ($updateStatus['source'] === 'catalog' && isset($catalogBySlug[$slug])) {
+            $repoUrl = $discovered->manifest->repositoryUrl ?? '';
+            $github = is_string($repoUrl) ? PluginUpdateChecker::parseGithubRepositoryUrl($repoUrl) : null;
+
+            if ($github !== null) {
+                $err = $remoteInstaller->updateFromGithubRepository(
+                    $slug,
+                    $github['owner'],
+                    $github['repo'],
+                    PluginUpdateChecker::resolveGithubRef(),
+                );
+            } elseif ($updateStatus['source'] === 'catalog' && isset($catalogBySlug[$slug])) {
                 $loaded = $catalogLoader->load();
                 if (!$loaded['ok']) {
                     Flash::set('error', 'Plugin catalog is unavailable: ' . $loaded['error']);
@@ -307,20 +317,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 }
                 $err = $remoteInstaller->updateFromCatalogSlug($slug, $loaded['entries']);
             } else {
-                $repoUrl = $discovered->manifest->repositoryUrl ?? '';
-                $github = is_string($repoUrl) ? PluginUpdateChecker::parseGithubRepositoryUrl($repoUrl) : null;
-                if ($github === null) {
-                    $err = 'This plugin has no catalog entry or GitHub repository URL for updates.';
-                } else {
-                    $ref = trim((string) ($_ENV['STRUXA_PLUGIN_UPDATE_GITHUB_REF'] ?? getenv('STRUXA_PLUGIN_UPDATE_GITHUB_REF') ?: ''));
-                    if ($ref === '') {
-                        $ref = trim((string) ($_ENV['STRUXA_UPDATES_GITHUB_REF'] ?? getenv('STRUXA_UPDATES_GITHUB_REF') ?: ''));
-                    }
-                    if ($ref === '') {
-                        $ref = 'main';
-                    }
-                    $err = $remoteInstaller->updateFromGithubRepository($slug, $github['owner'], $github['repo'], $ref);
-                }
+                $err = 'This plugin has no GitHub repository URL or catalog entry for updates.';
             }
 
             if ($err !== null) {
