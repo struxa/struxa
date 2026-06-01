@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.1.52",
-    "title": "Struxa 1.1.52",
-    "summary": "Plugin compatibility autoload before activation checks, fix plugin remove (ClassUtil), admin SVG sizing.",
+    "latest_version": "1.1.53",
+    "title": "Struxa 1.1.53",
+    "summary": "Preload plugin main_class for compatibility checks; clearer missing-file hints; includes 1.1.52 plugin autoload and remove fixes.",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "patch"

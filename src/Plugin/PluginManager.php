@@ -225,6 +225,74 @@ final class PluginManager
                 }
             });
         }
+
+        self::preloadMainClassFile($plugin);
+    }
+
+    /**
+     * Require the main_class file directly (compatibility checks run before spl_autoload may fire).
+     */
+    public static function preloadMainClassFile(DiscoveredPlugin $plugin): void
+    {
+        $class = $plugin->manifest->mainClass;
+        if ($class === null || class_exists($class, false)) {
+            return;
+        }
+
+        $psr4 = $plugin->manifest->autoloadPsr4;
+        if ($psr4 === null) {
+            return;
+        }
+
+        $base = $plugin->rootPath . DIRECTORY_SEPARATOR;
+        foreach ($psr4 as $prefix => $relative) {
+            $prefix = rtrim($prefix, '\\') . '\\';
+            if (!str_starts_with($class, $prefix)) {
+                continue;
+            }
+            $rel = substr($class, strlen($prefix));
+            $dir = $base . trim(str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $relative), DIRECTORY_SEPARATOR);
+            $file = $dir . DIRECTORY_SEPARATOR . str_replace('\\', DIRECTORY_SEPARATOR, $rel) . '.php';
+            if (is_file($file)) {
+                require_once $file;
+
+                return;
+            }
+        }
+    }
+
+    /**
+     * Human-readable hint when main_class cannot be loaded (for admin compatibility UI).
+     */
+    public static function mainClassLoadHint(DiscoveredPlugin $plugin): ?string
+    {
+        $class = $plugin->manifest->mainClass;
+        if ($class === null) {
+            return null;
+        }
+
+        $psr4 = $plugin->manifest->autoloadPsr4;
+        if ($psr4 === null) {
+            return 'plugin.json has no autoload.psr4.';
+        }
+
+        $base = $plugin->rootPath . DIRECTORY_SEPARATOR;
+        foreach ($psr4 as $prefix => $relative) {
+            $prefix = rtrim($prefix, '\\') . '\\';
+            if (!str_starts_with($class, $prefix)) {
+                continue;
+            }
+            $rel = substr($class, strlen($prefix));
+            $dir = $base . trim(str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $relative), DIRECTORY_SEPARATOR);
+            $file = $dir . DIRECTORY_SEPARATOR . str_replace('\\', DIRECTORY_SEPARATOR, $rel) . '.php';
+            if (is_file($file)) {
+                return null;
+            }
+
+            return 'Expected file missing: plugins/' . $plugin->manifest->slug . '/' . trim($relative, '/') . '/' . str_replace('\\', '/', $rel) . '.php';
+        }
+
+        return 'No PSR-4 prefix matches main_class namespace.';
     }
 
     private function loadRouteFile(string $path, App $app, PluginBootContext $ctx, bool $public): void

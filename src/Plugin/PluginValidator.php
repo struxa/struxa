@@ -66,8 +66,13 @@ final class PluginValidator
             }
         }
 
-        if ($m->mainClass !== null && !class_exists($m->mainClass)) {
-            $errors[] = 'Main class "' . $m->mainClass . '" could not be loaded.';
+        if ($m->mainClass !== null) {
+            PluginManager::preloadMainClassFile($plugin);
+            if (!class_exists($m->mainClass)) {
+                $hint = PluginManager::mainClassLoadHint($plugin);
+                $errors[] = 'Main class "' . $m->mainClass . '" could not be loaded.'
+                    . ($hint !== null ? ' ' . $hint : '');
+            }
         }
 
         if ($m->mainClass !== null && class_exists($m->mainClass)) {

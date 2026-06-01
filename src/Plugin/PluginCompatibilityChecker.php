@@ -33,7 +33,7 @@ final class PluginCompatibilityChecker
         $this->checkCmsVersion($m, $errors, $warnings, $checks);
         $this->checkPhpExtensions($m, $errors, $checks);
         $this->checkManifestContract($m, $errors, $warnings, $checks);
-        $this->checkMainClass($m, $errors, $checks);
+        $this->checkMainClass($plugin, $m, $errors, $checks);
         $this->checkNavOptions($m, $errors, $checks);
         $this->checkParentPlugin($m, $scanner, $errors, $checks);
         $this->checkRequiresPlugins($m, $scanner, $errors, $checks);
@@ -184,13 +184,18 @@ final class PluginCompatibilityChecker
      * @param list<string> $errors
      * @param list<array{label: string, status: string, detail: string}> $checks
      */
-    private function checkMainClass(PluginManifest $m, array &$errors, array &$checks): void
+    private function checkMainClass(DiscoveredPlugin $plugin, PluginManifest $m, array &$errors, array &$checks): void
     {
         if ($m->mainClass === null) {
             return;
         }
+        PluginManager::preloadMainClassFile($plugin);
         if (!class_exists($m->mainClass)) {
+            $hint = PluginManager::mainClassLoadHint($plugin);
             $msg = 'Main class "' . $m->mainClass . '" could not be loaded. Check autoload.psr4 in plugin.json.';
+            if ($hint !== null) {
+                $msg .= ' ' . $hint;
+            }
             $errors[] = $msg;
             $checks[] = ['label' => 'Main class', 'status' => 'error', 'detail' => $msg];
 
