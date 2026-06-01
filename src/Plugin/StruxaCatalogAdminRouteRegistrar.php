@@ -49,10 +49,6 @@ final class StruxaCatalogAdminRouteRegistrar
             return;
         }
 
-        if (!class_exists(CatalogSettings::class, false)) {
-            return;
-        }
-
         $discovered = $scanner->findBySlug('struxa-admin');
         if ($discovered === null) {
             return;
@@ -69,6 +65,9 @@ final class StruxaCatalogAdminRouteRegistrar
         }
 
         PluginManager::registerAutoloadForPlugin($discovered);
+        if (!class_exists(CatalogSettings::class)) {
+            return;
+        }
         $views = $discovered->rootPath . '/views';
         if (is_dir($views)) {
             $loader->addPath($views, PluginManager::twigNamespaceForSlug('struxa-admin'));

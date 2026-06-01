@@ -405,11 +405,20 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             }
 
             $activity->log($cmsUid($request), 'plugin.repaired', 'plugin', null, ['slug' => 'struxa-admin']);
-            Flash::set(
-                'success',
-                'Struxa Catalog Admin repaired (database row, migrations, active flag). Reload this page. '
-                . 'If the repair notice remains, apply CMS update 1.1.56+ (core catalog routes).'
-            );
+            if (!class_exists(\App\Plugin\StruxaCatalogAdminRouteRegistrar::class)) {
+                Flash::set(
+                    'error',
+                    'Database repaired, but catalog admin URLs need CMS file '
+                    . 'src/Plugin/StruxaCatalogAdminRouteRegistrar.php (Struxa 1.1.56+). '
+                    . 'Upload it via terminal (see struxa repo), then reload this page. '
+                    . 'Also ensure bootstrap/web_app.php is not still commenting out registerStruxaCatalogAdminRoutesIfNeeded.'
+                );
+            } else {
+                Flash::set(
+                    'success',
+                    'Struxa Catalog Admin repaired. Reload this page once — Catalog submissions should appear in the toolbar and under Extensions.'
+                );
+            }
             Events::dispatch(new StorefrontCachesInvalidateEvent('plugin_repaired'));
 
             return $response->withHeader('Location', $back)->withStatus(302);
