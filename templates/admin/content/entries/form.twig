@@ -306,7 +306,7 @@
                     <span class="admin-page-edit-revisions-when">{{ row.created_at|e }}</span>
                   </div>
                   <div class="admin-page-edit-revisions-by">{{ row.author_email|default('—')|e }}</div>
-                  <a class="admin-link admin-page-edit-revisions-compare" href="{{ url_for('admin.content_types.entries.revision_compare', { id: content_type.id, entryId: entry.id, revId: row.id }) }}">Compare</a>
+                  <a class="admin-link admin-page-edit-revisions-compare" href="{{ url_for('admin.content_types.entries.revision_compare', { id: content_type.id, entryId: entry.id }) }}?from={{ row.id }}&amp;to=current">Changes</a>
                 </li>
               {% endfor %}
             </ul>
@@ -396,6 +396,9 @@
 {% endblock %}
 
 {% block admin_scripts %}
+  {% if fields|filter(f => f.fieldType == 'entry_refs') is not empty and entry_refs_picker_url %}
+    <script src="{{ asset('js/admin-entry-refs.js') }}" defer></script>
+  {% endif %}
   {% if fields|filter(f => f.fieldType == 'richtext') is not empty %}
     <script>window.CMS_RICHTEXT_OEMBED_URL = {{ url_for('admin.richtext.oembed')|json_encode|raw }};</script>
     <script src="https://cdn.jsdelivr.net/npm/tinymce@7.9.2/tinymce.min.js" id="cms-tinymce-cdn" referrerpolicy="origin"></script>

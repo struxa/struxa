@@ -330,6 +330,22 @@ final class MobileSettings
         return json_encode($payload, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
     }
 
+    /**
+     * @return list<string>
+     */
+    public static function exportableKeys(): array
+    {
+        return [
+            self::SETTING_ENABLED,
+            self::SETTING_WELCOME_TITLE,
+            self::SETTING_WELCOME_MESSAGE,
+            self::SETTING_INCLUDE_FOOTER_NAV,
+            self::SETTING_TABS_JSON,
+            self::SETTING_CONTENT_SLUGS_JSON,
+            self::SETTING_FEATURES_JSON,
+        ];
+    }
+
     private static function cleanTabToken(string $value): string
     {
         $value = strtolower(trim($value));

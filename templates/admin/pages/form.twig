@@ -252,7 +252,7 @@
                       <span class="admin-badge admin-badge--muted admin-page-edit-revisions-status">{{ row.status|e }}</span>
                     </div>
                     <div class="admin-page-edit-revisions-by">{{ row.author_email|default('—')|e }}</div>
-                    <a class="admin-link admin-page-edit-revisions-compare" href="{{ url_for('admin.pages.revision_compare', { id: page.id, revId: row.id }) }}">Compare</a>
+                    <a class="admin-link admin-page-edit-revisions-compare" href="{{ url_for('admin.pages.revision_compare', { id: page.id }) }}?from={{ row.id }}&amp;to=current">Changes</a>
                   </li>
                 {% endfor %}
               </ul>

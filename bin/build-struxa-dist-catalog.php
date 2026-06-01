@@ -17,6 +17,8 @@ $publishPath = $distRoot . '/publish.json';
 
 /** @var list<string> $publishThemes */
 $publishThemes = ['default'];
+/** @var list<string> $publishPluginSlugs */
+$publishPluginSlugs = [];
 $includePlugins = false;
 if (is_readable($publishPath)) {
     try {
@@ -31,6 +33,13 @@ if (is_readable($publishPath)) {
                     }
                 }
             }
+            if (isset($publish['plugins']) && is_array($publish['plugins'])) {
+                foreach ($publish['plugins'] as $p) {
+                    if (is_string($p) && $p !== '') {
+                        $publishPluginSlugs[] = strtolower(trim($p));
+                    }
+                }
+            }
             $includePlugins = !empty($publish['include_plugins']);
         }
     } catch (JsonException $e) {
@@ -38,6 +47,7 @@ if (is_readable($publishPath)) {
         exit(1);
     }
 }
+$publishPluginSet = array_fill_keys($publishPluginSlugs, true);
 if ($publishThemes === []) {
     $publishThemes = ['default'];
 }
@@ -90,54 +100,76 @@ if (is_dir($themesDir)) {
 usort($themes, static fn (array $a, array $b): int => strcmp($a['slug'], $b['slug']));
 
 $plugins = [];
-if ($includePlugins) {
-    $pluginsDir = $root . '/plugins';
-    if (is_dir($pluginsDir)) {
-        foreach (scandir($pluginsDir) ?: [] as $dir) {
-            if ($dir === '.' || $dir === '..' || !is_dir($pluginsDir . '/' . $dir)) {
-                continue;
-            }
-            $manifestPath = $pluginsDir . '/' . $dir . '/plugin.json';
-            if (!is_file($manifestPath)) {
-                continue;
-            }
-            $zipPath = $zipsDir . '/' . $dir . '.zip';
-            if (!is_file($zipPath)) {
-                fwrite(STDERR, "Skip plugin {$dir}: missing {$zipPath}\n");
-                continue;
-            }
+$pluginsDir = $root . '/plugins';
+$addPluginFromManifest = static function (string $slug, array $data) use ($baseUrl, &$plugins): void {
+    $slug = strtolower(trim($slug));
+    $entry = [
+        'slug' => $slug,
+        'name' => trim((string) ($data['name'] ?? $slug)),
+        'version' => trim((string) ($data['version'] ?? '1.0.0')),
+        'description' => trim((string) ($data['description'] ?? '')),
+        'author' => trim((string) ($data['author'] ?? '')),
+        'download_url' => $baseUrl . '/' . rawurlencode($slug) . '.zip',
+    ];
+    $req = isset($data['requires_cms_version']) && is_string($data['requires_cms_version']) && trim($data['requires_cms_version']) !== ''
+        ? trim($data['requires_cms_version'])
+        : (isset($data['min_cms_version']) && is_string($data['min_cms_version']) ? trim($data['min_cms_version']) : null);
+    if ($req !== null && $req !== '') {
+        $entry['requires_cms_version'] = $req;
+    }
+    if ($slug === 'stripe-store-plugin') {
+        $entry['description'] = trim($entry['description'] . ' After install: run composer plugin-deps at the CMS root (Stripe PHP SDK).');
+    }
+    $plugins[] = $entry;
+};
+
+if ($publishPluginSlugs !== []) {
+    foreach ($publishPluginSlugs as $slug) {
+        $zipPath = $zipsDir . '/' . $slug . '.zip';
+        if (!is_file($zipPath)) {
+            fwrite(STDERR, "Skip plugin {$slug}: missing {$zipPath}\n");
+            continue;
+        }
+        $manifestPath = is_dir($pluginsDir . '/' . $slug) ? $pluginsDir . '/' . $slug . '/plugin.json' : null;
+        if ($manifestPath !== null && is_file($manifestPath)) {
             try {
                 $data = json_decode((string) file_get_contents($manifestPath), true, 32, JSON_THROW_ON_ERROR);
-            } catch (JsonException $e) {
-                fwrite(STDERR, "Skip plugin {$dir}: invalid plugin.json\n");
+            } catch (JsonException) {
+                fwrite(STDERR, "Skip plugin {$slug}: invalid plugin.json\n");
                 continue;
             }
-            if (!is_array($data)) {
-                continue;
+            if (is_array($data)) {
+                $addPluginFromManifest($slug, $data);
             }
-            $slug = strtolower(trim((string) ($data['slug'] ?? $dir)));
-            $entry = [
-                'slug' => $slug,
-                'name' => trim((string) ($data['name'] ?? $slug)),
-                'version' => trim((string) ($data['version'] ?? '1.0.0')),
-                'description' => trim((string) ($data['description'] ?? '')),
-                'author' => trim((string) ($data['author'] ?? '')),
-                'download_url' => $baseUrl . '/' . rawurlencode($slug) . '.zip',
-            ];
-            $req = isset($data['requires_cms_version']) && is_string($data['requires_cms_version']) && trim($data['requires_cms_version']) !== ''
-                ? trim($data['requires_cms_version'])
-                : (isset($data['min_cms_version']) && is_string($data['min_cms_version']) ? trim($data['min_cms_version']) : null);
-            if ($req !== null && $req !== '') {
-                $entry['requires_cms_version'] = $req;
-            }
-            if ($slug === 'stripe-store-plugin') {
-                $entry['description'] = trim($entry['description'] . ' After install: run composer plugin-deps at the CMS root (Stripe PHP SDK).');
-            }
-            $plugins[] = $entry;
         }
     }
-    usort($plugins, static fn (array $a, array $b): int => strcmp($a['slug'], $b['slug']));
+} elseif ($includePlugins && is_dir($pluginsDir)) {
+    foreach (scandir($pluginsDir) ?: [] as $dir) {
+        if ($dir === '.' || $dir === '..' || !is_dir($pluginsDir . '/' . $dir)) {
+            continue;
+        }
+        $manifestPath = $pluginsDir . '/' . $dir . '/plugin.json';
+        if (!is_file($manifestPath)) {
+            continue;
+        }
+        $zipPath = $zipsDir . '/' . $dir . '.zip';
+        if (!is_file($zipPath)) {
+            fwrite(STDERR, "Skip plugin {$dir}: missing {$zipPath}\n");
+            continue;
+        }
+        try {
+            $data = json_decode((string) file_get_contents($manifestPath), true, 32, JSON_THROW_ON_ERROR);
+        } catch (JsonException $e) {
+            fwrite(STDERR, "Skip plugin {$dir}: invalid plugin.json\n");
+            continue;
+        }
+        if (!is_array($data)) {
+            continue;
+        }
+        $addPluginFromManifest((string) ($data['slug'] ?? $dir), $data);
+    }
 }
+usort($plugins, static fn (array $a, array $b): int => strcmp($a['slug'], $b['slug']));
 
 $catalog = [
     'catalog_version' => 1,

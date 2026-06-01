@@ -18,6 +18,10 @@ use App\Content\ContentEntryViewPresenter;
 use App\Content\ContentFieldRepository;
 use App\Content\ContentSlugger;
 use App\Content\ContentTypeRepository;
+use App\Content\List\ContentListQueryRunner;
+use App\Content\List\ContentListRepository;
+use App\Content\List\ContentListService;
+use App\Content\PublicContentIndexCardBuilder;
 use App\Content\PublicContentIndexPager;
 use App\Content\ReservedContentSlugs;
 use App\Event\ContentEntrySavedEvent;
@@ -68,6 +72,14 @@ return static function (App $app, Twig $twig, \PDO $pdo, callable $viewData): vo
     $pageSections = new PageSectionRepository($pdo);
     $sectionManager = new SectionManager();
     $sectionRenderer = new SectionRenderer($sectionManager, new SectionTemplateResolver($sectionManager));
+    $listRepo = new ContentListRepository($pdo);
+    $contentLists = new ContentListService(
+        $pdo,
+        $listRepo,
+        $types,
+        new ContentListQueryRunner($pdo, $fields),
+        new PublicContentIndexCardBuilder($fields, $values, $mediaUrls),
+    );
 
     $json = static function (Response $response, array $payload, int $status = 200): Response {
         $response->getBody()->write(json_encode($payload, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
@@ -108,7 +120,9 @@ return static function (App $app, Twig $twig, \PDO $pdo, callable $viewData): vo
         $auth,
         $pageSections,
         $sectionRenderer,
-        $viewData
+        $viewData,
+        $contentLists,
+        $listRepo
     ): void {
         $group->get('', function (Request $request, Response $response) use ($json): Response {
             return $json($response, [
@@ -122,6 +136,7 @@ return static function (App $app, Twig $twig, \PDO $pdo, callable $viewData): vo
                     'GET /api/v1/content-types',
                     'GET /api/v1/content-types/{slug}',
                     'GET /api/v1/content-types/{slug}/entries?page=&per_page=&status=',
+                    'GET /api/v1/content-lists/{slug}?page=',
                     'POST /api/v1/content-types/{slug}/entries',
                     'GET /api/v1/content-types/{slug}/entries/{entrySlug}',
                     'PATCH /api/v1/content-types/{slug}/entries/{entrySlug}',
@@ -265,6 +280,55 @@ return static function (App $app, Twig $twig, \PDO $pdo, callable $viewData): vo
             ]);
         });
 
+        $group->get('/content-lists/{listSlug:[a-z0-9]+(?:-[a-z0-9]+)*}', function (
+            Request $request,
+            Response $response,
+            array $args,
+        ) use ($auth, $contentLists, $listRepo, $json, $siteUrl): Response {
+            $a = $auth($request);
+            if (!$a->can('read')) {
+                return $json($response, ['ok' => false, 'error' => 'forbidden', 'message' => 'The read scope is required.'], 403);
+            }
+            $slug = (string) ($args['listSlug'] ?? '');
+            $query = $request->getQueryParams();
+            $page = isset($query['page']) && is_numeric($query['page']) ? max(1, (int) $query['page']) : 1;
+
+            $listRow = $listRepo->findActiveBySlug($slug);
+            if ($listRow === null || empty($listRow['expose_api'])) {
+                return $json($response, ['ok' => false, 'error' => 'not_found', 'message' => 'Unknown or disabled content list.'], 404);
+            }
+
+            $def = ContentListRepository::definitionFromRow($listRow);
+            $forcePublic = $def->publicOnly || !$a->can('read_drafts');
+            $pack = $contentLists->runFromRow($listRow, $page, $forcePublic);
+            if ($pack === null) {
+                return $json($response, ['ok' => false, 'error' => 'not_found', 'message' => 'Content list could not be executed.'], 404);
+            }
+
+            $base = $siteUrl();
+            $items = [];
+            foreach ($pack['rows'] as $row) {
+                $items[] = PublicContentApi::entrySummary($pack['type'], $row, $base);
+            }
+
+            return $json($response, [
+                'ok' => true,
+                'list' => [
+                    'slug' => (string) $listRow['slug'],
+                    'name' => (string) $listRow['name'],
+                    'content_type_slug' => $pack['type']->slug,
+                ],
+                'meta' => [
+                    'page' => $pack['page'],
+                    'per_page' => $pack['per_page'],
+                    'total' => $pack['total'],
+                    'total_pages' => $pack['total_pages'],
+                    'page_items' => $pack['page_items'],
+                ],
+                'data' => $items,
+            ]);
+        })->setName('public.api.content_list');
+
         $group->post('/content-types/{typeSlug}/entries', function (Request $request, Response $response, array $args) use (
             $auth,
             $types,
@@ -363,7 +427,7 @@ return static function (App $app, Twig $twig, \PDO $pdo, callable $viewData): vo
             $fieldRows = ContentEntryViewPresenter::buildFieldRows($fieldList, $valueMap, $mediaUrls, $pdo, rtrim($siteUrl(), '/'));
             $featured = PublicContentApi::featuredImageUrlForEntry($entry, $fieldList, $valueMap, $mediaUrls);
             $groups = $entryTaxonomies->termsGroupedForEntry($eid);
-            $data = PublicContentApi::entryDetail($t, $entry, $fieldRows, $groups, $featured !== '' ? $featured : null, $siteUrl());
+            $data = PublicContentApi::entryDetail($t, $entry, $fieldRows, $groups, $featured !== '' ? $featured : null, $siteUrl(), $pdo);
 
             return $json($response, ['ok' => true, 'data' => $data], 201);
         });
@@ -492,7 +556,7 @@ return static function (App $app, Twig $twig, \PDO $pdo, callable $viewData): vo
             $fieldRows = ContentEntryViewPresenter::buildFieldRows($fieldList, $valueMap, $mediaUrls, $pdo, rtrim($siteUrl(), '/'));
             $featured = PublicContentApi::featuredImageUrlForEntry($entry, $fieldList, $valueMap, $mediaUrls);
             $groups = $entryTaxonomies->termsGroupedForEntry($entry->id);
-            $data = PublicContentApi::entryDetail($t, $entry, $fieldRows, $groups, $featured !== '' ? $featured : null, $siteUrl());
+            $data = PublicContentApi::entryDetail($t, $entry, $fieldRows, $groups, $featured !== '' ? $featured : null, $siteUrl(), $pdo);
 
             return $json($response, ['ok' => true, 'data' => $data]);
         });
@@ -533,7 +597,7 @@ return static function (App $app, Twig $twig, \PDO $pdo, callable $viewData): vo
             $fieldRows = ContentEntryViewPresenter::buildFieldRows($fieldList, $valueMap, $mediaUrls, $pdo, rtrim($siteUrl(), '/'));
             $featuredUrl = PublicContentApi::featuredImageUrlForEntry($entry, $fieldList, $valueMap, $mediaUrls);
             $groups = $entryTaxonomies->termsGroupedForEntry($entry->id);
-            $data = PublicContentApi::entryDetail($t, $entry, $fieldRows, $groups, $featuredUrl !== '' ? $featuredUrl : null, $siteUrl());
+            $data = PublicContentApi::entryDetail($t, $entry, $fieldRows, $groups, $featuredUrl !== '' ? $featuredUrl : null, $siteUrl(), $pdo);
 
             return $json($response, ['ok' => true, 'data' => $data]);
         });

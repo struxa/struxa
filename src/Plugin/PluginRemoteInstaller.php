@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Plugin;
 
+use App\Dist\DistPackageFetcher;
 use App\Filesystem\SafeDirectoryRemoval;
 use App\Theme\ThemeRemoteInstaller;
 use ZipArchive;
@@ -18,6 +19,7 @@ final class PluginRemoteInstaller
     public function __construct(
         private readonly string $pluginsRoot,
         private readonly PluginScanner $scanner,
+        private readonly ?string $projectRoot = null,
     ) {
     }
 
@@ -53,9 +55,15 @@ final class PluginRemoteInstaller
             return 'That plugin is already installed. Remove it first if you want to replace it.';
         }
 
-        $zipBody = $this->httpGetLimited($entry->downloadUrl, self::MAX_ZIP_BYTES);
+        $fetcher = new DistPackageFetcher($this->projectRoot ?? dirname($this->pluginsRoot));
+        $zipBody = $fetcher->fetchZip($entry->downloadUrl, self::MAX_ZIP_BYTES);
         if ($zipBody === null) {
-            return 'Could not download the plugin package (size limit, network, or invalid response).';
+            $hint = $fetcher->localZipHint($entry->downloadUrl);
+            $suffix = $hint !== null
+                ? ' Place the file at ' . $hint . ' on this server, or publish it to the URL in repo.json.'
+                : '';
+
+            return 'Could not download the plugin package (size limit, network, or invalid response).' . $suffix;
         }
 
         $work = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'struxa-plugin-' . bin2hex(random_bytes(8));
@@ -161,40 +169,6 @@ final class PluginRemoteInstaller
         }
 
         return $match;
-    }
-
-    private function httpGetLimited(string $url, int $maxBytes): ?string
-    {
-        $ctx = stream_context_create([
-            'http' => [
-                'timeout' => 120,
-                'follow_location' => 1,
-                'max_redirects' => 8,
-                'header' => "User-Agent: Struxa-PluginInstall/1.0\r\n",
-            ],
-            'ssl' => [
-                'verify_peer' => true,
-                'verify_peer_name' => true,
-            ],
-        ]);
-        $h = @fopen($url, 'r', false, $ctx);
-        if ($h === false) {
-            return null;
-        }
-        $data = '';
-        while (!feof($h) && strlen($data) < $maxBytes) {
-            $chunk = fread($h, 65_536);
-            if ($chunk === false) {
-                break;
-            }
-            $data .= $chunk;
-        }
-        fclose($h);
-        if (strlen($data) >= $maxBytes || strlen($data) < 1) {
-            return null;
-        }
-
-        return $data;
     }
 
     private function extractZipSafely(ZipArchive $zip, string $destDir): bool

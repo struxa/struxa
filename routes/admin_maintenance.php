@@ -82,7 +82,6 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 'media_compress_caps' => MediaCompressionSettings::capabilities(),
                 'maintenance_auto_purge' => Settings::get('maintenance_auto_purge', '0') === '1',
                 'job_counts' => $jobRepository->counts(),
-                'recent_jobs' => $jobRepository->listRecent(10),
                 'jobs_last_worker_at' => \App\Jobs\JobRunTracker::lastRunAt(),
             ])));
         })->setName('admin.tools.maintenance');

@@ -1,11 +1,11 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.1.50",
-    "title": "Struxa 1.1.50",
-    "summary": "Redesigned admin dashboard layout, CMS-wide security hardening (redirects, API scopes, site key).",
+    "latest_version": "1.1.51",
+    "title": "Struxa 1.1.51",
+    "summary": "Distribution catalog install fixes, background jobs admin UI, revision compare UX, config sync, content lists, admin SVG sizing, struxa-admin in catalog.",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
-    "severity": "minor"
+    "severity": "patch"
   }
 }

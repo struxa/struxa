@@ -26,7 +26,10 @@ use App\Plugin\PluginLoadScope;
 use App\Plugin\PluginPerformanceRegistry;
 use App\Page\PageDuplicationService;
 use App\Privacy\PrivacyEmailHasher;
+use App\Revisions\ContentEntryRevisionCompare;
+use App\Revisions\PageRevisionCompare;
 use App\Revisions\RevisionRetentionSettings;
+use App\Revisions\RevisionSnapshot;
 use App\Plugin\PluginSemverConstraint;
 use App\Plugin\PluginManifest;
 use App\Plugin\PluginAdminNavGrouper;
@@ -51,7 +54,10 @@ use App\Filter\Filters;
 use App\Health\SiteHealthStatus;
 use App\Jobs\JobHandlerContext;
 use App\Jobs\JobHandlerRegistry;
+use App\Jobs\CronVisibility;
+use App\Jobs\JobAdminPresenter;
 use App\Jobs\JobStatus;
+use App\Jobs\JobTypeLabels;
 use App\Jobs\JobType;
 use App\Richtext\OEmbedUrlParser;
 use App\Richtext\RichtextOEmbedExpander;
@@ -592,6 +598,33 @@ if (Filters::apply(FilterHook::HTML_SANITIZE, 'x', []) !== 'x-b-a') {
 if (!JobStatus::isValid('pending') || JobStatus::isValid('bogus')) {
     $fail('JobStatus validation failed.');
 }
+if (JobTypeLabels::label(\App\Jobs\JobType::SITEMAP_WARM) !== 'Sitemap warm cache') {
+    $fail('JobTypeLabels should label built-in types.');
+}
+if (CronVisibility::ageDescription(null) !== 'never' || CronVisibility::ageDescription(gmdate('Y-m-d H:i:s')) !== 'just now') {
+    $fail('CronVisibility::ageDescription failed.');
+}
+$presenterJob = \App\Jobs\Job::fromRow([
+    'id' => 1,
+    'queue' => 'default',
+    'type' => \App\Jobs\JobType::MEDIA_COMPRESS_BATCH,
+    'payload' => '{"after_id":0}',
+    'status' => JobStatus::FAILED,
+    'available_at' => '2026-01-01 00:00:00',
+    'attempts' => 2,
+    'max_attempts' => 3,
+    'reserved_at' => null,
+    'reserved_by' => null,
+    'result_summary' => null,
+    'last_error' => 'disk full',
+    'dedupe_key' => null,
+    'created_at' => '2026-01-01 00:00:00',
+    'completed_at' => null,
+]);
+$presented = JobAdminPresenter::detail($presenterJob);
+if (($presented['can_retry'] ?? false) !== true || ($presented['type_label'] ?? '') !== 'Media library optimization') {
+    $fail('JobAdminPresenter should expose retry and labels.');
+}
 if (!JobStatus::isTerminal(JobStatus::COMPLETED) || JobStatus::isTerminal(JobStatus::PENDING)) {
     $fail('JobStatus::isTerminal failed.');
 }
@@ -774,6 +807,39 @@ if (PrivacyEmailHasher::isValidEmail('not-an-email') || !PrivacyEmailHasher::isV
 if (RevisionRetentionSettings::normalize('999') !== 500 || RevisionRetentionSettings::normalize('-1') !== 0) {
     $fail('RevisionRetentionSettings should clamp limits.');
 }
+
+$entrySnapJson = json_encode([
+    'entry' => ['title' => 'Hello', 'slug' => 'hello', 'status' => 'published'],
+    'values' => ['1' => 'before'],
+    'sections' => [['id' => 1]],
+], JSON_THROW_ON_ERROR);
+$parsedSnap = RevisionSnapshot::parseEntry($entrySnapJson);
+if (RevisionSnapshot::entrySummary($parsedSnap)['title'] !== 'Hello' || RevisionSnapshot::sectionCount($parsedSnap) !== 1) {
+    $fail('RevisionSnapshot should parse entry snapshots.');
+}
+$leftEntry = RevisionSnapshot::entryPack(['title' => 'Old', 'slug' => 'old', 'status' => 'draft'], [1 => 'a'], []);
+$rightEntry = RevisionSnapshot::entryPack(['title' => 'New', 'slug' => 'new', 'status' => 'published'], [1 => 'b'], [['id' => 2]]);
+$entryCompare = (new ContentEntryRevisionCompare())->compare($leftEntry, $rightEntry, []);
+if (!$entryCompare['has_changes'] || $entryCompare['sections']['changed'] !== true) {
+    $fail('ContentEntryRevisionCompare should detect metadata, field, and block changes.');
+}
+$pageCompare = (new PageRevisionCompare())->compare(
+    ['title' => 'Old', 'slug' => 'old', 'status' => 'draft', 'content' => 'Body', 'sections_json' => '[{}]'],
+    ['title' => 'New', 'slug' => 'new', 'status' => 'published', 'content' => 'Body v2', 'sections_json' => '[{},{}]'],
+    null
+);
+if (!$pageCompare['has_changes'] || $pageCompare['metadata_changes'][0]['changed'] !== true) {
+    $fail('PageRevisionCompare should detect page revision differences.');
+}
+$pageVsCurrent = (new PageRevisionCompare())->compare(
+    ['title' => 'T', 'content' => '', 'sections_json' => '[{}]'],
+    null,
+    null,
+    4
+);
+if (!$pageVsCurrent['sections']['changed'] || $pageVsCurrent['sections']['right'] !== 4) {
+    $fail('PageRevisionCompare should use live block count when comparing to current.');
+}
 if (ContentSearchService::sanitizeQuery('a') !== '' || ContentSearchService::sanitizeQuery('  hello  ') !== 'hello') {
     $fail('ContentSearchService sanitizeQuery should enforce min length and trim.');
 }
@@ -850,6 +916,77 @@ if ($encoded !== '["post"]') {
 $noBrowse = MobileSettings::defaultTabs(true, true, 3, ['browse' => false, 'search' => true, 'shop' => true, 'account' => true]);
 if (count($noBrowse) !== 4 || ($noBrowse[1]['type'] ?? '') === 'content') {
     $fail('MobileSettings::defaultTabs should omit browse tab when feature is off.');
+}
+
+use App\Content\List\ContentListDefinition;
+
+$def = ContentListDefinition::fromArray([
+    'statuses' => ['published'],
+    'field_filters' => [['field_key' => 'score', 'op' => 'gt', 'value' => '4']],
+    'sort' => ['field' => 'published_at', 'direction' => 'desc'],
+    'per_page' => 12,
+]);
+if ($def->sortField !== 'published_at' || count($def->fieldFilters) !== 1) {
+    $fail('ContentListDefinition::fromArray should parse filters and sort.');
+}
+if (count(ContentListDefinition::fromArray([
+    'field_filters' => array_fill(0, 5, ['field_key' => 'a', 'op' => 'eq', 'value' => '1']),
+])->fieldFilters) > ContentListDefinition::MAX_FIELD_FILTERS) {
+    $fail('ContentListDefinition should cap field filters at MAX_FIELD_FILTERS.');
+}
+if (!\App\Content\ReservedContentSlugs::isReserved('lists')) {
+    $fail('ReservedContentSlugs should reserve lists for /lists/{slug} routes.');
+}
+
+use App\Content\ContentEntryReferenceIds;
+use App\Content\ContentEntryRefsFieldOptions;
+
+$ids = ContentEntryReferenceIds::parse('[12, 34, 12]');
+if ($ids !== [12, 34]) {
+    $fail('ContentEntryReferenceIds should dedupe and preserve order.');
+}
+$field = new \App\Content\ContentField(
+    1,
+    2,
+    'Related',
+    'related',
+    'entry_refs',
+    null,
+    null,
+    false,
+    null,
+    '{"target_content_type_id":3,"max_refs":1,"require_public_targets":true}',
+    0,
+    '',
+    ''
+);
+$opts = ContentEntryRefsFieldOptions::fromField($field);
+if (!$opts->isSingle() || $opts->targetContentTypeId !== 3) {
+    $fail('ContentEntryRefsFieldOptions should parse target type and single cardinality.');
+}
+$merged = ContentEntryRefsFieldOptions::mergeStructuredIntoBody([
+    'entry_refs_target_type' => '5',
+    'entry_refs_max' => '2',
+    'entry_refs_require_public' => '1',
+]);
+if (!isset($merged['options_json']) || !str_contains((string) $merged['options_json'], '"max_refs":2')) {
+    $fail('mergeStructuredIntoBody should build options_json from form controls.');
+}
+
+$pkg = \App\Config\ConfigPackageRegistry::findBuiltIn('agency-staging');
+if ($pkg === null || !in_array('roles', $pkg->scopes, true)) {
+    $fail('agency-staging package should include roles scope.');
+}
+$diff = new \App\Config\ConfigDiffService();
+$local = ['content_types' => [['slug' => 'blog', 'name' => 'Blog', 'fields' => []]]];
+$incoming = ['content_types' => [['slug' => 'blog', 'name' => 'News', 'fields' => [['field_key' => 'hero']]]]];
+$d = $diff->diff($local, $incoming, ['content_types']);
+if (($d['summary']['update'] ?? 0) < 1) {
+    $fail('ConfigDiffService should detect content type updates.');
+}
+$norm = \App\Config\ConfigPackageRegistry::normalizeScopes(['menus', 'invalid', 'menus', 'roles']);
+if ($norm !== ['menus', 'roles']) {
+    $fail('ConfigPackageRegistry::normalizeScopes should filter and dedupe.');
 }
 
 $prevSiteKey = $_ENV['PHPAUTH_SITE_KEY'] ?? null;

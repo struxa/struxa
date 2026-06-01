@@ -310,7 +310,7 @@ final class SiteHealthService
 
             if ($failedJobs > 0) {
                 $jobStatus = SiteHealthStatus::RECOMMENDED;
-                $jobMessage = $failedJobs . ' background job(s) failed. Check Speed & maintenance → Background jobs.';
+                $jobMessage = $failedJobs . ' background job(s) failed. Open Tools → Background jobs.';
             } elseif ($pendingJobs > 0 && $lastWorker === null) {
                 $jobStatus = SiteHealthStatus::RECOMMENDED;
                 $jobMessage = $pendingJobs . ' job(s) pending but the worker has never run. Add cron: php bin/cms.php jobs:work';
@@ -340,8 +340,8 @@ final class SiteHealthService
                 $jobMessage,
                 'operations',
                 null,
-                'admin.tools.maintenance',
-                $failedJobs > 0 || $pendingJobs > 0 ? 'Open maintenance' : null,
+                'admin.tools.jobs',
+                $failedJobs > 0 || $pendingJobs > 0 ? 'Open job queue' : null,
             );
         }
 

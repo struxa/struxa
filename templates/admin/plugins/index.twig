@@ -27,7 +27,14 @@
         {% endif %}
       </p>
     </div>
-    <a class="admin-btn-primary" href="{{ url_for('admin.extensions.plugins.browse') }}">Browse catalog</a>
+    <div class="admin-toolbar-actions" style="display:flex;gap:0.5rem;flex-wrap:wrap">
+      <a class="admin-btn-primary" href="{{ url_for('admin.extensions.plugins.browse') }}">Browse catalog</a>
+      {% for row in plugin_rows|default([]) %}
+        {% if row.discovered.manifest.slug == 'struxa-admin' and row.is_active %}
+          <a class="admin-btn-ghost" href="{{ url_for('admin.struxa_catalog.submissions') }}">Catalog submissions</a>
+        {% endif %}
+      {% endfor %}
+    </div>
   </div>
 
   {% if plugin_circuit_breaker %}
@@ -86,7 +93,7 @@
         <article class="admin-card admin-plugin-card{% if row.is_active %} admin-plugin-card--active{% endif %}{% if compat.statusLabel == 'blocked' %} admin-plugin-card--blocked{% endif %}">
           <header class="admin-plugin-card-head">
             <div class="admin-plugin-card-icon" aria-hidden="true">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <path d="M12 22v-5"/><path d="M9 8V2"/><path d="M15 8V2"/><path d="M18 8v5a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V8Z"/>
               </svg>
             </div>

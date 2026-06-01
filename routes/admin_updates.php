@@ -21,6 +21,7 @@ use Slim\Views\Twig;
  */
 return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $viewData): void {
     $middleware = new RequireCmsStaff($auth, $pdo);
+    $perm = new RequirePermission($pdo, [PermissionSlug::MANAGE_SETTINGS]);
     $root = dirname(__DIR__);
     $cacheInternal = (new CacheManager($root . DIRECTORY_SEPARATOR . 'storage' . DIRECTORY_SEPARATOR . 'cache'))->internal();
     $checker = new CmsUpdateChecker($cacheInternal, $pdo);

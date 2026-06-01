@@ -1,0 +1,25 @@
+{
+    "catalog_version": 1,
+    "generated_at": "2026-06-01T09:30:29+00:00",
+    "themes": [
+        {
+            "slug": "default",
+            "name": "Midnight Pulse",
+            "version": "1.0.0",
+            "description": "Dark SaaS-style layout with gradient accents, header, footer, and content-focused typography. Uses global settings and menus.",
+            "author": "Studio CMS",
+            "download_url": "https://struxapoint.com/struxa-dist/zips/default.zip"
+        }
+    ],
+    "plugins": [
+        {
+            "slug": "struxa-admin",
+            "name": "Struxa Catalog Admin",
+            "version": "1.0.0",
+            "description": "Community plugin and theme submissions, admin review, and struxa-dist catalog publishing for struxapoint.com.",
+            "author": "Struxa",
+            "download_url": "https://struxapoint.com/struxa-dist/zips/struxa-admin.zip",
+            "requires_cms_version": "1.0.52"
+        }
+    ]
+}

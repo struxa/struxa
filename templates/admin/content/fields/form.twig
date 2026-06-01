@@ -12,7 +12,19 @@
 {% set oj = o.options_json is defined ? o.options_json : (field and field.optionsJson ? field.optionsJson : '') %}
 {% set so = o.sort_order is defined ? o.sort_order : (field ? field.sortOrder : 0) %}
 
-{% set field_types = ['text', 'textarea', 'richtext', 'number', 'boolean', 'select', 'image', 'date', 'url', 'entry_refs'] %}
+{% set field_types = {
+  'text': 'Text',
+  'textarea': 'Text area',
+  'richtext': 'Rich text',
+  'number': 'Number',
+  'boolean': 'Yes / no',
+  'select': 'Select',
+  'image': 'Image',
+  'date': 'Date',
+  'url': 'URL',
+  'entry_refs': 'Entry links (reference)'
+} %}
+{% set erc = entry_refs_controls|default({'target_content_type_id': 0, 'max_refs': 25, 'require_public_targets': true}) %}
 
 {% block admin_title %}{{ is_edit ? 'Edit field' : 'New field' }} — {{ content_type.name|e }}{% endblock %}
 
@@ -46,8 +58,8 @@
       <div class="admin-field {{ errors.field_type is defined ? 'admin-field--error' : '' }}">
         <label class="admin-label" for="fld-type">Field type <span class="admin-req">*</span></label>
         <select class="admin-select" id="fld-type" name="field_type" required>
-          {% for t in field_types %}
-            <option value="{{ t|e }}" {{ ft == t ? 'selected' : '' }}>{{ t|e }}</option>
+          {% for t, label in field_types %}
+            <option value="{{ t|e }}" {{ ft == t ? 'selected' : '' }}>{{ label|e }}</option>
           {% endfor %}
         </select>
         {% if errors.field_type is defined %}<p class="admin-field-error">{{ errors.field_type|e }}</p>{% endif %}
@@ -82,15 +94,39 @@
         <p class="admin-hint">Shown when a new entry has no value yet (simple types only).</p>
       </div>
 
-      <div class="admin-field admin-field--full {{ errors.options_json is defined ? 'admin-field--error' : '' }}">
-        <label class="admin-label" for="fld-options">{% if ft == 'select' %}Select options{% elseif ft == 'entry_refs' %}Entry link options{% else %}Field options (JSON){% endif %}</label>
-        <textarea class="admin-textarea" id="fld-options" name="options_json" rows="5" placeholder="{% if ft == 'select' %}[{&quot;value&quot;:&quot;a&quot;,&quot;label&quot;:&quot;Option A&quot;}] or one value per line{% elseif ft == 'entry_refs' %}{&quot;target_content_type_id&quot;: 0, &quot;max_refs&quot;: 25, &quot;require_public_targets&quot;: true}{% endif %}">{{ oj|e }}</textarea>
+      <div class="admin-field admin-field--full admin-field-entry-refs-options" id="fld-entry-refs-options"{% if ft != 'entry_refs' %} hidden{% endif %}>
+        <h3 class="admin-label" style="margin-bottom:0.5rem">Entry link rules</h3>
+        <div class="admin-form-grid">
+          <div class="admin-field">
+            <label class="admin-label" for="entry-refs-target">Target content type</label>
+            <select class="admin-select" id="entry-refs-target" name="entry_refs_target_type">
+              <option value="0" {{ erc.target_content_type_id == 0 ? 'selected' : '' }}>Any type with a public URL</option>
+              {% for rt in routable_content_types|default([]) %}
+                <option value="{{ rt.id }}" {{ erc.target_content_type_id == rt.id ? 'selected' : '' }}>{{ rt.name|e }} ({{ rt.slug|e }})</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="admin-field">
+            <label class="admin-label" for="entry-refs-max">Maximum links</label>
+            <input class="admin-input" id="entry-refs-max" name="entry_refs_max" type="number" min="1" max="100" value="{{ erc.max_refs }}" />
+            <p class="admin-hint">Use <strong>1</strong> for a single reference (author, location).</p>
+          </div>
+          <div class="admin-field admin-field--full">
+            <label class="admin-check">
+              <input type="checkbox" name="entry_refs_require_public" value="1" {{ erc.require_public_targets ? 'checked' : '' }} />
+              <span>When publishing, require linked entries to be publicly visible</span>
+            </label>
+          </div>
+        </div>
+        {% if errors.options_json is defined %}<p class="admin-field-error">{{ errors.options_json|e }}</p>{% endif %}
+      </div>
+      <div class="admin-field admin-field--full {{ errors.options_json is defined ? 'admin-field--error' : '' }}" id="fld-options-wrap"{% if ft == 'entry_refs' %} hidden{% endif %}>
+        <label class="admin-label" for="fld-options">{% if ft == 'select' %}Select options{% else %}Field options (JSON){% endif %}</label>
+        <textarea class="admin-textarea" id="fld-options" name="options_json" rows="5" placeholder="{% if ft == 'select' %}[{&quot;value&quot;:&quot;a&quot;,&quot;label&quot;:&quot;Option A&quot;}] or one value per line{% endif %}">{{ oj|e }}</textarea>
         {% if ft == 'select' %}
         <p class="admin-hint">Required when type is <strong>select</strong>. JSON array of <code>value</code>/<code>label</code> objects, or one option per line.</p>
-        {% elseif ft == 'entry_refs' %}
-        <p class="admin-hint">Optional JSON object: <code>target_content_type_id</code> (numeric type id, or 0 for any routable type), <code>max_refs</code> (1–100, default 25), <code>require_public_targets</code> (boolean, default true — publishing blocks targets that are not yet publicly visible).</p>
         {% else %}
-        <p class="admin-hint">Used for <strong>select</strong> (choices) and <strong>entry_refs</strong> (link rules). Leave blank for other types.</p>
+        <p class="admin-hint">Only used for <strong>select</strong> fields. Leave blank for other types.</p>
         {% endif %}
         {% if errors.options_json is defined %}<p class="admin-field-error">{{ errors.options_json|e }}</p>{% endif %}
       </div>
@@ -101,4 +137,19 @@
       <a class="admin-btn-ghost" href="{{ url_for('admin.content_types.fields.index', { id: content_type.id }) }}">Cancel</a>
     </div>
   </form>
+  <script>
+  (function () {
+    var typeSel = document.getElementById('fld-type');
+    var refsPanel = document.getElementById('fld-entry-refs-options');
+    var optionsWrap = document.getElementById('fld-options-wrap');
+    if (!typeSel) return;
+    function syncPanels() {
+      var isRefs = typeSel.value === 'entry_refs';
+      if (refsPanel) refsPanel.hidden = !isRefs;
+      if (optionsWrap) optionsWrap.hidden = isRefs;
+    }
+    typeSel.addEventListener('change', syncPanels);
+    syncPanels();
+  })();
+  </script>
 {% endblock %}

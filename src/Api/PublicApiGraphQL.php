@@ -415,7 +415,8 @@ final class PublicApiGraphQL
                             $fieldRows,
                             $groups,
                             $featured !== '' ? $featured : null,
-                            $ctx->siteUrl
+                            $ctx->siteUrl,
+                            $ctx->pdo,
                         );
 
                         return self::mapEntryDetail($data);

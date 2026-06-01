@@ -12,9 +12,14 @@ use App\Content\ContentEntryBulkResult;
 use App\Content\ContentEntryBulkService;
 use App\Content\ContentEntryDuplicationService;
 use App\Content\ContentEntryFormValidator;
+use App\Content\ContentEntryPickerService;
+use App\Content\ContentEntryRefResolver;
+use App\Content\ContentEntryRefsFieldOptions;
 use App\Content\ContentEntryRefsGuard;
 use App\Content\ContentEntryRepository;
 use App\Content\ContentEntryRevisionRepository;
+use App\Revisions\ContentEntryRevisionCompare;
+use App\Revisions\RevisionSnapshot;
 use App\Content\ContentEntryValueRepository;
 use App\Content\ContentFieldRepository;
 use App\Content\ContentFieldValidator;
@@ -334,6 +339,69 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
         return null;
     };
 
+    $entryRefResolver = new ContentEntryRefResolver($entries, $types);
+    $entryPicker = new ContentEntryPickerService($pdo);
+
+    /** @var callable(array, array, ?int, \Slim\Interfaces\RouteParserInterface): array<string, mixed> */
+    $entryRefsFormContext = static function (
+        array $fieldList,
+        array $valueMap,
+        ?int $entryId,
+        $routeParser,
+    ) use ($entryRefResolver): array {
+        $hasRefs = false;
+        foreach ($fieldList as $f) {
+            if ($f->fieldType === 'entry_refs') {
+                $hasRefs = true;
+                break;
+            }
+        }
+        if (!$hasRefs) {
+            return [
+                'entry_refs_picker_url' => null,
+                'entry_refs_resolved' => [],
+                'entry_id_for_refs' => $entryId,
+            ];
+        }
+        $editUrlFor = static function (int $refId, int $typeId) use ($routeParser): ?string {
+            if ($typeId < 1) {
+                return null;
+            }
+
+            return $routeParser->urlFor('admin.content_types.entries.edit', [
+                'id' => (string) $typeId,
+                'entryId' => (string) $refId,
+            ]);
+        };
+
+        return [
+            'entry_refs_picker_url' => $routeParser->urlFor('admin.content.entries.picker'),
+            'entry_refs_resolved' => $entryRefResolver->resolveMapForFields($fieldList, $valueMap, $editUrlFor),
+            'entry_id_for_refs' => $entryId,
+        ];
+    };
+
+    /** @return array<string, mixed> */
+    $fieldFormContext = static function (?\App\Content\ContentField $field, ?array $old) use ($types): array {
+        $routable = [];
+        foreach ($types->allOrdered() as $t) {
+            if ($t->hasPublicRoute) {
+                $routable[] = $t;
+            }
+        }
+        $optionsJson = null;
+        if ($old !== null && isset($old['options_json']) && is_string($old['options_json'])) {
+            $optionsJson = $old['options_json'];
+        } elseif ($field !== null) {
+            $optionsJson = $field->optionsJson;
+        }
+
+        return [
+            'routable_content_types' => $routable,
+            'entry_refs_controls' => ContentEntryRefsFieldOptions::formControls($optionsJson),
+        ];
+    };
+
     $app->group('/admin', function (\Slim\Routing\RouteCollectorProxy $group) use (
         $twig,
         $adminContext,
@@ -379,8 +447,41 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
         $entryBuilderHost,
         $redirectToEntryIndex,
         $entryBulkFlash,
-        $entryDuplicator
+        $entryDuplicator,
+        $entryPicker,
+        $entryRefsFormContext,
+        $fieldFormContext
     ): void {
+        $group->get('/content/entries/picker', function (Request $request, Response $response) use ($entryPicker): Response {
+            $q = $request->getQueryParams();
+            $query = trim((string) ($q['q'] ?? ''));
+            $typeId = isset($q['content_type_id']) && ctype_digit((string) $q['content_type_id'])
+                ? (int) $q['content_type_id']
+                : null;
+            if ($typeId !== null && $typeId < 1) {
+                $typeId = null;
+            }
+            $exclude = isset($q['exclude_id']) && ctype_digit((string) $q['exclude_id'])
+                ? (int) $q['exclude_id']
+                : null;
+            $limit = isset($q['limit']) && ctype_digit((string) $q['limit'])
+                ? (int) $q['limit']
+                : ContentEntryPickerService::DEFAULT_LIMIT;
+            $parser = RouteContext::fromRequest($request)->getRouteParser();
+            $items = $entryPicker->search($query, $typeId, $exclude, $limit);
+            foreach ($items as &$item) {
+                $item['edit_url'] = $parser->urlFor('admin.content_types.entries.edit', [
+                    'id' => (string) $item['content_type_id'],
+                    'entryId' => (string) $item['id'],
+                ]);
+            }
+            unset($item);
+            $payload = json_encode(['ok' => true, 'items' => $items], JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
+            $response->getBody()->write($payload);
+
+            return $response->withHeader('Content-Type', 'application/json; charset=utf-8');
+        })->setName('admin.content.entries.picker')->add($permEntryBrowse);
+
         $group->get('/content-types', function (Request $request, Response $response) use ($twig, $adminContext, $withCmsUser, $types, $entries, $fields): Response {
             $cards = ContentAdminTree::cards($types, $entries, $fields);
             $summary = ContentAdminTree::summary($cards);
@@ -580,7 +681,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             ])));
         })->setName('admin.content_types.fields.index');
 
-        $g->get('/content-types/{id:[0-9]+}/fields/new', function (Request $request, Response $response, array $args) use ($twig, $adminContext, $withCmsUser, $types, $fields): Response {
+        $g->get('/content-types/{id:[0-9]+}/fields/new', function (Request $request, Response $response, array $args) use ($twig, $adminContext, $withCmsUser, $types, $fields, $fieldFormContext): Response {
             $id = (int) $args['id'];
             $t = $types->findById($id);
             if ($t === null) {
@@ -603,10 +704,10 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                     'options_json' => '',
                     'sort_order' => (string) $fields->nextSortOrder($id),
                 ],
-            ])));
+            ], $fieldFormContext(null, null))));
         })->setName('admin.content_types.fields.new');
 
-        $g->post('/content-types/{id:[0-9]+}/fields/new', function (Request $request, Response $response, array $args) use ($twig, $adminContext, $withCmsUser, $types, $fields, $fieldValidator): Response {
+        $g->post('/content-types/{id:[0-9]+}/fields/new', function (Request $request, Response $response, array $args) use ($twig, $adminContext, $withCmsUser, $types, $fields, $fieldValidator, $fieldFormContext): Response {
             $id = (int) $args['id'];
             $t = $types->findById($id);
             if ($t === null) {
@@ -622,7 +723,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                     'field' => null,
                     'errors' => $result['errors'],
                     'old' => $result['values'],
-                ])));
+                ], $fieldFormContext(null, $result['values']))));
             }
             $v = $result['values'];
             $fields->insert(
@@ -645,7 +746,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 ->withStatus(302);
         })->setName('admin.content_types.fields.store');
 
-        $g->get('/content-types/{id:[0-9]+}/fields/{fieldId:[0-9]+}/edit', function (Request $request, Response $response, array $args) use ($twig, $adminContext, $withCmsUser, $types, $fields): Response {
+        $g->get('/content-types/{id:[0-9]+}/fields/{fieldId:[0-9]+}/edit', function (Request $request, Response $response, array $args) use ($twig, $adminContext, $withCmsUser, $types, $fields, $fieldFormContext): Response {
             $id = (int) $args['id'];
             $fieldId = (int) $args['fieldId'];
             $t = $types->findById($id);
@@ -663,10 +764,10 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 'field' => $f,
                 'errors' => [],
                 'old' => null,
-            ])));
+            ], $fieldFormContext($f, null))));
         })->setName('admin.content_types.fields.edit');
 
-        $g->post('/content-types/{id:[0-9]+}/fields/{fieldId:[0-9]+}/edit', function (Request $request, Response $response, array $args) use ($twig, $adminContext, $withCmsUser, $types, $fields, $fieldValidator): Response {
+        $g->post('/content-types/{id:[0-9]+}/fields/{fieldId:[0-9]+}/edit', function (Request $request, Response $response, array $args) use ($twig, $adminContext, $withCmsUser, $types, $fields, $fieldValidator, $fieldFormContext): Response {
             $id = (int) $args['id'];
             $fieldId = (int) $args['fieldId'];
             $t = $types->findById($id);
@@ -687,7 +788,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                     'field' => $f,
                     'errors' => $result['errors'],
                     'old' => $result['values'],
-                ])));
+                ], $fieldFormContext($f, $result['values']))));
             }
             $v = $result['values'];
             $fields->update(
@@ -906,7 +1007,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             return $redirectToEntryIndex($request, $response, $id, $body);
         })->setName('admin.content_types.entries.bulk')->add($permEntryEdit);
 
-        $group->get('/content-types/{id:[0-9]+}/entries/new', function (Request $request, Response $response, array $args) use ($twig, $adminContext, $withCmsUser, $types, $fields, $mediaRepo, $taxonomyRepo, $taxonomyTermRepo, $pdo, $entryFormMediaContext, $entryPrimaryRichtextTextareaId): Response {
+        $group->get('/content-types/{id:[0-9]+}/entries/new', function (Request $request, Response $response, array $args) use ($twig, $adminContext, $withCmsUser, $types, $fields, $mediaRepo, $taxonomyRepo, $taxonomyTermRepo, $pdo, $entryFormMediaContext, $entryPrimaryRichtextTextareaId, $entryRefsFormContext): Response {
             $id = (int) $args['id'];
             $t = $types->findById($id);
             if ($t === null) {
@@ -938,7 +1039,12 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 'workflow_statuses' => WorkflowService::STATUSES,
                 'entry_primary_richtext_textarea_id' => $entryPrimaryRichtextTextareaId($fieldList),
                 'entry_link_warnings' => [],
-            ], $entryFormMediaContext($request, $mediaRepo, $pdo, null, null))));
+            ], $entryFormMediaContext($request, $mediaRepo, $pdo, null, null), $entryRefsFormContext(
+                $fieldList,
+                [],
+                null,
+                RouteContext::fromRequest($request)->getRouteParser()
+            ))));
         })->setName('admin.content_types.entries.new')->add($permEntryCreate);
 
         $group->post('/content-types/{id:[0-9]+}/entries/new', function (Request $request, Response $response, array $args) use (
@@ -963,6 +1069,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             $pdo,
             $entryFormMediaContext,
             $entryPrimaryRichtextTextareaId,
+            $entryRefsFormContext,
             $viewData
         ): Response {
             $id = (int) $args['id'];
@@ -1034,7 +1141,12 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                         $entries,
                         $types
                     ),
-                ], $entryFormMediaContext($request, $mediaRepo, $pdo, null, $old))));
+                ], $entryFormMediaContext($request, $mediaRepo, $pdo, null, $old), $entryRefsFormContext(
+                    $fieldList,
+                    $result['values']['custom'],
+                    null,
+                    RouteContext::fromRequest($request)->getRouteParser()
+                ))));
             }
             $v = $result['values'];
             $slug = ContentSlugger::ensureUniqueEntry($entries, $id, $v['slug']);
@@ -1091,7 +1203,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 ->withStatus(302);
         })->setName('admin.content_types.entries.store')->add($permEntryCreate);
 
-        $group->get('/content-types/{id:[0-9]+}/entries/{entryId:[0-9]+}/edit', function (Request $request, Response $response, array $args) use ($twig, $adminContext, $withCmsUser, $types, $fields, $entries, $values, $mediaRepo, $taxonomyRepo, $taxonomyTermRepo, $entryTaxonomyRepo, $workflow, $entryRevRepo, $pdo, $entryFormMediaContext, $entryPrimaryRichtextTextareaId, $entryBuilderPayload, $editSessions, $cmsUserId): Response {
+        $group->get('/content-types/{id:[0-9]+}/entries/{entryId:[0-9]+}/edit', function (Request $request, Response $response, array $args) use ($twig, $adminContext, $withCmsUser, $types, $fields, $entries, $values, $mediaRepo, $taxonomyRepo, $taxonomyTermRepo, $entryTaxonomyRepo, $workflow, $entryRevRepo, $pdo, $entryFormMediaContext, $entryPrimaryRichtextTextareaId, $entryBuilderPayload, $editSessions, $cmsUserId, $entryRefsFormContext): Response {
             $id = (int) $args['id'];
             $entryId = (int) $args['entryId'];
             $t = $types->findById($id);
@@ -1136,7 +1248,12 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 'entry_primary_richtext_textarea_id' => $entryPrimaryRichtextTextareaId($fieldList),
                 'entry_link_warnings' => $entryLinkWarnings,
                 'edit_form_id' => 'entry-edit-form',
-            ], $entryFormMediaContext($request, $mediaRepo, $pdo, $entry, null));
+            ], $entryFormMediaContext($request, $mediaRepo, $pdo, $entry, null), $entryRefsFormContext(
+                $fieldList,
+                $valueMap,
+                $entryId,
+                RouteContext::fromRequest($request)->getRouteParser()
+            ));
 
             $uid = $cmsUserId($request);
             if ($uid !== null) {
@@ -1178,7 +1295,8 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             $mergeEntrySeoOld,
             $entryFormMediaContext,
             $entryPrimaryRichtextTextareaId,
-            $editSessions
+            $editSessions,
+            $entryRefsFormContext
         ): Response {
             $id = (int) $args['id'];
             $entryId = (int) $args['entryId'];
@@ -1255,7 +1373,12 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                         $entries,
                         $types
                     ),
-                ], $entryFormMediaContext($request, $mediaRepo, $pdo, $entry, $old))));
+                ], $entryFormMediaContext($request, $mediaRepo, $pdo, $entry, $old), $entryRefsFormContext(
+                    $fieldList,
+                    $result['values']['custom'],
+                    $entryId,
+                    RouteContext::fromRequest($request)->getRouteParser()
+                ))));
             }
             $v = $result['values'];
             $slug = ContentSlugger::ensureUniqueEntry($entries, $id, $v['slug'], $entryId);
@@ -1568,65 +1691,123 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 throw new HttpNotFoundException($request);
             }
 
+            $revisionRows = $entryRevRepo->listForEntry($entryId);
+            foreach ($revisionRows as &$row) {
+                $snap = RevisionSnapshot::parseEntry((string) ($row['snapshot_json'] ?? ''));
+                $sum = RevisionSnapshot::entrySummary($snap);
+                $row['summary_title'] = $sum['title'] !== '' ? $sum['title'] : 'Untitled';
+                $row['summary_status'] = $sum['status'];
+            }
+            unset($row);
+
             return $twig->render($response, 'admin/content/entries/revisions.twig', $withCmsUser($request, array_merge($adminContext(), [
                 'admin_nav' => 'content_types',
                 'content_type' => $t,
                 'entry' => $entry,
-                'revision_rows' => $entryRevRepo->listForEntry($entryId),
+                'revision_rows' => $revisionRows,
+                'compare_form_action' => RouteContext::fromRequest($request)->getRouteParser()->urlFor(
+                    'admin.content_types.entries.revision_compare',
+                    ['id' => (string) $id, 'entryId' => (string) $entryId]
+                ),
             ])));
         })->setName('admin.content_types.entries.revisions')->add($permEntryEdit);
 
-        $group->get('/content-types/{id:[0-9]+}/entries/{entryId:[0-9]+}/revisions/compare/{revId:[0-9]+}', function (Request $request, Response $response, array $args) use ($twig, $adminContext, $withCmsUser, $types, $entries, $entryRevRepo, $values): Response {
+        $group->get('/content-types/{id:[0-9]+}/entries/{entryId:[0-9]+}/revisions/compare', function (Request $request, Response $response, array $args) use (
+            $twig,
+            $adminContext,
+            $withCmsUser,
+            $types,
+            $entries,
+            $fields,
+            $entryRevRepo,
+            $values,
+            $entrySections
+        ): Response {
             $id = (int) $args['id'];
             $entryId = (int) $args['entryId'];
-            $revId = (int) $args['revId'];
-            $t = $types->findById($id);
-            $entry = $entries->findById($entryId);
-            $rev = $entryRevRepo->findById($revId);
-            if ($t === null || $entry === null || $entry->contentTypeId !== $id || $rev === null || (int) $rev['content_entry_id'] !== $entryId) {
+            $q = $request->getQueryParams();
+            $fromId = isset($q['from']) && ctype_digit((string) $q['from']) ? (int) $q['from'] : 0;
+            $toRaw = isset($q['to']) ? (string) $q['to'] : (isset($q['other']) ? (string) $q['other'] : 'current');
+            if ($fromId < 1) {
                 throw new HttpNotFoundException($request);
             }
-            $snap = json_decode((string) $rev['snapshot_json'], true);
-            $snap = is_array($snap) ? $snap : [];
-            $valuesSnap = isset($snap['values']) && is_array($snap['values']) ? $snap['values'] : [];
-
-            $q = $request->getQueryParams();
-            $otherRaw = isset($q['other']) ? (string) $q['other'] : '';
-            $otherId = ctype_digit($otherRaw) ? (int) $otherRaw : 0;
-            $revRight = null;
-            $snapshotRight = [];
-            $revUnifiedDiff = '';
-
-            if ($otherId > 0 && $otherId !== $revId) {
-                $otherRow = $entryRevRepo->findById($otherId);
-                if ($otherRow !== null && (int) $otherRow['content_entry_id'] === $entryId) {
-                    $revRight = $otherRow;
-                    $snapshotRight = json_decode((string) $otherRow['snapshot_json'], true);
-                    $snapshotRight = is_array($snapshotRight) ? $snapshotRight : [];
-                    $vsOther = isset($snapshotRight['values']) && is_array($snapshotRight['values']) ? $snapshotRight['values'] : [];
-                    $leftStr = json_encode($valuesSnap, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
-                    $rightStr = json_encode($vsOther, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
-                    $revUnifiedDiff = implode("\n", \App\Support\LineDiff::unified($leftStr, $rightStr));
+            $t = $types->findById($id);
+            $entry = $entries->findById($entryId);
+            $fromRev = $entryRevRepo->findById($fromId);
+            if ($t === null || $entry === null || $entry->contentTypeId !== $id || $fromRev === null || (int) $fromRev['content_entry_id'] !== $entryId) {
+                throw new HttpNotFoundException($request);
+            }
+            $fieldList = $fields->forTypeOrdered($id);
+            $leftSnap = RevisionSnapshot::parseEntry((string) $fromRev['snapshot_json']);
+            $toRev = null;
+            $toLabel = 'Current saved version';
+            if ($toRaw === 'current' || $toRaw === '') {
+                $row = $entries->fetchRowById($entryId);
+                if ($row === null) {
+                    throw new HttpNotFoundException($request);
                 }
+                $rightSnap = RevisionSnapshot::entryPack(
+                    $row,
+                    $values->valuesByFieldIdForEntry($entryId),
+                    $entrySections->exportBlocksForEntry($entryId)
+                );
+            } else {
+                $toId = ctype_digit($toRaw) ? (int) $toRaw : 0;
+                if ($toId < 1) {
+                    throw new HttpNotFoundException($request);
+                }
+                $toRev = $entryRevRepo->findById($toId);
+                if ($toRev === null || (int) $toRev['content_entry_id'] !== $entryId) {
+                    throw new HttpNotFoundException($request);
+                }
+                $rightSnap = RevisionSnapshot::parseEntry((string) $toRev['snapshot_json']);
+                $toLabel = (string) $toRev['created_at'];
             }
-            if ($revUnifiedDiff === '') {
-                $snapJson = json_encode($valuesSnap, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
-                $currentJson = json_encode($values->valuesByFieldIdForEntry($entryId), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
-                $revUnifiedDiff = implode("\n", \App\Support\LineDiff::unified($snapJson, $currentJson));
+            $compare = (new ContentEntryRevisionCompare())->compare($leftSnap, $rightSnap, $fieldList);
+            $revisionRows = $entryRevRepo->listForEntry($entryId);
+            foreach ($revisionRows as &$row) {
+                $snap = RevisionSnapshot::parseEntry((string) ($row['snapshot_json'] ?? ''));
+                $sum = RevisionSnapshot::entrySummary($snap);
+                $row['summary_title'] = $sum['title'] !== '' ? $sum['title'] : 'Untitled';
+                $row['summary_status'] = $sum['status'];
             }
+            unset($row);
+            $parser = RouteContext::fromRequest($request)->getRouteParser();
 
             return $twig->render($response, 'admin/content/entries/revision_compare.twig', $withCmsUser($request, array_merge($adminContext(), [
                 'admin_nav' => 'content_types',
                 'content_type' => $t,
                 'entry' => $entry,
-                'revision' => $rev,
-                'snapshot' => $snap,
-                'revision_right' => $revRight,
-                'snapshot_right' => $snapshotRight,
-                'current_value_map' => $values->valuesByFieldIdForEntry($entryId),
-                'revision_unified_diff' => $revUnifiedDiff,
+                'from_revision' => $fromRev,
+                'to_revision' => $toRev,
+                'from_label' => (string) $fromRev['created_at'],
+                'to_label' => $toLabel,
+                'compare' => $compare,
+                'revision_rows' => $revisionRows,
+                'compare_form_action' => $parser->urlFor('admin.content_types.entries.revision_compare', [
+                    'id' => (string) $id,
+                    'entryId' => (string) $entryId,
+                ]),
+                'from_id' => $fromId,
+                'to_target' => $toRaw === '' ? 'current' : $toRaw,
+                'restore_revision_id' => $fromId,
             ])));
         })->setName('admin.content_types.entries.revision_compare')->add($permEntryEdit);
+
+        $group->get('/content-types/{id:[0-9]+}/entries/{entryId:[0-9]+}/revisions/compare/{revId:[0-9]+}', function (Request $request, Response $response, array $args): Response {
+            $id = (int) $args['id'];
+            $entryId = (int) $args['entryId'];
+            $revId = (int) $args['revId'];
+            $q = $request->getQueryParams();
+            $to = isset($q['other']) ? (string) $q['other'] : (isset($q['to']) ? (string) $q['to'] : 'current');
+            $url = RouteContext::fromRequest($request)->getRouteParser()->urlFor(
+                'admin.content_types.entries.revision_compare',
+                ['id' => (string) $id, 'entryId' => (string) $entryId],
+                ['from' => (string) $revId, 'to' => $to]
+            );
+
+            return $response->withHeader('Location', $url)->withStatus(302);
+        })->setName('admin.content_types.entries.revision_compare_legacy')->add($permEntryEdit);
 
         $group->post('/content-types/{id:[0-9]+}/entries/{entryId:[0-9]+}/preview-link', function (Request $request, Response $response, array $args) use ($types, $entries, $pdo, $viewData, $cmsUserId): Response {
             $id = (int) $args['id'];

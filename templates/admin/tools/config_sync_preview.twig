@@ -1,0 +1,88 @@
+{% extends 'admin/base.twig' %}
+
+{% block admin_title %}Config import preview{% endblock %}
+
+{% block admin_hero_title %}
+  <h1 class="admin-hero-title">Import preview</h1>
+{% endblock %}
+
+{% block admin_hero_sub %}
+  <p class="admin-hero-sub admin-hero-sub--tight">
+    <a class="admin-link" href="{{ url_for('admin.tools.config_sync') }}">← Config sync</a>
+    · {{ preview_label|e }}{% if preview_package_id %} ({{ preview_package_id|e }}){% endif %}
+  </p>
+{% endblock %}
+
+{% block admin_content %}
+  <div class="admin-settings-page admin-settings-page--portability">
+    {% set sum = diff.summary|default({}) %}
+    <div class="admin-config-diff-summary">
+      <span class="admin-config-diff-pill admin-config-diff-pill--add">+ {{ sum.add|default(0) }} add</span>
+      <span class="admin-config-diff-pill admin-config-diff-pill--update">~ {{ sum.update|default(0) }} update</span>
+      <span class="admin-config-diff-pill admin-config-diff-pill--remove">− {{ sum.remove|default(0) }} remove</span>
+    </div>
+
+    {% if preview_scopes is not empty %}
+      <p class="admin-hint">Scopes: {% for s in preview_scopes %}<code class="admin-inline-code">{{ s|e }}</code>{% if not loop.last %}, {% endif %}{% endfor %}</p>
+    {% endif %}
+
+    <div class="admin-settings-stack">
+      {% for section in diff.sections|default([]) %}
+        <section class="admin-card admin-settings-card admin-settings-section">
+          <h2 class="admin-settings-card-title">{{ section.title|e }}</h2>
+          {% if section.lines is empty %}
+            <p class="admin-hint">No differences detected for this section.</p>
+          {% else %}
+            <ul class="admin-config-diff-lines">
+              {% for line in section.lines %}
+                <li class="admin-config-diff-line{% if line starts with '+ ' %} admin-config-diff-line--add{% elseif line starts with '~ ' %} admin-config-diff-line--update{% elseif line starts with '− ' or line starts with '- ' %} admin-config-diff-line--remove{% endif %}">{{ line|e }}</li>
+              {% endfor %}
+            </ul>
+          {% endif %}
+        </section>
+      {% endfor %}
+
+      <section class="admin-card admin-settings-card admin-settings-section">
+        <h2 class="admin-settings-card-title">Dry-run validation</h2>
+        {% if import_result.errors|default([]) is not empty %}
+          <div class="admin-flash admin-flash--error" role="alert">
+            {% for err in import_result.errors %}<p>{{ err|e }}</p>{% endfor %}
+          </div>
+        {% endif %}
+        {% if import_result.applied|default([]) is not empty %}
+          <h3 class="admin-label">Would apply</h3>
+          <ul class="admin-simple-list">
+            {% for line in import_result.applied %}
+              <li>{{ line|e }}</li>
+            {% endfor %}
+          </ul>
+        {% endif %}
+        {% if import_result.warnings|default([]) is not empty %}
+          <h3 class="admin-label" style="margin-top:1rem">Notes</h3>
+          <ul class="admin-simple-list admin-hint">
+            {% for line in import_result.warnings %}
+              <li>{{ line|e }}</li>
+            {% endfor %}
+          </ul>
+        {% endif %}
+      </section>
+
+      <section class="admin-card admin-settings-card admin-settings-section">
+        <h2 class="admin-settings-card-title">Apply changes</h2>
+        <p class="admin-settings-card-desc">This writes to the database. Ensure you have a backup.</p>
+        {% if import_result.errors|default([]) is not empty %}
+          <p class="admin-field-error">Fix validation errors before applying.</p>
+        {% else %}
+          <form class="admin-form" method="post" action="{{ url_for('admin.tools.config_sync.apply') }}">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+            <input type="hidden" name="preview_token" value="{{ preview_token|e('html_attr') }}" />
+            <div class="admin-form-actions">
+              <button type="submit" class="admin-btn-primary">Apply to database</button>
+              <a class="admin-btn-ghost" href="{{ url_for('admin.tools.config_sync') }}">Cancel</a>
+            </div>
+          </form>
+        {% endif %}
+      </section>
+    </div>
+  </div>
+{% endblock %}

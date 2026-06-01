@@ -9,6 +9,9 @@ This folder describes how the CMS is structured and how to extend it locally.
 | [plugins.md](plugins.md) | `plugin.json`, routes, service providers |
 | [blueprints.md](blueprints.md) | Importable structure packages |
 | [content-types.md](content-types.md) | Types, fields, entries, public routes |
+| [content-lists.md](content-lists.md) | Saved entry queries (Views-lite), Twig & API |
+| [content-entry-refs.md](content-entry-refs.md) | Entry links (`entry_refs`) — entity references between entries |
+| [config-sync.md](config-sync.md) | Config packages, diff preview, production → staging sync |
 | [commerce.md](commerce.md) | Content-type products, Stripe Checkout, orders |
 | [mobile.md](mobile.md) | Mobile app bootstrap API and admin settings |
 | [mobile-app/README.md](../mobile-app/README.md) | Expo client app (Phase 2+) |

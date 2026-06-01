@@ -5,8 +5,13 @@ declare(strict_types=1);
 namespace App\Api;
 
 use App\Content\ContentEntry;
+use App\Content\ContentEntryRefResolver;
+use App\Content\ContentEntryReferenceIds;
 use App\Content\ContentEntryRefsFieldOptions;
+use App\Content\ContentEntryRepository;
 use App\Content\ContentField;
+use App\Content\ContentTypeRepository;
+use PDO;
 use App\Content\ContentType;
 use App\Filter\FilterHook;
 use App\Filter\Filters;
@@ -74,8 +79,11 @@ final class PublicContentApi
                 'target_content_type_id' => $o->targetContentTypeId,
                 'max_refs' => $o->maxRefs,
                 'require_public_targets' => $o->requirePublicTargets,
+                'cardinality' => $o->isSingle() ? 'single' : 'multiple',
             ];
-            $out['value_format'] = 'JSON array of numeric entry IDs, e.g. [12,34]';
+            $out['value_format'] = $o->isSingle()
+                ? 'JSON array with one numeric entry ID, e.g. [12]'
+                : 'JSON array of numeric entry IDs, e.g. [12,34]';
         }
 
         return $out;
@@ -114,17 +122,25 @@ final class PublicContentApi
         array $taxonomyGroups,
         ?string $featuredUrl,
         string $siteUrl,
+        ?PDO $pdo = null,
     ): array {
         $path = $type->hasPublicRoute ? '/' . $type->slug . '/' . $entry->slug : null;
+        $refResolver = self::entryRefResolverForRows($fieldRows, $pdo);
         $fields = [];
         foreach ($fieldRows as $row) {
-            $fields[] = [
+            $item = [
                 'key' => $row['field_key'],
                 'label' => $row['label'],
                 'type' => $row['field_type'],
                 'value' => $row['value_raw'],
                 'html' => $row['html'],
             ];
+            if (($row['field_type'] ?? '') === 'entry_refs' && $refResolver !== null) {
+                $ids = ContentEntryReferenceIds::parse((string) ($row['value_raw'] ?? ''));
+                $item['value_ids'] = $ids;
+                $item['referenced_entries'] = $refResolver->resolvePublic($ids, $siteUrl);
+            }
+            $fields[] = $item;
         }
         $taxOut = [];
         foreach ($taxonomyGroups as $g) {
@@ -180,6 +196,26 @@ final class PublicContentApi
         ]);
 
         return is_array($filtered) ? $filtered : $payload;
+    }
+
+    /**
+     * @param list<array<string, mixed>> $fieldRows
+     */
+    private static function entryRefResolverForRows(array $fieldRows, ?PDO $pdo): ?ContentEntryRefResolver
+    {
+        if ($pdo === null) {
+            return null;
+        }
+        foreach ($fieldRows as $row) {
+            if (($row['field_type'] ?? '') === 'entry_refs') {
+                return new ContentEntryRefResolver(
+                    new ContentEntryRepository($pdo),
+                    new ContentTypeRepository($pdo),
+                );
+            }
+        }
+
+        return null;
     }
 
     /**

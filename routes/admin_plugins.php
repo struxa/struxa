@@ -40,7 +40,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
     $manager = new PluginManager($root, $repo, $scanner, $validator);
     $migrationRunner = new PluginMigrationRunner($pdo);
     $catalogLoader = new PluginCatalogLoader($root);
-    $remoteInstaller = new PluginRemoteInstaller($root . '/plugins', $scanner);
+    $remoteInstaller = new PluginRemoteInstaller($root . '/plugins', $scanner, $root);
     $pluginPerformance = PluginPerformanceRegistry::instance();
 
     $adminContext = static fn (): array => array_merge($viewData(), []);
@@ -156,13 +156,21 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             $adminContext,
             $withCmsUser,
             $catalogLoader,
-            $scanner
+            $scanner,
+            $repo
         ): Response {
             $loaded = $catalogLoader->load();
             $installed = [];
+            $struxaAdminOnDisk = false;
+            $struxaAdminActive = false;
             foreach ($scanner->discover() as $p) {
                 $installed[$p->manifest->slug] = true;
+                if ($p->manifest->slug === 'struxa-admin') {
+                    $struxaAdminOnDisk = true;
+                }
             }
+            $struxaAdminRow = $repo->findBySlug('struxa-admin');
+            $struxaAdminActive = $struxaAdminRow !== null && $struxaAdminRow->isActive;
 
             return $twig->render($response, 'admin/plugins/browse.twig', $withCmsUser($request, array_merge($adminContext(), [
                 'admin_nav' => 'extensions_plugins',
@@ -170,6 +178,8 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 'catalog_error' => $loaded['ok'] ? null : $loaded['error'],
                 'catalog_plugins' => $loaded['ok'] ? $loaded['entries'] : [],
                 'installed_plugin_slugs' => $installed,
+                'struxa_admin_on_disk' => $struxaAdminOnDisk,
+                'struxa_admin_active' => $struxaAdminActive,
             ])));
         })->setName('admin.extensions.plugins.browse');
 

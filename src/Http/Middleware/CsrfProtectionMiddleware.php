@@ -76,6 +76,10 @@ final class CsrfProtectionMiddleware implements MiddlewareInterface
         if ($path === '/content-stream') {
             return true;
         }
+
+        if ($path === '/plugins/submit' || $path === '/themes/submit') {
+            return true;
+        }
         if ($path === '/comments/post' || $path === '/comments/like') {
             return true;
         }

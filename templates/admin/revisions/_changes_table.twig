@@ -1,0 +1,53 @@
+{# Expects: metadata_changes, field_changes (optional), sections (optional), body_diff (optional), body_diff_label (optional) #}
+{% if metadata_changes is not empty %}
+<section class="admin-card admin-revision-changes-card">
+  <h2 class="admin-settings-card-title">What changed</h2>
+  {% if change_count is defined %}
+    <p class="admin-hint">{{ change_count }} difference{% if change_count != 1 %}s{% endif %} detected</p>
+  {% endif %}
+  <div class="admin-table-wrap">
+    <table class="admin-table admin-revision-changes-table">
+      <thead>
+        <tr>
+          <th>Field</th>
+          <th>From</th>
+          <th>To</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in metadata_changes %}
+          <tr class="{{ row.changed ? 'admin-revision-changes-table__row--changed' : '' }}">
+            <th scope="row">{{ row.label|e }}</th>
+            <td>{{ row.left|e }}</td>
+            <td>{{ row.right|e }}</td>
+          </tr>
+        {% endfor %}
+        {% if field_changes is defined %}
+          {% for row in field_changes %}
+            <tr class="{{ row.changed ? 'admin-revision-changes-table__row--changed' : '' }}">
+              <th scope="row">{{ row.label|e }} <span class="admin-hint">({{ row.field_key|e }})</span></th>
+              <td>{{ row.left|e }}</td>
+              <td>{{ row.right|e }}</td>
+            </tr>
+          {% endfor %}
+        {% endif %}
+        {% if sections is defined and sections.changed %}
+          <tr class="admin-revision-changes-table__row--changed">
+            <th scope="row">Page builder blocks</th>
+            <td>{{ sections.left }} block{% if sections.left != 1 %}s{% endif %}</td>
+            <td>{{ sections.right }} block{% if sections.right != 1 %}s{% endif %}</td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endif %}
+
+{% if body_diff is defined and body_diff != '' %}
+<section class="admin-card admin-revision-changes-card">
+  <h2 class="admin-settings-card-title">{{ body_diff_label|default('Body line diff')|e }}</h2>
+  <p class="admin-hint">Lines with <code class="admin-inline-code">-</code> removed, <code class="admin-inline-code">+</code> added (left → right).</p>
+  <pre class="admin-revision-diff">{{ body_diff|e }}</pre>
+</section>
+{% endif %}

@@ -21,6 +21,57 @@ final class ContentEntryRefsFieldOptions
     ) {
     }
 
+    public function isSingle(): bool
+    {
+        return $this->maxRefs === 1;
+    }
+
+    /**
+     * @return array{target_content_type_id: int, max_refs: int, require_public_targets: bool}
+     */
+    public static function formControls(?string $optionsJson): array
+    {
+        $field = new ContentField(0, 0, '', '', 'entry_refs', null, null, false, null, $optionsJson, 0, '', '');
+        $opts = self::fromField($field);
+
+        return [
+            'target_content_type_id' => $opts->targetContentTypeId ?? 0,
+            'max_refs' => $opts->maxRefs,
+            'require_public_targets' => $opts->requirePublicTargets,
+        ];
+    }
+
+    /**
+     * Build options_json from structured admin field form controls.
+     *
+     * @param array<string, mixed> $body
+     * @return array<string, mixed>
+     */
+    public static function mergeStructuredIntoBody(array $body): array
+    {
+        $hasStructured = array_key_exists('entry_refs_target_type', $body)
+            || array_key_exists('entry_refs_max', $body)
+            || array_key_exists('entry_refs_require_public', $body);
+        if (!$hasStructured) {
+            return $body;
+        }
+        $tid = isset($body['entry_refs_target_type']) ? (int) $body['entry_refs_target_type'] : 0;
+        $max = isset($body['entry_refs_max']) ? (int) $body['entry_refs_max'] : 25;
+        $max = max(1, min(100, $max));
+        $reqPub = !empty($body['entry_refs_require_public']);
+        try {
+            $body['options_json'] = json_encode([
+                'target_content_type_id' => $tid > 0 ? $tid : 0,
+                'max_refs' => $max,
+                'require_public_targets' => $reqPub,
+            ], JSON_THROW_ON_ERROR);
+        } catch (\JsonException) {
+            // leave options_json as-is
+        }
+
+        return $body;
+    }
+
     public static function fromField(ContentField $field): self
     {
         $raw = $field->optionsJson;

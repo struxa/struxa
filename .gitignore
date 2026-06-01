@@ -36,6 +36,8 @@ storage/composer-home/
 storage/cache/*
 !storage/cache/.gitkeep
 storage/dist-catalog.json
+storage/config-sync-inbox/*
+!storage/config-sync-inbox/.gitkeep
 # Optional: composer render-marketing-preview
 public/marketing-preview.html
 public/uploads/*

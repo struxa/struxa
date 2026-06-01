@@ -1,0 +1,93 @@
+{% extends 'admin/base.twig' %}
+
+{% block admin_title %}Job #{{ job.id }}{% endblock %}
+
+{% block admin_hero_title %}
+  <h1 class="admin-hero-title">Job #{{ job.id }}</h1>
+{% endblock %}
+
+{% block admin_hero_sub %}
+  <p class="admin-hero-sub">
+    <a class="admin-link" href="{{ url_for('admin.tools.jobs') }}">← Background jobs</a>
+    · <span class="admin-badge admin-badge--job admin-badge--job-{{ job.status|e('html_attr') }}">{{ job.status_label|e }}</span>
+  </p>
+{% endblock %}
+
+{% block admin_content %}
+  <div class="admin-settings-page admin-settings-page--tools">
+    {% include 'admin/tools/_subnav.twig' with { tools_nav_active: 'jobs' } %}
+
+    <section class="admin-card admin-settings-card">
+      <h2 class="admin-settings-card-title">{{ job.type_label|e }}</h2>
+      <p class="admin-hint"><code class="admin-inline-code">{{ job.type|e }}</code> · queue <code class="admin-inline-code">{{ job.queue|e }}</code></p>
+
+      <dl class="admin-dl admin-jobs-detail-dl">
+        <div class="admin-dl-row">
+          <dt>Attempts</dt>
+          <dd>{{ job.attempts }} / {{ job.max_attempts }}</dd>
+        </div>
+        <div class="admin-dl-row">
+          <dt>Available at (UTC)</dt>
+          <dd>{{ job.available_at|e }}</dd>
+        </div>
+        {% if job.reserved_at %}
+          <div class="admin-dl-row">
+            <dt>Reserved</dt>
+            <dd>{{ job.reserved_at|e }}{% if job.reserved_by %} by {{ job.reserved_by|e }}{% endif %}</dd>
+          </div>
+        {% endif %}
+        <div class="admin-dl-row">
+          <dt>Created (UTC)</dt>
+          <dd>{{ job.created_at|e }}</dd>
+        </div>
+        {% if job.completed_at %}
+          <div class="admin-dl-row">
+            <dt>Completed (UTC)</dt>
+            <dd>{{ job.completed_at|e }}</dd>
+          </div>
+        {% endif %}
+        {% if job.dedupe_key %}
+          <div class="admin-dl-row">
+            <dt>Dedupe key</dt>
+            <dd><code class="admin-inline-code">{{ job.dedupe_key|e }}</code></dd>
+          </div>
+        {% endif %}
+      </dl>
+
+      {% if job.result_summary %}
+        <h3 class="admin-settings-card-subtitle">Result</h3>
+        <p class="admin-prose">{{ job.result_summary|e }}</p>
+      {% endif %}
+
+      {% if job.last_error %}
+        <h3 class="admin-settings-card-subtitle">Last error</h3>
+        <pre class="admin-jobs-error-pre">{{ job.last_error|e }}</pre>
+      {% endif %}
+
+      <h3 class="admin-settings-card-subtitle">Payload</h3>
+      <pre class="admin-jobs-payload-pre">{{ job.payload_json|e }}</pre>
+
+      <div class="admin-form-actions" style="margin-top:1.25rem">
+        {% if job.can_retry %}
+          <form method="post" action="{{ url_for('admin.tools.jobs.process') }}" class="admin-inline-form">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+            <input type="hidden" name="action" value="retry" />
+            <input type="hidden" name="job_id" value="{{ job.id }}" />
+            <input type="hidden" name="return_to" value="{{ url_for('admin.tools.jobs.show', { id: job.id }) }}" />
+            <button type="submit" class="admin-btn-primary">Retry job</button>
+          </form>
+        {% endif %}
+        {% if job.can_cancel %}
+          <form method="post" action="{{ url_for('admin.tools.jobs.process') }}" class="admin-inline-form" onsubmit="return confirm('Cancel this pending job?');">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+            <input type="hidden" name="action" value="cancel" />
+            <input type="hidden" name="job_id" value="{{ job.id }}" />
+            <input type="hidden" name="return_to" value="{{ url_for('admin.tools.jobs.show', { id: job.id }) }}" />
+            <button type="submit" class="admin-btn-ghost">Cancel</button>
+          </form>
+        {% endif %}
+        <a class="admin-btn-ghost" href="{{ url_for('admin.tools.jobs') }}">Back to queue</a>
+      </div>
+    </section>
+  </div>
+{% endblock %}

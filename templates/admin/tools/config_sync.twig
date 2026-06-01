@@ -1,0 +1,156 @@
+{% extends 'admin/base.twig' %}
+
+{% block admin_title %}Config sync{% endblock %}
+
+{% block admin_hero_title %}
+  <h1 class="admin-hero-title">Config sync</h1>
+{% endblock %}
+
+{% block admin_hero_sub %}
+  <p class="admin-hero-sub admin-hero-sub--tight">Named configuration packages with diff preview — Drupal CMI-lite for agencies moving production → staging.</p>
+{% endblock %}
+
+{% block admin_content %}
+  <div class="admin-settings-page admin-settings-page--portability">
+    {% include 'admin/tools/_portability_subnav.twig' with { portability_nav_active: 'config_sync' } %}
+
+    <div class="admin-settings-intro admin-settings-intro--import">
+      <div class="admin-settings-intro-icon" aria-hidden="true">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 3v12" />
+          <path d="m7 10 5 5 5-5" />
+          <path d="M5 21h14" />
+        </svg>
+      </div>
+      <div class="admin-settings-intro-body">
+        <p class="admin-settings-intro-title">Structure without full blueprints</p>
+        <p class="admin-settings-intro-text">
+          Export a <strong>named package</strong> (content types, menus, roles, mobile, commerce, settings).
+          On the target site, <strong>preview changes</strong> shows a diff and validation before you apply.
+          Format: <code class="admin-inline-code">cms_config_package_version</code> 1.0.
+        </p>
+      </div>
+    </div>
+
+    <div class="admin-settings-stack">
+      <section class="admin-card admin-settings-card admin-settings-section" id="config-sync-export">
+        <h2 class="admin-settings-card-title">Export package</h2>
+        <p class="admin-settings-card-desc">From this environment — tag with your environment label on <a class="admin-link" href="{{ url_for('admin.tools.blueprints') }}#blueprint-profile">Site profile</a> for traceability.</p>
+        <form class="admin-form admin-settings-form" method="post" action="{{ url_for('admin.tools.config_sync.export') }}">
+          <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+          <div class="admin-form-grid">
+            <div class="admin-field">
+              <label class="admin-label" for="cfg-pkg">Package preset</label>
+              <select class="admin-select" id="cfg-pkg" name="package_id">
+                {% for pkg in config_packages %}
+                  <option value="{{ pkg.id|e('html_attr') }}" {{ pkg.id == 'agency-staging' ? 'selected' : '' }}>{{ pkg.label|e }}</option>
+                {% endfor %}
+                <option value="custom">Custom scopes only</option>
+              </select>
+            </div>
+            <div class="admin-field">
+              <label class="admin-label" for="cfg-label">Export label</label>
+              <input class="admin-input" id="cfg-label" name="label" type="text" maxlength="160" placeholder="Production snapshot May 2026" />
+            </div>
+            <div class="admin-field">
+              <label class="admin-label" for="cfg-env">Source environment</label>
+              <input class="admin-input" id="cfg-env" name="source_environment" type="text" value="{{ site_profile.environment_label|default('')|e }}" placeholder="production" maxlength="64" />
+            </div>
+          </div>
+          <p class="admin-label" style="margin-top:0.75rem">Scopes (override preset when checked)</p>
+          <div class="admin-scope-grid">
+            {% for scope in all_scopes %}
+              <label class="admin-scope-option">
+                <input type="checkbox" name="scopes[]" value="{{ scope|e('html_attr') }}" />
+                {{ scope|replace({'_': ' '})|title }}
+              </label>
+            {% endfor %}
+          </div>
+          <div class="admin-scope-grid admin-scope-grid--compact" style="margin-top:0.5rem">
+            <label class="admin-scope-option"><input type="checkbox" name="include_entries" value="1" /> Include content entries (up to 200 per type)</label>
+            <label class="admin-scope-option"><input type="checkbox" name="save_to_storage" value="1" /> Save copy to storage/config-packages/</label>
+          </div>
+          <div class="admin-field" style="margin-top:0.5rem">
+            <label class="admin-label" for="cfg-basename">Save basename (if saving)</label>
+            <input class="admin-input" id="cfg-basename" name="basename" type="text" placeholder="prod-2026-05-29" />
+          </div>
+          <div class="admin-form-actions admin-form-actions--split">
+            <button type="submit" class="admin-btn-primary">Download JSON package</button>
+            <button type="submit" name="save_to_storage" value="1" class="admin-btn-ghost">Save to server</button>
+          </div>
+        </form>
+      </section>
+
+      {% if saved_packages is not empty %}
+      <section class="admin-card admin-settings-card admin-settings-section">
+        <h2 class="admin-settings-card-title">Saved on this server</h2>
+        <ul class="admin-simple-list">
+          {% for s in saved_packages %}
+            <li>
+              <strong>{{ s.label|e }}</strong>
+              <span class="admin-hint"> — {{ s.basename|e }}.json{% if s.exported_at %} · {{ s.exported_at|e }}{% endif %}</span>
+            </li>
+          {% endfor %}
+        </ul>
+      </section>
+      {% endif %}
+
+      <section class="admin-card admin-settings-card admin-settings-section" id="config-sync-import">
+        <h2 class="admin-settings-card-title">Import with diff preview</h2>
+        <p class="admin-settings-card-desc">Step 1: validate and compare. Step 2: apply from the preview screen.</p>
+        <form class="admin-form admin-settings-form" method="post" action="{{ url_for('admin.tools.config_sync.preview') }}" enctype="multipart/form-data">
+          <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+          <div class="admin-form-grid">
+            {% if saved_packages is not empty %}
+            <div class="admin-field admin-field--full">
+              <label class="admin-label" for="cfg-saved">Or use saved package</label>
+              <select class="admin-select" id="cfg-saved" name="saved_basename">
+                <option value="">— Upload / paste below —</option>
+                {% for s in saved_packages %}
+                  <option value="{{ s.basename|e('html_attr') }}">{{ s.label|e }} ({{ s.basename|e }})</option>
+                {% endfor %}
+              </select>
+            </div>
+            {% endif %}
+            <div class="admin-field admin-field--full">
+              <label class="admin-label" for="cfg-file">JSON file</label>
+              <input class="admin-input" id="cfg-file" name="json_file" type="file" accept=".json,application/json" />
+            </div>
+            <div class="admin-field admin-field--full">
+              <label class="admin-label" for="cfg-json">Or paste JSON</label>
+              <textarea class="admin-textarea" id="cfg-json" name="json_text" rows="8" placeholder="{ &quot;cms_config_package_version&quot;: &quot;1.0&quot;, … }"></textarea>
+            </div>
+          </div>
+          <p class="admin-label" style="margin-top:0.5rem">Apply scopes (empty = use package file)</p>
+          <div class="admin-scope-grid">
+            {% for scope in all_scopes %}
+              <label class="admin-scope-option">
+                <input type="checkbox" name="scopes[]" value="{{ scope|e('html_attr') }}" />
+                {{ scope|replace({'_': ' '})|title }}
+              </label>
+            {% endfor %}
+          </div>
+          <div class="admin-scope-grid admin-scope-grid--compact">
+            <input type="hidden" name="merge" value="0" />
+            <label class="admin-scope-option"><input type="checkbox" name="merge" value="1" checked /> Merge with existing slugs</label>
+            <label class="admin-scope-option"><input type="checkbox" name="apply_theme" value="1" /> Apply active theme from package (meta)</label>
+            <label class="admin-scope-option"><input type="checkbox" name="import_entries" value="1" /> Import entry rows (entries scope)</label>
+          </div>
+          <div class="admin-form-actions">
+            <button type="submit" class="admin-btn-primary">Preview diff &amp; validate</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="admin-card admin-settings-card admin-settings-section">
+        <h2 class="admin-settings-card-title">Agency workflow</h2>
+        <ol class="admin-hint" style="margin:0;padding-left:1.25rem;line-height:1.6">
+          <li>On <strong>production</strong>, set Site profile → environment to <code>production</code>.</li>
+          <li>Export preset <strong>Production → staging</strong> and download the JSON (or save to server and copy the file).</li>
+          <li>On <strong>staging</strong>, open Config sync → Import → preview. Review the diff (+ add, ~ update, − remove).</li>
+          <li>When the dry-run messages look right, click <strong>Apply to database</strong> on the preview page.</li>
+        </ol>
+      </section>
+    </div>
+  </div>
+{% endblock %}

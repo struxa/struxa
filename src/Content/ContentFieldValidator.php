@@ -66,6 +66,7 @@ final class ContentFieldValidator
                 }
             }
         } elseif ($fieldType === 'entry_refs') {
+            $body = ContentEntryRefsFieldOptions::mergeStructuredIntoBody($body);
             $optCheck = ContentEntryRefsFieldOptions::validateOptionsBody($body);
             foreach ($optCheck['errors'] as $k => $msg) {
                 $errors[$k] = $msg;

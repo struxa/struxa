@@ -240,74 +240,18 @@
           <div>
             <h2 class="admin-settings-card-title">Background jobs</h2>
             <p class="admin-settings-card-desc" style="margin-bottom:0">
-              Defer heavy work to a CLI worker. Cron example:
-              <code class="admin-inline-code">*/15 * * * * php bin/cms.php jobs:dispatch &amp;&amp; php bin/cms.php jobs:work --limit=20</code>
+              {{ jc.pending|default(0) }} pending · {{ jc.failed|default(0) }} failed · worker last ran
+              <strong>{{ jobs_last_worker_at|default('never') }}</strong> (UTC).
+              Full queue monitor, cron heartbeats, retry, and filters live on
+              <a class="admin-link" href="{{ url_for('admin.tools.jobs') }}">Background jobs</a>.
             </p>
           </div>
           {% if jc.failed|default(0) > 0 %}
-            <span class="admin-pill admin-pill--warn">{{ jc.failed|default(0) }} failed</span>
+            <a class="admin-btn-primary admin-btn-primary--sm" href="{{ url_for('admin.tools.jobs') }}?status=failed">View failed</a>
+          {% else %}
+            <a class="admin-btn-ghost admin-btn-ghost--sm" href="{{ url_for('admin.tools.jobs') }}">Open queue</a>
           {% endif %}
         </header>
-
-        <div class="admin-metrics admin-tools-job-metrics" aria-label="Job queue">
-          <article class="admin-metric">
-            <p class="admin-metric-label">Pending</p>
-            <p class="admin-metric-value">{{ jc.pending|default(0) }}</p>
-          </article>
-          <article class="admin-metric">
-            <p class="admin-metric-label">Running</p>
-            <p class="admin-metric-value">{{ jc.running|default(0) }}</p>
-          </article>
-          <article class="admin-metric{% if jc.failed|default(0) > 0 %} admin-metric--danger{% endif %}">
-            <p class="admin-metric-label">Failed</p>
-            <p class="admin-metric-value">{{ jc.failed|default(0) }}</p>
-          </article>
-          <article class="admin-metric admin-metric--health-good">
-            <p class="admin-metric-label">Completed (24h)</p>
-            <p class="admin-metric-value">{{ jc.completed_24h|default(0) }}</p>
-          </article>
-        </div>
-        <p class="admin-hint admin-settings-card-footnote">Last worker run (UTC): <strong>{{ jobs_last_worker_at|default('never') }}</strong></p>
-
-        <div class="admin-tools-action-row">
-          <form method="post" action="{{ url_for('admin.tools.maintenance.process') }}" class="admin-inline-form">
-            <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
-            <input type="hidden" name="action" value="enqueue_publish_due" />
-            <button type="submit" class="admin-btn-ghost admin-btn-ghost--sm">Queue scheduled publish</button>
-          </form>
-          <form method="post" action="{{ url_for('admin.tools.maintenance.process') }}" class="admin-inline-form">
-            <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
-            <input type="hidden" name="action" value="enqueue_scheduled_purges" />
-            <button type="submit" class="admin-btn-ghost admin-btn-ghost--sm">Queue retention purges</button>
-          </form>
-        </div>
-
-        {% if recent_jobs|default([])|length > 0 %}
-          <div class="admin-table-wrap" style="margin-top:1rem;overflow-x:auto">
-            <table class="admin-table admin-table--comfortable">
-              <thead>
-                <tr>
-                  <th scope="col">ID</th>
-                  <th scope="col">Type</th>
-                  <th scope="col">Status</th>
-                  <th scope="col">Summary</th>
-                  <th scope="col">Created (UTC)</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for job in recent_jobs %}
-                  <tr>
-                    <td>#{{ job.id }}</td>
-                    <td><code class="admin-inline-code">{{ job.type|e }}</code></td>
-                    <td>{{ job.status|e }}</td>
-                    <td class="admin-table-muted">{{ job.resultSummary|default(job.lastError|default('—'))|e }}</td>
-                    <td class="admin-table-muted">{{ job.createdAt|e }}</td>
-                  </tr>
-                {% endfor %}
-              </tbody>
-            </table>
-          </div>
-        {% endif %}
       </section>
 
       <section class="admin-card admin-settings-card admin-settings-section" id="maintenance-images">

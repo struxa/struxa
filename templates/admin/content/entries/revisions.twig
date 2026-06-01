@@ -11,36 +11,59 @@
 {% endblock %}
 
 {% block admin_content %}
-  <div class="admin-card">
+  <div class="admin-settings-page admin-settings-page--portability">
     {% if revision_rows is empty %}
-      <p class="admin-hint">No revisions yet.</p>
-    {% else %}
-      <p class="admin-hint" style="margin-bottom:0.75rem">Compare two saved revisions by opening one revision’s compare link and adding <code class="admin-inline-code">?other=</code> plus the other revision’s ID.</p>
-      <div class="admin-table-wrap">
-        <table class="admin-table">
-          <thead>
-            <tr>
-              <th>When</th>
-              <th>By</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for row in revision_rows %}
-              <tr>
-                <td>{{ row.created_at|e }}</td>
-                <td class="admin-table-muted">{{ row.author_email|default('—')|e }}</td>
-                <td>
-                  <a class="admin-link" href="{{ url_for('admin.content_types.entries.revision_compare', { id: content_type.id, entryId: entry.id, revId: row.id }) }}">Compare</a>
-                  <form method="post" action="{{ url_for('admin.content_types.entries.revision_restore', { id: content_type.id, entryId: entry.id, revId: row.id }) }}" style="display:inline;margin-left:0.75rem" onsubmit="return confirm('Restore this snapshot?');">
-                    <button type="submit" class="admin-btn-ghost">Restore</button>
-                  </form>
-                </td>
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
+      <div class="admin-card">
+        <p class="admin-hint">No revisions yet. Each save creates a snapshot you can compare or restore.</p>
       </div>
+    {% else %}
+      {% include 'admin/revisions/_compare_picker.twig' with {
+        compare_form_action: compare_form_action,
+        revision_rows: revision_rows,
+        from_id: revision_rows[0].id,
+        to_target: 'current'
+      } %}
+
+      <section class="admin-card admin-settings-card admin-revision-history">
+        <h2 class="admin-settings-card-title">History</h2>
+        <p class="admin-settings-card-desc">Newest first. Restore replaces the current entry with that snapshot (today’s version is saved first).</p>
+        <div class="admin-table-wrap">
+          <table class="admin-table admin-revision-history-table">
+            <thead>
+              <tr>
+                <th>When</th>
+                <th>Snapshot</th>
+                <th>By</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in revision_rows %}
+                <tr>
+                  <td><time datetime="{{ row.created_at|e('html_attr') }}">{{ row.created_at|e }}</time></td>
+                  <td>
+                    <strong>{{ row.summary_title|default('Untitled')|e }}</strong>
+                    {% if row.summary_status %}
+                      <span class="admin-badge admin-badge--muted">{{ row.summary_status|e }}</span>
+                    {% endif %}
+                  </td>
+                  <td class="admin-table-muted">{{ row.author_email|default('—')|e }}</td>
+                  <td class="admin-revision-history-actions">
+                    <a class="admin-link" href="{{ url_for('admin.content_types.entries.revision_compare', { id: content_type.id, entryId: entry.id }) }}?from={{ row.id }}&amp;to=current">Compare to now</a>
+                    {% if not loop.last %}
+                      <a class="admin-link" href="{{ url_for('admin.content_types.entries.revision_compare', { id: content_type.id, entryId: entry.id }) }}?from={{ row.id }}&amp;to={{ revision_rows[loop.index0 + 1].id }}">vs previous</a>
+                    {% endif %}
+                    <form method="post" action="{{ url_for('admin.content_types.entries.revision_restore', { id: content_type.id, entryId: entry.id, revId: row.id }) }}" class="admin-revision-restore-form" onsubmit="return confirm('Restore this version? The current entry will be snapshotted first, then replaced with this revision.');">
+                      <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+                      <button type="submit" class="admin-btn-ghost admin-btn-ghost--sm">Restore</button>
+                    </form>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </section>
     {% endif %}
   </div>
 {% endblock %}

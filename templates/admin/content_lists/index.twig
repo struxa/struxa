@@ -1,0 +1,70 @@
+{% extends 'admin/base.twig' %}
+{% import 'admin/_ui_macros.twig' as ui %}
+
+{% block admin_title %}Content lists{% endblock %}
+
+{% block admin_hero_title %}
+  <h1 class="admin-hero-title">Content lists</h1>
+{% endblock %}
+
+{% block admin_hero_sub %}
+  <p class="admin-hero-sub admin-hero-sub--tight">Saved queries — filter entries by status, taxonomy, and fields. Use on the site, in themes, or via API.</p>
+{% endblock %}
+
+{% block admin_hero_actions %}
+  <a class="admin-btn-primary" href="{{ url_for('admin.content_lists.new') }}">New list</a>
+{% endblock %}
+
+{% block admin_content %}
+  <div class="admin-settings-page">
+    {% if list_rows is empty %}
+      <section class="admin-card admin-settings-card">
+        {{ ui.empty_state(
+          'No content lists yet',
+          'Create a list to show filtered entries on /lists/your-slug, in Twig, or at /api/v1/content-lists/your-slug.',
+          url_for('admin.content_lists.new'),
+          'Create your first list'
+        ) }}
+      </section>
+    {% else %}
+      <section class="admin-card admin-settings-card">
+        <div class="admin-table-wrap">
+          <table class="admin-table admin-table--comfortable">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Slug</th>
+                <th>Content type</th>
+                <th>Exposure</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in list_rows %}
+                <tr>
+                  <td>
+                    <strong>{{ row.name|e }}</strong>
+                    {% if not row.is_active %}<span class="admin-badge admin-badge--muted">Inactive</span>{% endif %}
+                  </td>
+                  <td><code class="admin-inline-code">{{ row.slug|e }}</code></td>
+                  <td>{{ row.type_name|e }}</td>
+                  <td class="admin-table-meta">
+                    {% if row.expose_public_page %}<span class="admin-badge">Page</span>{% endif %}
+                    {% if row.expose_api %}<span class="admin-badge">API</span>{% endif %}
+                  </td>
+                  <td class="admin-table-actions">
+                    <a href="{{ url_for('admin.content_lists.edit', { id: row.id }) }}">Edit</a>
+                    <a href="{{ url_for('admin.content_lists.preview', { id: row.id }) }}">Preview</a>
+                    {% if row.expose_public_page %}
+                      <a href="/lists/{{ row.slug|e('url') }}" target="_blank" rel="noopener noreferrer">View</a>
+                    {% endif %}
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    {% endif %}
+  </div>
+{% endblock %}

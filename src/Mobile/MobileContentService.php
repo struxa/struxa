@@ -103,6 +103,7 @@ final class MobileContentService
             $groups,
             $featuredUrl !== '' ? $featuredUrl : null,
             $siteUrl,
+            $this->pdo,
         );
     }
 

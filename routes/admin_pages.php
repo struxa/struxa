@@ -718,70 +718,91 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 $row['section_count'] = PageRevisionRepository::sectionCountFromJson(
                     isset($row['sections_json']) ? (string) $row['sections_json'] : null
                 );
+                $row['summary_title'] = (string) ($row['title'] ?? 'Untitled');
+                $row['summary_status'] = (string) ($row['status'] ?? '');
             }
             unset($row);
+            $parser = RouteContext::fromRequest($request)->getRouteParser();
 
             return $twig->render($response, 'admin/pages/revisions.twig', $withCmsUser($request, array_merge($adminContext(), [
                 'admin_nav' => 'pages',
                 'page' => $page,
                 'revision_rows' => $rows,
+                'compare_form_action' => $parser->urlFor('admin.pages.revision_compare', ['id' => (string) $id]),
             ])));
         })->setName('admin.pages.revisions');
 
-        $group->get('/pages/{id:[0-9]+}/revisions/compare/{revId:[0-9]+}', function (Request $request, Response $response, array $args) use ($twig, $adminContext, $withCmsUser, $repo, $revisions, $pageSections): Response {
+        $group->get('/pages/{id:[0-9]+}/revisions/compare', function (Request $request, Response $response, array $args) use ($twig, $adminContext, $withCmsUser, $repo, $revisions, $pageSections): Response {
             $id = (int) $args['id'];
-            $revId = (int) $args['revId'];
             $page = $repo->findById($id);
-            $rev = $revisions->findById($revId);
-            if ($page === null || $rev === null || (int) $rev['page_id'] !== $id) {
+            if ($page === null) {
                 throw new HttpNotFoundException($request);
             }
-
-            $revTagsJson = isset($rev['tags_json']) && $rev['tags_json'] !== null && $rev['tags_json'] !== ''
-                ? (string) $rev['tags_json']
-                : null;
-
             $q = $request->getQueryParams();
-            $otherRaw = isset($q['other']) ? (string) $q['other'] : '';
-            $otherId = ctype_digit($otherRaw) ? (int) $otherRaw : 0;
-            $revRight = null;
-            $revRightTagsDisplay = '';
-            if ($otherId > 0 && $otherId !== $revId) {
-                $revRight = $revisions->findById($otherId);
-                if ($revRight === null || (int) $revRight['page_id'] !== $id) {
+            $fromId = isset($q['from']) && ctype_digit((string) $q['from']) ? (int) $q['from'] : 0;
+            $toRaw = isset($q['to']) ? (string) $q['to'] : (isset($q['other']) ? (string) $q['other'] : 'current');
+            if ($fromId < 1) {
+                throw new HttpNotFoundException($request);
+            }
+            $fromRev = $revisions->findById($fromId);
+            if ($fromRev === null || (int) $fromRev['page_id'] !== $id) {
+                throw new HttpNotFoundException($request);
+            }
+            $toRev = null;
+            $toLabel = 'Current saved version';
+            if ($toRaw !== 'current' && $toRaw !== '') {
+                $toId = ctype_digit($toRaw) ? (int) $toRaw : 0;
+                if ($toId < 1) {
                     throw new HttpNotFoundException($request);
                 }
-                $rtj = $revRight['tags_json'] ?? null;
-                $revRightTagsDisplay = PageTagParser::slugsToEditString(PageTagParser::fromJson(
-                    $rtj !== null && $rtj !== '' ? (string) $rtj : null
-                ));
+                $toRev = $revisions->findById($toId);
+                if ($toRev === null || (int) $toRev['page_id'] !== $id) {
+                    throw new HttpNotFoundException($request);
+                }
+                $toLabel = (string) $toRev['created_at'];
             }
-
-            $leftContent = (string) $rev['content'];
-            $rightContent = $revRight !== null ? (string) $revRight['content'] : $page->content;
-            $unifiedDiff = implode("\n", LineDiff::unified($leftContent, $rightContent));
-
-            $revSectionCount = PageRevisionRepository::sectionCountFromJson(
-                isset($rev['sections_json']) ? (string) $rev['sections_json'] : null
-            );
-            $rightSectionCount = $revRight !== null
-                ? PageRevisionRepository::sectionCountFromJson(
-                    isset($revRight['sections_json']) ? (string) $revRight['sections_json'] : null
-                )
-                : $pageSections->countForPage($id);
+            $currentSectionCount = $toRev === null ? $pageSections->countForPage($id) : null;
+            $compare = (new \App\Revisions\PageRevisionCompare())->compare($fromRev, $toRev, $page, $currentSectionCount);
+            $rows = $revisions->listForPage($id);
+            foreach ($rows as &$row) {
+                $row['section_count'] = PageRevisionRepository::sectionCountFromJson(
+                    isset($row['sections_json']) ? (string) $row['sections_json'] : null
+                );
+                $row['summary_title'] = (string) ($row['title'] ?? 'Untitled');
+                $row['summary_status'] = (string) ($row['status'] ?? '');
+            }
+            unset($row);
+            $parser = RouteContext::fromRequest($request)->getRouteParser();
 
             return $twig->render($response, 'admin/pages/revision_compare.twig', $withCmsUser($request, array_merge($adminContext(), [
                 'admin_nav' => 'pages',
                 'page' => $page,
-                'revision' => $rev,
-                'revision_right' => $revRight,
-                'revision_tags_display' => PageTagParser::slugsToEditString(PageTagParser::fromJson($revTagsJson)),
-                'revision_right_tags_display' => $revRightTagsDisplay,
-                'revision_unified_diff' => $unifiedDiff,
-                'revision_section_count' => $revSectionCount,
-                'revision_right_section_count' => $rightSectionCount,
+                'from_revision' => $fromRev,
+                'to_revision' => $toRev,
+                'from_label' => (string) $fromRev['created_at'],
+                'to_label' => $toLabel,
+                'compare' => $compare,
+                'revision_rows' => $rows,
+                'compare_form_action' => $parser->urlFor('admin.pages.revision_compare', ['id' => (string) $id]),
+                'from_id' => $fromId,
+                'to_target' => $toRaw === '' ? 'current' : $toRaw,
+                'restore_revision_id' => $fromId,
             ])));
         })->setName('admin.pages.revision_compare');
+
+        $group->get('/pages/{id:[0-9]+}/revisions/compare/{revId:[0-9]+}', function (Request $request, Response $response, array $args): Response {
+            $id = (int) $args['id'];
+            $revId = (int) $args['revId'];
+            $q = $request->getQueryParams();
+            $to = isset($q['other']) ? (string) $q['other'] : (isset($q['to']) ? (string) $q['to'] : 'current');
+            $url = RouteContext::fromRequest($request)->getRouteParser()->urlFor(
+                'admin.pages.revision_compare',
+                ['id' => (string) $id],
+                ['from' => (string) $revId, 'to' => $to]
+            );
+
+            return $response->withHeader('Location', $url)->withStatus(302);
+        })->setName('admin.pages.revision_compare_legacy');
 
         $group->post('/pages/{id:[0-9]+}/preview-link', function (Request $request, Response $response, array $args) use ($repo, $pdo, $cmsUid, $viewData): Response {
             $id = (int) $args['id'];

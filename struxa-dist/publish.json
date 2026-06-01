@@ -1,4 +1,5 @@
 {
   "themes": ["default"],
-  "include_plugins": false
+  "plugins": ["struxa-admin"],
+  "include_plugins": true
 }

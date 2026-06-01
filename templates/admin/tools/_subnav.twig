@@ -1,7 +1,8 @@
-{# Expects: tools_nav_active — site_health|cache|maintenance|privacy #}
+{# Expects: tools_nav_active — site_health|cache|maintenance|jobs|privacy #}
 <nav class="admin-settings-toc" aria-label="Site tools">
   <a class="admin-settings-toc-link{{ tools_nav_active == 'site_health' ? ' is-current' : '' }}" href="{{ url_for('admin.tools.site_health') }}">Site health</a>
   <a class="admin-settings-toc-link{{ tools_nav_active == 'cache' ? ' is-current' : '' }}" href="{{ url_for('admin.tools.cache') }}">Performance</a>
   <a class="admin-settings-toc-link{{ tools_nav_active == 'maintenance' ? ' is-current' : '' }}" href="{{ url_for('admin.tools.maintenance') }}">Maintenance</a>
+  <a class="admin-settings-toc-link{{ tools_nav_active == 'jobs' ? ' is-current' : '' }}" href="{{ url_for('admin.tools.jobs') }}">Background jobs</a>
   <a class="admin-settings-toc-link{{ tools_nav_active == 'privacy' ? ' is-current' : '' }}" href="{{ url_for('admin.tools.privacy') }}">Privacy</a>
 </nav>

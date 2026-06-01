@@ -20,6 +20,11 @@ final class ThemeManager
     ) {
     }
 
+    public function projectRoot(): string
+    {
+        return $this->projectRoot;
+    }
+
     public function themesRoot(): string
     {
         return $this->projectRoot . DIRECTORY_SEPARATOR . ThemeHttpConfig::THEMES_DIRECTORY;

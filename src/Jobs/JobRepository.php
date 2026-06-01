@@ -252,19 +252,37 @@ final class JobRepository
      */
     public function listRecent(int $limit = 15): array
     {
+        return $this->listFiltered(null, null, '', 1, $limit)['items'];
+    }
+
+    /**
+     * @return array{items: list<Job>, total: int}
+     */
+    public function listFiltered(
+        ?string $status = null,
+        ?string $type = null,
+        string $queue = '',
+        int $page = 1,
+        int $perPage = 25,
+    ): array {
         if (!$this->tableExists()) {
-            return [];
+            return ['items' => [], 'total' => 0];
         }
 
-        $limit = max(1, min(50, $limit));
-        try {
-            $stmt = $this->pdo->query(
-                'SELECT * FROM cms_jobs ORDER BY id DESC LIMIT ' . $limit
-            );
-            if ($stmt === false) {
-                return [];
-            }
+        $page = max(1, $page);
+        $perPage = max(1, min(100, $perPage));
+        $offset = ($page - 1) * $perPage;
+        [$where, $params] = $this->filterClause($status, $type, $queue);
 
+        try {
+            $countSql = 'SELECT COUNT(*) FROM cms_jobs' . $where;
+            $countStmt = $this->pdo->prepare($countSql);
+            $countStmt->execute($params);
+            $total = (int) $countStmt->fetchColumn();
+
+            $sql = 'SELECT * FROM cms_jobs' . $where . ' ORDER BY id DESC LIMIT ' . $perPage . ' OFFSET ' . $offset;
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute($params);
             $out = [];
             while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
                 if (is_array($row)) {
@@ -272,10 +290,123 @@ final class JobRepository
                 }
             }
 
+            return ['items' => $out, 'total' => $total];
+        } catch (PDOException) {
+            return ['items' => [], 'total' => 0];
+        }
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function distinctTypes(int $limit = 40): array
+    {
+        if (!$this->tableExists()) {
+            return [];
+        }
+
+        $limit = max(1, min(100, $limit));
+        try {
+            $stmt = $this->pdo->query(
+                'SELECT DISTINCT type FROM cms_jobs ORDER BY type ASC LIMIT ' . $limit
+            );
+            if ($stmt === false) {
+                return [];
+            }
+            $out = [];
+            while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                if (is_array($row) && isset($row['type'])) {
+                    $out[] = (string) $row['type'];
+                }
+            }
+
             return $out;
         } catch (PDOException) {
             return [];
         }
+    }
+
+    public function retryFailed(int $id): bool
+    {
+        $job = $this->findById($id);
+        if ($job === null || $job->status !== JobStatus::FAILED) {
+            return false;
+        }
+
+        $stmt = $this->pdo->prepare(
+            'UPDATE cms_jobs
+             SET status = :pending, attempts = 0, available_at = UTC_TIMESTAMP(),
+                 reserved_at = NULL, reserved_by = NULL, completed_at = NULL,
+                 last_error = CONCAT(COALESCE(last_error, ""), "\nManually requeued from admin."),
+                 updated_at = UTC_TIMESTAMP()
+             WHERE id = :id AND status = :failed'
+        );
+        $stmt->execute([
+            'pending' => JobStatus::PENDING,
+            'id' => $id,
+            'failed' => JobStatus::FAILED,
+        ]);
+
+        return $stmt->rowCount() > 0;
+    }
+
+    public function cancelPending(int $id): bool
+    {
+        $stmt = $this->pdo->prepare(
+            'UPDATE cms_jobs
+             SET status = :cancelled, updated_at = UTC_TIMESTAMP(), completed_at = UTC_TIMESTAMP()
+             WHERE id = :id AND status = :pending'
+        );
+        $stmt->execute([
+            'cancelled' => JobStatus::CANCELLED,
+            'id' => $id,
+            'pending' => JobStatus::PENDING,
+        ]);
+
+        return $stmt->rowCount() > 0;
+    }
+
+    public function purgeCompletedOlderThanDays(int $days): int
+    {
+        if (!$this->tableExists()) {
+            return 0;
+        }
+
+        $days = max(1, min(365, $days));
+        $stmt = $this->pdo->prepare(
+            'DELETE FROM cms_jobs
+             WHERE status = :completed
+               AND completed_at IS NOT NULL
+               AND completed_at < DATE_SUB(UTC_TIMESTAMP(), INTERVAL ' . $days . ' DAY)'
+        );
+        $stmt->execute(['completed' => JobStatus::COMPLETED]);
+
+        return $stmt->rowCount();
+    }
+
+    /**
+     * @return array{0: string, 1: array<string, string|int>}
+     */
+    private function filterClause(?string $status, ?string $type, string $queue): array
+    {
+        $parts = [];
+        $params = [];
+        if ($status !== null && $status !== '' && JobStatus::isValid($status)) {
+            $parts[] = 'status = :status';
+            $params['status'] = $status;
+        }
+        if ($type !== null && $type !== '') {
+            $parts[] = 'type = :type';
+            $params['type'] = mb_substr($type, 0, 128);
+        }
+        $queue = trim($queue);
+        if ($queue !== '') {
+            $parts[] = 'queue = :queue';
+            $params['queue'] = mb_substr($queue, 0, 64);
+        }
+        $where = $parts === [] ? '' : (' WHERE ' . implode(' AND ', $parts));
+
+        return [$where, $params];
     }
 
     private function scalar(string $sql): int

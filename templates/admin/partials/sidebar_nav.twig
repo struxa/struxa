@@ -100,7 +100,7 @@
     </details>
   {% endif %}
 
-  <details class="admin-nav-group" {{ nav in ['pages','content_types','media','forms','seo_overview','seo_sitemap','trash','section_patterns'] ? 'open' : '' }}>
+  <details class="admin-nav-group" {{ nav in ['pages','content_types','content_lists','media','forms','seo_overview','seo_sitemap','trash','section_patterns'] ? 'open' : '' }}>
     <summary class="admin-nav-group-title">Content</summary>
     <div class="admin-nav-group-items">
       {# Pages: use sidebar pin only (avoids duplicate nav) #}
@@ -108,6 +108,12 @@
         <a href="{{ url_for('admin.content_types.index') }}" class="{{ nav == 'content_types' ? 'is-active' : '' }}">
           <svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
           Content types
+        </a>
+      {% endif %}
+      {% if cms_can('manage_content_types') %}
+        <a href="{{ url_for('admin.content_lists.index') }}" class="{{ nav == 'content_lists' ? 'is-active' : '' }}">
+          <svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
+          Content lists
         </a>
       {% endif %}
       {% if cms_can('manage_pages') %}
@@ -335,12 +341,16 @@
   {% endif %}
 
   {% if cms_can('manage_portability') %}
-    <details class="admin-nav-group" {{ nav in ['tools_blueprints','tools_import_export','tools_api_keys'] ? 'open' : '' }}>
+    <details class="admin-nav-group" {{ nav in ['tools_blueprints','tools_config_sync','tools_import_export','tools_api_keys'] ? 'open' : '' }}>
       <summary class="admin-nav-group-title">Tools</summary>
       <div class="admin-nav-group-items">
         <a href="{{ url_for('admin.tools.blueprints') }}" class="{{ nav == 'tools_blueprints' ? 'is-active' : '' }}">
           <svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
           Blueprints
+        </a>
+        <a href="{{ url_for('admin.tools.config_sync') }}" class="{{ nav == 'tools_config_sync' ? 'is-active' : '' }}">
+          <svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
+          Config sync
         </a>
         <a href="{{ url_for('admin.tools.import_export') }}" class="{{ nav == 'tools_import_export' ? 'is-active' : '' }}">
           <svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>

@@ -28,6 +28,7 @@
           Export or import specific scopes — settings, menus, content types, or entries —
           using format <code class="admin-inline-code">cms_structure_export_version</code> 1.0.
           Safer than <a class="admin-link" href="{{ url_for('admin.tools.blueprints') }}">Blueprints</a> when you only need to copy menus between environments or back up settings.
+          For named packages, diff preview, and roles/mobile/commerce scopes, use <a class="admin-link" href="{{ url_for('admin.tools.config_sync') }}">Config sync</a>.
         </p>
       </div>
     </div>
@@ -44,6 +45,9 @@
             <label class="admin-scope-option"><input type="checkbox" name="scopes[]" value="menus" checked /> Menus — header/footer link trees</label>
             <label class="admin-scope-option"><input type="checkbox" name="scopes[]" value="content_types" checked /> Content types — fields, taxonomies, terms</label>
             <label class="admin-scope-option"><input type="checkbox" name="scopes[]" value="entries" /> Content entries — up to 200 per type</label>
+            <label class="admin-scope-option"><input type="checkbox" name="scopes[]" value="roles" /> Roles &amp; permissions</label>
+            <label class="admin-scope-option"><input type="checkbox" name="scopes[]" value="mobile" /> Mobile app settings</label>
+            <label class="admin-scope-option"><input type="checkbox" name="scopes[]" value="commerce" /> Commerce rules (zones, tax, coupons)</label>
           </div>
           <div class="admin-form-actions">
             <button type="submit" class="admin-btn-primary">Download JSON</button>
@@ -73,6 +77,9 @@
             <label class="admin-scope-option"><input type="checkbox" name="scopes[]" value="menus" checked /> Menus</label>
             <label class="admin-scope-option"><input type="checkbox" name="scopes[]" value="content_types" checked /> Content types / fields / taxonomies</label>
             <label class="admin-scope-option"><input type="checkbox" name="scopes[]" value="entries" /> Entries</label>
+            <label class="admin-scope-option"><input type="checkbox" name="scopes[]" value="roles" /> Roles</label>
+            <label class="admin-scope-option"><input type="checkbox" name="scopes[]" value="mobile" /> Mobile</label>
+            <label class="admin-scope-option"><input type="checkbox" name="scopes[]" value="commerce" /> Commerce</label>
           </div>
           <div class="admin-scope-grid admin-scope-grid--compact">
             <input type="hidden" name="merge" value="0" />

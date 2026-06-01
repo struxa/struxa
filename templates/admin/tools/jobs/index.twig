@@ -1,0 +1,231 @@
+{% extends 'admin/base.twig' %}
+
+{% block admin_title %}Background jobs{% endblock %}
+
+{% block admin_hero_title %}
+  <h1 class="admin-hero-title">Background jobs</h1>
+{% endblock %}
+
+{% block admin_hero_sub %}
+  <p class="admin-hero-sub admin-hero-sub--tight">Queue monitor — pending work, failures, and cron heartbeats (Drupal-style).</p>
+{% endblock %}
+
+{% block admin_breadcrumbs %}
+  {% include 'admin/partials/_breadcrumbs.twig' with {
+    breadcrumbs: [
+      { label: 'Jobs' },
+    ],
+  } %}
+{% endblock %}
+
+{% block admin_content %}
+  {% set jc = cron.job_counts|default({}) %}
+  <div class="admin-settings-page admin-settings-page--tools">
+    {% include 'admin/tools/_subnav.twig' with { tools_nav_active: 'jobs' } %}
+
+    {% if table_missing|default(false) %}
+      <div class="admin-card admin-flash admin-flash--error" role="alert">
+        <p>The <code class="admin-inline-code">cms_jobs</code> table is missing. Run <code class="admin-inline-code">php bin/cms.php migrate</code> on the server.</p>
+      </div>
+    {% else %}
+      <section class="admin-card admin-settings-card admin-jobs-cron-card">
+        <h2 class="admin-settings-card-title">Cron &amp; CLI heartbeats</h2>
+        <p class="admin-settings-card-desc">Trust comes from knowing these timers ran. Times are UTC.</p>
+
+        <div class="admin-jobs-cron-grid">
+          <article class="admin-jobs-cron-item admin-jobs-cron-item--{{ cron.schedule_health|default('warn') }}">
+            <h3 class="admin-jobs-cron-item-title">Scheduled publish</h3>
+            <p class="admin-jobs-cron-item-value">
+              {% if cron.schedule_last_run_at %}
+                {{ cron.schedule_last_run_at|e }} <span class="admin-hint">({{ cron_age.schedule|e }})</span>
+              {% else %}
+                <span class="admin-hint">No heartbeat yet</span>
+              {% endif %}
+            </p>
+            {% if cron.schedule_overdue_count|default(0) > 0 %}
+              <p class="admin-jobs-cron-item-alert">{{ cron.schedule_overdue_count }} overdue publish/unpublish action(s)</p>
+            {% endif %}
+            <p class="admin-hint admin-jobs-cron-item-cmd"><code class="admin-inline-code">php bin/cms.php schedule:run</code></p>
+          </article>
+          <article class="admin-jobs-cron-item admin-jobs-cron-item--{{ cron.worker_health|default('warn') }}">
+            <h3 class="admin-jobs-cron-item-title">Job worker</h3>
+            <p class="admin-jobs-cron-item-value">
+              {% if cron.jobs_last_worker_at %}
+                {{ cron.jobs_last_worker_at|e }} <span class="admin-hint">({{ cron_age.worker|e }})</span>
+              {% else %}
+                <span class="admin-hint">Worker has never run</span>
+              {% endif %}
+            </p>
+            <p class="admin-hint admin-jobs-cron-item-cmd"><code class="admin-inline-code">php bin/cms.php jobs:work --limit=20</code></p>
+          </article>
+        </div>
+
+        <details class="admin-jobs-cron-examples">
+          <summary class="admin-link">Recommended crontab entries</summary>
+          <ul class="admin-simple-list admin-hint">
+            {% for ex in cron.cron_examples|default([]) %}
+              <li><strong>{{ ex.label|e }}</strong><br /><code class="admin-inline-code">{{ ex.command|e }}</code></li>
+            {% endfor %}
+          </ul>
+        </details>
+      </section>
+
+      <div class="admin-metrics admin-hub-metrics" aria-label="Queue summary">
+        <article class="admin-metric">
+          <p class="admin-metric-label">Pending</p>
+          <p class="admin-metric-value">{{ jc.pending|default(0) }}</p>
+        </article>
+        <article class="admin-metric">
+          <p class="admin-metric-label">Running</p>
+          <p class="admin-metric-value">{{ jc.running|default(0) }}</p>
+        </article>
+        <article class="admin-metric{% if jc.failed|default(0) > 0 %} admin-metric--danger{% endif %}">
+          <p class="admin-metric-label">Failed</p>
+          <p class="admin-metric-value">{{ jc.failed|default(0) }}</p>
+        </article>
+        <article class="admin-metric admin-metric--health-good">
+          <p class="admin-metric-label">Completed (24h)</p>
+          <p class="admin-metric-value">{{ jc.completed_24h|default(0) }}</p>
+        </article>
+      </div>
+
+      <section class="admin-card admin-settings-card">
+        <h2 class="admin-settings-card-title">Queue actions</h2>
+        <div class="admin-tools-action-row admin-jobs-actions">
+          <form method="post" action="{{ url_for('admin.tools.jobs.process') }}" class="admin-inline-form">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+            <input type="hidden" name="action" value="enqueue_publish_due" />
+            <button type="submit" class="admin-btn-ghost admin-btn-ghost--sm">Queue scheduled publish</button>
+          </form>
+          <form method="post" action="{{ url_for('admin.tools.jobs.process') }}" class="admin-inline-form">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+            <input type="hidden" name="action" value="enqueue_scheduled_purges" />
+            <button type="submit" class="admin-btn-ghost admin-btn-ghost--sm">Queue retention purges</button>
+          </form>
+          <form method="post" action="{{ url_for('admin.tools.jobs.process') }}" class="admin-inline-form">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+            <input type="hidden" name="action" value="enqueue_media_compress" />
+            <button type="submit" class="admin-btn-ghost admin-btn-ghost--sm">Queue media optimize</button>
+          </form>
+          <form method="post" action="{{ url_for('admin.tools.jobs.process') }}" class="admin-inline-form" onsubmit="return confirm('Requeue jobs stuck in running state (worker crashed)?');">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+            <input type="hidden" name="action" value="release_stale" />
+            <button type="submit" class="admin-btn-ghost admin-btn-ghost--sm">Recover stale running</button>
+          </form>
+          <form method="post" action="{{ url_for('admin.tools.jobs.process') }}" class="admin-inline-form admin-jobs-purge-form" onsubmit="return confirm('Delete completed jobs older than the chosen days?');">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+            <input type="hidden" name="action" value="purge_completed" />
+            <label class="admin-hint">Purge completed older than <input class="admin-input admin-input--inline" type="number" name="days" min="7" max="365" value="30" /> days</label>
+            <button type="submit" class="admin-btn-ghost admin-btn-ghost--sm">Purge</button>
+          </form>
+        </div>
+        <p class="admin-hint">Queued jobs run when <code class="admin-inline-code">jobs:work</code> runs on cron — not from this screen.</p>
+      </section>
+
+      <section class="admin-card admin-settings-card">
+        <header class="admin-settings-card-head-row">
+          <div>
+            <h2 class="admin-settings-card-title">Job queue</h2>
+            <p class="admin-settings-card-desc" style="margin-bottom:0">{{ total_jobs|default(0) }} matching · newest first</p>
+          </div>
+          {% if filter_status == 'failed' or jc.failed|default(0) > 0 %}
+            <a class="admin-btn-ghost admin-btn-ghost--sm" href="{{ url_for('admin.tools.jobs') }}?status=failed">Failed only</a>
+          {% endif %}
+        </header>
+
+        <form class="admin-form admin-jobs-filter-form" method="get" action="{{ url_for('admin.tools.jobs') }}">
+          <div class="admin-form-grid admin-form-grid--jobs-filter">
+            <div class="admin-field">
+              <label class="admin-label" for="job-filter-status">Status</label>
+              <select class="admin-select" id="job-filter-status" name="status">
+                <option value="">All</option>
+                <option value="pending" {{ filter_status == 'pending' ? 'selected' : '' }}>Pending</option>
+                <option value="running" {{ filter_status == 'running' ? 'selected' : '' }}>Running</option>
+                <option value="failed" {{ filter_status == 'failed' ? 'selected' : '' }}>Failed</option>
+                <option value="completed" {{ filter_status == 'completed' ? 'selected' : '' }}>Completed</option>
+                <option value="cancelled" {{ filter_status == 'cancelled' ? 'selected' : '' }}>Cancelled</option>
+              </select>
+            </div>
+            <div class="admin-field">
+              <label class="admin-label" for="job-filter-type">Type</label>
+              <select class="admin-select" id="job-filter-type" name="type">
+                <option value="">All types</option>
+                {% for t in job_types %}
+                  <option value="{{ t|e('html_attr') }}" {{ filter_type == t ? 'selected' : '' }}>{{ t|e }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="admin-field">
+              <label class="admin-label" for="job-filter-queue">Queue</label>
+              <input class="admin-input" id="job-filter-queue" name="queue" value="{{ filter_queue|e('html_attr') }}" placeholder="default" />
+            </div>
+          </div>
+          <div class="admin-form-actions">
+            <button type="submit" class="admin-btn-primary">Filter</button>
+            <a class="admin-btn-ghost" href="{{ url_for('admin.tools.jobs') }}">Reset</a>
+          </div>
+        </form>
+
+        {% if job_rows is empty %}
+          <p class="admin-hint" style="margin-top:1rem">No jobs match these filters.</p>
+        {% else %}
+          <div class="admin-table-wrap" style="margin-top:1rem">
+            <table class="admin-table admin-table--comfortable admin-jobs-table">
+              <thead>
+                <tr>
+                  <th scope="col">ID</th>
+                  <th scope="col">Task</th>
+                  <th scope="col">Status</th>
+                  <th scope="col">Attempts</th>
+                  <th scope="col">Summary</th>
+                  <th scope="col">Created (UTC)</th>
+                  <th scope="col"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for row in job_rows %}
+                  <tr class="{% if row.is_failed %}admin-jobs-table__row--failed{% endif %}">
+                    <td><a class="admin-link" href="{{ url_for('admin.tools.jobs.show', { id: row.id }) }}">#{{ row.id }}</a></td>
+                    <td>
+                      <strong>{{ row.type_label|e }}</strong>
+                      <br /><code class="admin-inline-code admin-hint">{{ row.type|e }}</code>
+                    </td>
+                    <td>
+                      <span class="admin-badge admin-badge--job admin-badge--job-{{ row.status|e('html_attr') }}">{{ row.status_label|e }}</span>
+                    </td>
+                    <td class="admin-table-muted">{{ row.attempts }} / {{ row.max_attempts }}</td>
+                    <td class="admin-table-muted">{{ row.summary|e }}</td>
+                    <td class="admin-table-muted"><time datetime="{{ row.created_at|e('html_attr') }}">{{ row.created_at|e }}</time></td>
+                    <td class="admin-jobs-table-actions">
+                      <a class="admin-link" href="{{ url_for('admin.tools.jobs.show', { id: row.id }) }}">Details</a>
+                      {% if row.is_failed %}
+                        <form method="post" action="{{ url_for('admin.tools.jobs.process') }}" class="admin-inline-form">
+                          <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+                          <input type="hidden" name="action" value="retry" />
+                          <input type="hidden" name="job_id" value="{{ row.id }}" />
+                          <button type="submit" class="admin-btn-ghost admin-btn-ghost--sm">Retry</button>
+                        </form>
+                      {% endif %}
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+
+          {% if total_pages > 1 %}
+            <nav class="admin-pagination admin-hint" aria-label="Job list pages" style="margin-top:1rem">
+              {% if page > 1 %}
+                <a class="admin-link" href="{{ url_for('admin.tools.jobs') }}?page={{ page - 1 }}{% if filter_status %}&amp;status={{ filter_status|e('url') }}{% endif %}{% if filter_type %}&amp;type={{ filter_type|e('url') }}{% endif %}{% if filter_queue %}&amp;queue={{ filter_queue|e('url') }}{% endif %}">← Newer page</a>
+              {% endif %}
+              <span>Page {{ page }} of {{ total_pages }}</span>
+              {% if page < total_pages %}
+                <a class="admin-link" href="{{ url_for('admin.tools.jobs') }}?page={{ page + 1 }}{% if filter_status %}&amp;status={{ filter_status|e('url') }}{% endif %}{% if filter_type %}&amp;type={{ filter_type|e('url') }}{% endif %}{% if filter_queue %}&amp;queue={{ filter_queue|e('url') }}{% endif %}">Older page →</a>
+              {% endif %}
+            </nav>
+          {% endif %}
+        {% endif %}
+      </section>
+    {% endif %}
+  </div>
+{% endblock %}

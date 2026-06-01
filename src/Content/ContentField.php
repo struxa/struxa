@@ -74,4 +74,12 @@ final class ContentField
 
         return $out;
     }
+
+    /**
+     * @return array{target_content_type_id: int, max_refs: int, require_public_targets: bool}
+     */
+    public function entryRefsSettings(): array
+    {
+        return ContentEntryRefsFieldOptions::formControls($this->optionsJson);
+    }
 }

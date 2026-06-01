@@ -1,0 +1,33 @@
+{# Expects: compare_form_action, revision_rows, from_id (optional), to_target (optional, default current) #}
+<section class="admin-card admin-settings-card admin-revision-picker">
+  <h2 class="admin-settings-card-title">Compare versions</h2>
+  <p class="admin-settings-card-desc">Pick an older version (left) and what to compare it against (right). Restore rolls back to a saved snapshot.</p>
+  <form class="admin-form admin-revision-picker-form" method="get" action="{{ compare_form_action|e('html_attr') }}">
+    <div class="admin-form-grid admin-form-grid--revision-picker">
+      <div class="admin-field">
+        <label class="admin-label" for="rev-from">From (older)</label>
+        <select class="admin-select" id="rev-from" name="from" required>
+          {% for row in revision_rows %}
+            <option value="{{ row.id }}" {{ (from_id|default(0)) == row.id ? 'selected' : '' }}>
+              {{ row.created_at|e }} — {{ row.summary_title|default('Snapshot')|e }}{% if row.summary_status %} ({{ row.summary_status|e }}){% endif %}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="admin-field">
+        <label class="admin-label" for="rev-to">To (newer)</label>
+        <select class="admin-select" id="rev-to" name="to">
+          <option value="current" {{ (to_target|default('current')) == 'current' ? 'selected' : '' }}>Current saved version</option>
+          {% for row in revision_rows %}
+            <option value="{{ row.id }}" {{ (to_target|default('')) ~ '' == (row.id ~ '') ? 'selected' : '' }}>
+              {{ row.created_at|e }} — {{ row.summary_title|default('Snapshot')|e }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+    <div class="admin-form-actions">
+      <button type="submit" class="admin-btn-primary">Show what changed</button>
+    </div>
+  </form>
+</section>

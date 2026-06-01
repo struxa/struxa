@@ -1,0 +1,48 @@
+{% extends 'admin/base.twig' %}
+{% import 'admin/_ui_macros.twig' as ui %}
+
+{% block admin_title %}Preview — {{ list_row.name|e }}{% endblock %}
+
+{% block admin_hero_title %}
+  <h1 class="admin-hero-title">Preview: {{ list_row.name|e }}</h1>
+{% endblock %}
+
+{% block admin_hero_sub %}
+  <p class="admin-hero-sub admin-hero-sub--tight">{{ preview.total }} matching {{ preview.total == 1 ? 'entry' : 'entries' }} (page {{ preview.page }} of {{ preview.total_pages }})</p>
+{% endblock %}
+
+{% block admin_hero_actions %}
+  <a class="admin-btn-ghost" href="{{ url_for('admin.content_lists.edit', { id: list_row.id }) }}">Edit list</a>
+{% endblock %}
+
+{% block admin_content %}
+  <section class="admin-card admin-settings-card">
+    {% if preview.cards is empty %}
+      <p class="admin-hint">No entries match this list right now.</p>
+    {% else %}
+      <div class="admin-table-wrap">
+        <table class="admin-table admin-table--comfortable">
+          <thead>
+            <tr>
+              <th>Title</th>
+              <th>Status</th>
+              <th>Slug</th>
+              <th>Updated</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for card in preview.cards %}
+              {% set e = card.row %}
+              <tr>
+                <td>{{ e.title|default('(untitled)')|e }}</td>
+                <td>{{ ui.status_badge(e.status|default('')) }}</td>
+                <td><code class="admin-inline-code">{{ e.slug|e }}</code></td>
+                <td class="admin-table-meta">{{ e.updated_at|default('')|slice(0, 16)|replace({'T': ' '}) }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% endif %}
+  </section>
+{% endblock %}

@@ -1,0 +1,153 @@
+{% extends 'admin/base.twig' %}
+{% set row = list_row|default(null) %}
+{% set def = list_def|default(null) %}
+
+{% block admin_title %}{{ form_mode == 'new' ? 'New content list' : 'Edit content list' }}{% endblock %}
+
+{% block admin_hero_title %}
+  <h1 class="admin-hero-title">{{ form_mode == 'new' ? 'New content list' : row.name|e }}</h1>
+{% endblock %}
+
+{% block admin_hero_sub %}
+  <p class="admin-hero-sub admin-hero-sub--tight">Define filters and sort order. Expose as a public page, API endpoint, or Twig function.</p>
+{% endblock %}
+
+{% block admin_hero_actions %}
+  {% if row %}
+    <a class="admin-btn-ghost" href="{{ url_for('admin.content_lists.preview', { id: row.id }) }}">Preview</a>
+    {% if row.expose_public_page %}
+      <a class="admin-btn-ghost" href="/lists/{{ row.slug|e('url') }}" target="_blank" rel="noopener noreferrer">View live</a>
+    {% endif %}
+  {% endif %}
+  <a class="admin-btn-ghost" href="{{ url_for('admin.content_lists.index') }}">All lists</a>
+{% endblock %}
+
+{% block admin_content %}
+  <form class="admin-settings-page" method="post" action="{{ form_mode == 'new' ? url_for('admin.content_lists.create') : url_for('admin.content_lists.save', { id: row.id }) }}">
+    <input type="hidden" name="_csrf" value="{{ csrf_token|e('html_attr') }}" />
+
+    <section class="admin-card admin-settings-card">
+      <h2 class="admin-settings-card-title">Basics</h2>
+      <div class="admin-form-grid admin-form-grid--2">
+        <label class="admin-label">Name
+          <input class="admin-input" type="text" name="name" value="{{ row.name|default('')|e('html_attr') }}" required maxlength="160" />
+        </label>
+        <label class="admin-label">Slug
+          <input class="admin-input" type="text" name="slug" value="{{ row.slug|default('')|e('html_attr') }}" placeholder="auto-from-name" pattern="[a-z0-9]+(?:-[a-z0-9]+)*" />
+          <span class="admin-hint">Public URL: <code class="admin-inline-code">/lists/{slug}</code></span>
+        </label>
+      </div>
+      <label class="admin-label">Description
+        <textarea class="admin-input" name="description" rows="2">{{ row.description|default('')|e }}</textarea>
+      </label>
+      <label class="admin-label">Content type
+        <select class="admin-input" name="content_type_id" required id="content-list-type">
+          <option value="">— Select —</option>
+          {% for t in content_types %}
+            <option value="{{ t.id }}" {{ (row.content_type_id|default(0)) == t.id ? 'selected' : '' }}>{{ t.name|e }} ({{ t.slug|e }})</option>
+          {% endfor %}
+        </select>
+      </label>
+      <div class="admin-form-checks">
+        <label class="admin-check"><input type="checkbox" name="is_active" value="1" {{ row is null or row.is_active ? 'checked' : '' }} /> Active</label>
+        <label class="admin-check"><input type="checkbox" name="expose_public_page" value="1" {{ row.expose_public_page|default(false) ? 'checked' : '' }} /> Public page at /lists/slug</label>
+        <label class="admin-check"><input type="checkbox" name="expose_api" value="1" {{ row is null or row.expose_api|default(true) ? 'checked' : '' }} /> REST API</label>
+        <label class="admin-check"><input type="checkbox" name="public_only" value="1" {{ def.public_only|default(true) ? 'checked' : '' }} /> Storefront/API: published entries only</label>
+      </div>
+    </section>
+
+    <section class="admin-card admin-settings-card">
+      <h2 class="admin-settings-card-title">Query</h2>
+      <fieldset class="admin-fieldset">
+        <legend class="admin-legend">Statuses (admin preview &amp; API when not “published only”)</legend>
+        {% set selected_statuses = def.statuses|default(['published']) %}
+        {% for st in ['published', 'draft', 'in_review', 'approved', 'archived'] %}
+          <label class="admin-check admin-check--inline">
+            <input type="checkbox" name="statuses[]" value="{{ st }}" {{ st in selected_statuses ? 'checked' : '' }} /> {{ st|replace({'_': ' '})|capitalize }}
+          </label>
+        {% endfor %}
+      </fieldset>
+
+      <label class="admin-label">Taxonomy term (optional)
+        <select class="admin-input" name="taxonomy_term_id" id="content-list-term">
+          <option value="">— Any —</option>
+          {% for opt in term_options %}
+            <option value="{{ opt.id }}" {{ (def.taxonomyTermId ?? 0) == opt.id ? 'selected' : '' }}>{{ opt.label|e }}</option>
+          {% endfor %}
+        </select>
+        <span class="admin-hint">Save after changing content type to refresh terms.</span>
+      </label>
+
+      <h3 class="admin-settings-card-subtitle">Field filters</h3>
+      <p class="admin-hint">Up to 3 rules (e.g. score &gt; 4). Number fields support eq, gt, gte, lt, lte.</p>
+      {% set filters = def.fieldFilters|default([]) %}
+      {% for i in 0..2 %}
+        {% set f = filters[i]|default({}) %}
+        <div class="admin-form-grid admin-form-grid--3" style="margin-bottom:0.65rem">
+          <label class="admin-label">Field
+            <select class="admin-input" name="filter_field_key[]">
+              <option value="">—</option>
+              {% for field in type_fields %}
+                <option value="{{ field.fieldKey|e('html_attr') }}" data-type="{{ field.fieldType|e('html_attr') }}" {{ (f.field_key|default('')) == field.fieldKey ? 'selected' : '' }}>{{ field.label|e }} ({{ field.fieldType|e }})</option>
+              {% endfor %}
+            </select>
+          </label>
+          <label class="admin-label">Operator
+            <select class="admin-input" name="filter_op[]">
+              {% set op = f.op|default('') %}
+              <option value="eq" {{ op == 'eq' ? 'selected' : '' }}>equals</option>
+              <option value="neq" {{ op == 'neq' ? 'selected' : '' }}>not equals</option>
+              <option value="gt" {{ op == 'gt' ? 'selected' : '' }}>&gt;</option>
+              <option value="gte" {{ op == 'gte' ? 'selected' : '' }}>&gt;=</option>
+              <option value="lt" {{ op == 'lt' ? 'selected' : '' }}>&lt;</option>
+              <option value="lte" {{ op == 'lte' ? 'selected' : '' }}>&lt;=</option>
+              <option value="contains" {{ op == 'contains' ? 'selected' : '' }}>contains</option>
+            </select>
+          </label>
+          <label class="admin-label">Value
+            <input class="admin-input" type="text" name="filter_value[]" value="{{ f.value|default('')|e('html_attr') }}" />
+          </label>
+        </div>
+      {% endfor %}
+
+      <div class="admin-form-grid admin-form-grid--3">
+        <label class="admin-label">Sort by
+          <select class="admin-input" name="sort_field">
+            {% set sf = def.sortField|default('published_at') %}
+            <option value="published_at" {{ sf == 'published_at' ? 'selected' : '' }}>Published date</option>
+            <option value="updated_at" {{ sf == 'updated_at' ? 'selected' : '' }}>Updated</option>
+            <option value="created_at" {{ sf == 'created_at' ? 'selected' : '' }}>Created</option>
+            <option value="title" {{ sf == 'title' ? 'selected' : '' }}>Title</option>
+            {% for field in type_fields %}
+              {% if field.fieldType in ['number', 'text', 'date'] %}
+                <option value="field:{{ field.fieldKey|e('html_attr') }}" {{ sf == 'field:' ~ field.fieldKey ? 'selected' : '' }}>Field: {{ field.label|e }}</option>
+              {% endif %}
+            {% endfor %}
+          </select>
+        </label>
+        <label class="admin-label">Direction
+          <select class="admin-input" name="sort_direction">
+            <option value="desc" {{ def.sortDirection|default('desc') == 'desc' ? 'selected' : '' }}>Descending</option>
+            <option value="asc" {{ def.sortDirection|default('desc') == 'asc' ? 'selected' : '' }}>Ascending</option>
+          </select>
+        </label>
+        <label class="admin-label">Per page
+          <input class="admin-input" type="number" name="per_page" min="1" max="50" value="{{ def.perPage|default(12) }}" />
+        </label>
+      </div>
+    </section>
+
+    <section class="admin-card admin-settings-card">
+      <h2 class="admin-settings-card-title">Theme &amp; API</h2>
+      <p class="admin-hint">Twig: <code class="admin-inline-code">{% verbatim %}{{ content_list('slug', 6).entries }}{% endverbatim %}</code></p>
+      <p class="admin-hint">API: <code class="admin-inline-code">GET /api/v1/content-lists/{slug}?page=1</code></p>
+    </section>
+
+    <div class="admin-form-actions">
+      <button type="submit" class="admin-btn-primary">Save list</button>
+      {% if row %}
+        <button type="submit" class="admin-btn-danger admin-btn-danger--ghost" formaction="{{ url_for('admin.content_lists.delete', { id: row.id }) }}" formmethod="post" data-confirm="Delete this list?">Delete</button>
+      {% endif %}
+    </div>
+  </form>
+{% endblock %}

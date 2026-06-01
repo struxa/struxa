@@ -103,8 +103,60 @@
           {% endfor %}
         </select>
       {% elseif f.fieldType == 'entry_refs' %}
-        <textarea class="admin-textarea admin-textarea--compact admin-textarea--mono" id="cf-{{ f.id }}" name="custom_fields[{{ f.id }}]" rows="4" placeholder="[12, 34]" {{ f.isRequired ? 'required' : '' }}>{{ cv_str|e }}</textarea>
-        <p class="admin-hint" style="margin-top:0.35rem">JSON array of entry IDs in display order, e.g. <code>[12,34]</code>.</p>
+        {% set ref_opts = f.entryRefsSettings() %}
+        {% set ref_max = ref_opts.max_refs %}
+        {% set ref_target = ref_opts.target_content_type_id %}
+        {% set ref_single = ref_max == 1 %}
+        {% set ref_resolved = entry_refs_resolved[f.id]|default([]) %}
+        <div
+          class="admin-entry-refs"
+          data-admin-entry-refs
+          data-picker-url="{{ entry_refs_picker_url|e('html_attr') }}"
+          data-max-refs="{{ ref_max }}"
+          data-target-type-id="{{ ref_target }}"
+          data-exclude-entry-id="{{ entry_id_for_refs|default(0) }}"
+        >
+          <input
+            type="hidden"
+            id="cf-{{ f.id }}"
+            name="custom_fields[{{ f.id }}]"
+            value="{{ cv_str|e('html_attr') }}"
+            data-entry-refs-value
+            {{ f.isRequired ? 'required' : '' }}
+          />
+          <ul class="admin-entry-refs-list" data-entry-refs-list>
+            {% for item in ref_resolved %}
+              <li class="admin-entry-refs-item" data-entry-refs-item="{{ item.id }}">
+                <span class="admin-entry-refs-item-title">
+                  {% if item.edit_url %}
+                    <a class="admin-link" href="{{ item.edit_url|e('html_attr') }}" target="_blank" rel="noopener">{{ item.title|e }}</a>
+                  {% else %}
+                    {{ item.title|e }}
+                  {% endif %}
+                </span>
+                <span class="admin-entry-refs-item-meta">{{ item.type_name|e }}{% if item.status %} · {{ item.status|e }}{% endif %}</span>
+                <button type="button" class="admin-entry-refs-remove" aria-label="Remove link">×</button>
+              </li>
+            {% endfor %}
+          </ul>
+          {% if entry_refs_picker_url %}
+            <div class="admin-entry-refs-add">
+              <label class="admin-label" for="entry-refs-search-{{ f.id }}">{{ ref_single ? 'Link entry' : 'Add entries' }}</label>
+              <input
+                class="admin-input"
+                id="entry-refs-search-{{ f.id }}"
+                type="search"
+                autocomplete="off"
+                placeholder="Search by title, slug, or ID…"
+                data-entry-refs-search
+              />
+              <div class="admin-entry-refs-results" data-entry-refs-results hidden></div>
+              <p class="admin-hint">{% if ref_single %}One linked entry.{% else %}Up to {{ ref_max }} entries, in list order.{% endif %}{% if ref_target > 0 %} Only entries from the configured content type.{% endif %}</p>
+            </div>
+          {% else %}
+            <p class="admin-hint">Search picker unavailable; edit the hidden JSON value if needed.</p>
+          {% endif %}
+        </div>
       {% else %}
         <textarea class="admin-textarea admin-textarea--compact" id="cf-{{ f.id }}" name="custom_fields[{{ f.id }}]" rows="3">{{ cv_str|e }}</textarea>
       {% endif %}

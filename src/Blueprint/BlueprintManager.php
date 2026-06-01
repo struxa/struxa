@@ -148,8 +148,9 @@ final class BlueprintManager
     {
         $scopes = array_flip($scopes);
         $errors = [];
-        if (!isset($payload['cms_structure_export_version']) || $payload['cms_structure_export_version'] !== '1.0') {
-            $errors[] = 'cms_structure_export_version must be "1.0".';
+        $ver = isset($payload['cms_structure_export_version']) ? (string) $payload['cms_structure_export_version'] : '';
+        if ($ver !== '1.0' && $ver !== '1.1') {
+            $errors[] = 'cms_structure_export_version must be "1.0" or "1.1".';
         }
         if ($errors !== []) {
             return ['errors' => $errors, 'warnings' => [], 'applied' => []];

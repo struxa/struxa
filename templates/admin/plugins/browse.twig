@@ -11,6 +11,9 @@
   <p class="admin-hero-sub admin-hero-sub--tight">
     <a class="admin-link" href="{{ url_for('admin.extensions.plugins.index') }}">← Installed plugins</a>
     · Install from the Struxa distribution catalog (same registry as themes).
+    {% if struxa_admin_active|default(false) %}
+      · <a class="admin-link" href="{{ url_for('admin.struxa_catalog.submissions') }}">Catalog submissions</a>
+    {% endif %}
   </p>
 {% endblock %}
 
@@ -22,13 +25,18 @@
     </div>
     <p class="admin-hint">Default catalog: <code class="admin-inline-code">https://struxapoint.com/struxa-dist/repo.json</code> (plugin ZIPs under <code class="admin-inline-code">/struxa-dist/zips/</code>). Local fallback: <code class="admin-inline-code">storage/dist-catalog.json</code>.</p>
   {% elseif catalog_plugins is empty %}
-    {{ ui.empty_state(
-      'No plugins listed',
-      'The catalog loaded but the plugins list is empty. If this site hosts the catalog, ensure public/struxa-dist/repo.json includes a plugins array (not only storage/theme-catalog.json). See struxa-dist/ in the CMS repo.',
-      url_for('admin.extensions.plugins.index'),
-      'Back to installed plugins',
-      '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>'
-    ) }}
+    <div class="admin-card admin-settings-card" style="margin-bottom:1.25rem">
+      <h2 class="admin-settings-card-title">No plugins in the catalog yet</h2>
+      <p class="admin-settings-card-desc">
+        Browse only lists packages published in <code class="admin-inline-code">struxa-dist/repo.json</code>
+        (with a matching ZIP under <code class="admin-inline-code">struxa-dist/zips/</code>).
+      </p>
+      {% if struxa_admin_on_disk|default(false) and not struxa_admin_active|default(false) %}
+        <p class="admin-hint"><strong>Struxa Catalog Admin</strong> is on disk but not activated — open <a class="admin-link" href="{{ url_for('admin.extensions.plugins.index') }}">Installed plugins</a> and activate <code class="admin-inline-code">struxa-admin</code>.</p>
+      {% elseif not struxa_admin_on_disk|default(false) %}
+        <p class="admin-hint">Install <strong>Struxa Catalog Admin</strong> from the card below (after your host publishes <code class="admin-inline-code">repo.json</code>), or clone <a class="admin-link" href="https://github.com/struxa/admin" rel="noopener">github.com/struxa/admin</a> into <code class="admin-inline-code">plugins/struxa-admin/</code>.</p>
+      {% endif %}
+    </div>
   {% else %}
     <p class="admin-hint" style="margin:0 0 1.25rem">Catalog and plugin ZIPs are served from <strong>struxapoint.com</strong> (<code class="admin-inline-code">/struxa-dist/repo.json</code> and <code class="admin-inline-code">/struxa-dist/zips/*.zip</code>). Same registry as themes.</p>
     <div class="admin-theme-grid admin-theme-grid--browse">

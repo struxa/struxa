@@ -17,7 +17,18 @@ use App\Event\Events;
 use App\Event\StorefrontCachesInvalidateEvent;
 use App\Flash;
 use App\Http\Middleware\RequireCmsStaff;
+use Slim\Exception\HttpNotFoundException;
 use App\Http\Middleware\RequirePermission;
+use App\Access\RoleRepository;
+use App\Commerce\Coupon\CouponRepository;
+use App\Commerce\Shipping\ShippingZoneRepository;
+use App\Commerce\Tax\TaxRateRepository;
+use App\Config\ConfigDiffService;
+use App\Config\ConfigExtendedImporter;
+use App\Config\ConfigPackageRegistry;
+use App\Config\ConfigPackageService;
+use App\Config\ConfigPackageStore;
+use App\Config\ConfigStructureExporter;
 use App\ImportExport\ImportExportService;
 use App\Menu\MenuItemRepository;
 use App\Menu\MenuRepository;
@@ -120,8 +131,50 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
         $collector
     );
     $importExport = new ImportExportService($collector, $blueprintManager);
+    $configExporter = new ConfigStructureExporter($collector, $pdo);
+    $configStore = new ConfigPackageStore($root);
+    $configPackages = new ConfigPackageService(
+        $configExporter,
+        $importExport,
+        new ConfigDiffService(),
+        new ConfigExtendedImporter(
+            $pdo,
+            $settingsRepo,
+            new RoleRepository($pdo),
+            new ShippingZoneRepository($pdo),
+            new TaxRateRepository($pdo),
+            new CouponRepository($pdo),
+        ),
+        $configStore,
+    );
     $activity = new ActivityLogger($pdo);
     $publicApiKeys = new PublicApiKeyRepository($pdo);
+
+    $parseConfigJson = static function (Request $request): array {
+        $body = $request->getParsedBody();
+        $body = is_array($body) ? $body : [];
+        $raw = '';
+        if (!empty($_FILES['json_file']['tmp_name']) && is_uploaded_file((string) $_FILES['json_file']['tmp_name'])) {
+            $t = file_get_contents((string) $_FILES['json_file']['tmp_name']);
+            $raw = $t !== false ? $t : '';
+        }
+        if ($raw === '' && isset($body['json_text']) && is_string($body['json_text'])) {
+            $raw = trim($body['json_text']);
+        }
+        if ($raw === '') {
+            throw new \InvalidArgumentException('Provide a JSON file or paste JSON.');
+        }
+        try {
+            $data = json_decode($raw, true, 512, JSON_THROW_ON_ERROR);
+        } catch (\JsonException $e) {
+            throw new \InvalidArgumentException('Invalid JSON: ' . $e->getMessage(), 0, $e);
+        }
+        if (!is_array($data)) {
+            throw new \InvalidArgumentException('JSON root must be an object.');
+        }
+
+        return $data;
+    };
 
     $app->group('/admin', function (\Slim\Routing\RouteCollectorProxy $group) use (
         $twig,
@@ -129,11 +182,14 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
         $withCmsUser,
         $blueprintManager,
         $importExport,
+        $configPackages,
+        $configStore,
         $profileRepo,
         $activity,
         $cmsUid,
         $pdo,
-        $publicApiKeys
+        $publicApiKeys,
+        $parseConfigJson
     ): void {
         $group->get('/tools/blueprints', function (Request $request, Response $response) use (
             $twig,
@@ -293,7 +349,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             $body = $request->getParsedBody();
             $body = is_array($body) ? $body : [];
             $scopes = isset($body['scopes']) && is_array($body['scopes']) ? $body['scopes'] : [];
-            $allowed = ['content_types', 'menus', 'settings', 'entries', 'meta'];
+            $allowed = ImportExportService::SCOPES;
             $scopes = array_values(array_intersect($allowed, array_map('strval', $scopes)));
             if ($scopes === []) {
                 $scopes = ['content_types', 'settings', 'menus', 'meta'];
@@ -340,7 +396,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                     ->withStatus(302);
             }
             $scopes = isset($body['scopes']) && is_array($body['scopes']) ? $body['scopes'] : [];
-            $allowed = ['content_types', 'menus', 'settings', 'entries', 'meta'];
+            $allowed = ImportExportService::SCOPES;
             $scopes = array_values(array_intersect($allowed, array_map('strval', $scopes)));
             if ($scopes === []) {
                 Flash::set('error', 'Select at least one import scope.');
@@ -377,6 +433,213 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 ->withHeader('Location', RouteContext::fromRequest($request)->getRouteParser()->urlFor('admin.tools.import_export'))
                 ->withStatus(302);
         })->setName('admin.tools.import_export.import');
+
+        $group->get('/tools/config-sync', function (Request $request, Response $response) use (
+            $twig,
+            $adminContext,
+            $withCmsUser,
+            $configStore,
+            $profileRepo
+        ): Response {
+            $profile = $profileRepo->get();
+
+            return $twig->render($response, 'admin/tools/config_sync.twig', $withCmsUser($request, array_merge($adminContext(), [
+                'admin_nav' => 'tools_config_sync',
+                'config_packages' => ConfigPackageRegistry::builtIn(),
+                'saved_packages' => $configStore->listSaved(),
+                'all_scopes' => ConfigPackageRegistry::ALL_SCOPES,
+                'site_profile' => $profile,
+            ])));
+        })->setName('admin.tools.config_sync');
+
+        $group->post('/tools/config-sync/export', function (Request $request, Response $response) use (
+            $configPackages,
+            $configStore,
+            $profileRepo,
+            $activity,
+            $cmsUid
+        ): Response {
+            $body = $request->getParsedBody();
+            $body = is_array($body) ? $body : [];
+            $packageId = trim((string) ($body['package_id'] ?? 'agency-staging'));
+            $label = trim((string) ($body['label'] ?? ''));
+            if ($label === '') {
+                $pkg = ConfigPackageRegistry::findBuiltIn($packageId);
+                $label = $pkg !== null ? $pkg->label : 'Config package';
+            }
+            $profile = $profileRepo->get();
+            $sourceEnv = trim((string) ($body['source_environment'] ?? ''));
+            if ($sourceEnv === '') {
+                $sourceEnv = trim((string) ($profile['environment_label'] ?? ''));
+            }
+            $scopes = isset($body['scopes']) && is_array($body['scopes']) ? $body['scopes'] : null;
+            $includeEntries = !empty($body['include_entries']);
+            $document = $configPackages->exportDocument($packageId, $scopes, $includeEntries, $label, $sourceEnv !== '' ? $sourceEnv : null);
+            $activity->log($cmsUid($request), 'config_package.exported', null, null, [
+                'package_id' => $packageId,
+                'scopes' => $document['scopes'] ?? [],
+            ]);
+
+            if (!empty($body['save_to_storage'])) {
+                $basename = trim((string) ($body['basename'] ?? ''));
+                if ($basename === '') {
+                    $basename = $packageId . '-' . gmdate('Ymd-His');
+                }
+                $configStore->save($basename, $document);
+                Flash::set('success', 'Config package saved to storage/config-packages/' . $basename . '.json');
+
+                return $response
+                    ->withHeader('Location', RouteContext::fromRequest($request)->getRouteParser()->urlFor('admin.tools.config_sync'))
+                    ->withStatus(302);
+            }
+
+            $json = json_encode($document, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
+            $fn = preg_replace('/[^a-z0-9\-]+/i', '-', strtolower($packageId)) ?: 'config-package';
+            $response = $response
+                ->withHeader('Content-Type', 'application/json; charset=utf-8')
+                ->withHeader('Content-Disposition', 'attachment; filename="' . $fn . '.json"');
+            $response->getBody()->write($json);
+
+            return $response;
+        })->setName('admin.tools.config_sync.export');
+
+        $group->post('/tools/config-sync/preview', function (Request $request, Response $response) use (
+            $configPackages,
+            $configStore,
+            $parseConfigJson
+        ): Response {
+            $parser = RouteContext::fromRequest($request)->getRouteParser();
+            $body = $request->getParsedBody();
+            $body = is_array($body) ? $body : [];
+            try {
+                $basename = trim((string) ($body['saved_basename'] ?? ''));
+                if ($basename !== '') {
+                    $document = $configStore->loadFile($basename);
+                } else {
+                    $document = $parseConfigJson($request);
+                }
+            } catch (\Throwable $e) {
+                Flash::set('error', $e->getMessage());
+
+                return $response
+                    ->withHeader('Location', $parser->urlFor('admin.tools.config_sync'))
+                    ->withStatus(302);
+            }
+            $scopes = isset($body['scopes']) && is_array($body['scopes']) ? $body['scopes'] : null;
+            $opt = new BlueprintImportOptions(
+                dryRun: true,
+                merge: (string) ($body['merge'] ?? '1') !== '0',
+                applyThemeFromBlueprint: !empty($body['apply_theme']),
+                importContentEntries: !empty($body['import_entries']),
+            );
+            try {
+                $preview = $configPackages->preview($document, $scopes, $opt);
+            } catch (\Throwable $e) {
+                Flash::set('error', $e->getMessage());
+
+                return $response
+                    ->withHeader('Location', $parser->urlFor('admin.tools.config_sync'))
+                    ->withStatus(302);
+            }
+            $token = $configStore->storeInbox([
+                'document' => $document,
+                'preview' => $preview,
+                'import_options' => [
+                    'merge' => $opt->merge,
+                    'apply_theme' => $opt->applyThemeFromBlueprint,
+                    'import_entries' => $opt->importContentEntries,
+                ],
+                'scopes' => $preview['scopes'],
+            ]);
+
+            return $response
+                ->withHeader('Location', $parser->urlFor('admin.tools.config_sync.preview', [], ['token' => $token]))
+                ->withStatus(302);
+        })->setName('admin.tools.config_sync.preview');
+
+        $group->get('/tools/config-sync/preview', function (Request $request, Response $response) use (
+            $twig,
+            $adminContext,
+            $withCmsUser,
+            $configStore
+        ): Response {
+            $token = trim((string) ($request->getQueryParams()['token'] ?? ''));
+            if ($token === '') {
+                throw new HttpNotFoundException($request);
+            }
+            try {
+                $staged = $configStore->loadInbox($token);
+            } catch (\Throwable) {
+                throw new HttpNotFoundException($request);
+            }
+            $preview = is_array($staged['preview'] ?? null) ? $staged['preview'] : [];
+
+            return $twig->render($response, 'admin/tools/config_sync_preview.twig', $withCmsUser($request, array_merge($adminContext(), [
+                'admin_nav' => 'tools_config_sync',
+                'preview_token' => $token,
+                'preview_label' => (string) ($preview['label'] ?? 'Config import'),
+                'preview_package_id' => (string) ($preview['package_id'] ?? ''),
+                'preview_scopes' => $preview['scopes'] ?? [],
+                'diff' => $preview['diff'] ?? ['summary' => [], 'sections' => []],
+                'import_result' => $preview['import'] ?? ['errors' => [], 'warnings' => [], 'applied' => []],
+                'import_options' => $staged['import_options'] ?? [],
+            ])));
+        })->setName('admin.tools.config_sync.preview');
+
+        $group->post('/tools/config-sync/apply', function (Request $request, Response $response) use (
+            $configPackages,
+            $configStore,
+            $activity,
+            $cmsUid,
+            $pdo
+        ): Response {
+            $parser = RouteContext::fromRequest($request)->getRouteParser();
+            $body = $request->getParsedBody();
+            $body = is_array($body) ? $body : [];
+            $token = trim((string) ($body['preview_token'] ?? ''));
+            if ($token === '') {
+                Flash::set('error', 'Missing preview session.');
+
+                return $response->withHeader('Location', $parser->urlFor('admin.tools.config_sync'))->withStatus(302);
+            }
+            try {
+                $staged = $configStore->loadInbox($token);
+            } catch (\Throwable $e) {
+                Flash::set('error', $e->getMessage());
+
+                return $response->withHeader('Location', $parser->urlFor('admin.tools.config_sync'))->withStatus(302);
+            }
+            $document = is_array($staged['document'] ?? null) ? $staged['document'] : [];
+            $scopes = is_array($staged['scopes'] ?? null) ? $staged['scopes'] : [];
+            $io = is_array($staged['import_options'] ?? null) ? $staged['import_options'] : [];
+            try {
+                $unwrapped = $configPackages->unwrap($document);
+            } catch (\Throwable $e) {
+                Flash::set('error', $e->getMessage());
+
+                return $response->withHeader('Location', $parser->urlFor('admin.tools.config_sync'))->withStatus(302);
+            }
+            $opt = new BlueprintImportOptions(
+                dryRun: false,
+                merge: !empty($io['merge']),
+                applyThemeFromBlueprint: !empty($io['apply_theme']),
+                importContentEntries: !empty($io['import_entries']),
+            );
+            $result = $configPackages->import($unwrapped['structure'], $scopes !== [] ? $scopes : $unwrapped['scopes'], $opt);
+            $configStore->deleteInbox($token);
+            if ($result['errors'] !== []) {
+                Flash::set('error', implode(' ', $result['errors']));
+            } else {
+                Flash::set('success', implode(' · ', array_merge($result['applied'], $result['warnings'])));
+                $activity->log($cmsUid($request), 'config_package.imported', null, null, ['scopes' => $scopes]);
+                Settings::reload($pdo);
+                Events::dispatch(new StorefrontCachesInvalidateEvent('config_package_import'));
+            }
+
+            return $response
+                ->withHeader('Location', $parser->urlFor('admin.tools.config_sync'))
+                ->withStatus(302);
+        })->setName('admin.tools.config_sync.apply');
 
         $group->get('/tools/api-keys', function (Request $request, Response $response) use (
             $twig,

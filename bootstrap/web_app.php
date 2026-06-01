@@ -74,6 +74,8 @@ use App\Theme\ThemeManager;
 use App\Theme\ThemeViewResolver;
 use App\Twig\CmsTwigExtension;
 use App\Twig\FormTwigExtension;
+use App\Twig\ContentEntryRefsTwigExtension;
+use App\Twig\ContentListTwigExtension;
 use App\Twig\ContentTypeCardsTwigExtension;
 use App\Twig\TaxonomyTwigExtension;
 use App\Twig\ThemeTwigExtension;
@@ -184,6 +186,8 @@ $twig->getEnvironment()->addExtension(new TaxonomyTwigExtension(
     new TaxonomyRepository($pdo),
     new TaxonomyTermRepository($pdo)
 ));
+$twig->getEnvironment()->addExtension(new ContentListTwigExtension($pdo));
+$twig->getEnvironment()->addExtension(new ContentEntryRefsTwigExtension($pdo));
 $app = AppFactory::create();
 $app->add(new CsrfProtectionMiddleware());
 $app->addBodyParsingMiddleware();
@@ -699,6 +703,7 @@ SectionDefinitionRegistry::instance()->registerProvider(new CoreSectionDefinitio
 (require $root . '/routes/admin_mobile.php')($app, $twig, $auth, $pdo, $themeManager, $viewData);
 (require $root . '/routes/admin_cache.php')($app, $twig, $auth, $pdo, $viewData);
 (require $root . '/routes/admin_maintenance.php')($app, $twig, $auth, $pdo, $viewData);
+(require $root . '/routes/admin_jobs.php')($app, $twig, $auth, $pdo, $viewData);
 (require $root . '/routes/admin_privacy.php')($app, $twig, $auth, $pdo, $viewData);
 (require $root . '/routes/admin_content_search.php')($app, $twig, $auth, $pdo, $viewData);
 (require $root . '/routes/admin_site_health.php')($app, $twig, $auth, $pdo, $viewData);
@@ -712,6 +717,7 @@ SectionDefinitionRegistry::instance()->registerProvider(new CoreSectionDefinitio
 (require $root . '/routes/admin_menus.php')($app, $twig, $auth, $pdo, $viewData);
 (require $root . '/routes/admin_media.php')($app, $twig, $auth, $pdo, $viewData);
 (require $root . '/routes/admin_content.php')($app, $twig, $auth, $pdo, $viewData);
+(require $root . '/routes/admin_content_lists.php')($app, $twig, $auth, $pdo, $viewData);
 (require $root . '/routes/admin_ai_blog.php')($app, $twig, $auth, $pdo, $viewData);
 (require $root . '/routes/admin_ai_comments.php')($app, $twig, $auth, $pdo, $viewData);
 (require $root . '/routes/admin_taxonomies.php')($app, $twig, $auth, $pdo, $viewData);
@@ -729,6 +735,7 @@ $pluginContexts = $pluginManager->registerActivePublicRoutes($app, $twig, $auth,
 // Before public_taxonomy_archive: FastRoute errors if plugin admin adds /admin/.../... after /{a}/{b}/{c}.
 $pluginManager->registerActiveAdminRoutes($app, $pluginContexts);
 (require $root . '/routes/public_taxonomy_archive.php')($app, $twig, $pdo, $viewData);
+(require $root . '/routes/public_content_lists.php')($app, $twig, $pdo, $viewData);
 (require $root . '/routes/public_content_index.php')($app, $twig, $pdo, $viewData);
 (require $root . '/routes/public_content.php')($app, $twig, $pdo, $viewData);
 
