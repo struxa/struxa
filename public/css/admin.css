@@ -2463,6 +2463,11 @@ a.admin-page-row:hover .admin-page-row-go {
   opacity: 0.55;
 }
 
+.admin-plugin-update-hint {
+  color: var(--admin-accent, #6ea8fe);
+  font-weight: 500;
+}
+
 .admin-plugin-card-badges {
   display: flex;
   flex-direction: column;

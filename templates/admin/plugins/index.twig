@@ -24,6 +24,7 @@
           {{ summary.total }} package(s) · {{ summary.active }} active
           {% if summary.blocked > 0 %} · {{ summary.blocked }} blocked{% endif %}
           {% if summary.warnings > 0 %} · {{ summary.warnings }} with warnings{% endif %}
+          {% if summary.updates|default(0) > 0 %} · {{ summary.updates }} update(s) available{% endif %}
         {% endif %}
       </p>
     </div>
@@ -111,6 +112,7 @@
         {% set m = row.discovered.manifest %}
         {% set compat = row.compatibility %}
         {% set perf = row.performance %}
+        {% set upd = row.update|default(null) %}
         <article class="admin-card admin-plugin-card{% if row.is_active %} admin-plugin-card--active{% endif %}{% if compat.statusLabel == 'blocked' %} admin-plugin-card--blocked{% endif %}">
           <header class="admin-plugin-card-head">
             <div class="admin-plugin-card-icon" aria-hidden="true">
@@ -124,6 +126,10 @@
                 <code class="admin-inline-code">{{ m.slug|e }}</code>
                 <span class="admin-plugin-card-meta-sep">·</span>
                 v{{ m.version|e }}
+                {% if upd and upd.update_available and upd.latest_version %}
+                  <span class="admin-plugin-card-meta-sep">·</span>
+                  <span class="admin-plugin-update-hint">v{{ upd.latest_version|e }} available{% if upd.source %} ({{ upd.source|e }}){% endif %}</span>
+                {% endif %}
                 {% if m.author %}
                   <span class="admin-plugin-card-meta-sep">·</span>
                   {{ m.author|e }}
@@ -131,6 +137,9 @@
               </p>
             </div>
             <div class="admin-plugin-card-badges">
+              {% if upd and upd.update_available %}
+                <span class="admin-badge admin-badge--review">Update</span>
+              {% endif %}
               {% if row.is_active %}
                 <span class="admin-badge admin-badge--ok">Active</span>
               {% else %}
@@ -261,6 +270,18 @@
           </div>
 
           <footer class="admin-plugin-card-actions">
+            {% if upd and upd.update_available and upd.can_update %}
+              <form
+                method="post"
+                action="{{ url_for('admin.extensions.plugins.update') }}"
+                onsubmit="return confirm('Update {{ m.slug|e('js') }} to v{{ upd.latest_version|e('js') }}?\n\nThe plugin folder will be replaced.{% if row.is_active %}\n\nIt will be briefly deactivated during the update.{% endif %}');"
+              >
+                <input type="hidden" name="slug" value="{{ m.slug|e('html_attr') }}" />
+                <button type="submit" class="admin-btn-primary">Update to v{{ upd.latest_version|e }}</button>
+              </form>
+            {% elseif upd and upd.update_available and not upd.can_update %}
+              <p class="admin-plugin-compat-blocked-hint">Update detected but no download source is configured.</p>
+            {% endif %}
             {% if row.is_active %}
               <form method="post" action="{{ url_for('admin.extensions.plugins.deactivate') }}" onsubmit="return confirm('Deactivate {{ m.slug|e('js') }}? You can turn it on again later.');">
                 <input type="hidden" name="slug" value="{{ m.slug|e('html_attr') }}" />

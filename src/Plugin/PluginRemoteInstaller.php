@@ -10,7 +10,7 @@ use App\Theme\ThemeRemoteInstaller;
 use ZipArchive;
 
 /**
- * Downloads a plugin ZIP from the catalog and installs under plugins/{slug}/.
+ * Downloads a plugin ZIP from the catalog or GitHub and installs or updates under plugins/{slug}/.
  */
 final class PluginRemoteInstaller
 {
@@ -28,42 +28,115 @@ final class PluginRemoteInstaller
      */
     public function installFromCatalogSlug(string $slug, array $catalogEntries): ?string
     {
+        $entry = $this->findCatalogEntry($slug, $catalogEntries);
+        if ($entry instanceof PluginCatalogEntry) {
+            $slug = $entry->slug;
+        } elseif (is_string($entry)) {
+            return $entry;
+        } else {
+            return 'That plugin is not in the current catalog.';
+        }
+
+        if ($this->scanner->findBySlug($slug) !== null) {
+            return 'That plugin is already installed. Remove it first if you want to replace it.';
+        }
+
+        $cmsErr = $this->assertCatalogCmsVersion($entry);
+        if ($cmsErr !== null) {
+            return $cmsErr;
+        }
+
+        return $this->fetchAndDeploy($slug, $entry->downloadUrl, false);
+    }
+
+    /**
+     * @param list<PluginCatalogEntry> $catalogEntries
+     */
+    public function updateFromCatalogSlug(string $slug, array $catalogEntries): ?string
+    {
+        $entry = $this->findCatalogEntry($slug, $catalogEntries);
+        if ($entry instanceof PluginCatalogEntry) {
+            $slug = $entry->slug;
+        } elseif (is_string($entry)) {
+            return $entry;
+        } else {
+            return 'That plugin is not in the current catalog.';
+        }
+
+        if ($this->scanner->findBySlug($slug) === null) {
+            return 'Plugin is not installed.';
+        }
+
+        $cmsErr = $this->assertCatalogCmsVersion($entry);
+        if ($cmsErr !== null) {
+            return $cmsErr;
+        }
+
+        return $this->fetchAndDeploy($slug, $entry->downloadUrl, true);
+    }
+
+    public function updateFromGithubRepository(string $slug, string $owner, string $repo, string $ref = 'main'): ?string
+    {
         $slug = strtolower(trim($slug));
         if (!preg_match('/^[a-z0-9]+(?:-[a-z0-9]+)*$/', $slug)) {
             return 'Invalid plugin slug.';
         }
-        $entry = null;
-        foreach ($catalogEntries as $e) {
-            if ($e->slug === $slug) {
-                $entry = $e;
-                break;
-            }
+        if ($this->scanner->findBySlug($slug) === null) {
+            return 'Plugin is not installed.';
         }
-        if ($entry === null) {
-            return 'That plugin is not in the current catalog.';
+
+        $owner = trim($owner);
+        $repo = trim($repo);
+        $ref = trim($ref);
+        if ($owner === '' || $repo === '' || $ref === '') {
+            return 'Invalid GitHub repository.';
         }
-        if ($entry->requiresCmsVersion !== null && !version_compare(\App\CmsVersion::CURRENT, $entry->requiresCmsVersion, '>=')) {
-            return 'This package requires CMS ' . $entry->requiresCmsVersion . ' or newer.';
+
+        $zipUrl = sprintf(
+            'https://github.com/%s/%s/archive/refs/heads/%s.zip',
+            rawurlencode($owner),
+            rawurlencode($repo),
+            rawurlencode($ref),
+        );
+        if (!ThemeRemoteInstaller::isDownloadUrlHostAllowed($zipUrl)) {
+            return 'Download URL is not allowed.';
         }
-        if (!ThemeRemoteInstaller::isDownloadUrlHostAllowed($entry->downloadUrl)) {
+
+        return $this->fetchAndDeploy($slug, $zipUrl, true);
+    }
+
+    private function fetchAndDeploy(string $slug, string $downloadUrl, bool $replace): ?string
+    {
+        if (!ThemeRemoteInstaller::isDownloadUrlHostAllowed($downloadUrl)) {
             return 'Download URL is not allowed.';
         }
         if (!class_exists(ZipArchive::class)) {
             return 'PHP zip extension (ZipArchive) is required to install plugins from the catalog.';
         }
-        if ($this->scanner->findBySlug($slug) !== null) {
-            return 'That plugin is already installed. Remove it first if you want to replace it.';
-        }
 
         $fetcher = new DistPackageFetcher($this->projectRoot ?? dirname($this->pluginsRoot));
-        $zipBody = $fetcher->fetchZip($entry->downloadUrl, self::MAX_ZIP_BYTES);
+        $zipBody = $fetcher->fetchZip($downloadUrl, self::MAX_ZIP_BYTES);
         if ($zipBody === null) {
-            $hint = $fetcher->localZipHint($entry->downloadUrl);
+            $hint = $fetcher->localZipHint($downloadUrl);
             $suffix = $hint !== null
                 ? ' Place the file at ' . $hint . ' on this server, or publish it to the URL in repo.json.'
                 : '';
 
             return 'Could not download the plugin package (size limit, network, or invalid response).' . $suffix;
+        }
+
+        return $this->deployFromZipBody($slug, $zipBody, $replace);
+    }
+
+    private function deployFromZipBody(string $slug, string $zipBody, bool $replace): ?string
+    {
+        $dest = $this->pluginsRoot . DIRECTORY_SEPARATOR . $slug;
+        if ($replace) {
+            if (!is_dir($dest)) {
+                return 'Plugin is not installed.';
+            }
+        } elseif (is_dir($dest)) {
+            return 'Target plugin directory already exists.';
         }
 
         $work = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'struxa-plugin-' . bin2hex(random_bytes(8));
@@ -101,13 +174,21 @@ final class PluginRemoteInstaller
                 return 'Plugin package failed validation: ' . $parsed['error'];
             }
             if ($parsed['manifest']->slug !== $slug) {
-                return 'Archive plugin slug "' . $parsed['manifest']->slug . '" does not match catalog slug "' . $slug . '".';
+                return 'Archive plugin slug "' . $parsed['manifest']->slug . '" does not match expected slug "' . $slug . '".';
             }
 
-            $dest = $this->pluginsRoot . DIRECTORY_SEPARATOR . $slug;
-            if (is_dir($dest)) {
-                return 'Target plugin directory already exists.';
+            if ($replace) {
+                $pluginsRootReal = realpath($this->pluginsRoot);
+                $destReal = realpath($dest);
+                if ($pluginsRootReal === false || $destReal === false) {
+                    return 'Could not resolve plugin paths for update.';
+                }
+                $rm = SafeDirectoryRemoval::removeIfInside($destReal, $pluginsRootReal);
+                if ($rm !== null) {
+                    return 'Could not remove the existing plugin before update: ' . $rm;
+                }
             }
+
             $err = $this->copyDirectoryTree($pluginRoot, $dest);
             if ($err !== null) {
                 return $err;
@@ -115,15 +196,48 @@ final class PluginRemoteInstaller
 
             $verify = $parser->parseFile($dest . DIRECTORY_SEPARATOR . 'plugin.json', $slug);
             if (!$verify['ok']) {
-                SafeDirectoryRemoval::removeIfInside($dest, $this->pluginsRoot);
+                if (!$replace) {
+                    SafeDirectoryRemoval::removeIfInside($dest, $this->pluginsRoot);
+                }
 
                 return 'Installed plugin failed final validation: ' . $verify['error'];
             }
+
+            $this->scanner->clearDiscoverCache();
 
             return null;
         } finally {
             SafeDirectoryRemoval::removeIfInside($work, dirname($work));
         }
+    }
+
+    /**
+     * @param list<PluginCatalogEntry> $catalogEntries
+     *
+     * @return PluginCatalogEntry|string|null
+     */
+    private function findCatalogEntry(string $slug, array $catalogEntries): PluginCatalogEntry|string|null
+    {
+        $slug = strtolower(trim($slug));
+        if (!preg_match('/^[a-z0-9]+(?:-[a-z0-9]+)*$/', $slug)) {
+            return 'Invalid plugin slug.';
+        }
+        foreach ($catalogEntries as $e) {
+            if ($e->slug === $slug) {
+                return $e;
+            }
+        }
+
+        return null;
+    }
+
+    private function assertCatalogCmsVersion(PluginCatalogEntry $entry): ?string
+    {
+        if ($entry->requiresCmsVersion !== null && !version_compare(\App\CmsVersion::CURRENT, $entry->requiresCmsVersion, '>=')) {
+            return 'This package requires CMS ' . $entry->requiresCmsVersion . ' or newer.';
+        }
+
+        return null;
     }
 
     private function locatePluginRoot(string $extractDir, string $expectedSlug): ?string

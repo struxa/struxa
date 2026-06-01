@@ -7,6 +7,7 @@ use App\Access\PermissionSlug;
 use App\Event\Events;
 use App\Event\StorefrontCachesInvalidateEvent;
 use App\Flash;
+use App\Cache\CacheManager;
 use App\Http\Middleware\RequireCmsStaff;
 use App\Http\Middleware\RequirePermission;
 use App\Filesystem\SafeDirectoryRemoval;
@@ -18,6 +19,7 @@ use App\Plugin\PluginRemoteInstaller;
 use App\Plugin\PluginRepository;
 use App\Plugin\PluginUninstaller;
 use App\Plugin\PluginScanner;
+use App\Plugin\PluginUpdateChecker;
 use App\Plugin\PluginValidator;
 use PHPAuth\Auth;
 use Psr\Http\Message\ResponseInterface as Response;
@@ -41,6 +43,10 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
     $migrationRunner = new PluginMigrationRunner($pdo);
     $catalogLoader = new PluginCatalogLoader($root);
     $remoteInstaller = new PluginRemoteInstaller($root . '/plugins', $scanner, $root);
+    $pluginUpdateChecker = new PluginUpdateChecker(
+        (new CacheManager($root . DIRECTORY_SEPARATOR . 'storage' . DIRECTORY_SEPARATOR . 'cache'))->internal(),
+        $catalogLoader,
+    );
     $pluginPerformance = PluginPerformanceRegistry::instance();
 
     $adminContext = static fn (): array => array_merge($viewData(), []);
@@ -81,6 +87,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
         $pdo,
         $catalogLoader,
         $remoteInstaller,
+        $pluginUpdateChecker,
         $pluginPerformance,
         $namedRouteUrl
     ): void {
@@ -93,9 +100,11 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             $validator,
             $scanner,
             $pluginPerformance,
+            $pluginUpdateChecker,
             $namedRouteUrl
         ): Response {
             $discovered = $manager->syncDiscoveredToDatabase();
+            $catalogBySlug = $pluginUpdateChecker->catalogEntriesBySlug();
             $slugs = [];
             foreach ($discovered as $p) {
                 $slugs[$p->manifest->slug] = true;
@@ -113,6 +122,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 'inactive' => 0,
                 'blocked' => 0,
                 'warnings' => 0,
+                'updates' => 0,
             ];
             foreach ($discovered as $p) {
                 $db = $repo->findBySlug($p->manifest->slug);
@@ -129,12 +139,17 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 } elseif ($report->statusLabel() === 'warnings') {
                     $summary['warnings']++;
                 }
+                $updateStatus = $pluginUpdateChecker->statusFor($p, $catalogBySlug[$p->manifest->slug] ?? null);
+                if ($updateStatus['update_available']) {
+                    $summary['updates']++;
+                }
                 $rows[] = [
                     'discovered' => $p,
                     'record' => $db,
                     'is_active' => $isActive,
                     'compatibility' => $report,
                     'performance' => $pluginPerformance->snapshotForSlug($p->manifest->slug),
+                    'update' => $updateStatus,
                 ];
             }
 
@@ -229,6 +244,146 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 ->withHeader('Location', $parser->urlFor('admin.extensions.plugins.index'))
                 ->withStatus(302);
         })->setName('admin.extensions.plugins.install_from_catalog');
+
+        $group->post('/extensions/plugins/update', function (Request $request, Response $response) use (
+            $catalogLoader,
+            $remoteInstaller,
+            $pluginUpdateChecker,
+            $manager,
+            $scanner,
+            $repo,
+            $validator,
+            $migrationRunner,
+            $activity,
+            $cmsUid
+        ): Response {
+            $parser = RouteContext::fromRequest($request)->getRouteParser();
+            $back = $parser->urlFor('admin.extensions.plugins.index');
+            $body = $request->getParsedBody();
+            $body = is_array($body) ? $body : [];
+            $slug = strtolower(trim((string) ($body['slug'] ?? '')));
+            if ($slug === '' || !preg_match('/^[a-z0-9]+(?:-[a-z0-9]+)*$/', $slug)) {
+                Flash::set('error', 'Invalid plugin.');
+
+                return $response->withHeader('Location', $back)->withStatus(302);
+            }
+
+            $discovered = $scanner->findBySlug($slug);
+            if ($discovered === null) {
+                Flash::set('error', 'Plugin not found on disk.');
+
+                return $response->withHeader('Location', $back)->withStatus(302);
+            }
+
+            $catalogBySlug = $pluginUpdateChecker->catalogEntriesBySlug();
+            $updateStatus = $pluginUpdateChecker->statusFor($discovered, $catalogBySlug[$slug] ?? null);
+            if (!$updateStatus['update_available']) {
+                Flash::set('error', 'No update is available for this plugin.');
+
+                return $response->withHeader('Location', $back)->withStatus(302);
+            }
+            if (!$updateStatus['can_update']) {
+                Flash::set('error', 'An update was detected but no catalog or GitHub source is configured to download it.');
+
+                return $response->withHeader('Location', $back)->withStatus(302);
+            }
+
+            $db = $repo->findBySlug($slug);
+            $wasActive = $db !== null && $db->isActive;
+            if ($wasActive) {
+                $repo->setActive($slug, false);
+            }
+
+            $err = null;
+            if ($updateStatus['source'] === 'catalog' && isset($catalogBySlug[$slug])) {
+                $loaded = $catalogLoader->load();
+                if (!$loaded['ok']) {
+                    Flash::set('error', 'Plugin catalog is unavailable: ' . $loaded['error']);
+                    if ($wasActive) {
+                        $repo->setActive($slug, true);
+                    }
+
+                    return $response->withHeader('Location', $back)->withStatus(302);
+                }
+                $err = $remoteInstaller->updateFromCatalogSlug($slug, $loaded['entries']);
+            } else {
+                $repoUrl = $discovered->manifest->repositoryUrl ?? '';
+                $github = is_string($repoUrl) ? PluginUpdateChecker::parseGithubRepositoryUrl($repoUrl) : null;
+                if ($github === null) {
+                    $err = 'This plugin has no catalog entry or GitHub repository URL for updates.';
+                } else {
+                    $ref = trim((string) ($_ENV['STRUXA_PLUGIN_UPDATE_GITHUB_REF'] ?? getenv('STRUXA_PLUGIN_UPDATE_GITHUB_REF') ?: ''));
+                    if ($ref === '') {
+                        $ref = trim((string) ($_ENV['STRUXA_UPDATES_GITHUB_REF'] ?? getenv('STRUXA_UPDATES_GITHUB_REF') ?: ''));
+                    }
+                    if ($ref === '') {
+                        $ref = 'main';
+                    }
+                    $err = $remoteInstaller->updateFromGithubRepository($slug, $github['owner'], $github['repo'], $ref);
+                }
+            }
+
+            if ($err !== null) {
+                Flash::set('error', $err);
+                if ($wasActive) {
+                    $repo->setActive($slug, true);
+                }
+
+                return $response->withHeader('Location', $back)->withStatus(302);
+            }
+
+            $manager->syncDiscoveredToDatabase();
+            $discovered = $scanner->findBySlug($slug);
+            if ($discovered === null) {
+                Flash::set('error', 'Plugin update finished but the package could not be re-read from disk.');
+
+                return $response->withHeader('Location', $back)->withStatus(302);
+            }
+
+            $repo->upsertFromManifest($discovered->manifest);
+            try {
+                $migrationRunner->runPending($slug, $discovered->rootPath . '/migrations');
+            } catch (\Throwable $e) {
+                Flash::set('error', 'Plugin updated but migrations failed: ' . $e->getMessage());
+
+                return $response->withHeader('Location', $back)->withStatus(302);
+            }
+
+            $reactivated = false;
+            if ($wasActive) {
+                $manager->registerAutoloadForPlugin($discovered);
+                $report = $validator->compatibilityReport($discovered, $scanner);
+                if ($report->canActivate()) {
+                    $repo->setActive($slug, true);
+                    $reactivated = true;
+                } else {
+                    Flash::set(
+                        'error',
+                        'Plugin updated to v' . $discovered->manifest->version
+                        . ' but was left inactive: ' . implode(' ', $report->activationErrors())
+                    );
+                    Events::dispatch(new StorefrontCachesInvalidateEvent('plugin_updated'));
+
+                    return $response->withHeader('Location', $back)->withStatus(302);
+                }
+            }
+
+            $activity->log($cmsUid($request), 'plugin.updated', 'plugin', null, [
+                'slug' => $slug,
+                'version' => $discovered->manifest->version,
+                'source' => $updateStatus['source'],
+            ]);
+            $msg = 'Plugin updated to v' . $discovered->manifest->version . '.';
+            if ($wasActive && $reactivated) {
+                $msg .= ' It remains active.';
+            } elseif (!$wasActive) {
+                $msg .= ' Activate it when you are ready.';
+            }
+            Flash::set('success', $msg);
+            Events::dispatch(new StorefrontCachesInvalidateEvent('plugin_updated'));
+
+            return $response->withHeader('Location', $back)->withStatus(302);
+        })->setName('admin.extensions.plugins.update');
 
         $group->post('/extensions/plugins/activate', function (Request $request, Response $response) use (
             $repo,

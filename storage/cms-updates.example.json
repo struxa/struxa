@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.1.60",
-    "title": "Struxa 1.1.60",
-    "summary": "Admin dashboard Struxa news feed from struxapoint; plugin boot scope fix on admin; plugins UI compatibility layout.",
+    "latest_version": "1.1.61",
+    "title": "Struxa 1.1.61",
+    "summary": "Installed plugins page checks catalog and GitHub for updates and offers one-click Update (catalog ZIP or GitHub archive).",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "patch"
