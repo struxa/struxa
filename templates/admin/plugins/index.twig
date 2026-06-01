@@ -168,28 +168,36 @@
             {% endif %}
 
             <div class="admin-plugin-card-metrics">
-              <section class="admin-plugin-metric">
-                <h3 class="admin-plugin-metric-label">Compatibility</h3>
-                {% if compat.statusLabel == 'blocked' %}
-                  <span class="admin-badge admin-badge--draft">Blocked</span>
-                {% elseif compat.statusLabel == 'warnings' %}
-                  <span class="admin-badge admin-badge--review">Warnings</span>
-                {% else %}
-                  <span class="admin-badge admin-badge--ok">Ready</span>
-                {% endif %}
+              <section class="admin-plugin-metric{% if compat.statusLabel == 'blocked' %} admin-plugin-metric--blocked{% endif %}">
+                <div class="admin-plugin-metric-head">
+                  <h3 class="admin-plugin-metric-label">Compatibility</h3>
+                  {% if compat.statusLabel == 'blocked' %}
+                    <span class="admin-badge admin-badge--draft">Blocked</span>
+                  {% elseif compat.statusLabel == 'warnings' %}
+                    <span class="admin-badge admin-badge--review">Warnings</span>
+                  {% else %}
+                    <span class="admin-badge admin-badge--ok">Ready</span>
+                  {% endif %}
+                </div>
                 {% if compat.errors is not empty %}
-                  <ul class="admin-plugin-compat-list admin-plugin-compat-list--error">
-                    {% for err in compat.errors|slice(0, 3) %}
-                      <li>{{ err|e }}</li>
-                    {% endfor %}
-                  </ul>
+                  <details class="admin-plugin-compat-details admin-plugin-compat-details--errors"{% if compat.statusLabel == 'blocked' %} open{% endif %}>
+                    <summary>{{ compat.errors|length }} error(s)</summary>
+                    <ul class="admin-plugin-compat-list admin-plugin-compat-list--error">
+                      {% for err in compat.errors|slice(0, 5) %}
+                        <li>{{ err|e }}</li>
+                      {% endfor %}
+                    </ul>
+                  </details>
                 {% endif %}
                 {% if compat.warnings is not empty %}
-                  <ul class="admin-plugin-compat-list admin-plugin-compat-list--warn">
-                    {% for warn in compat.warnings|slice(0, 2) %}
-                      <li>{{ warn|e }}</li>
-                    {% endfor %}
-                  </ul>
+                  <details class="admin-plugin-compat-details admin-plugin-compat-details--warn"{% if compat.errors is empty and compat.statusLabel == 'warnings' %} open{% endif %}>
+                    <summary>{{ compat.warnings|length }} warning(s)</summary>
+                    <ul class="admin-plugin-compat-list admin-plugin-compat-list--warn">
+                      {% for warn in compat.warnings|slice(0, 3) %}
+                        <li>{{ warn|e }}</li>
+                      {% endfor %}
+                    </ul>
+                  </details>
                 {% endif %}
                 {% if compat.checks is not empty %}
                   <details class="admin-plugin-compat-details">

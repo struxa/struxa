@@ -1,16 +1,25 @@
 ---
-description: Do not bump Struxa CMS semver for theme/plugin work; that version comes from upstream CMS updates only
+description: Bump Struxa CMS semver and push when shipping work from this repo
 alwaysApply: true
 ---
 
-# Struxa CMS version (do not bump locally)
+# Struxa CMS version — bump and push on ship
 
-The values in **`src/CmsVersion.php`**, **`composer.json`** → `"version"`, **`README.md`** → `**Version:** …`, and **`storage/cms-updates.example.json`** → `cms.latest_version` / `title` / `summary` are the **installed Struxa CMS release**. They must **only** change when the user **updates Struxa** (installer, ZIP merge, or in-app update) and upstream ships a new number.
+When you **commit shippable CMS work** on this repo, bump all four Struxa release markers in the **same commit**:
 
-**Do not** increment these for FL350-only work (themes, plugins, Docker, local patches). The assistant must not treat “finished a task” as a reason to bump `1.0.52` → `1.0.53` etc.
+1. **`src/CmsVersion.php`** → `CURRENT`
+2. **`composer.json`** → `"version"`
+3. **`README.md`** → `**Version:** …`
+4. **`storage/cms-updates.example.json`** → `cms.latest_version`, `title`, `summary`
 
-When you ship **plugin or theme** changes, bump **`plugins/<slug>/plugin.json`** → `"version"` (semver) in the same commit instead. Do not bump Struxa’s four version files for that.
+Use **patch** semver for fixes and small features (`1.1.59` → `1.1.60`). Use **minor** only when the user asks or the change is clearly breaking/new major surface.
 
-If the user explicitly asks to align version files with a **specific** Struxa release they are merging, set all four to **that** release’s version in the same commit as the merge.
+Update **`summary`** in `cms-updates.example.json` to describe what that release actually ships.
 
-The user may refer to this as “page number”; they mean **Struxa’s version number** from upstream, not an assistant-invented increment.
+**Plugin-only ZIP/catalog work** (under `plugins/` or `struxa-dist/zips/` for a single plugin): bump that plugin’s **`plugin.json`** → `"version"` as well. Still bump Struxa’s four files when core/templates/routes/docs in this repo changed in the same commit.
+
+After a successful commit, **push to `origin`** on the current branch (see `git-push-after-commit.mdc`). Do not leave shipped work local-only unless the user explicitly asks to keep it local.
+
+If merging an **upstream Struxa release** with a specific version number, set all four files to **that** release’s version in the merge commit.
+
+The user may refer to this as “page number”; they mean **Struxa’s version number**, incremented when we ship from this repo.

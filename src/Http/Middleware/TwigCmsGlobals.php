@@ -22,6 +22,7 @@ use App\Plugin\PluginAdminNavRegistry;
 use App\Plugin\PluginScanner;
 use App\Theme\ThemeManager;
 use App\Theme\ThemeSettingsResolver;
+use App\News\StruxaNewsFeed;
 use App\Update\CmsUpdateChecker;
 use InvalidArgumentException;
 use PDO;
@@ -194,6 +195,7 @@ final class TwigCmsGlobals implements MiddlewareInterface
         ))->internal();
         if ($this->isAdminRequestPath($adminPath)) {
             $env->addGlobal('cms_update_status', (new CmsUpdateChecker($internalForUpdates, $this->pdo))->checkForAdminUi());
+            $env->addGlobal('struxa_news', (new StruxaNewsFeed($internalForUpdates))->fetchForAdminUi());
         } else {
             $env->addGlobal('cms_update_status', [
                 'ok' => true,
@@ -202,6 +204,13 @@ final class TwigCmsGlobals implements MiddlewareInterface
                 'current_version' => CmsVersion::CURRENT,
                 'fetched_at' => time(),
                 'feed_url' => '',
+            ]);
+            $env->addGlobal('struxa_news', [
+                'ok' => true,
+                'skipped' => true,
+                'items' => [],
+                'feed_url' => '',
+                'fetched_at' => time(),
             ]);
         }
 

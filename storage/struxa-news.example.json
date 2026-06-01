@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-06-01T14:00:00+00:00",
+  "items": [
+    {
+      "id": "unique-id",
+      "title": "Headline shown on every Struxa admin dashboard",
+      "summary": "One or two sentences. Optional.",
+      "url": "https://struxapoint.com/releases",
+      "published_at": "2026-06-01T12:00:00+00:00",
+      "category": "cms"
+    }
+  ]
+}

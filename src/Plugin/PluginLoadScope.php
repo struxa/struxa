@@ -20,7 +20,24 @@ enum PluginLoadScope: string
             $path = $uri;
         }
 
-        return str_starts_with($path, '/admin') ? self::Admin : self::Public;
+        if (self::pathIsAdmin($path)) {
+            return self::Admin;
+        }
+
+        return self::Public;
+    }
+
+    /**
+     * True when the request targets the CMS admin (not a public content slug named "admin").
+     */
+    public static function pathIsAdmin(string $path): bool
+    {
+        if (str_starts_with($path, '/admin')) {
+            return true;
+        }
+
+        // Front controller: /index.php/admin/... (common on shared hosting and php -S)
+        return (bool) preg_match('#/index\.php/admin(?:/|$)#', $path);
     }
 
     public function allows(PluginManifest $manifest): bool

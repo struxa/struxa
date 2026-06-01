@@ -163,6 +163,31 @@ final class PluginManager
     }
 
     /**
+     * Contexts for {@see bootActivePluginLifecycle()} — on admin requests always uses
+     * {@see PluginLoadScope::Admin} so service providers run and register sidebar links even when
+     * {@see registerActivePublicRoutes()} used a different scope.
+     *
+     * @param callable(): array<string, mixed> $viewData
+     *
+     * @return list<PluginBootContext>
+     */
+    public function createActiveBootContexts(
+        App $app,
+        Twig $twig,
+        Auth $auth,
+        \PDO $pdo,
+        callable $viewData,
+        EventDispatcher $events,
+        PluginLoadScope $requestScope,
+    ): array {
+        $bootScope = $requestScope === PluginLoadScope::Admin
+            ? PluginLoadScope::Admin
+            : $requestScope;
+
+        return $this->createActiveContexts($app, $twig, $auth, $pdo, $viewData, $events, $bootScope);
+    }
+
+    /**
      * Service providers (nav, listeners) and plugin boot events — run after all routes are registered.
      *
      * @param list<PluginBootContext> $contexts

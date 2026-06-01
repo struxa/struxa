@@ -99,7 +99,7 @@ public function boot(PluginBootContext $context): void
 
 `registerReservedContentSlugs()` is an alias with the same behavior. Invalid or empty segments are ignored. Segments must match `^[a-z0-9]+(?:-[a-z0-9]+)*$` (lowercase).
 
-**Bundled example:** `content-stream-plugin` registers `content-stream` for its staff tool at `/content-stream` (see `ContentStreamServiceProvider`).
+Register segments your plugin owns (for example `my-tool` for a staff route at `/my-tool`) so they are not claimed by core content URLs.
 
 ## Filter pipeline (`apply_filters`)
 
@@ -220,11 +220,7 @@ Handlers return `['ok' => true|false, 'message' => '…', 'retry' => bool?, 'cha
 
 Host your own registry: publish the **`struxa-dist/`** folder (see **`struxa-dist/README.md`**) to a separate git repo / CDN and set **`STRUXA_DIST_CATALOG_URL`** on each CMS site. Local dev: copy **`storage/dist-catalog.example.json`** to **`storage/dist-catalog.json`**.
 
-## Example plugins
-
-See **`plugins/hello-plugin`**, **`plugins/seo-helper-plugin`**, **`plugins/analytics-widget-plugin`**, **`plugins/content-stream-plugin`** (OpenAI-backed public form + admin API settings), and **`plugins/mailing-list-plugin`** (multiple lists, email validation, storefront signup) for small, copy-paste-friendly patterns.
-
-**Commerce:** Core **Commerce** (Admin → Orders / Commerce settings) sells purchasable **content-type** entries via Stripe Checkout. See **`docs/commerce.md`**. The legacy **`plugins/stripe-store-plugin`** path is superseded by core for new sites.
+**Commerce:** Core **Commerce** (Admin → Orders / Commerce settings) sells purchasable **content-type** entries via Stripe Checkout. See **`docs/commerce.md`**.
 
 ## Plugin Composer dependencies
 
@@ -232,7 +228,7 @@ Formal policy (root vs plugin-local, CI, exit codes): **`docs/plugins-dependenci
 
 Plugins may ship a **`plugins/{slug}/composer.json`** for third-party libraries. Deploy using **one** of these (mix as needed):
 
-1. **Root metapackage (recommended for shared libs)** — Add the same package to the **repo root** `composer.json` (e.g. `stripe/stripe-php`). A single `composer install` at deploy satisfies core + plugins that rely on the global autoloader. The Stripe store plugin loads Stripe via `class_exists(..., true)` after the app has already bootstrapped root `vendor/autoload.php`.
+1. **Root metapackage (recommended for shared libs)** — Add the same package to the **repo root** `composer.json` (e.g. `stripe/stripe-php`). A single `composer install` at deploy satisfies core + plugins that rely on the global autoloader.
 
 2. **Per-plugin `vendor/` (isolated tree)** — From `plugins/{slug}/`, run `composer install`. Repeat for each plugin with a `composer.json`. Automate with:
    - **`composer plugin-deps`** — runs `composer install` in every plugin directory that has `composer.json`.

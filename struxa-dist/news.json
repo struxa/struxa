@@ -1,0 +1,30 @@
+{
+    "schema_version": 1,
+    "generated_at": "2026-06-01T14:00:00+00:00",
+    "items": [
+        {
+            "id": "2026-06-knowledge-base-1.0.1",
+            "title": "Knowledge Base 1.0.1",
+            "summary": "Staff wiki plugin update: improved admin navigation and seeded CMS documentation articles.",
+            "url": "https://github.com/struxa/knowledge-base",
+            "published_at": "2026-06-01T12:00:00+00:00",
+            "category": "plugin"
+        },
+        {
+            "id": "2026-06-catalog-admin-routes",
+            "title": "Struxa Catalog Admin route fixes",
+            "summary": "Core registrar fixes for catalog admin URLs on struxapoint and other hosts (Auth parameter + PSR-4 autoload).",
+            "url": "https://github.com/struxa/struxa",
+            "published_at": "2026-05-29T18:00:00+00:00",
+            "category": "cms"
+        },
+        {
+            "id": "2026-05-forum-plugin",
+            "title": "Forum plugin available",
+            "summary": "Community forums for Struxa CMS — categories, threads, Markdown, moderation, and SEO-linked content types.",
+            "url": "https://github.com/struxa/struxa-forum",
+            "published_at": "2026-05-28T10:00:00+00:00",
+            "category": "plugin"
+        }
+    ]
+}

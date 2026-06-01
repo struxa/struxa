@@ -197,6 +197,51 @@
           {% endif %}
         </section>
 
+        {% set _news = struxa_news|default({}) %}
+        {% if not _news.skipped|default(false) %}
+          <section class="admin-dash-card admin-dash-card--news" aria-labelledby="dash-struxa-news">
+            <header class="admin-dash-card-head admin-dash-card-head--row">
+              <div>
+                <h3 class="admin-dash-card-title" id="dash-struxa-news">Struxa news</h3>
+                <p class="admin-dash-card-lead">Latest from struxapoint — CMS, plugins, and themes.</p>
+              </div>
+              <a class="admin-dash-card-link" href="https://struxapoint.com" rel="noopener noreferrer" target="_blank">struxapoint.com</a>
+            </header>
+            {% if _news.items|default([]) is empty %}
+              {% if _news.ok|default(false) %}
+                <p class="admin-dash-empty">No news items right now.</p>
+              {% else %}
+                <p class="admin-dash-empty">Could not load news{% if _news.error|default('') != '' %}: {{ _news.error|e }}{% endif %}.</p>
+              {% endif %}
+            {% else %}
+              <ol class="admin-dash-news-list">
+                {% for item in _news.items|slice(0, 8) %}
+                  <li class="admin-dash-news-item">
+                    <div class="admin-dash-news-head">
+                      {% if item.published_at|default('') != '' %}
+                        <time class="admin-dash-news-date" datetime="{{ item.published_at|e('html_attr') }}">
+                          {{ item.published_at|slice(0, 10) }}
+                        </time>
+                      {% endif %}
+                      {% if item.category|default('') != '' %}
+                        <span class="admin-dash-news-cat admin-dash-news-cat--{{ item.category|e('html_attr') }}">{{ item.category|e }}</span>
+                      {% endif %}
+                    </div>
+                    {% if item.url|default('') != '' %}
+                      <a class="admin-dash-news-title" href="{{ item.url|e('html_attr') }}" rel="noopener noreferrer" target="_blank">{{ item.title|e }}</a>
+                    {% else %}
+                      <p class="admin-dash-news-title admin-dash-news-title--plain">{{ item.title|e }}</p>
+                    {% endif %}
+                    {% if item.summary|default('') != '' %}
+                      <p class="admin-dash-news-summary">{{ item.summary|e }}</p>
+                    {% endif %}
+                  </li>
+                {% endfor %}
+              </ol>
+            {% endif %}
+          </section>
+        {% endif %}
+
         {% if cms_can('manage_plugins') or cms_can('manage_content_types') %}
           <section class="admin-dash-card admin-dash-card--compact" aria-label="More counts">
             <ul class="admin-dash-mini-metrics">

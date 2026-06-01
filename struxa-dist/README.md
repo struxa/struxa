@@ -19,11 +19,12 @@ Create a dedicated repo, e.g. `struxa/struxa-dist` or `struxapoint/struxa-dist`,
 ```
 struxa-dist/
   repo.json          # catalog index (themes + plugins)
+  news.json          # admin dashboard news (all Struxa sites)
   zips/              # HTTPS-downloadable ZIP packages
   README.md
 ```
 
-Deploy that repo to your web root so `repo.json` and `zips/*.zip` are served over **HTTPS** on `struxapoint.com` (or a CDN).
+Deploy that repo to your web root so `repo.json`, `news.json`, and `zips/*.zip` are served over **HTTPS** on `struxapoint.com` (or a CDN).
 
 The **Struxa CMS** git repo stays the core product; **this** repo is only distributable themes/plugins (and ZIPs), similar to a package registry.
 
@@ -56,6 +57,31 @@ The **Struxa CMS** git repo stays the core product; **this** repo is only distri
 }
 ```
 
+## `news.json` (admin dashboard)
+
+Published at **`https://struxapoint.com/struxa-dist/news.json`**. Every Struxa admin dashboard shows the latest items in a **Struxa news** panel (cached ~15 minutes).
+
+Edit **`struxa-dist/news.json`** on struxapoint when you ship CMS releases, plugins, or themes. Schema: **`storage/struxa-news.example.json`**.
+
+```json
+{
+  "schema_version": 1,
+  "generated_at": "2026-06-01T12:00:00+00:00",
+  "items": [
+    {
+      "id": "unique-id",
+      "title": "Knowledge Base 1.0.1",
+      "summary": "Optional short text.",
+      "url": "https://github.com/struxa/knowledge-base",
+      "published_at": "2026-06-01T12:00:00+00:00",
+      "category": "plugin"
+    }
+  ]
+}
+```
+
+`category` is shown as a badge: `cms`, `plugin`, `theme`, or any lowercase slug.
+
 ## ZIP layout
 
 ### Themes
@@ -80,6 +106,7 @@ zip -r ../mailing-list-plugin.zip . -x '*.git*'
 |------|--------|
 | **Themes → Browse catalog** | Reads `themes[]` from the catalog |
 | **Extensions → Plugins → Browse catalog** | Reads `plugins[]` from the same catalog |
+| **Dashboard → Struxa news** | Reads `news.json` from struxapoint (optional override via `STRUXA_NEWS_JSON_URL`) |
 
 ## Environment variables (on each CMS site)
 

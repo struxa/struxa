@@ -742,7 +742,16 @@ if (method_exists($pluginManager, 'registerStruxaCatalogAdminRoutesIfNeeded')) {
 (require $root . '/routes/public_content_index.php')($app, $twig, $pdo, $viewData);
 (require $root . '/routes/public_content.php')($app, $twig, $pdo, $viewData);
 
-$pluginManager->bootActivePluginLifecycle($pluginContexts, $eventDispatcher);
+$pluginBootContexts = $pluginManager->createActiveBootContexts(
+    $app,
+    $twig,
+    $auth,
+    $pdo,
+    $viewData,
+    $eventDispatcher,
+    $pluginScope,
+);
+$pluginManager->bootActivePluginLifecycle($pluginBootContexts, $eventDispatcher);
 
 $scheduleRunToken = trim((string) ($_ENV['CMS_SCHEDULE_RUN_TOKEN'] ?? ''));
 if ($scheduleRunToken !== '') {
