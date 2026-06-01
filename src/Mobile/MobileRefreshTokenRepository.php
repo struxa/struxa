@@ -14,6 +14,13 @@ final class MobileRefreshTokenRepository
     {
     }
 
+    public static function tableExists(PDO $pdo): bool
+    {
+        $stmt = $pdo->query("SHOW TABLES LIKE 'cms_mobile_refresh_tokens'");
+
+        return $stmt !== false && $stmt->rowCount() > 0;
+    }
+
     /**
      * @return array{id: int, token: string, expires_at: string}
      */

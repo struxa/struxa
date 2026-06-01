@@ -1,8 +1,11 @@
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { radius, spacing } from '../theme/layout';
 import type { MobileTab } from '../types/bootstrap';
 import type { SiteTheme } from '../theme/siteTheme';
+import { tabIconName } from './ui/tabIcons';
 
 type Props = {
   tabs: MobileTab[];
@@ -13,6 +16,7 @@ type Props = {
 
 export function BottomTabBar({ tabs, activeTabId, theme, onSelect }: Props) {
   const insets = useSafeAreaInsets();
+  const evenLayout = tabs.length <= 6;
 
   if (tabs.length === 0) {
     return null;
@@ -23,15 +27,16 @@ export function BottomTabBar({ tabs, activeTabId, theme, onSelect }: Props) {
       style={[
         styles.wrap,
         {
-          paddingBottom: Math.max(insets.bottom, 10),
+          paddingBottom: Math.max(insets.bottom, spacing.sm),
           backgroundColor: theme.surface,
           borderTopColor: theme.border,
         },
       ]}
     >
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
+      <View style={[styles.row, evenLayout && styles.rowEven]}>
         {tabs.map((tab) => {
           const active = tab.id === activeTabId;
+          const icon = tabIconName(tab.type, active);
           return (
             <Pressable
               key={tab.id}
@@ -40,15 +45,15 @@ export function BottomTabBar({ tabs, activeTabId, theme, onSelect }: Props) {
               onPress={() => onSelect(tab.id)}
               style={({ pressed }) => [
                 styles.tab,
+                evenLayout && styles.tabEven,
                 {
                   backgroundColor: active ? theme.accentSoft : 'transparent',
                   opacity: pressed ? 0.85 : 1,
                 },
               ]}
             >
-              <Text style={[styles.tabIcon, { color: active ? theme.accent : theme.textMuted }]}>
-                {iconForType(tab.type)}
-              </Text>
+              {active ? <View style={[styles.activeBar, { backgroundColor: theme.accent }]} /> : null}
+              <Ionicons color={active ? theme.accent : theme.textMuted} name={icon} size={22} />
               <Text
                 numberOfLines={1}
                 style={[styles.tabLabel, { color: active ? theme.accent : theme.textMuted }]}
@@ -58,52 +63,49 @@ export function BottomTabBar({ tabs, activeTabId, theme, onSelect }: Props) {
             </Pressable>
           );
         })}
-      </ScrollView>
+      </View>
     </View>
   );
-}
-
-function iconForType(type: string): string {
-  switch (type) {
-    case 'home':
-      return '⌂';
-    case 'content':
-      return '▤';
-    case 'search':
-      return '⌕';
-    case 'shop':
-      return '◆';
-    case 'account':
-      return '☺';
-    default:
-      return '•';
-  }
 }
 
 const styles = StyleSheet.create({
   wrap: {
     borderTopWidth: StyleSheet.hairlineWidth,
-    paddingTop: 8,
-    paddingHorizontal: 8,
+    paddingTop: spacing.sm,
+    paddingHorizontal: spacing.sm,
   },
   row: {
     flexDirection: 'row',
-    gap: 8,
-    paddingHorizontal: 4,
+    gap: spacing.xs,
+  },
+  rowEven: {
+    justifyContent: 'space-between',
   },
   tab: {
-    minWidth: 72,
+    minWidth: 68,
     alignItems: 'center',
-    borderRadius: 14,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.sm,
+    gap: 3,
+    position: 'relative',
+    overflow: 'hidden',
   },
-  tabIcon: {
-    fontSize: 16,
-    marginBottom: 2,
+  tabEven: {
+    flex: 1,
+    minWidth: 0,
+  },
+  activeBar: {
+    position: 'absolute',
+    top: 0,
+    left: spacing.sm,
+    right: spacing.sm,
+    height: 2,
+    borderRadius: radius.pill,
   },
   tabLabel: {
-    fontSize: 12,
-    fontWeight: '600',
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.2,
   },
 });

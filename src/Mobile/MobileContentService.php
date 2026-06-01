@@ -127,6 +127,9 @@ final class MobileContentService
         if ($type === null || !$type->hasPublicRoute) {
             throw new MobileContentException('not_found', 'Unknown content type or type has no public route.');
         }
+        if (!MobileSettings::isContentTypeAllowed($type->slug, true)) {
+            throw new MobileContentException('not_found', 'This content type is not available in the mobile app.');
+        }
 
         return $type;
     }

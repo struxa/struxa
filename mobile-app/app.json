@@ -2,7 +2,7 @@
   "expo": {
     "name": "Struxa",
     "slug": "struxa-app",
-    "version": "0.4.0",
+    "version": "0.8.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
@@ -13,7 +13,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#0b1220",
+        "backgroundColor": "#080e1a",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
@@ -27,7 +27,8 @@
     },
     "plugins": [
       "expo-router",
-      "expo-image"
+      "expo-asset",
+      "expo-font"
     ],
     "experiments": {
       "typedRoutes": true

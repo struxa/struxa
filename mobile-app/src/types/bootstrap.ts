@@ -2,6 +2,10 @@ export type MobileTab = {
   id: string;
   label: string;
   type: string;
+  content_type_slug?: string;
+  plugin_slug?: string;
+  screen?: string;
+  url?: string;
 };
 
 export type BootstrapNavigationItem = {
@@ -38,6 +42,8 @@ export type BootstrapData = {
     search: boolean;
     comments: boolean;
     mobile_auth: boolean;
+    mobile_auth_ready: boolean;
+    browse: boolean;
     auth: {
       login_path: string;
       register_path: string;
@@ -55,11 +61,17 @@ export type BootstrapData = {
     auth_refresh: string;
     auth_logout: string;
     auth_me: string;
+    commerce_products?: string;
+    commerce_checkout?: string;
+    commerce_orders?: string;
+    commerce_downloads?: string;
   };
   mobile: {
     welcome_title: string;
     welcome_message: string;
     tabs: MobileTab[];
+    add_site_deeplink?: string;
+    add_site_web_url?: string;
   };
   navigation: {
     header: BootstrapNavigationItem[];
@@ -70,6 +82,8 @@ export type BootstrapData = {
     currency: string;
     shop_title: string;
     shop_path: string;
+    product_type_slug?: string;
+    needs_checkout_country?: boolean;
   };
 };
 

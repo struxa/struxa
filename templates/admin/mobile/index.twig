@@ -1,0 +1,339 @@
+{% extends 'admin/base.twig' %}
+
+{% block admin_title %}Mobile app{% endblock %}
+
+{% block admin_hero_title %}
+  <h1 class="admin-hero-title">Mobile app</h1>
+{% endblock %}
+
+{% block admin_hero_sub %}
+  <p class="admin-hero-sub admin-hero-sub--tight">Choose what the Struxa client app shows: content types, shop, search, and navigation.</p>
+{% endblock %}
+
+{% block admin_hero_actions %}
+  {% if mobile_enabled %}
+    <a class="admin-btn-ghost" href="{{ mobile_bootstrap_url|e('html_attr') }}" target="_blank" rel="noopener">Open bootstrap JSON</a>
+  {% endif %}
+{% endblock %}
+
+{% block admin_breadcrumbs %}
+  {% include 'admin/partials/_breadcrumbs.twig' with {
+    breadcrumbs: [
+      { label: 'Mobile app' },
+    ],
+  } %}
+{% endblock %}
+
+{% block admin_content %}
+  <div class="admin-settings-page admin-settings-page--mobile">
+    <div class="admin-settings-intro admin-settings-intro--mobile">
+      <div class="admin-settings-intro-icon" aria-hidden="true">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="5" y="2" width="14" height="20" rx="2" />
+          <path d="M12 18h.01" />
+        </svg>
+      </div>
+      <div class="admin-settings-intro-body">
+        <p class="admin-settings-intro-title">Struxa client app</p>
+        <p class="admin-settings-intro-text">
+          Users add your site URL in the mobile app. These settings control the public bootstrap API
+          (<code class="admin-inline-code">GET /api/v1/mobile/bootstrap</code>) — branding, which content to release, and tab bar sections.
+        </p>
+      </div>
+      {% if mobile_enabled %}
+        <span class="admin-pill admin-pill--ok">Bootstrap live</span>
+      {% else %}
+        <span class="admin-pill">Disabled</span>
+      {% endif %}
+    </div>
+
+    <div class="admin-metrics admin-hub-metrics" aria-label="Mobile app summary">
+      <article class="admin-metric{% if mobile_enabled %} admin-metric--health-good{% endif %}">
+        <p class="admin-metric-label">Bootstrap API</p>
+        <p class="admin-metric-value admin-metric-value--sm">{{ mobile_enabled ? 'On' : 'Off' }}</p>
+        <p class="admin-metric-meta">Public JSON for client apps</p>
+      </article>
+      <article class="admin-metric">
+        <p class="admin-metric-label">Content in app</p>
+        <p class="admin-metric-value">{{ mobile_preview.content_types|default([])|length }}</p>
+        <p class="admin-metric-meta">{{ mobile_restrict_content ? 'Filtered selection' : 'All public types' }}</p>
+      </article>
+      <article class="admin-metric">
+        <p class="admin-metric-label">Tab bar</p>
+        <p class="admin-metric-value">{{ mobile_preview.mobile.tabs|default([])|length }}</p>
+        <p class="admin-metric-meta">{{ mobile_use_custom_tabs ? 'Custom JSON' : 'Automatic' }}</p>
+      </article>
+      <article class="admin-metric">
+        <p class="admin-metric-label">Schema</p>
+        <p class="admin-metric-value admin-metric-value--sm">v{{ mobile_preview.schema_version|default(1) }}</p>
+        <p class="admin-metric-meta">Bootstrap payload version</p>
+      </article>
+    </div>
+
+    <nav class="admin-settings-toc" aria-label="Mobile app settings sections">
+      <a class="admin-settings-toc-link" href="#mobile-general">General</a>
+      <a class="admin-settings-toc-link" href="#mobile-content">Content types</a>
+      <a class="admin-settings-toc-link" href="#mobile-features">App sections</a>
+      <a class="admin-settings-toc-link" href="#mobile-qr">Add to app</a>
+      <a class="admin-settings-toc-link" href="#mobile-copy">Welcome copy</a>
+      <a class="admin-settings-toc-link" href="#mobile-tabs">Tab bar</a>
+      <a class="admin-settings-toc-link" href="#mobile-endpoints">Endpoints</a>
+    </nav>
+
+    <form method="post" action="{{ url_for('admin.mobile.save') }}" class="admin-form admin-settings-form" id="mobile-app-form">
+      <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+
+      <div class="admin-settings-stack">
+        <section id="mobile-general" class="admin-card admin-settings-card admin-settings-section" tabindex="-1">
+          <h2 class="admin-settings-card-title">General</h2>
+          <p class="admin-settings-card-desc">Turn the bootstrap endpoint on or off for client apps connecting to this site.</p>
+          <div class="admin-form-grid">
+            <div class="admin-field admin-field--full">
+              <label class="admin-label admin-settings-check-label">
+                <input type="checkbox" name="enabled" value="1" {% if mobile_enabled %}checked{% endif %} />
+                Enable mobile app bootstrap
+              </label>
+              <p class="admin-hint">When off, bootstrap and well-known discovery return 403. Existing REST/GraphQL APIs are unchanged.</p>
+            </div>
+            <div class="admin-field admin-field--full">
+              <label class="admin-label admin-settings-check-label">
+                <input type="checkbox" name="include_footer_nav" value="1" {% if mobile_include_footer_nav %}checked{% endif %} />
+                Include footer menu in bootstrap navigation
+              </label>
+            </div>
+          </div>
+        </section>
+
+        <section id="mobile-content" class="admin-card admin-settings-card admin-settings-section" tabindex="-1">
+          <h2 class="admin-settings-card-title">Content types to release</h2>
+          <p class="admin-settings-card-desc">
+            Choose which public content types appear in Browse and on the home screen. Product types used for commerce are listed but are usually reached via Shop instead.
+          </p>
+          <div class="admin-form-grid">
+            <div class="admin-field admin-field--full">
+              <label class="admin-label admin-settings-check-label">
+                <input type="checkbox" name="restrict_content_types" value="1" id="mobile-restrict-content" {% if mobile_restrict_content %}checked{% endif %} />
+                Limit content types in the mobile app
+              </label>
+              <p class="admin-hint">When unchecked, every content type with a public URL is available. When checked, only selected types below are exposed.</p>
+            </div>
+            <div class="admin-field admin-field--full" id="mobile-content-picker" {% if not mobile_restrict_content %}hidden{% endif %}>
+              {% if mobile_public_types is empty %}
+                <p class="admin-hint">No content types have public routes yet. Add types under Content and enable a public route.</p>
+              {% else %}
+                <div class="admin-form-actions" style="margin:0 0 0.75rem;padding:0;justify-content:flex-start;gap:0.5rem;flex-wrap:wrap">
+                  <button type="button" class="admin-btn-ghost admin-btn-ghost--sm" data-mobile-select-all>Select all</button>
+                  <button type="button" class="admin-btn-ghost admin-btn-ghost--sm" data-mobile-select-none>Clear all</button>
+                </div>
+                <ul class="admin-checklist admin-checklist--grid" style="list-style:none;margin:0;padding:0;display:grid;gap:0.5rem">
+                  {% for type in mobile_public_types %}
+                    <li>
+                      <label class="admin-label admin-settings-check-label" style="display:flex;gap:0.5rem;align-items:flex-start">
+                        <input
+                          type="checkbox"
+                          name="content_slugs[]"
+                          value="{{ type.slug|e('html_attr') }}"
+                          class="mobile-content-slug-cb"
+                          {% if type.slug in mobile_selected_content_slugs %}checked{% endif %}
+                        />
+                        <span>
+                          <strong>{{ type.name|e }}</strong>
+                          <code class="admin-inline-code">/{{ type.slug|e }}</code>
+                          {% if type.is_product_type %}
+                            <span class="admin-pill" style="margin-left:0.35rem">Shop products</span>
+                          {% endif %}
+                          {% if type.description %}
+                            <span class="admin-hint" style="display:block;margin-top:0.15rem">{{ type.description|e }}</span>
+                          {% endif %}
+                        </span>
+                      </label>
+                    </li>
+                  {% endfor %}
+                </ul>
+              {% endif %}
+            </div>
+          </div>
+        </section>
+
+        <section id="mobile-features" class="admin-card admin-settings-card admin-settings-section" tabindex="-1">
+          <h2 class="admin-settings-card-title">App sections</h2>
+          <p class="admin-settings-card-desc">Control which areas appear in the automatic tab bar (when you are not using custom tab JSON).</p>
+          <div class="admin-form-grid">
+            <div class="admin-field admin-field--full">
+              <label class="admin-label admin-settings-check-label">
+                <input type="checkbox" name="feature_browse" value="1" {% if mobile_feature_browse %}checked{% endif %} />
+                Browse — content library tab
+              </label>
+            </div>
+            <div class="admin-field admin-field--full">
+              <label class="admin-label admin-settings-check-label">
+                <input type="checkbox" name="feature_search" value="1" {% if mobile_feature_search %}checked{% endif %} {% if not mobile_search_on_site %}disabled{% endif %} />
+                Search tab
+              </label>
+              {% if not mobile_search_on_site %}
+                <p class="admin-hint">Site search is off. Enable it under <a class="admin-link" href="{{ url_for('admin.settings.search') }}">Site → Search</a> first.</p>
+              {% endif %}
+            </div>
+            <div class="admin-field admin-field--full">
+              <label class="admin-label admin-settings-check-label">
+                <input type="checkbox" name="feature_shop" value="1" {% if mobile_feature_shop %}checked{% endif %} {% if not mobile_commerce_on_site %}disabled{% endif %} />
+                Shop tab (commerce)
+              </label>
+              {% if not mobile_commerce_on_site %}
+                <p class="admin-hint">Commerce is off. Enable it in Commerce settings first.</p>
+              {% endif %}
+            </div>
+            <div class="admin-field admin-field--full">
+              <label class="admin-label admin-settings-check-label">
+                <input type="checkbox" name="feature_account" value="1" {% if mobile_feature_account %}checked{% endif %} />
+                Account tab (sign-in, orders, downloads)
+              </label>
+            </div>
+          </div>
+        </section>
+
+        {% if mobile_enabled %}
+        <section id="mobile-qr" class="admin-card admin-settings-card admin-settings-section" tabindex="-1">
+          <h2 class="admin-settings-card-title">Add to Struxa app</h2>
+          <p class="admin-settings-card-desc">Scan this QR code or share the link so users can add this site in one tap.</p>
+          <div class="admin-form-grid" style="align-items:start">
+            <div class="admin-field">
+              <img
+                src="{{ mobile_qr_url|e('html_attr') }}"
+                width="280"
+                height="280"
+                alt="QR code to add this site to the Struxa app"
+                style="display:block;border-radius:12px;background:#fff;padding:12px;max-width:100%"
+              />
+            </div>
+            <div class="admin-field admin-field--full" style="flex:1">
+              <p class="admin-hint" style="margin-top:0">Deep link:</p>
+              <code class="admin-code-block admin-code-block--scroll" style="margin:0.5rem 0">{{ mobile_deeplink|e }}</code>
+              <p class="admin-hint">Web fallback: <a href="{{ mobile_add_web_url|e('html_attr') }}" target="_blank" rel="noopener">{{ mobile_add_web_url|e }}</a></p>
+            </div>
+          </div>
+        </section>
+        {% endif %}
+
+        <section id="mobile-copy" class="admin-card admin-settings-card admin-settings-section" tabindex="-1">
+          <h2 class="admin-settings-card-title">Welcome copy</h2>
+          <p class="admin-settings-card-desc">Optional overrides for the in-app home screen. Leave blank to use site name and tagline.</p>
+          <div class="admin-form-grid">
+            <div class="admin-field admin-field--full">
+              <label class="admin-label" for="mobile-welcome-title">Welcome title</label>
+              <input class="admin-input" type="text" id="mobile-welcome-title" name="welcome_title" maxlength="120" value="{{ mobile_welcome_title|e('html_attr') }}" placeholder="Uses site name when empty" />
+            </div>
+            <div class="admin-field admin-field--full">
+              <label class="admin-label" for="mobile-welcome-message">Welcome message</label>
+              <textarea class="admin-textarea" id="mobile-welcome-message" name="welcome_message" rows="3" maxlength="500" placeholder="Uses site tagline when empty">{{ mobile_welcome_message|e }}</textarea>
+            </div>
+          </div>
+        </section>
+
+        <section id="mobile-tabs" class="admin-card admin-settings-card admin-settings-section" tabindex="-1">
+          <h2 class="admin-settings-card-title">Tab bar</h2>
+          <p class="admin-settings-card-desc">By default, tabs are built from the app sections above. Use custom JSON only if you need full control.</p>
+          <div class="admin-form-grid">
+            <div class="admin-field admin-field--full">
+              <label class="admin-label admin-settings-check-label">
+                <input type="checkbox" name="use_custom_tabs" value="1" id="mobile-use-custom-tabs" {% if mobile_use_custom_tabs %}checked{% endif %} />
+                Use custom tab bar JSON (advanced)
+              </label>
+            </div>
+            <div class="admin-field admin-field--full" id="mobile-custom-tabs-wrap" {% if not mobile_use_custom_tabs %}hidden{% endif %}>
+              <p class="admin-hint">Types: <code class="admin-inline-code">home</code>, <code class="admin-inline-code">content</code>, <code class="admin-inline-code">search</code>, <code class="admin-inline-code">shop</code>, <code class="admin-inline-code">account</code>, <code class="admin-inline-code">link</code>, <code class="admin-inline-code">plugin</code>. Optional: <code class="admin-inline-code">content_type_slug</code>, <code class="admin-inline-code">url</code>.</p>
+              <div class="admin-form-actions" style="margin:0.75rem 0;padding:0;justify-content:flex-start;gap:0.5rem;flex-wrap:wrap">
+                <button type="button" class="admin-btn-ghost admin-btn-ghost--sm" data-mobile-tab-preset='{"id":"home","label":"Home","type":"home"}'>+ Home</button>
+                <button type="button" class="admin-btn-ghost admin-btn-ghost--sm" data-mobile-tab-preset='{"id":"browse","label":"Browse","type":"content"}'>+ Browse</button>
+                <button type="button" class="admin-btn-ghost admin-btn-ghost--sm" data-mobile-tab-preset='{"id":"shop","label":"Shop","type":"shop"}'>+ Shop</button>
+                <button type="button" class="admin-btn-ghost admin-btn-ghost--sm" data-mobile-tab-preset='{"id":"account","label":"Account","type":"account"}'>+ Account</button>
+              </div>
+              <label class="admin-label" for="mobile-tabs-json">Custom tabs JSON</label>
+              <textarea class="admin-textarea admin-textarea--mono" id="mobile-tabs-json" name="tabs_json" rows="8" placeholder='[{"id":"home","label":"Home","type":"home"}]'>{{ mobile_tabs_json|e }}</textarea>
+            </div>
+          </div>
+        </section>
+
+        <section id="mobile-endpoints" class="admin-card admin-settings-card admin-settings-section" tabindex="-1">
+          <h2 class="admin-settings-card-title">Endpoints</h2>
+          <dl class="admin-search-how-dl">
+            <div class="admin-search-how-row">
+              <dt>Bootstrap</dt>
+              <dd><code class="admin-inline-code">{{ mobile_bootstrap_url|e }}</code></dd>
+            </div>
+            <div class="admin-search-how-row">
+              <dt>Discovery</dt>
+              <dd><code class="admin-inline-code">{{ mobile_well_known_url|e }}</code></dd>
+            </div>
+          </dl>
+          {% if mobile_preview %}
+            <details class="admin-details" style="margin-top:1rem">
+              <summary class="admin-details-summary">Preview current bootstrap payload</summary>
+              <pre class="admin-code-block admin-code-block--scroll" style="margin-top:0.75rem; max-height:24rem;">{{ mobile_preview_json|e }}</pre>
+            </details>
+          {% endif %}
+        </section>
+      </div>
+
+      <div class="admin-form-actions">
+        <button type="submit" class="admin-btn-primary">Save mobile app settings</button>
+        {% if mobile_enabled %}
+          <a href="{{ mobile_bootstrap_url|e('html_attr') }}" class="admin-link" target="_blank" rel="noopener">Preview JSON ↗</a>
+        {% endif %}
+      </div>
+    </form>
+  </div>
+  <script>
+    (function () {
+      var restrict = document.getElementById('mobile-restrict-content');
+      var picker = document.getElementById('mobile-content-picker');
+      if (restrict && picker) {
+        restrict.addEventListener('change', function () {
+          picker.hidden = !restrict.checked;
+        });
+      }
+
+      var customTabs = document.getElementById('mobile-use-custom-tabs');
+      var tabsWrap = document.getElementById('mobile-custom-tabs-wrap');
+      if (customTabs && tabsWrap) {
+        customTabs.addEventListener('change', function () {
+          tabsWrap.hidden = !customTabs.checked;
+        });
+      }
+
+      document.querySelectorAll('[data-mobile-select-all]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          document.querySelectorAll('.mobile-content-slug-cb').forEach(function (cb) {
+            cb.checked = true;
+          });
+        });
+      });
+      document.querySelectorAll('[data-mobile-select-none]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          document.querySelectorAll('.mobile-content-slug-cb').forEach(function (cb) {
+            cb.checked = false;
+          });
+        });
+      });
+
+      var textarea = document.getElementById('mobile-tabs-json');
+      if (textarea) {
+        document.querySelectorAll('[data-mobile-tab-preset]').forEach(function (btn) {
+          btn.addEventListener('click', function () {
+            var raw = btn.getAttribute('data-mobile-tab-preset') || '';
+            try {
+              var row = JSON.parse(raw);
+              var current = textarea.value.trim();
+              var list = current ? JSON.parse(current) : [];
+              if (!Array.isArray(list)) list = [];
+              list.push(row);
+              textarea.value = JSON.stringify(list, null, 2);
+            } catch (e) {
+              textarea.value = raw;
+            }
+          });
+        });
+      }
+    })();
+  </script>
+{% endblock %}

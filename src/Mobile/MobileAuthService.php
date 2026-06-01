@@ -189,6 +189,14 @@ final class MobileAuthService
      */
     private function issueAuthResponse(int $uid): array
     {
+        if (!MobileRefreshTokenRepository::tableExists($this->pdo)) {
+            throw new MobileAuthException(
+                'database_error',
+                'Mobile sign-in is not set up on this site yet. Run database migrations (056_mobile_auth.sql).',
+                503,
+            );
+        }
+
         $profile = $this->userProfile($uid);
         if ($profile === null) {
             throw new MobileAuthException('not_found', 'User not found.', 404);

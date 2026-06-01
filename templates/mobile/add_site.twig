@@ -1,0 +1,18 @@
+{% extends 'base.twig' %}
+
+{% block title %}Add to Struxa app{% endblock %}
+
+{% block content %}
+  <main class="page-content" style="max-width:32rem;margin:2rem auto;padding:0 1rem;text-align:center">
+    <h1 style="font-size:1.75rem;margin-bottom:0.5rem">Add this site to Struxa</h1>
+    <p style="opacity:0.85;line-height:1.6;margin-bottom:1.5rem">
+      Open the link below in the Struxa mobile app, or scan the QR code from <strong>Admin → Mobile app</strong>.
+    </p>
+    <p style="word-break:break-all;font-family:monospace;font-size:0.9rem;padding:1rem;border-radius:0.75rem;background:rgba(255,255,255,0.06)">
+      <a href="{{ mobile_deeplink|e('html_attr') }}">{{ mobile_deeplink|e }}</a>
+    </p>
+    <p style="margin-top:1.5rem;font-size:0.9rem;opacity:0.75">
+      Site: {{ mobile_site_url|e }}
+    </p>
+  </main>
+{% endblock %}

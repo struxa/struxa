@@ -6,6 +6,50 @@ import type {
 } from '../types/auth';
 import { BootstrapError } from './bootstrap';
 
+type ApiErrorBody = {
+  ok?: boolean;
+  error?: string;
+  message?: string;
+  code?: number;
+};
+
+function apiFailureMessage(payload: ApiErrorBody, status: number): string {
+  if (typeof payload.message === 'string' && payload.message.trim() !== '') {
+    return payload.message;
+  }
+  if (typeof payload.error === 'string' && payload.error.trim() !== '') {
+    return payload.error;
+  }
+
+  return `Request failed (${status}).`;
+}
+
+async function parseMobileJson(response: Response): Promise<ApiErrorBody & { data?: unknown }> {
+  const text = await response.text();
+  if (text.trim() === '') {
+    throw new BootstrapError(
+      response.ok ? 'The site returned an empty response.' : `Request failed (${response.status}).`,
+      'empty_response',
+    );
+  }
+
+  try {
+    return JSON.parse(text) as ApiErrorBody & { data?: unknown };
+  } catch {
+    if (/Slim Application Error|Slim\\\\|SQLSTATE|cms_mobile_refresh_tokens/i.test(text)) {
+      throw new BootstrapError(
+        'Mobile sign-in is not set up on this site yet. Ask the admin to run database migrations (056_mobile_auth.sql).',
+        'database_error',
+      );
+    }
+
+    throw new BootstrapError(
+      `The site returned an unexpected response (${response.status}).`,
+      'invalid_json',
+    );
+  }
+}
+
 async function postAuth<T>(url: string, body: Record<string, string>): Promise<T> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 15000);
@@ -21,19 +65,17 @@ async function postAuth<T>(url: string, body: Record<string, string>): Promise<T
       signal: controller.signal,
     });
 
-    const payload = (await response.json()) as AuthApiResponse<T> & {
-      error?: string;
-      message?: string;
-    };
+    const payload = await parseMobileJson(response);
 
     if (!response.ok || payload.ok === false) {
-      throw new BootstrapError(
-        payload.message ?? `Request failed (${response.status}).`,
-        payload.error ?? 'http_error',
-      );
+      throw new BootstrapError(apiFailureMessage(payload, response.status), payload.error ?? 'http_error');
     }
 
-    return payload.data;
+    if (payload.data === undefined || payload.data === null) {
+      throw new BootstrapError('The site returned an incomplete auth response.', 'invalid_response');
+    }
+
+    return payload.data as T;
   } catch (error) {
     if (error instanceof BootstrapError) {
       throw error;
@@ -48,12 +90,12 @@ async function postAuth<T>(url: string, body: Record<string, string>): Promise<T
 }
 
 export async function loginUser(
-  siteOrigin: string,
+  loginUrl: string,
   email: string,
   password: string,
   totpCode = '',
 ): Promise<AuthTokenResponse> {
-  return postAuth<AuthTokenResponse>(`${siteOrigin}/api/v1/mobile/auth/login`, {
+  return postAuth<AuthTokenResponse>(loginUrl, {
     email,
     password,
     totp_code: totpCode,
@@ -61,13 +103,13 @@ export async function loginUser(
 }
 
 export async function registerUser(
-  siteOrigin: string,
+  registerUrl: string,
   email: string,
   password: string,
   passwordConfirm: string,
   username = '',
 ): Promise<RegisterResponse> {
-  return postAuth<RegisterResponse>(`${siteOrigin}/api/v1/mobile/auth/register`, {
+  return postAuth<RegisterResponse>(registerUrl, {
     email,
     password,
     password_confirm: passwordConfirm,
@@ -76,43 +118,46 @@ export async function registerUser(
 }
 
 export async function refreshAuth(
-  siteOrigin: string,
+  refreshUrl: string,
   refreshToken: string,
 ): Promise<AuthTokenResponse> {
-  return postAuth<AuthTokenResponse>(`${siteOrigin}/api/v1/mobile/auth/refresh`, {
+  return postAuth<AuthTokenResponse>(refreshUrl, {
     refresh_token: refreshToken,
   });
 }
 
-export async function logoutUser(siteOrigin: string, refreshToken: string): Promise<void> {
-  await postAuth<Record<string, never>>(`${siteOrigin}/api/v1/mobile/auth/logout`, {
+export async function logoutUser(logoutUrl: string, refreshToken: string): Promise<void> {
+  await postAuth<Record<string, never>>(logoutUrl, {
     refresh_token: refreshToken,
   });
 }
 
-export async function fetchMe(siteOrigin: string, accessToken: string): Promise<MobileUser> {
+export async function fetchMe(meUrl: string, accessToken: string): Promise<MobileUser> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 15000);
 
   try {
-    const response = await fetch(`${siteOrigin}/api/v1/mobile/auth/me`, {
+    const response = await fetch(meUrl, {
       headers: {
         Accept: 'application/json',
         Authorization: `Bearer ${accessToken}`,
       },
       signal: controller.signal,
     });
-    const payload = (await response.json()) as AuthApiResponse<{ user: MobileUser }>;
+    const payload = (await parseMobileJson(response)) as AuthApiResponse<{ user: MobileUser }>;
     if (!response.ok || payload.ok === false) {
-      throw new BootstrapError(
-        payload.message ?? `Request failed (${response.status}).`,
-        payload.error ?? 'http_error',
-      );
+      throw new BootstrapError(apiFailureMessage(payload, response.status), payload.error ?? 'http_error');
+    }
+    if (!payload.data?.user) {
+      throw new BootstrapError('The site returned an incomplete profile response.', 'invalid_response');
     }
     return payload.data.user;
   } catch (error) {
     if (error instanceof BootstrapError) {
       throw error;
+    }
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new BootstrapError('Request timed out.', 'timeout');
     }
     throw new BootstrapError('Could not load profile.', 'network');
   } finally {

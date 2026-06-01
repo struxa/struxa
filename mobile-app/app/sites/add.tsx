@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useRouter } from 'expo-router';
 import {
-  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -12,7 +11,9 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { BodyText, PageTitle, PrimaryButton } from '../../src/components/ui/primitives';
 import { useSites } from '../../src/context/SitesContext';
+import { radius, spacing } from '../../src/theme/layout';
 import { buildSiteTheme } from '../../src/theme/siteTheme';
 
 export default function AddSiteScreen() {
@@ -40,13 +41,13 @@ export default function AddSiteScreen() {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      style={[styles.root, { backgroundColor: theme.background, paddingTop: insets.top + 16 }]}
+      style={[styles.root, { backgroundColor: theme.background, paddingTop: insets.top + spacing.md }]}
     >
       <View style={styles.inner}>
-        <Text style={[styles.title, { color: theme.text }]}>Add a Struxa site</Text>
-        <Text style={[styles.subtitle, { color: theme.textMuted }]}>
+        <PageTitle theme={theme}>Add a Struxa site</PageTitle>
+        <BodyText muted theme={theme}>
           Enter the public URL of your Struxa site. The app loads branding and navigation from the bootstrap API.
-        </Text>
+        </BodyText>
 
         <Text style={[styles.label, { color: theme.textMuted }]}>Site URL</Text>
         <TextInput
@@ -55,54 +56,43 @@ export default function AddSiteScreen() {
           editable={!busy}
           keyboardType="url"
           onChangeText={setUrl}
+          onSubmitEditing={() => void onSubmit()}
           placeholder="https://yoursite.com"
           placeholderTextColor={theme.textMuted}
           returnKeyType="go"
-          onSubmitEditing={() => void onSubmit()}
           style={[
             styles.input,
             {
               color: theme.text,
               borderColor: theme.border,
-              backgroundColor: theme.surface,
+              backgroundColor: theme.surfaceElevated,
             },
           ]}
           value={url}
         />
 
-        {message ? <Text style={[styles.error, { color: '#f87171' }]}>{message}</Text> : null}
+        {message ? <Text style={[styles.error, { color: theme.danger }]}>{message}</Text> : null}
 
-        <Pressable
-          accessibilityRole="button"
+        <PrimaryButton
           disabled={busy || url.trim() === ''}
+          label={busy ? 'Connecting…' : 'Connect'}
+          loading={busy}
           onPress={() => void onSubmit()}
-          style={({ pressed }) => [
-            styles.submit,
-            {
-              backgroundColor: theme.accent,
-              opacity: busy || url.trim() === '' ? 0.5 : pressed ? 0.85 : 1,
-            },
-          ]}
-        >
-          {busy ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={styles.submitText}>Connect</Text>
-          )}
-        </Pressable>
+          theme={theme}
+        />
 
         <Pressable
           accessibilityRole="button"
           onPress={() => router.back()}
-          style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1, marginTop: 12 }]}
+          style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1, marginTop: spacing.sm }]}
         >
           <Text style={[styles.cancel, { color: theme.textMuted }]}>Cancel</Text>
         </Pressable>
 
-        <Text style={[styles.hint, { color: theme.textMuted }]}>
-          Local dev tip: use your machine IP (not localhost) on a physical device, or{' '}
-          <Text style={{ color: theme.accent }}>http://10.0.2.2:3439</Text> on Android emulator.
-        </Text>
+        <BodyText muted theme={theme}>
+          Scan the QR code from Admin → Mobile app, or enter your site URL manually. Local dev: use your machine IP on a
+          physical device, or http://10.0.2.2:3439 on Android emulator.
+        </BodyText>
       </View>
     </KeyboardAvoidingView>
   );
@@ -113,54 +103,29 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   inner: {
-    padding: 20,
-    gap: 10,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: '800',
-  },
-  subtitle: {
-    fontSize: 15,
-    lineHeight: 22,
-    marginBottom: 8,
+    gap: spacing.sm,
+    padding: spacing.lg,
   },
   label: {
-    fontSize: 13,
-    fontWeight: '600',
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.6,
+    marginTop: spacing.sm,
     textTransform: 'uppercase',
-    letterSpacing: 0.4,
   },
   input: {
+    borderRadius: radius.md,
     borderWidth: 1,
-    borderRadius: 14,
-    paddingHorizontal: 14,
-    paddingVertical: 14,
     fontSize: 16,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 14,
   },
   error: {
     fontSize: 14,
     lineHeight: 20,
   },
-  submit: {
-    marginTop: 8,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: 48,
-  },
-  submitText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '700',
-  },
   cancel: {
-    textAlign: 'center',
     fontSize: 15,
-  },
-  hint: {
-    marginTop: 16,
-    fontSize: 13,
-    lineHeight: 20,
+    textAlign: 'center',
   },
 });

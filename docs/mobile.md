@@ -17,6 +17,16 @@ Struxa sites can expose a **public bootstrap API** for the official Struxa clien
 | `POST` | `/api/v1/mobile/auth/refresh` | None | Rotate refresh token, new access token |
 | `POST` | `/api/v1/mobile/auth/logout` | None | Revoke refresh token |
 | `GET` | `/api/v1/mobile/auth/me` | Bearer access token | Current user profile |
+| `GET` | `/api/v1/mobile/commerce/products` | None | Paginated product catalog |
+| `GET` | `/api/v1/mobile/commerce/products/{entrySlug}` | None | Product detail |
+| `GET` | `/api/v1/mobile/commerce/config` | None | Currency, country requirements |
+| `POST` | `/api/v1/mobile/commerce/cart/quote` | None | Cart totals (lines in JSON body) |
+| `POST` | `/api/v1/mobile/commerce/checkout` | Optional Bearer | Stripe Checkout URL |
+| `GET` | `/api/v1/mobile/commerce/orders` | Bearer | Customer order list |
+| `GET` | `/api/v1/mobile/commerce/downloads` | Bearer | All active digital downloads for customer |
+| `GET` | `/mobile/add` | None | Web landing page with add-site deep link |
+| `GET` | `/mobile/add/qr.svg` | None | QR code SVG for deep link |
+| `GET` | `/api/v1/mobile/commerce/orders/{orderNumber}` | Bearer | Order detail (includes `digital_downloads`) |
 
 When mobile bootstrap is **disabled** in admin:
 
@@ -25,12 +35,15 @@ When mobile bootstrap is **disabled** in admin:
 
 ### Admin
 
-**Site → Mobile app** (`/admin/settings/mobile`)
+**Mobile app → Settings & content** (`/admin/mobile`)
 
-- Enable/disable bootstrap
-- Optional welcome title and message (defaults to site name / tagline)
-- Include footer menu in navigation payload
-- Optional custom tab bar JSON (advanced)
+- Enable/disable bootstrap API
+- **Content types to release** — limit which public content types appear in Browse (default: all types with a public route)
+- **App sections** — toggle Browse, Search, Shop, and Account tabs (respects site commerce/search settings)
+- Welcome copy, QR / add-site links, optional custom tab bar JSON
+- Bootstrap JSON preview
+
+Legacy URL `/admin/settings/mobile` still works and saves to the same settings.
 
 ### Bootstrap payload (schema v1)
 
@@ -72,7 +85,9 @@ Successful bootstrap response:
         { "id": "home", "label": "Home", "type": "home" },
         { "id": "browse", "label": "Browse", "type": "content" },
         { "id": "shop", "label": "Shop", "type": "shop" }
-      ]
+      ],
+      "add_site_deeplink": "struxa://add-site?url=https%3A%2F%2F…",
+      "add_site_web_url": "https://…/mobile/add"
     },
     "navigation": {
       "header": [{ "label": "Blog", "href": "https://…/c/post", "target": "" }]
@@ -89,7 +104,9 @@ Successful bootstrap response:
     "commerce": {
       "currency": "gbp",
       "shop_title": "Shop",
-      "shop_path": "/shop"
+      "shop_path": "/shop",
+      "product_type_slug": "product",
+      "needs_checkout_country": false
     }
   }
 }
@@ -114,7 +131,18 @@ $context->addFilter(FilterHook::MOBILE_BOOTSTRAP, function (array $payload, arra
 });
 ```
 
-Declare `mobile.bootstrap` in your plugin manifest `hooks.filters` array.
+Declare `mobile.bootstrap` in your plugin manifest `hooks.filters` array. Example plugin tab:
+
+```php
+$payload['mobile']['tabs'][] = [
+    'id' => 'scores',
+    'label' => 'Scores',
+    'type' => 'plugin',
+    'plugin_slug' => 'my-plugin',
+    'screen' => 'leaderboard',
+    'url' => $siteUrl . '/my-plugin/mobile',
+];
+```
 
 ### Settings keys (`cms_settings`)
 
@@ -143,6 +171,7 @@ composer migrate
 curl -s http://localhost:3439/api/v1/mobile/bootstrap | jq .
 curl -s http://localhost:3439/.well-known/struxa.json | jq .
 curl -s 'http://localhost:3439/api/v1/mobile/content/post/entries?per_page=5' | jq .
+curl -s 'http://localhost:3439/api/v1/mobile/commerce/products?per_page=5' | jq .
 ```
 
 See [mobile-phases.md](mobile-phases.md) for the full roadmap.

@@ -61,7 +61,7 @@ See [mobile-app/README.md](../mobile-app/README.md) for run instructions.
 
 ---
 
-## Phase 5 — Commerce in app
+## Phase 5 — Commerce in app (done)
 
 **Goal:** Browse catalog and checkout.
 
@@ -72,9 +72,13 @@ See [mobile-app/README.md](../mobile-app/README.md) for run instructions.
 
 **Deliverable:** Purchase flow on a Struxa commerce site from the app.
 
+**CMS:** `GET /api/v1/mobile/commerce/products`, product detail, cart quote, Stripe checkout URL, order list/detail (JWT).
+
+**App:** Shop tab with product browse, local cart, Stripe Checkout in browser, order history on Account tab.
+
 ---
 
-## Phase 6 — Polish & growth
+## Phase 6 — Polish & growth (done)
 
 **Goal:** Operator tools and extensibility.
 
@@ -83,6 +87,30 @@ See [mobile-app/README.md](../mobile-app/README.md) for run instructions.
 - Plugin mobile widgets (custom tab types, screens)
 - Push notifications (optional, per site)
 - App Store / Play Store release
+
+**Deliverable:** Operators can onboard app users via QR; tabs support content scoping, external links, and plugin screens.
+
+**CMS:** `/mobile/add` landing page, `/mobile/add/qr.svg`, bootstrap `add_site_deeplink`, extended tab JSON fields.
+
+**App:** Deep link handler (`struxa://add-site`), `link`/`plugin` WebView tabs, content tabs with `content_type_slug`, [RELEASE.md](../mobile-app/RELEASE.md) for store builds.
+
+**Deferred:** Push notifications (documented in RELEASE.md).
+
+---
+
+## Phase 7 — Digital delivery (done)
+
+**Goal:** Post-purchase downloads in the app.
+
+- List active digital grants for logged-in customers (JWT)
+- Order detail includes `digital_downloads` with secure access URLs
+- Reuses CMS `cms_commerce_digital_grants` and `/commerce/access/{token}` delivery
+
+**Deliverable:** Customers open downloads from the Account tab after buying digital products.
+
+**CMS:** `GET /api/v1/mobile/commerce/downloads`, grants on order detail.
+
+**App:** Downloads list + per-order download buttons (opens browser for file/url/entry delivery).
 
 ---
 

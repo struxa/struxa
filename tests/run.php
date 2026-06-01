@@ -812,6 +812,42 @@ if (\App\Mobile\MobileContentService::PER_PAGE_DEFAULT !== 20 || \App\Mobile\Mob
     $fail('MobileContentService pagination constants should match mobile API defaults.');
 }
 
+if (\App\Mobile\MobileCommerceService::formatMoney(1999, 'gbp') !== '£19.99') {
+    $fail('MobileCommerceService::formatMoney should format GBP.');
+}
+if (\App\Mobile\MobileCommerceService::PER_PAGE_DEFAULT !== 20 || \App\Mobile\MobileCommerceService::PER_PAGE_MAX !== 30) {
+    $fail('MobileCommerceService pagination constants should match mobile API defaults.');
+}
+
+$deeplink = \App\Mobile\MobileSiteLink::deepLinkAddSite('https://demo.struxa.test');
+if (!str_starts_with($deeplink, 'struxa://add-site?url=')) {
+    $fail('MobileSiteLink::deepLinkAddSite should build struxa add-site URLs.');
+}
+if (\App\Mobile\MobileSiteLink::webAddSitePath('https://demo.struxa.test') !== 'https://demo.struxa.test/mobile/add') {
+    $fail('MobileSiteLink::webAddSitePath should append /mobile/add.');
+}
+if (!str_contains(\App\Mobile\MobileQrCode::svg('test'), '<svg')) {
+    $fail('MobileQrCode::svg should return SVG markup.');
+}
+
+$pluginTab = MobileSettings::parseTabsJson('[{"id":"x","label":"X","type":"plugin","plugin_slug":"demo","url":"https://example.com/p"}]');
+if (($pluginTab[0]['plugin_slug'] ?? '') !== 'demo' || ($pluginTab[0]['url'] ?? '') !== 'https://example.com/p') {
+    $fail('MobileSettings::parseTabsJson should preserve plugin tab optional fields.');
+}
+
+$slugs = MobileSettings::parseSlugListJson('["post","page"]');
+if ($slugs !== ['post', 'page']) {
+    $fail('MobileSettings::parseSlugListJson should parse content type slugs.');
+}
+$encoded = MobileSettings::encodeSlugList(['post', 'post', 'bad slug!']);
+if ($encoded !== '["post"]') {
+    $fail('MobileSettings::encodeSlugList should dedupe and sanitize slugs.');
+}
+$noBrowse = MobileSettings::defaultTabs(true, true, 3, ['browse' => false, 'search' => true, 'shop' => true, 'account' => true]);
+if (count($noBrowse) !== 4 || ($noBrowse[1]['type'] ?? '') === 'content') {
+    $fail('MobileSettings::defaultTabs should omit browse tab when feature is off.');
+}
+
 $prevSiteKey = $_ENV['PHPAUTH_SITE_KEY'] ?? null;
 $_ENV['PHPAUTH_SITE_KEY'] = 'unit-test-mobile-jwt-key';
 try {

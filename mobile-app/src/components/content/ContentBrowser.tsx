@@ -10,14 +10,17 @@ import {
 } from 'react-native';
 
 import { fetchEntryDetail, fetchEntryList, formatDate, stripHtml } from '../../lib/content';
+import { radius, spacing } from '../../theme/layout';
 import type { BootstrapData } from '../../types/bootstrap';
 import type { EntryDetailPayload, EntrySummary } from '../../types/content';
 import type { SiteTheme } from '../../theme/siteTheme';
 import { ErrorView } from '../StatusViews';
+import { BackLink, BodyText, Card, Eyebrow, PageTitle } from '../ui/primitives';
 
 type Props = {
   bootstrap: BootstrapData;
   theme: SiteTheme;
+  initialTypeSlug?: string;
 };
 
 type ViewState =
@@ -25,8 +28,22 @@ type ViewState =
   | { kind: 'list'; typeSlug: string; typeName: string }
   | { kind: 'detail'; typeSlug: string; typeName: string; entrySlug: string };
 
-export function ContentBrowser({ bootstrap, theme }: Props) {
-  const [view, setView] = useState<ViewState>({ kind: 'types' });
+function resolveInitialView(
+  bootstrap: BootstrapData,
+  initialTypeSlug?: string,
+): ViewState {
+  if (!initialTypeSlug) {
+    return { kind: 'types' };
+  }
+  const match = bootstrap.content_types.find((type) => type.slug === initialTypeSlug);
+  if (!match) {
+    return { kind: 'types' };
+  }
+  return { kind: 'list', typeSlug: match.slug, typeName: match.name };
+}
+
+export function ContentBrowser({ bootstrap, theme, initialTypeSlug }: Props) {
+  const [view, setView] = useState<ViewState>(() => resolveInitialView(bootstrap, initialTypeSlug));
   const siteOrigin = bootstrap.site.url.replace(/\/+$/, '');
 
   const goBack = () => {
@@ -41,14 +58,10 @@ export function ContentBrowser({ bootstrap, theme }: Props) {
 
   return (
     <View style={[styles.root, { backgroundColor: theme.background }]}>
-      {view.kind !== 'types' ? (
-        <Pressable
-          accessibilityRole="button"
-          onPress={goBack}
-          style={({ pressed }) => [styles.backRow, { opacity: pressed ? 0.7 : 1 }]}
-        >
-          <Text style={[styles.backText, { color: theme.accent }]}>← Back</Text>
-        </Pressable>
+      {view.kind !== 'types' && !initialTypeSlug ? (
+        <View style={styles.backWrap}>
+          <BackLink onPress={goBack} theme={theme} />
+        </View>
       ) : null}
 
       {view.kind === 'types' ? (
@@ -102,30 +115,17 @@ function ContentTypeList({
       contentContainerStyle={styles.listContent}
       data={bootstrap.content_types}
       keyExtractor={(item) => item.slug}
-      ListHeaderComponent={
-        <Text style={[styles.heading, { color: theme.text }]}>Browse content</Text>
-      }
+      ListHeaderComponent={<PageTitle theme={theme}>Browse content</PageTitle>}
       ListEmptyComponent={
-        <Text style={[styles.empty, { color: theme.textMuted }]}>No public content types on this site.</Text>
+        <BodyText muted theme={theme}>No public content types on this site.</BodyText>
       }
       renderItem={({ item }) => (
-        <Pressable
-          accessibilityRole="button"
-          onPress={() => onSelect(item.slug, item.name)}
-          style={({ pressed }) => [
-            styles.card,
-            {
-              backgroundColor: theme.surface,
-              borderColor: theme.border,
-              opacity: pressed ? 0.85 : 1,
-            },
-          ]}
-        >
+        <Card onPress={() => onSelect(item.slug, item.name)} theme={theme}>
           <Text style={[styles.cardTitle, { color: theme.text }]}>{item.name}</Text>
           {item.description ? (
-            <Text style={[styles.cardBody, { color: theme.textMuted }]}>{item.description}</Text>
+            <BodyText muted theme={theme}>{item.description}</BodyText>
           ) : null}
-        </Pressable>
+        </Card>
       )}
     />
   );
@@ -195,11 +195,9 @@ function EntryListView({
       contentContainerStyle={styles.listContent}
       data={items}
       keyExtractor={(item) => String(item.id)}
-      ListHeaderComponent={
-        <Text style={[styles.heading, { color: theme.text }]}>{typeName}</Text>
-      }
+      ListHeaderComponent={<PageTitle theme={theme}>{typeName}</PageTitle>}
       ListEmptyComponent={
-        <Text style={[styles.empty, { color: theme.textMuted }]}>No published entries yet.</Text>
+        <BodyText muted theme={theme}>No published entries yet.</BodyText>
       }
       ListFooterComponent={
         page < totalPages ? (
@@ -224,18 +222,7 @@ function EntryListView({
         ) : null
       }
       renderItem={({ item }) => (
-        <Pressable
-          accessibilityRole="button"
-          onPress={() => onOpenEntry(item.slug)}
-          style={({ pressed }) => [
-            styles.card,
-            {
-              backgroundColor: theme.surface,
-              borderColor: theme.border,
-              opacity: pressed ? 0.85 : 1,
-            },
-          ]}
-        >
+        <Card onPress={() => onOpenEntry(item.slug)} theme={theme}>
           {item.featured_image_url ? (
             <Image
               contentFit="cover"
@@ -245,16 +232,14 @@ function EntryListView({
           ) : null}
           <Text style={[styles.cardTitle, { color: theme.text }]}>{item.title}</Text>
           {item.published_at ? (
-            <Text style={[styles.cardMeta, { color: theme.textMuted }]}>
-              {formatDate(item.published_at)}
-            </Text>
+            <Eyebrow theme={theme}>{formatDate(item.published_at)}</Eyebrow>
           ) : null}
           {item.excerpt ? (
             <Text numberOfLines={3} style={[styles.cardBody, { color: theme.textMuted }]}>
               {item.excerpt}
             </Text>
           ) : null}
-        </Pressable>
+        </Card>
       )}
     />
   );
@@ -348,12 +333,10 @@ function EntryDetailView({
           ) : null}
           <Text style={[styles.detailTitle, { color: theme.text }]}>{entry.title}</Text>
           {entry.published_at ? (
-            <Text style={[styles.cardMeta, { color: theme.textMuted }]}>
-              {formatDate(entry.published_at)}
-            </Text>
+            <Eyebrow theme={theme}>{formatDate(entry.published_at)}</Eyebrow>
           ) : null}
           {entry.seo_description ? (
-            <Text style={[styles.detailLead, { color: theme.textMuted }]}>{entry.seo_description}</Text>
+            <BodyText muted theme={theme}>{entry.seo_description}</BodyText>
           ) : null}
           {taxonomies.length > 0 ? (
             <View style={styles.tagRow}>
@@ -391,91 +374,66 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
   },
-  backRow: {
-    paddingHorizontal: 16,
-    paddingTop: 8,
-    paddingBottom: 4,
-  },
-  backText: {
-    fontSize: 15,
-    fontWeight: '600',
+  backWrap: {
+    paddingBottom: spacing.xs,
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.sm,
   },
   listContent: {
-    padding: 16,
-    paddingBottom: 24,
-    gap: 12,
-  },
-  heading: {
-    fontSize: 24,
-    fontWeight: '800',
-    marginBottom: 4,
-  },
-  empty: {
-    fontSize: 15,
-    lineHeight: 22,
-  },
-  card: {
-    borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: 16,
-    padding: 14,
-    gap: 6,
+    gap: spacing.md,
+    padding: spacing.md,
+    paddingBottom: spacing.xl,
   },
   cardTitle: {
     fontSize: 17,
     fontWeight: '700',
-  },
-  cardMeta: {
-    fontSize: 12,
   },
   cardBody: {
     fontSize: 14,
     lineHeight: 20,
   },
   thumb: {
-    width: '100%',
+    borderRadius: radius.md,
     height: 160,
-    borderRadius: 12,
-    marginBottom: 4,
+    marginBottom: spacing.xs,
+    width: '100%',
   },
   center: {
-    flex: 1,
     alignItems: 'center',
+    flex: 1,
     justifyContent: 'center',
   },
   loadMore: {
-    marginTop: 4,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: 12,
-    paddingVertical: 12,
     alignItems: 'center',
+    borderRadius: radius.md,
+    borderWidth: StyleSheet.hairlineWidth,
+    marginTop: spacing.xs,
+    paddingVertical: 12,
   },
   loadMoreText: {
     fontWeight: '700',
   },
   detailHeader: {
-    gap: 8,
-    marginBottom: 8,
+    gap: spacing.sm,
+    marginBottom: spacing.sm,
   },
   hero: {
-    width: '100%',
+    borderRadius: radius.lg,
     height: 220,
-    borderRadius: 16,
+    width: '100%',
   },
   detailTitle: {
     fontSize: 28,
     fontWeight: '800',
-  },
-  detailLead: {
-    fontSize: 16,
-    lineHeight: 24,
+    letterSpacing: -0.4,
   },
   tagRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: spacing.sm,
   },
   tag: {
-    borderRadius: 999,
+    borderRadius: radius.pill,
     paddingHorizontal: 10,
     paddingVertical: 4,
   },
@@ -485,14 +443,14 @@ const styles = StyleSheet.create({
   },
   fieldBlock: {
     borderTopWidth: StyleSheet.hairlineWidth,
-    paddingTop: 12,
     gap: 6,
+    paddingTop: 12,
   },
   fieldLabel: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '700',
+    letterSpacing: 0.6,
     textTransform: 'uppercase',
-    letterSpacing: 0.4,
   },
   fieldValue: {
     fontSize: 15,

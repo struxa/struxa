@@ -9,8 +9,9 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SitesProvider>
         <StatusBar style="light" />
-        <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: '#0b1220' } }}>
+        <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: '#080e1a' } }}>
           <Stack.Screen name="index" />
+          <Stack.Screen name="add-site" />
           <Stack.Screen name="sites/index" />
           <Stack.Screen name="sites/add" options={{ presentation: 'modal' }} />
           <Stack.Screen name="s/[siteId]/index" />

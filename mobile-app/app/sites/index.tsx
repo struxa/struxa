@@ -1,8 +1,11 @@
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { BodyText, Card, PageTitle, ScreenScroll } from '../../src/components/ui/primitives';
 import { useSites } from '../../src/context/SitesContext';
+import { radius, spacing } from '../../src/theme/layout';
 import { buildSiteTheme } from '../../src/theme/siteTheme';
 
 export default function SitesScreen() {
@@ -12,40 +15,34 @@ export default function SitesScreen() {
   const { sites, activeSiteId, setActiveSite, removeSite } = useSites();
 
   return (
-    <View style={[styles.root, { backgroundColor: theme.background, paddingTop: insets.top + 12 }]}>
+    <View style={[styles.root, { backgroundColor: theme.background, paddingTop: insets.top + spacing.md }]}>
       <View style={styles.header}>
-        <Text style={[styles.title, { color: theme.text }]}>Your sites</Text>
+        <PageTitle theme={theme}>Your sites</PageTitle>
         <Pressable
           accessibilityRole="button"
           onPress={() => router.push('/sites/add')}
           style={({ pressed }) => [
             styles.addBtn,
-            { backgroundColor: theme.accent, opacity: pressed ? 0.85 : 1 },
+            { backgroundColor: theme.accent, opacity: pressed ? 0.88 : 1 },
           ]}
         >
-          <Text style={styles.addBtnText}>Add site</Text>
+          <Text style={[styles.addBtnText, { color: theme.onAccent }]}>Add site</Text>
         </Pressable>
       </View>
 
-      <ScrollView contentContainerStyle={styles.list}>
+      <ScreenScroll contentStyle={styles.list} theme={theme}>
         {sites.length === 0 ? (
-          <Text style={[styles.empty, { color: theme.textMuted }]}>
-            No sites yet. Add your Struxa site URL to get started.
-          </Text>
+          <View style={[styles.emptyWrap, { backgroundColor: theme.surfaceElevated, borderColor: theme.border }]}>
+            <Ionicons color={theme.textMuted} name="globe-outline" size={36} />
+            <BodyText muted theme={theme}>
+              No sites yet. Add your Struxa site URL to get started.
+            </BodyText>
+          </View>
         ) : (
           sites.map((site) => {
             const active = site.id === activeSiteId;
             return (
-              <View
-                key={site.id}
-                style={[
-                  styles.card,
-                  {
-                    backgroundColor: theme.surface,
-                    borderColor: active ? theme.accent : theme.border,
-                  },
-                ]}
-              >
+              <Card highlighted={active} key={site.id} theme={theme}>
                 <Pressable
                   accessibilityRole="button"
                   onPress={async () => {
@@ -57,7 +54,9 @@ export default function SitesScreen() {
                   <Text style={[styles.siteName, { color: theme.text }]}>{site.label}</Text>
                   <Text style={[styles.siteUrl, { color: theme.textMuted }]}>{site.url}</Text>
                   {active ? (
-                    <Text style={[styles.activePill, { color: theme.accent }]}>Active</Text>
+                    <View style={[styles.activePill, { backgroundColor: theme.accentSoft }]}>
+                      <Text style={[styles.activePillText, { color: theme.accent }]}>Active</Text>
+                    </View>
                   ) : null}
                 </Pressable>
                 <Pressable
@@ -65,13 +64,13 @@ export default function SitesScreen() {
                   onPress={() => removeSite(site.id)}
                   style={({ pressed }) => [styles.removeBtn, { opacity: pressed ? 0.7 : 1 }]}
                 >
-                  <Text style={[styles.removeText, { color: theme.textMuted }]}>Remove</Text>
+                  <Text style={[styles.removeText, { color: theme.danger }]}>Remove</Text>
                 </Pressable>
-              </View>
+              </Card>
             );
           })
         )}
-      </ScrollView>
+      </ScreenScroll>
     </View>
   );
 }
@@ -79,40 +78,33 @@ export default function SitesScreen() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    paddingHorizontal: 20,
+    paddingHorizontal: spacing.lg,
   },
   header: {
-    flexDirection: 'row',
     alignItems: 'center',
+    flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 16,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: '800',
+    marginBottom: spacing.sm,
   },
   addBtn: {
-    borderRadius: 12,
-    paddingHorizontal: 14,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.md,
     paddingVertical: 10,
   },
   addBtnText: {
-    color: '#fff',
+    fontSize: 14,
     fontWeight: '700',
   },
   list: {
-    gap: 12,
-    paddingBottom: 32,
+    paddingHorizontal: 0,
+    paddingTop: spacing.sm,
   },
-  empty: {
-    fontSize: 15,
-    lineHeight: 22,
-  },
-  card: {
-    borderWidth: 1,
-    borderRadius: 16,
-    padding: 16,
-    gap: 10,
+  emptyWrap: {
+    alignItems: 'center',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: radius.lg,
+    gap: spacing.sm,
+    padding: spacing.xl,
   },
   siteName: {
     fontSize: 18,
@@ -123,13 +115,21 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   activePill: {
-    marginTop: 8,
-    fontSize: 12,
-    fontWeight: '700',
+    alignSelf: 'flex-start',
+    borderRadius: radius.pill,
+    marginTop: spacing.sm,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  activePillText: {
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.6,
     textTransform: 'uppercase',
   },
   removeBtn: {
     alignSelf: 'flex-start',
+    marginTop: spacing.sm,
   },
   removeText: {
     fontSize: 13,

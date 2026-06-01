@@ -55,11 +55,20 @@ final class MobileBootstrapService
         $commerce = new CommerceSettings($this->pdo);
         $commerceEnabled = $commerce->isEnabled();
         $searchEnabled = SearchSettings::enabled();
-        $contentTypes = (new ContentTypeRepository($this->pdo))->allWithPublicRoute();
+        $allPublicTypes = (new ContentTypeRepository($this->pdo))->allWithPublicRoute();
+        $contentTypes = self::filterContentTypesForMobile($allPublicTypes);
+        $appFeatures = MobileSettings::resolvedFeatures($commerceEnabled, $searchEnabled);
+        $commerceEnabledForApp = $commerceEnabled && $appFeatures['shop'];
+        $searchEnabledForApp = $searchEnabled && $appFeatures['search'];
 
         $tabs = MobileSettings::tabsOverride();
         if ($tabs === []) {
-            $tabs = MobileSettings::defaultTabs($commerceEnabled, $searchEnabled, count($contentTypes));
+            $tabs = MobileSettings::defaultTabs(
+                $commerceEnabledForApp,
+                $searchEnabledForApp,
+                count($contentTypes),
+                $appFeatures,
+            );
         }
 
         $welcomeTitle = MobileSettings::welcomeTitle();
@@ -82,6 +91,8 @@ final class MobileBootstrapService
         $googleSso = ((string) ($settings['google_sso_enabled'] ?? '0')) === '1'
             && trim($settings['google_oauth_client_id'] ?? '') !== '';
 
+        $mobileAuthReady = MobileRefreshTokenRepository::tableExists($this->pdo);
+
         $payload = [
             'schema_version' => MobileSettings::SCHEMA_VERSION,
             'cms_version' => CmsVersion::CURRENT,
@@ -98,10 +109,12 @@ final class MobileBootstrapService
                 'theme_slug' => $themeSlug,
             ],
             'features' => [
-                'commerce' => $commerceEnabled,
-                'search' => $searchEnabled,
+                'commerce' => $commerceEnabledForApp,
+                'search' => $searchEnabledForApp,
                 'comments' => true,
                 'mobile_auth' => true,
+                'mobile_auth_ready' => $mobileAuthReady,
+                'browse' => $appFeatures['browse'] && count($contentTypes) > 0,
                 'auth' => [
                     'login_path' => '/login',
                     'register_path' => '/register',
@@ -119,11 +132,17 @@ final class MobileBootstrapService
                 'auth_refresh' => $siteUrl . '/api/v1/mobile/auth/refresh',
                 'auth_logout' => $siteUrl . '/api/v1/mobile/auth/logout',
                 'auth_me' => $siteUrl . '/api/v1/mobile/auth/me',
+                'commerce_products' => $siteUrl . '/api/v1/mobile/commerce/products',
+                'commerce_checkout' => $siteUrl . '/api/v1/mobile/commerce/checkout',
+                'commerce_orders' => $siteUrl . '/api/v1/mobile/commerce/orders',
+                'commerce_downloads' => $siteUrl . '/api/v1/mobile/commerce/downloads',
             ],
             'mobile' => [
                 'welcome_title' => $welcomeTitle,
                 'welcome_message' => $welcomeMessage,
                 'tabs' => $tabs,
+                'add_site_deeplink' => MobileSiteLink::deepLinkAddSite($siteUrl),
+                'add_site_web_url' => MobileSiteLink::webAddSitePath($siteUrl),
             ],
             'navigation' => $navigation,
             'content_types' => array_map(
@@ -138,11 +157,13 @@ final class MobileBootstrapService
             ),
         ];
 
-        if ($commerceEnabled) {
+        if ($commerceEnabledForApp) {
             $payload['commerce'] = [
                 'currency' => $commerce->defaultCurrency(),
                 'shop_title' => trim(Settings::get(CommerceSettings::SETTING_SHOP_TITLE, '') ?: '') ?: trim($settings['site_name'] ?? 'Shop'),
                 'shop_path' => '/shop',
+                'product_type_slug' => $commerce->productTypeSlug(),
+                'needs_checkout_country' => $commerce->needsCheckoutCountry(),
             ];
         }
 
@@ -204,5 +225,26 @@ final class MobileBootstrapService
         }
 
         return $out;
+    }
+
+    /**
+     * @param list<ContentType> $types
+     * @return list<ContentType>
+     */
+    private static function filterContentTypesForMobile(array $types): array
+    {
+        $allowed = MobileSettings::allowedContentTypeSlugs();
+        if ($allowed === []) {
+            return $types;
+        }
+        $allowedSet = array_flip($allowed);
+        $filtered = [];
+        foreach ($types as $type) {
+            if (isset($allowedSet[$type->slug])) {
+                $filtered[] = $type;
+            }
+        }
+
+        return $filtered;
     }
 }

@@ -1,4 +1,4 @@
-# Struxa mobile app (Phase 2)
+# Struxa mobile app (Phase 2–7)
 
 Expo/React Native client for Struxa CMS sites. Users add one or more site URLs; each site loads branding, tabs, and navigation from the CMS bootstrap API.
 
@@ -8,7 +8,7 @@ Expo/React Native client for Struxa CMS sites. Users add one or more site URLs; 
 - **Expo Go from the App Store / Play Store** (SDK 54 — matches this project)
 - iOS Simulator or Android emulator also work via `npm run ios` / `npm run android`
 
-> **Note:** This app targets **Expo SDK 54** so it runs in the public Expo Go app. SDK 56 is not yet on the App Store; if you see an “Expo Go out of date” message, pull the latest `mobile-app/` changes and run `npm install` again.
+> **Note:** This app targets **Expo SDK 54** to match the current App Store Expo Go. After pulling changes, run `rm -rf node_modules package-lock.json && npm install`.
 
 ## Quick start
 
@@ -33,8 +33,11 @@ Scan the QR code with Expo Go, or press `i` / `a` for iOS/Android simulator.
 - **Theming** — accent color, logo, site name from bootstrap
 - **Dynamic tab bar** — from `mobile.tabs` in bootstrap
 - **Content browsing** — type list → entry list (pagination) → entry detail with images
-- **Account tab** — per-site login, register, profile, sign out (JWT)
-- **Placeholder screens** — search, shop (later phases)
+- **Account tab** — per-site login, register, profile, order history, digital downloads, sign out
+- **Shop tab** — product catalog, cart, Stripe Checkout in browser, order history when signed in
+- **QR / deep links** — scan Admin QR or open `struxa://add-site?url=…` to add a site
+- **Custom tabs** — `link` and `plugin` types (WebView), content tabs scoped by `content_type_slug`
+- **Store release** — see [RELEASE.md](RELEASE.md) for EAS Build / App Store checklist
 
 ## Project layout
 
