@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.1.54",
-    "title": "Struxa 1.1.54",
-    "summary": "Safe plugin catalog links when admin routes are missing; plugin admin routes always register under Admin load scope.",
+    "latest_version": "1.1.55",
+    "title": "Struxa 1.1.55",
+    "summary": "One-click Repair catalog admin for struxa-admin (no DB access); retries route registration when active but URLs missing.",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "patch"

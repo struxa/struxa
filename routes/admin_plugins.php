@@ -154,6 +154,8 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 'plugin_summary' => $summary,
                 'plugin_orphans' => $orphans,
                 'struxa_catalog_submissions_url' => $namedRouteUrl($request, 'admin.struxa_catalog.submissions'),
+                'struxa_catalog_show_repair' => $scanner->findBySlug('struxa-admin') !== null
+                    && $namedRouteUrl($request, 'admin.struxa_catalog.submissions') === null,
                 'plugin_perf_thresholds' => [
                     'boot_ms' => PluginPerformanceRegistry::BOOT_SLOW_MS,
                     'hook_ms' => PluginPerformanceRegistry::HOOK_SLOW_MS,
@@ -386,5 +388,30 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
 
             return $response->withHeader('Location', $back)->withStatus(302);
         })->setName('admin.extensions.plugins.purge_orphan');
+
+        $group->post('/extensions/plugins/repair-struxa-catalog', function (Request $request, Response $response) use (
+            $manager,
+            $migrationRunner,
+            $activity,
+            $cmsUid
+        ): Response {
+            $parser = RouteContext::fromRequest($request)->getRouteParser();
+            $back = $parser->urlFor('admin.extensions.plugins.index');
+            $result = $manager->repairStruxaCatalogAdmin($migrationRunner);
+            if (!$result['ok']) {
+                Flash::set('error', $result['error']);
+
+                return $response->withHeader('Location', $back)->withStatus(302);
+            }
+
+            $activity->log($cmsUid($request), 'plugin.repaired', 'plugin', null, ['slug' => 'struxa-admin']);
+            Flash::set(
+                'success',
+                'Struxa Catalog Admin repaired (database row, migrations, active flag). Reload this page — catalog links should work.'
+            );
+            Events::dispatch(new StorefrontCachesInvalidateEvent('plugin_repaired'));
+
+            return $response->withHeader('Location', $back)->withStatus(302);
+        })->setName('admin.extensions.plugins.repair_struxa_catalog');
     })->add($permPlugins)->add($middleware);
 };

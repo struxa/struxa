@@ -80,8 +80,52 @@ final class PluginManager
                 $this->loadRouteFile($ctx->pluginRoot() . '/routes/admin.php', $app, $ctx, false);
             } catch (PluginCapabilityException $e) {
                 error_log('[plugin] Skipped admin routes for ' . $ctx->manifest->slug . ': ' . $e->getMessage());
+            } catch (\Throwable $e) {
+                error_log('[plugin] Failed admin routes for ' . $ctx->manifest->slug . ': ' . $e->getMessage()
+                    . ' in ' . $e->getFile() . ':' . $e->getLine());
             }
         }
+
+        $this->ensureStruxaCatalogAdminRoutes($app, $twig, $auth, $pdo, $viewData, $events);
+    }
+
+    /**
+     * Staff UI repair for struxa-admin (no direct DB access): sync row, migrations, activate.
+     *
+     * @return array{ok: bool, error: string}
+     */
+    public function repairStruxaCatalogAdmin(PluginMigrationRunner $migrations): array
+    {
+        $slug = 'struxa-admin';
+        $discovered = $this->scanner->findBySlug($slug);
+        if ($discovered === null) {
+            return [
+                'ok' => false,
+                'error' => 'Install the plugin first (plugins/struxa-admin or catalog ZIP), then run repair again.',
+            ];
+        }
+
+        $report = $this->validator->compatibilityReport($discovered, $this->scanner);
+        if (!$report->canActivate()) {
+            return [
+                'ok' => false,
+                'error' => 'Compatibility blocked repair: ' . implode(' ', $report->activationErrors()),
+            ];
+        }
+
+        $this->registerAutoloadForPlugin($discovered);
+        $this->plugins->upsertFromManifest($discovered->manifest);
+
+        try {
+            $migrations->runPending($slug, $discovered->rootPath . '/migrations');
+        } catch (\Throwable $e) {
+            return ['ok' => false, 'error' => 'Plugin migrations failed: ' . $e->getMessage()];
+        }
+
+        $this->plugins->setActive($slug, true);
+        $this->scanner->clearDiscoverCache();
+
+        return ['ok' => true, 'error' => ''];
     }
 
     /**
@@ -317,6 +361,8 @@ final class PluginManager
         }
         $callback = require $path;
         if (!is_callable($callback)) {
+            error_log('[plugin] Admin route file did not return a callable: ' . $path);
+
             return;
         }
         $callback($app, $ctx);
@@ -335,5 +381,78 @@ final class PluginManager
         }
 
         return $list;
+    }
+
+    /**
+     * If struxa-admin is active on disk but catalog admin routes are missing, try registering again.
+     *
+     * @param callable(): array<string, mixed> $viewData
+     */
+    private function ensureStruxaCatalogAdminRoutes(
+        App $app,
+        Twig $twig,
+        Auth $auth,
+        \PDO $pdo,
+        callable $viewData,
+        EventDispatcher $events,
+    ): void {
+        if ($this->namedRouteExists($app, 'admin.struxa_catalog.submissions')) {
+            return;
+        }
+
+        $slug = 'struxa-admin';
+        $discovered = $this->scanner->findBySlug($slug);
+        if ($discovered === null) {
+            return;
+        }
+
+        $db = $this->plugins->findBySlug($slug);
+        if ($db === null || !$db->isActive) {
+            return;
+        }
+
+        $loader = $twig->getEnvironment()->getLoader();
+        if (!$loader instanceof FilesystemLoader) {
+            return;
+        }
+
+        $this->registerAutoloadForPlugin($discovered);
+        $views = $discovered->rootPath . '/views';
+        if (is_dir($views)) {
+            $loader->addPath($views, self::twigNamespaceForSlug($slug));
+        }
+
+        $ctx = new PluginBootContext(
+            $this->projectRoot,
+            $discovered->rootPath,
+            $discovered->manifest,
+            $pdo,
+            $app,
+            $twig,
+            $viewData,
+            $auth,
+            $events,
+            PluginAdminNavRegistry::instance(),
+        );
+
+        try {
+            $this->loadRouteFile($discovered->rootPath . '/routes/admin.php', $app, $ctx, false);
+        } catch (PluginCapabilityException $e) {
+            error_log('[plugin] Retry skipped admin routes for ' . $slug . ': ' . $e->getMessage());
+        } catch (\Throwable $e) {
+            error_log('[plugin] Retry failed admin routes for ' . $slug . ': ' . $e->getMessage()
+                . ' in ' . $e->getFile() . ':' . $e->getLine());
+        }
+    }
+
+    private function namedRouteExists(App $app, string $name): bool
+    {
+        foreach ($app->getRouteCollector()->getRoutes() as $route) {
+            if ($route->getName() === $name) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

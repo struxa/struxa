@@ -37,14 +37,18 @@
     </div>
   </div>
 
-  {% for row in plugin_rows|default([]) %}
-    {% if row.discovered.manifest.slug == 'struxa-admin' and row.is_active and not struxa_catalog_submissions_url|default(null) %}
-      <div class="admin-plugin-notice admin-plugin-notice--info" role="status">
-        <strong>Struxa Catalog Admin</strong> is active but its admin routes did not load.
-        Reinstall from <code class="admin-inline-code">public/struxa-dist/zips/struxa-admin.zip</code> (v1.0.2+), run migrations, clear cache, and check the PHP error log for <code class="admin-inline-code">[plugin] Skipped admin routes</code>.
+  {% if struxa_catalog_show_repair|default(false) %}
+    <div class="admin-plugin-notice admin-plugin-notice--info" role="status">
+      <strong>Struxa Catalog Admin</strong> needs a one-click repair so catalog admin URLs register (no phpMyAdmin or SQL required).
+      This syncs the plugin row, runs migrations, and sets it active. Then reload this page.
+      <div style="margin-top:0.75rem">
+        <form method="post" action="{{ url_for('admin.extensions.plugins.repair_struxa_catalog') }}" class="admin-inline-form">
+          <button type="submit" class="admin-btn-primary admin-btn-primary--sm">Repair catalog admin</button>
+        </form>
       </div>
-    {% endif %}
-  {% endfor %}
+      <p class="admin-hint" style="margin:0.75rem 0 0">Or reinstall from <code class="admin-inline-code">public/struxa-dist/zips/struxa-admin.zip</code> (v1.0.2+).</p>
+    </div>
+  {% endif %}
 
   {% if plugin_circuit_breaker %}
     <div class="admin-plugin-notice admin-plugin-notice--info" role="status">

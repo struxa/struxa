@@ -23,12 +23,17 @@ switch ($cmd) {
         require $root . '/vendor/autoload.php';
         echo 'Struxa CMS ' . \App\CmsVersion::CURRENT . " — PHP 8.2+ / Slim / Twig / MySQL.\n";
         echo "Project root: {$root}\n";
-        echo "Commands: about | migrate | schedule:run | jobs:dispatch | jobs:work | jobs:status | maintenance:purge | check | cache:clear | help\n";
+        echo "Commands: about | migrate | schedule:run | jobs:dispatch | jobs:work | jobs:status | maintenance:purge | check | cache:clear | plugins:diagnose | help\n";
         exit(0);
 
     case 'cache:clear':
         require $root . '/bin/cache-clear.php';
         exit(0);
+
+    case 'plugins:diagnose':
+        require $root . '/vendor/autoload.php';
+        $diagSlug = $argv[1] ?? 'struxa-admin';
+        exit(\App\Cli\PluginRouteDiagnose::run($root, is_string($diagSlug) ? $diagSlug : 'struxa-admin'));
 
     case 'check':
         require $root . '/vendor/autoload.php';
@@ -228,6 +233,7 @@ switch ($cmd) {
         echo "  jobs:status   Show queue counts and last worker heartbeat\n";
         echo "  maintenance:purge Run retention purges (preview tokens, external links, AI chat)\n";
         echo "  cache:clear Clear storefront file caches (public + internal)\n";
+        echo "  plugins:diagnose [slug]  Check plugin disk, DB active flag, and registered admin routes\n";
         echo "  help    This message\n";
         exit($cmd === 'help' ? 0 : 1);
 }
