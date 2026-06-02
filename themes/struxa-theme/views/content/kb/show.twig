@@ -25,11 +25,12 @@
 {% block body %}
 <main id="main-content" class="st-page st-page--kb">
   <div class="st-page__inner st-page__inner--wide">
-    {% if kb_public_enabled() %}
-      <div class="st-kb-layout">
+    <div class="st-kb-layout">
+      {% if kb_public_enabled is defined and kb_public_enabled() and kb_wiki_sections is defined %}
         {% include 'partials/kb_sidebar.twig' with { kb_current_slug: content_entry.slug } %}
-        <div class="st-kb-layout__main">
-          <article class="st-kb-article">
+      {% endif %}
+      <div class="st-kb-layout__main">
+        <article class="st-kb-article">
             <nav class="st-kb-article__crumb" aria-label="Breadcrumb">
               <a href="{{ url_for('public.content_type_index', { typeSlug: content_type.slug }) }}">{{ content_type.name|e }}</a>
               <span aria-hidden="true">/</span>
@@ -72,20 +73,9 @@
                 {% endif %}
               {% endfor %}
             </div>
-          </article>
-        </div>
+        </article>
       </div>
-    {% else %}
-      <article class="st-article">
-        <p class="st-eyebrow">{{ content_type.name|e }}</p>
-        <h1>{{ content_entry.title|e }}</h1>
-        <div class="cms-prose st-cms-body">
-          {% for row in content_field_rows %}
-            <div class="st-field-value">{{ row.html|raw }}</div>
-          {% endfor %}
-        </div>
-      </article>
-    {% endif %}
+    </div>
   </div>
 </main>
 {% endblock %}
