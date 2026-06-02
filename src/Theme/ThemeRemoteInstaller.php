@@ -187,12 +187,8 @@ final class ThemeRemoteInstaller
                 if ($err !== null) {
                     return $err;
                 }
-                $rm = SafeDirectoryRemoval::removeIfInside($themeRoot, $extractDir);
-                if ($rm !== null) {
-                    SafeDirectoryRemoval::removeIfInside($dest, $this->themes->themesRoot());
-
-                    return 'Could not finalize theme install.';
-                }
+                // Best effort cleanup only. Do not fail a successful install copy if temp cleanup fails.
+                SafeDirectoryRemoval::removeIfInside($themeRoot, $extractDir);
             }
 
             $installed = ThemeManifest::tryLoad($dest);

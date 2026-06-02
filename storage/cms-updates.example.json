@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.1.68",
-    "title": "Struxa 1.1.68",
-    "summary": "Handle existing theme directories during install: treat valid installs as installed and safely clean empty leftovers.",
+    "latest_version": "1.1.69",
+    "title": "Struxa 1.1.69",
+    "summary": "Fix theme install finalization: do not fail after successful copy when temporary cleanup is blocked.",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "patch"
