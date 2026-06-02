@@ -102,7 +102,7 @@ a { color: inherit; }
 }
 /* Desktop: search beside account; mobile: search beside menu toggle */
 .st-navbar__tools .st-nav__search { display: none; }
-.st-nav__actions-search { display: inline-flex; align-items: center; }
+.st-nav__actions-search { display: inline-flex; align-items: center; margin-right: 0.1rem; }
 .st-nav {
   display: flex; align-items: center; gap: 0.65rem; margin-left: auto;
 }
@@ -128,6 +128,9 @@ a { color: inherit; }
 .st-nav__actions:has(.st-nav__account) {
   margin-left: 0;
   gap: 0;
+}
+.st-nav__actions:has(.st-nav__actions-search):has(.st-nav__account) {
+  gap: 0.65rem;
 }
 .st-nav__text-link {
   font-weight: 500; font-size: 0.875rem; letter-spacing: -0.01em;
