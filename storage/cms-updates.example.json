@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.1.92",
-    "title": "Struxa 1.1.92",
-    "summary": "Fix storefront search icon when public search is on: live storefront_search_on() Twig helper, settings fallback, icon visible beside menu on mobile. Vision 1.0.35.",
+    "latest_version": "1.1.93",
+    "title": "Struxa 1.1.93",
+    "summary": "Fix search icon Twig check (storefront_search_on()); show icon beside Administrator on desktop. Vision 1.0.36.",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "patch"

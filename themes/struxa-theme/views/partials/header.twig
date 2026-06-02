@@ -1,15 +1,8 @@
 {% set _rp = request_path|default('/') %}
 {% set _loc = theme_settings.topbar_location|default('')|trim %}
 {% set _phone = theme_settings.topbar_phone|default('')|trim %}
-{# Prefer live SearchSettings check; fall back to Twig global or autoloaded setting. #}
-{% set _search_on = false %}
-{% if storefront_search_on is defined and storefront_search_on() %}
-  {% set _search_on = true %}
-{% elseif storefront_search_enabled|default(false) %}
-  {% set _search_on = true %}
-{% elseif settings.content_search_enabled|default('0') == '1' %}
-  {% set _search_on = true %}
-{% endif %}
+{# storefront_search_on() reads SearchSettings each request (CMS 1.1.92+). #}
+{% set _search_on = storefront_search_on() %}
 <header class="st-header">
   <div class="st-topbar">
     <div class="st-topbar__inner">
@@ -48,6 +41,9 @@
           {% endif %}
         </div>
         <div class="st-nav__actions">
+          {% if _search_on %}
+            <span class="st-nav__actions-search">{% include 'partials/site_search_button.twig' %}</span>
+          {% endif %}
           {% if logged_in %}
             {% set _nav_label = user_display_name|default(user_username|default(''))|trim %}
             {% if _nav_label == '' %}

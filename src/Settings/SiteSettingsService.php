@@ -52,6 +52,8 @@ final class SiteSettingsService
         'seo_external_links_nofollow' => '0',
         /** When "1", public comment UI and posting are enabled (opt out per page / content type). */
         'comments_enabled' => '1',
+        /** When "1", storefront search at /search is enabled (Admin → Settings → Search). */
+        'content_search_enabled' => '0',
     ];
 
     /** @var list<string> */
