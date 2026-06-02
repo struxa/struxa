@@ -12253,13 +12253,30 @@ a.admin-entry-row:hover .admin-entry-row-go {
 }
 
 .admin-entry-bulk-bar {
+  display: flex;
   margin-bottom: 1rem;
   padding: 0.85rem 1rem;
   border-radius: var(--admin-radius-sm);
-  border: 1px solid rgba(123, 97, 255, 0.28);
+  border: 1px solid var(--admin-border);
+  background: var(--admin-card);
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    background 0.15s ease;
+}
+
+.admin-entry-bulk-bar.is-active {
+  border-color: rgba(123, 97, 255, 0.4);
   background:
     linear-gradient(135deg, rgba(123, 97, 255, 0.1), rgba(56, 189, 172, 0.05)),
     var(--admin-card);
+  box-shadow: 0 0 0 1px rgba(123, 97, 255, 0.12);
+}
+
+.admin-entry-bulk-bar:not(.is-active) .admin-entry-bulk-actions,
+.admin-entry-bulk-bar:not(.is-active) .admin-entry-bulk-taxonomy {
+  opacity: 0.45;
+  pointer-events: none;
 }
 
 .admin-entry-bulk-bar.is-sticky {

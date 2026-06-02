@@ -1,6 +1,10 @@
 (function () {
   'use strict';
 
+  function rowCheckboxes() {
+    return document.querySelectorAll('.admin-entry-row-cb');
+  }
+
   var selectAll = document.getElementById('admin-entry-select-all');
   var bulkBar = document.getElementById('admin-entry-bulk-bar');
   var bulkCount = document.getElementById('admin-entry-bulk-count');
@@ -11,15 +15,14 @@
   var bulkTaxonomySelect = document.getElementById('admin-entry-bulk-taxonomy-select');
   var bulkForm = document.getElementById('admin-entry-bulk-form');
   var bulkTaxForm = document.getElementById('admin-entry-bulk-taxonomy-form');
-  var rowCbs = document.querySelectorAll('.admin-entry-row-cb');
 
-  if (!rowCbs.length && !selectAll) {
+  if (!selectAll && rowCheckboxes().length === 0) {
     return;
   }
 
   function selectedCount() {
     var n = 0;
-    rowCbs.forEach(function (cb) {
+    rowCheckboxes().forEach(function (cb) {
       if (cb.checked) {
         n += 1;
       }
@@ -28,6 +31,7 @@
   }
 
   function syncBulkUi() {
+    var rows = rowCheckboxes();
     var n = selectedCount();
     if (bulkPublish) {
       bulkPublish.disabled = n < 1;
@@ -39,8 +43,6 @@
       bulkTaxonomyBtn.disabled = n < 1;
     }
     if (bulkBar) {
-      bulkBar.hidden = n < 1;
-      bulkBar.setAttribute('aria-hidden', n < 1 ? 'true' : 'false');
       bulkBar.classList.toggle('is-active', n > 0);
       bulkBar.classList.toggle('is-sticky', n > 0);
     }
@@ -49,14 +51,14 @@
       bulkCount.textContent = n === 1 ? '1 selected' : n + ' selected';
     }
     if (selectAll) {
-      selectAll.indeterminate = n > 0 && n < rowCbs.length;
-      selectAll.checked = rowCbs.length > 0 && n === rowCbs.length;
+      selectAll.indeterminate = n > 0 && n < rows.length;
+      selectAll.checked = rows.length > 0 && n === rows.length;
     }
     if (bulkTermPanels) {
       bulkTermPanels.hidden = n < 1;
       bulkTermPanels.setAttribute('aria-hidden', n < 1 ? 'true' : 'false');
     }
-    rowCbs.forEach(function (cb) {
+    rows.forEach(function (cb) {
       var card = cb.closest('.admin-entry-card');
       if (card) {
         card.classList.toggle('is-selected', cb.checked);
@@ -76,20 +78,34 @@
     });
   }
 
+  function setAllRowsChecked(checked) {
+    rowCheckboxes().forEach(function (cb) {
+      cb.checked = checked;
+    });
+    syncBulkUi();
+  }
+
   if (selectAll) {
     selectAll.addEventListener('change', function () {
-      rowCbs.forEach(function (cb) {
-        cb.checked = selectAll.checked;
-      });
-      syncBulkUi();
+      setAllRowsChecked(selectAll.checked);
+    });
+    selectAll.addEventListener('click', function (e) {
+      e.stopPropagation();
     });
   }
 
-  rowCbs.forEach(function (cb) {
-    cb.addEventListener('change', syncBulkUi);
-    cb.addEventListener('click', function (e) {
+  document.addEventListener('change', function (e) {
+    var target = e.target;
+    if (target && target.classList && target.classList.contains('admin-entry-row-cb')) {
+      syncBulkUi();
+    }
+  });
+
+  document.addEventListener('click', function (e) {
+    var target = e.target;
+    if (target && target.classList && target.classList.contains('admin-entry-row-cb')) {
       e.stopPropagation();
-    });
+    }
   });
 
   function confirmBulk(msg) {
@@ -103,7 +119,7 @@
     form.querySelectorAll('input[name="ids[]"]').forEach(function (el) {
       el.remove();
     });
-    rowCbs.forEach(function (cb) {
+    rowCheckboxes().forEach(function (cb) {
       if (!cb.checked) {
         return;
       }
