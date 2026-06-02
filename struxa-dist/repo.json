@@ -1,6 +1,6 @@
 {
     "catalog_version": 1,
-    "generated_at": "2026-06-02T10:38:38+00:00",
+    "generated_at": "2026-06-02T10:40:40+00:00",
     "themes": [
         {
             "slug": "struxa-theme",
@@ -15,7 +15,7 @@
         {
             "slug": "forum-plugin",
             "name": "Forum",
-            "version": "1.1.4",
+            "version": "1.1.5",
             "description": "Full community forum for Struxa CMS: categories, forums, threads and replies with Markdown, likes, subscriptions, tags, search and member profiles. Includes sticky and locked threads, online-now stats, rate limiting, reporting, and an admin moderation panel. Threads sync to a CMS content type for SEO metadata, slugs and featured images. Ships with a homepage latest-discussions widget.",
             "author": "Struxa",
             "download_url": "https://struxapoint.com/struxa-dist/zips/forum-plugin.zip",
