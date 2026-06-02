@@ -55,9 +55,10 @@ final class PluginMigrationRunner
         $stmt = $this->pdo->prepare('SELECT name FROM cms_plugin_migrations WHERE plugin_slug = ?');
         $stmt->execute([$pluginSlug]);
         $map = [];
-        while ($name = $stmt->fetchColumn()) {
+        foreach ($stmt->fetchAll(PDO::FETCH_COLUMN) as $name) {
             $map[(string) $name] = true;
         }
+        $stmt->closeCursor();
 
         return $map;
     }
@@ -80,6 +81,31 @@ final class PluginMigrationRunner
                 continue;
             }
             $this->pdo->exec($stmt);
+            $this->drainOutstandingResults();
+        }
+    }
+
+    /**
+     * Idempotent migrations may EXECUTE dynamic SQL that returns a row (e.g. SELECT 1 no-op).
+     * MySQL PDO leaves that result unbuffered unless drained before the next statement.
+     */
+    private function drainOutstandingResults(): void
+    {
+        if ($this->pdo->getAttribute(PDO::ATTR_DRIVER_NAME) !== 'mysql') {
+            return;
+        }
+        try {
+            while ($this->pdo->nextRowset()) {
+            }
+        } catch (\PDOException) {
+        }
+        try {
+            $probe = $this->pdo->query('SELECT 1');
+            if ($probe instanceof \PDOStatement) {
+                $probe->fetchAll();
+                $probe->closeCursor();
+            }
+        } catch (\PDOException) {
         }
     }
 }

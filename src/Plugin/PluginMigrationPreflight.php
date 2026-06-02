@@ -65,9 +65,10 @@ final class PluginMigrationPreflight
             return [];
         }
         $map = [];
-        while ($name = $stmt->fetchColumn()) {
+        foreach ($stmt->fetchAll(PDO::FETCH_COLUMN) as $name) {
             $map[(string) $name] = true;
         }
+        $stmt->closeCursor();
 
         return $map;
     }
