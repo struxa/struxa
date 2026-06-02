@@ -98,7 +98,7 @@ final class CoreSectionDefinitionProvider implements SectionDefinitionProviderIn
                 ],
                 'option_schema' => $standardOpts,
                 'defaults' => [
-                    'body_html' => '<p>Branding lives in <strong>Settings</strong>. This look ships from <code>themes/queue</code> (extends <code>themes/default</code>).</p>',
+                    'body_html' => '<p>Branding lives in <strong>Settings</strong>. This look ships with the core <code>themes/struxa-theme</code> package.</p>',
                 ],
                 'option_defaults' => $standardOptDefaults,
             ],

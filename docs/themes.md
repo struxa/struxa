@@ -72,7 +72,7 @@ This rule applies to **every customer-facing storefront path** resolved under th
 
 | Correct (theme storefront) | Incorrect |
 | -------------------------- | --------- |
-| In **`themes/default/views/layouts/base.twig`**: `<link rel="stylesheet" href="{{ theme_asset('css/app.css') }}" />` | In a theme layout or **`themes/*/views/content/*.twig`**: `<link rel="stylesheet" href="/css/styles.css" />` or relying on marketing-only class names without defining them in the theme |
+| In **`themes/struxa-theme/views/layouts/base.twig`**: `<link rel="stylesheet" href="{{ theme_asset('css/app.css') }}" />` | In a theme layout or **`themes/*/views/content/*.twig`**: `<link rel="stylesheet" href="/css/styles.css" />` or relying on marketing-only class names without defining them in the theme |
 
 ### Why this matters
 
@@ -87,4 +87,4 @@ Run **`composer lint:twig-layouts`** to enforce `PublicLayoutContract` rules (fo
 
 ## Marketing homepage (no duplicate static HTML)
 
-By default **`GET /`** renders **`page/home.twig` in the active theme** (optionally extending parent themes). In **Admin → Site settings → Public site homepage**, you can assign a **published CMS page** instead: that page’s body, visual sections, and SEO are then served at **`/`** (canonical `/`), while **`/p/{slug}`** for that page **301-redirects** to `/`. If the setting is empty or invalid, the theme template is used. Core `templates/` must not define **`page/home.twig`** or **`page/show.twig`** — either file shadows the active theme (you would get the wrong layout/CSS). Queue-specific section fallbacks live under **`themes/default/views/sections/`**, not core, so **Builder Queue** can override them. Repository-root `index.html` is a non-canonical pointer; optional HTML export is `composer render-marketing-preview` → `public/marketing-preview.html`. Details: **`docs/frontend.md`**.
+By default **`GET /`** renders **`page/home.twig` in the active theme** (optionally extending parent themes). In **Admin → Site settings → Public site homepage**, you can assign a **published CMS page** instead: that page’s body, visual sections, and SEO are then served at **`/`** (canonical `/`), while **`/p/{slug}`** for that page **301-redirects** to `/`. If the setting is empty or invalid, the theme template is used. Core `templates/` must not define **`page/home.twig`** or **`page/show.twig`** — either file shadows the active theme (you would get the wrong layout/CSS). Theme-specific section templates live under **`themes/struxa-theme/views/sections/`**, while core keeps the shared section schemas/registry. Repository-root `index.html` is a non-canonical pointer; optional HTML export is `composer render-marketing-preview` → `public/marketing-preview.html`. Details: **`docs/frontend.md`**.

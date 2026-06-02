@@ -30,6 +30,6 @@ Showcase packages live under **`storage/blueprints/`** (e.g. `blog.json`, `revie
 
 ## Public URLs after import
 
-Types with `has_public_route` get **`/{typeSlug}`** (index) and **`/{typeSlug}/{entrySlug}`** (single). Taxonomy archives use **`/{typeSlug}/{taxonomySlug}/{termSlug}`**. The active theme can override Twig paths such as `content/blog/show.twig` (see **Midnight Pulse** default theme).
+Types with `has_public_route` get **`/{typeSlug}`** (index) and **`/{typeSlug}/{entrySlug}`** (single). Taxonomy archives use **`/{typeSlug}/{taxonomySlug}/{termSlug}`**. The active theme can override Twig paths such as `content/blog/show.twig` (see the shipped **Struxa Vision** theme).
 
 Extend the validator when you add new top-level blueprint sections so invalid packages fail fast.

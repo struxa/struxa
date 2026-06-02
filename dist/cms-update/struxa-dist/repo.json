@@ -1,14 +1,14 @@
 {
     "catalog_version": 1,
-    "generated_at": "2026-05-16T20:47:53+00:00",
+    "generated_at": "2026-06-02T10:58:00+00:00",
     "themes": [
         {
-            "slug": "default",
-            "name": "Midnight Pulse",
-            "version": "1.0.0",
-            "description": "Dark SaaS-style layout with gradient accents, header, footer, and content-focused typography. Uses global settings and menus.",
-            "author": "Studio CMS",
-            "download_url": "https://struxapoint.com/struxa-dist/zips/default.zip"
+            "slug": "struxa-theme",
+            "name": "Struxa Vision",
+            "version": "1.0.24",
+            "description": "Light SaaS marketing theme with warm off-white canvas, orange accents, two-tier header, hero illustration, and trust bar. Built for Struxa CMS storefront pages, content types, and menus.",
+            "author": "Struxa",
+            "download_url": "https://struxapoint.com/struxa-dist/zips/struxa-theme.zip"
         }
     ],
     "plugins": []

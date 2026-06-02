@@ -69,7 +69,7 @@
           "sort_order": 3,
           "section_key": "queue_marketing_note",
           "data": {
-            "body_html": "<p>Branding lives in <strong>Settings</strong>. This look ships from <code>themes/queue</code> (extends <code>themes/default</code>). Reorder or edit these blocks under <strong>Pages → Visual builder</strong>.</p>"
+            "body_html": "<p>Branding lives in <strong>Settings</strong>. This look ships with the core <code>themes/struxa-theme</code> package. Reorder or edit these blocks under <strong>Pages → Visual builder</strong>.</p>"
           },
           "options": { "padding": "compact", "background": "default" }
         }
