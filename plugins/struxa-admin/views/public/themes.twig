@@ -1,0 +1,26 @@
+{% extends '@plugin_struxa_admin/public/_catalog_layout.twig' %}
+
+{% block catalog_body %}
+  {% if not catalog_ok %}
+    <div class="st-catalog__notice st-catalog__notice--error"><p>{{ catalog_error|e }}</p></div>
+  {% elseif catalog_themes is empty %}
+    <p class="st-catalog__empty">No themes listed yet. <a href="{{ url_for('public.struxa_catalog.themes.submit_form') }}">Submit your theme</a>.</p>
+  {% else %}
+    <div class="st-catalog__grid">
+      {% for t in catalog_themes %}
+        <article class="st-catalog__card">
+          {% if t.screenshot_url %}
+            <img class="st-catalog__shot" src="{{ t.screenshot_url|e('html_attr') }}" alt="" loading="lazy" />
+          {% endif %}
+          <h2 class="st-catalog__card-title">{{ t.name|e }}</h2>
+          <p class="st-catalog__meta"><code class="st-catalog__slug">{{ t.slug|e }}</code>{% if t.version %} · v{{ t.version|e }}{% endif %}</p>
+          {% if t.author %}<p class="st-catalog__byline">by {{ t.author|e }}</p>{% endif %}
+          {% if t.description %}<p class="st-catalog__desc">{{ t.description|e }}</p>{% endif %}
+          {% if t.repository_url %}
+            <p class="st-catalog__links"><a href="{{ t.repository_url|e('html_attr') }}" rel="noopener noreferrer">Source repository</a></p>
+          {% endif %}
+        </article>
+      {% endfor %}
+    </div>
+  {% endif %}
+{% endblock %}

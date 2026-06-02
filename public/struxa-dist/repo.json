@@ -1,11 +1,11 @@
 {
     "catalog_version": 1,
-    "generated_at": "2026-06-02T22:39:51+00:00",
+    "generated_at": "2026-06-02T22:56:12+00:00",
     "themes": [
         {
             "slug": "struxa-theme",
             "name": "Struxa Vision",
-            "version": "1.0.37",
+            "version": "1.0.38",
             "description": "Light SaaS marketing theme with warm off-white canvas, orange accents, two-tier header, hero illustration, and trust bar. Built for Struxa CMS storefront pages, content types, and menus.",
             "author": "Struxa",
             "download_url": "https://struxapoint.com/struxa-dist/zips/struxa-theme.zip"
@@ -20,6 +20,15 @@
             "author": "Struxa",
             "download_url": "https://struxapoint.com/struxa-dist/zips/forum-plugin.zip",
             "requires_cms_version": "1.1.33"
+        },
+        {
+            "slug": "struxa-admin",
+            "name": "Struxa Catalog Admin",
+            "version": "1.0.6",
+            "description": "Community plugin and theme submissions, admin review, and struxa-dist catalog publishing for struxapoint.com.",
+            "author": "Struxa",
+            "download_url": "https://struxapoint.com/struxa-dist/zips/struxa-admin.zip",
+            "requires_cms_version": "1.0.52"
         }
     ]
 }

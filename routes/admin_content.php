@@ -936,7 +936,11 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             $body = $request->getParsedBody();
             $body = is_array($body) ? $body : [];
             $action = trim((string) ($body['bulk_action'] ?? ''));
-            $ids = ContentEntryBulkService::normalizeIds(is_array($body['ids'] ?? null) ? $body['ids'] : []);
+            $rawIds = $body['ids'] ?? [];
+            if (!is_array($rawIds)) {
+                $rawIds = ($rawIds !== '' && $rawIds !== null) ? [$rawIds] : [];
+            }
+            $ids = ContentEntryBulkService::normalizeIds($rawIds);
             if ($ids === []) {
                 Flash::set('error', 'Select at least one entry.');
 

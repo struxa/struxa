@@ -80,7 +80,6 @@
     {% if can_bulk %}
       <form id="admin-entry-bulk-form" method="post" action="{{ url_for('admin.content_types.entries.bulk', { id: content_type.id }) }}" class="admin-entry-bulk-form" hidden aria-hidden="true">
         <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
-        <input type="hidden" name="bulk_action" value="" />
         <input type="hidden" name="return_page" value="{{ entry_page }}" />
         <input type="hidden" name="return_per_page" value="{{ entry_per_page }}" />
       </form>
@@ -106,10 +105,10 @@
         </div>
         <div class="admin-entry-bulk-actions">
           {% if can_publish_entries %}
-            <button type="button" class="admin-btn-primary admin-entry-bulk-publish" id="admin-entry-bulk-publish" disabled>Publish</button>
+            <button type="submit" form="admin-entry-bulk-form" name="bulk_action" value="publish" class="admin-btn-primary admin-entry-bulk-publish" id="admin-entry-bulk-publish" disabled>Publish</button>
           {% endif %}
           {% if can_trash_entries %}
-            <button type="button" class="admin-btn-danger admin-entry-bulk-trash" id="admin-entry-bulk-trash" disabled>Move to trash</button>
+            <button type="submit" form="admin-entry-bulk-form" name="bulk_action" value="trash" class="admin-btn-danger admin-entry-bulk-trash" id="admin-entry-bulk-trash" disabled>Move to trash</button>
           {% endif %}
         </div>
         {% if taxonomies is defined and taxonomies is not empty %}
@@ -132,7 +131,7 @@
                 <span>Replace</span>
               </label>
             </fieldset>
-            <button type="button" class="admin-btn-ghost admin-entry-bulk-taxonomy-apply" id="admin-entry-bulk-taxonomy-apply" disabled>Apply terms</button>
+            <button type="submit" form="admin-entry-bulk-taxonomy-form" class="admin-btn-ghost admin-entry-bulk-taxonomy-apply" id="admin-entry-bulk-taxonomy-apply" disabled>Apply terms</button>
           </div>
         {% endif %}
       </div>
@@ -188,9 +187,9 @@
                 <input
                   type="checkbox"
                   class="admin-entry-row-cb"
-                  form="admin-entry-bulk-form"
                   name="ids[]"
                   value="{{ e.id }}"
+                  data-entry-id="{{ e.id }}"
                 />
               </label>
             {% endif %}

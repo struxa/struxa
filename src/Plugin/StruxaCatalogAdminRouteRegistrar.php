@@ -17,6 +17,7 @@ use Slim\Exception\HttpNotFoundException;
 use Slim\Routing\RouteContext;
 use Slim\Views\Twig;
 use StruxaAdmin\CatalogPublisher;
+use StruxaAdmin\CatalogRepoJsonImporter;
 use StruxaAdmin\CatalogSettings;
 use StruxaAdmin\CatalogSubmissionRepository;
 use StruxaAdmin\GitHubRepoClient;
@@ -199,6 +200,9 @@ final class StruxaCatalogAdminRouteRegistrar
                     'filter_status' => $status,
                     'filter_kind' => $kind,
                     'pending_count' => $submissions->countPending(),
+                    'approved_count' => $submissions->countByStatus(SubmissionStatus::APPROVED),
+                    'rejected_count' => $submissions->countByStatus(SubmissionStatus::REJECTED),
+                    'submission_total' => $submissions->countAll(),
                     'dist_root' => $settings->distRoot(),
                 ]));
             })->setName(self::ROUTE_SUBMISSIONS);
@@ -272,7 +276,9 @@ final class StruxaCatalogAdminRouteRegistrar
 
             $group->post('/extensions/struxa-catalog/settings', function (Request $request, Response $response) use (
                 $settings,
-                $publisher
+                $publisher,
+                $submissions,
+                $cmsUid
             ): Response {
                 $parser = RouteContext::fromRequest($request)->getRouteParser();
                 $back = $parser->urlFor('admin.struxa_catalog.settings');
@@ -282,7 +288,26 @@ final class StruxaCatalogAdminRouteRegistrar
 
                 if ($action === 'regenerate') {
                     $regen = $publisher->regenerateCatalog();
-                    Flash::set($regen['ok'] ? 'success' : 'error', $regen['ok'] ? 'Catalog repo.json regenerated.' : $regen['error']);
+                    Flash::set($regen['ok'] ? 'success' : 'error', $regen['ok'] ? 'Catalog repo.json regenerated from approved submissions.' : $regen['error']);
+
+                    return $response->withHeader('Location', $back)->withStatus(302);
+                }
+
+                if ($action === 'import_repo') {
+                    $importer = new CatalogRepoJsonImporter($settings, $submissions, $publisher);
+                    $updateExisting = !empty($body['update_existing']);
+                    $result = $importer->importFromDistRepoJson($cmsUid($request), $updateExisting);
+                    if (!$result['ok']) {
+                        Flash::set('error', 'Import failed: ' . $result['error']);
+                    } else {
+                        $msg = sprintf(
+                            'Imported %d, updated %d, skipped %d from repo.json.',
+                            $result['imported'],
+                            $result['updated'],
+                            $result['skipped']
+                        );
+                        Flash::set('success', $msg);
+                    }
 
                     return $response->withHeader('Location', $back)->withStatus(302);
                 }

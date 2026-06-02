@@ -56,6 +56,8 @@ scripts/.struxa-updates-cache.json
 /plugins/*
 !/plugins/.gitkeep
 !/plugins/README.txt
+!/plugins/struxa-admin/
+!/plugins/struxa-admin/**
 
 /themes/*
 !/themes/.gitkeep

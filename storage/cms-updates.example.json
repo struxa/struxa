@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.1.95",
-    "title": "Struxa 1.1.95",
-    "summary": "Theme updates use max(catalog, GitHub) version; publish Struxa Vision 1.0.36 in struxa-dist catalog.",
+    "latest_version": "1.1.97",
+    "title": "Struxa 1.1.97",
+    "summary": "Catalog admin UI, repo.json import, Vision-styled catalog pages, and fix bulk Move to trash on content entries.",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "patch"

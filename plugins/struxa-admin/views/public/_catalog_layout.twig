@@ -1,0 +1,23 @@
+{% extends 'pages/plugin_public_theme_shell.twig' %}
+
+{% block title %}{{ page_title|default('Struxa catalog')|e }} — {{ settings.site_name|default('Struxa')|e }}{% endblock %}
+{% block meta_description %}Browse Struxa CMS plugins and themes. Install from Admin → Extensions on any Struxa site.{% endblock %}
+
+{% block plugin_public_body %}
+  <main id="main-content" class="st-page st-page--catalog">
+    <div class="st-page__inner st-page__inner--wide">
+      <header class="st-catalog__head">
+        <p class="st-eyebrow"><a class="st-eyebrow__link" href="/">Struxa</a> · Community catalog</p>
+        <h1 class="st-catalog__title">{{ page_title|e }}</h1>
+        <p class="st-catalog__lead">Install these in any Struxa site via <strong>Admin → Extensions</strong> → Browse catalog. Packages are built from public Git repositories — nothing is uploaded except an optional screenshot.</p>
+        <nav class="st-catalog__nav" aria-label="Catalog sections">
+          <a class="st-btn st-btn--ghost{% if catalog_nav|default('') == 'plugins' %} is-active{% endif %}" href="{{ url_for('public.struxa_catalog.plugins') }}">Plugins</a>
+          <a class="st-btn st-btn--ghost{% if catalog_nav|default('') == 'themes' %} is-active{% endif %}" href="{{ url_for('public.struxa_catalog.themes') }}">Themes</a>
+          <a class="st-btn st-btn--primary" href="{{ url_for('public.struxa_catalog.plugins.submit_form') }}">Submit a plugin</a>
+          <a class="st-btn st-btn--outline" href="{{ url_for('public.struxa_catalog.themes.submit_form') }}">Submit a theme</a>
+        </nav>
+      </header>
+      {% block catalog_body %}{% endblock %}
+    </div>
+  </main>
+{% endblock %}

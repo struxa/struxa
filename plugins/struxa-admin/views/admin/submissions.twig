@@ -1,0 +1,177 @@
+{% extends 'admin/base.twig' %}
+{% import 'admin/_ui_macros.twig' as ui %}
+
+{% block admin_title %}Catalog submissions{% endblock %}
+
+{% block admin_hero_title %}
+  <h1 class="admin-hero-title">Catalog submissions</h1>
+{% endblock %}
+
+{% block admin_hero_sub %}
+  <p class="admin-hero-sub admin-hero-sub--tight">
+    Review community plugin and theme packages before they appear in <code class="admin-inline-code">repo.json</code>.
+    Approved entries are published to the live catalog.
+  </p>
+{% endblock %}
+
+{% block admin_content %}
+  {% set _status = filter_status|default('pending') %}
+  {% set _kind = filter_kind|default('') %}
+
+  <div class="admin-toolbar admin-toolbar--spread" style="margin-bottom:1.35rem">
+    <div class="admin-plugin-toolbar-copy">
+      <p class="admin-plugin-toolbar-title">Struxa distribution catalog</p>
+      <p class="admin-hint admin-plugin-toolbar-lead" style="margin:0">
+        Dist folder: <code class="admin-inline-code">{{ dist_root|e }}</code>
+      </p>
+    </div>
+    <div class="admin-toolbar-actions" style="display:flex;gap:0.5rem;flex-wrap:wrap">
+      <a class="admin-btn-primary" href="{{ url_for('admin.struxa_catalog.settings') }}">Catalog settings</a>
+      <a class="admin-btn-ghost" href="{{ url_for('admin.extensions.plugins.browse') }}">Browse catalog</a>
+      <a class="admin-btn-ghost" href="{{ url_for('public.struxa_catalog.plugins') }}" target="_blank" rel="noopener">Public plugins</a>
+      <a class="admin-btn-ghost" href="{{ url_for('public.struxa_catalog.themes') }}" target="_blank" rel="noopener">Public themes</a>
+    </div>
+  </div>
+
+  <div class="admin-settings-intro admin-settings-intro--catalog">
+    <div class="admin-settings-intro-icon" aria-hidden="true">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+        <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+        <line x1="12" y1="22.08" x2="12" y2="12" />
+      </svg>
+    </div>
+    <div class="admin-settings-intro-body">
+      <p class="admin-settings-intro-title">Submission queue</p>
+      <p class="admin-settings-intro-text">
+        Packages are pulled from public GitHub repos when you approve.
+        Each approval builds a ZIP, updates <code class="admin-inline-code">publish.json</code>, and regenerates
+        <code class="admin-inline-code">repo.json</code> from approved rows.
+        Use <strong class="admin-settings-intro-strong">Import from repo.json</strong> in settings to seed existing catalog entries.
+      </p>
+    </div>
+    {% if pending_count > 0 %}
+      <span class="admin-pill admin-pill--warn admin-hub-status-pill">{{ pending_count }} pending</span>
+    {% endif %}
+  </div>
+
+  <div class="admin-metrics admin-hub-metrics" aria-label="Catalog submission summary">
+    <article class="admin-metric{% if pending_count > 0 %} admin-metric--hot{% endif %}">
+      <p class="admin-metric-label">Pending</p>
+      <p class="admin-metric-value">{{ pending_count }}</p>
+      <p class="admin-metric-meta">Awaiting review</p>
+    </article>
+    <article class="admin-metric admin-metric--health-good">
+      <p class="admin-metric-label">Approved</p>
+      <p class="admin-metric-value">{{ approved_count|default(0) }}</p>
+      <p class="admin-metric-meta">Live in catalog</p>
+    </article>
+    <article class="admin-metric">
+      <p class="admin-metric-label">Rejected</p>
+      <p class="admin-metric-value">{{ rejected_count|default(0) }}</p>
+      <p class="admin-metric-meta">Not published</p>
+    </article>
+    <article class="admin-metric">
+      <p class="admin-metric-label">Total</p>
+      <p class="admin-metric-value">{{ submission_total|default(0) }}</p>
+      <p class="admin-metric-meta">All submissions</p>
+    </article>
+  </div>
+
+  <nav class="admin-filter-pills admin-filter-pills--wide" aria-label="Submission status">
+    <a class="admin-filter-pill{{ _status == 'pending' ? ' is-current' : '' }}" href="{{ url_for('admin.struxa_catalog.submissions', {}, { status: 'pending', kind: _kind }) }}">Pending{% if pending_count > 0 %} ({{ pending_count }}){% endif %}</a>
+    <a class="admin-filter-pill{{ _status == 'approved' ? ' is-current' : '' }}" href="{{ url_for('admin.struxa_catalog.submissions', {}, { status: 'approved', kind: _kind }) }}">Approved</a>
+    <a class="admin-filter-pill{{ _status == 'rejected' ? ' is-current' : '' }}" href="{{ url_for('admin.struxa_catalog.submissions', {}, { status: 'rejected', kind: _kind }) }}">Rejected</a>
+  </nav>
+
+  <nav class="admin-filter-pills" aria-label="Package kind" style="margin-top:-0.35rem">
+    <a class="admin-filter-pill{{ _kind == '' ? ' is-current' : '' }}" href="{{ url_for('admin.struxa_catalog.submissions', {}, { status: _status, kind: '' }) }}">All kinds</a>
+    <a class="admin-filter-pill{{ _kind == 'plugin' ? ' is-current' : '' }}" href="{{ url_for('admin.struxa_catalog.submissions', {}, { status: _status, kind: 'plugin' }) }}">Plugins</a>
+    <a class="admin-filter-pill{{ _kind == 'theme' ? ' is-current' : '' }}" href="{{ url_for('admin.struxa_catalog.submissions', {}, { status: _status, kind: 'theme' }) }}">Themes</a>
+  </nav>
+
+  <section class="admin-card admin-settings-card">
+    <header class="admin-settings-card-head-row">
+      <div>
+        <h2 class="admin-settings-card-title">{{ _status|title }} submissions{% if _kind != '' %} · {{ _kind|title }}s{% endif %}</h2>
+        <p class="admin-settings-card-desc" style="margin-bottom:0">
+          {{ submission_rows|length }} on this page · {{ submission_total|default(0) }} total
+        </p>
+      </div>
+    </header>
+
+    {% if submission_rows is empty %}
+      {{ ui.empty_state(
+        'No submissions in this queue',
+        _status == 'pending'
+          ? 'When someone submits a plugin or theme from the public catalog pages, it will appear here for review.'
+          : 'Try another status or kind filter, or import existing packages from repo.json in Catalog settings.',
+        url_for('admin.struxa_catalog.settings'),
+        'Catalog settings',
+        '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>'
+      ) }}
+    {% else %}
+      <div class="admin-table-wrap" style="margin-top:0.85rem">
+        <table class="admin-table admin-table--comfortable">
+          <thead>
+            <tr>
+              <th scope="col">Submitted</th>
+              <th scope="col">Kind</th>
+              <th scope="col">Package</th>
+              <th scope="col">Submitter</th>
+              <th scope="col">Status</th>
+              <th scope="col" class="admin-table-col-actions"><span class="admin-table-muted">Action</span></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in submission_rows %}
+              <tr>
+                <td class="admin-table-muted">
+                  <time datetime="{{ row.createdAt|e('html_attr') }}">{{ row.createdAt|e }}</time>
+                </td>
+                <td>
+                  {% if row.kind == 'theme' %}
+                    <span class="admin-pill admin-pill--accent">Theme</span>
+                  {% else %}
+                    <span class="admin-pill">Plugin</span>
+                  {% endif %}
+                </td>
+                <td>
+                  <strong class="admin-table-primary">{{ row.name|e }}</strong>
+                  <br />
+                  <span class="admin-table-muted">
+                    <code class="admin-inline-code">{{ row.slug|e }}</code>
+                    · v{{ row.version|e }}
+                  </span>
+                  {% if row.author %}
+                    <br /><span class="admin-table-muted">by {{ row.author|e }}</span>
+                  {% endif %}
+                </td>
+                <td>
+                  <strong class="admin-table-primary">{{ row.submitterName|e }}</strong>
+                  <br /><a class="admin-link admin-table-muted" href="mailto:{{ row.submitterEmail|e('html_attr') }}">{{ row.submitterEmail|e }}</a>
+                </td>
+                <td>
+                  {% if row.status == 'pending' %}
+                    <span class="admin-badge admin-badge--review">Pending</span>
+                  {% elseif row.status == 'approved' %}
+                    <span class="admin-badge admin-badge--ok">Approved</span>
+                  {% elseif row.status == 'rejected' %}
+                    <span class="admin-badge admin-badge--archived">Rejected</span>
+                  {% else %}
+                    {{ ui.status_badge(row.status) }}
+                  {% endif %}
+                </td>
+                <td class="admin-table-actions">
+                  <a class="admin-btn-ghost admin-btn-ghost--sm" href="{{ url_for('admin.struxa_catalog.submission_show', { id: row.id }) }}">
+                    {% if row.status == 'pending' %}Review{% else %}View{% endif %}
+                  </a>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% endif %}
+  </section>
+{% endblock %}

@@ -1,0 +1,42 @@
+{% extends '@plugin_struxa_admin/public/_catalog_layout.twig' %}
+
+{% block catalog_body %}
+  <section class="st-catalog__form-wrap">
+    <h2 class="st-catalog__form-title">Submit for review</h2>
+    <p class="st-catalog__form-lead">We pull your package from <strong>GitHub</strong> (public repo). Put a valid <code class="st-catalog__slug">plugin.json</code> or <code class="st-catalog__slug">theme.json</code> at the repo root or in one subfolder. Themes need <code class="st-catalog__slug">views/</code> and <code class="st-catalog__slug">assets/</code>.</p>
+
+    {% if errors is defined and errors is not empty %}
+      <ul class="st-catalog__errors">
+        {% for err in errors %}<li>{{ err|e }}</li>{% endfor %}
+      </ul>
+    {% endif %}
+
+    <form class="st-catalog__form" method="post" action="{{ url_for(submit_action) }}" enctype="multipart/form-data">
+      <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+      <div class="st-catalog__field">
+        <label class="st-catalog__label" for="git_repo_url">GitHub repository URL</label>
+        <input class="st-catalog__input" id="git_repo_url" name="git_repo_url" required value="{{ old.git_repo_url|default('')|e('html_attr') }}" placeholder="https://github.com/you/my-plugin" />
+      </div>
+      <div class="st-catalog__field">
+        <label class="st-catalog__label" for="git_branch">Branch</label>
+        <input class="st-catalog__input" id="git_branch" name="git_branch" value="{{ old.git_branch|default('main')|e('html_attr') }}" />
+      </div>
+      <div class="st-catalog__field">
+        <label class="st-catalog__label" for="screenshot">Screenshot (optional)</label>
+        <input class="st-catalog__input" id="screenshot" name="screenshot" type="file" accept="image/jpeg,image/png,image/webp" />
+        <p class="st-catalog__hint">JPEG, PNG, or WebP · max 2.5 MB. Only the image is uploaded to struxapoint.</p>
+      </div>
+      <div class="st-catalog__field">
+        <label class="st-catalog__label" for="submitter_name">Your name</label>
+        <input class="st-catalog__input" id="submitter_name" name="submitter_name" required value="{{ old.submitter_name|default('')|e('html_attr') }}" />
+      </div>
+      <div class="st-catalog__field">
+        <label class="st-catalog__label" for="submitter_email">Contact email</label>
+        <input class="st-catalog__input" id="submitter_email" name="submitter_email" type="email" required value="{{ old.submitter_email|default('')|e('html_attr') }}" />
+      </div>
+      <div class="st-catalog__actions">
+        <button type="submit" class="st-btn st-btn--primary">Validate &amp; submit</button>
+      </div>
+    </form>
+  </section>
+{% endblock %}

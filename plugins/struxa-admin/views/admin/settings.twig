@@ -1,0 +1,56 @@
+{% extends 'admin/base.twig' %}
+
+{% block admin_title %}Catalog settings{% endblock %}
+{% block admin_hero_title %}<h1 class="admin-hero-title">Distribution catalog settings</h1>{% endblock %}
+{% block admin_hero_sub %}
+  <p class="admin-hero-sub"><a class="admin-link" href="{{ url_for('admin.struxa_catalog.submissions') }}">← Submissions</a></p>
+{% endblock %}
+
+{% block admin_content %}
+  <div class="admin-card" style="margin-bottom:1rem">
+    <h2 class="admin-card-title" style="margin-top:0">Publishing</h2>
+    <p class="admin-hint"><strong>Approved submissions</strong> are the source of truth for <code class="admin-inline-code">repo.json</code>. Regenerate writes the catalog from approved rows plus ZIP manifests in <code class="admin-inline-code">{{ dist_root|e }}/zips/</code>.</p>
+    <form class="admin-inline-form" method="post" action="{{ url_for('admin.struxa_catalog.settings.save') }}" style="margin-top:0.75rem">
+      <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+      <input type="hidden" name="action" value="regenerate" />
+      <button type="submit" class="admin-btn-primary admin-btn-primary--sm">Regenerate repo.json from approved</button>
+    </form>
+    <form class="admin-form admin-inline-form" method="post" action="{{ url_for('admin.struxa_catalog.settings.save') }}" style="margin-top:1rem">
+      <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+      <input type="hidden" name="action" value="import_repo" />
+      <p class="admin-hint" style="margin:0 0 0.5rem">Seed the submissions database from the existing <code class="admin-inline-code">repo.json</code> on disk (forum-plugin, struxa-theme, etc.). Skips slugs that already exist unless you check update.</p>
+      <label class="admin-checkbox-label">
+        <input type="checkbox" name="update_existing" value="1" />
+        Update existing rows from repo.json
+      </label>
+      <div class="admin-form-actions" style="margin-top:0.75rem">
+        <button type="submit" class="admin-btn-ghost">Import from repo.json</button>
+      </div>
+    </form>
+  </div>
+
+  <form class="admin-form admin-card" method="post" action="{{ url_for('admin.struxa_catalog.settings.save') }}">
+    <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+    <input type="hidden" name="action" value="save" />
+    <h2 class="admin-card-title" style="margin-top:0">Paths &amp; URLs</h2>
+    <div class="admin-field">
+      <label class="admin-label" for="dist_root">struxa-dist folder (absolute path)</label>
+      <input class="admin-input" id="dist_root" name="dist_root" value="{{ dist_root|e('html_attr') }}" />
+    </div>
+    <div class="admin-field">
+      <label class="admin-label" for="zip_base_url">ZIP base URL</label>
+      <input class="admin-input" id="zip_base_url" name="zip_base_url" value="{{ zip_base_url|e('html_attr') }}" />
+    </div>
+    <div class="admin-field">
+      <label class="admin-label" for="screenshot_base_url">Public site URL (for screenshot links)</label>
+      <input class="admin-input" id="screenshot_base_url" name="screenshot_base_url" value="{{ screenshot_base_url|e('html_attr') }}" />
+    </div>
+    <div class="admin-field">
+      <label class="admin-label" for="github_token">GitHub token (optional, higher API rate limits)</label>
+      <input class="admin-input" id="github_token" name="github_token" type="password" autocomplete="off" placeholder="{{ has_github_token ? '••••••••' : '' }}" />
+    </div>
+    <div class="admin-form-actions">
+      <button type="submit" class="admin-btn-primary">Save</button>
+    </div>
+  </form>
+{% endblock %}
