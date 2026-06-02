@@ -42,6 +42,9 @@
       <meta name="twitter:description" content="{% block twitter_description %}{{ settings.default_meta_description|default('')|e }}{% endblock %}" />
     {% endif %}
     {% block head_extra %}{% endblock %}
+    {% if request_path|default('') starts with '/forum' %}
+      <link rel="stylesheet" href="{{ theme_asset('css/forum-overrides.css') }}" />
+    {% endif %}
   </head>
   <body class="theme-struxa" style="--st-accent: {{ _accent|e('html_attr') }}">
     <div class="st-shell">
