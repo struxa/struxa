@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.1.94",
-    "title": "Struxa 1.1.94",
-    "summary": "Fix admin updates route: define $perm for MANAGE_SETTINGS middleware (undefined variable warning).",
+    "latest_version": "1.1.95",
+    "title": "Struxa 1.1.95",
+    "summary": "Theme updates use max(catalog, GitHub) version; publish Struxa Vision 1.0.36 in struxa-dist catalog.",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "patch"

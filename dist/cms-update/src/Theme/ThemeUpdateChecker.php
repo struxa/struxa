@@ -52,6 +52,8 @@ final class ThemeUpdateChecker
             'error' => null,
         ];
 
+        $githubLatest = '';
+        $githubError = null;
         $repoUrl = $theme->repositoryUrl;
         $github = ($repoUrl !== null && $repoUrl !== '')
             ? PluginUpdateChecker::parseGithubRepositoryUrl($repoUrl)
@@ -60,38 +62,55 @@ final class ThemeUpdateChecker
         if ($github !== null) {
             $remote = $this->fetchGithubThemeVersion($github['owner'], $github['repo'], PluginUpdateChecker::resolveGithubRef());
             if ($remote === null) {
-                $base['error'] = 'Could not read theme.json from GitHub.';
+                $githubError = 'Could not read theme.json from GitHub.';
             } else {
-                $ghLatest = $this->normalizeVersion($remote);
-                if ($ghLatest !== '') {
-                    $base['latest_version'] = $ghLatest;
-                    $base['source'] = 'github';
-                    if (version_compare($ghLatest, $installed, '>')) {
-                        $base['update_available'] = true;
-                        $base['can_update'] = true;
-                    }
-
-                    return $base;
-                }
+                $githubLatest = $this->normalizeVersion($remote);
             }
         }
 
+        $catalogLatest = '';
+        $catalogCanUpdate = $catalogEntry !== null && trim($catalogEntry->downloadUrl) !== '';
         if ($catalogEntry !== null) {
-            $latest = $this->normalizeVersion($catalogEntry->version);
-            if ($latest !== '' && version_compare($latest, $installed, '>')) {
-                return [
-                    'update_available' => true,
-                    'installed_version' => $installed,
-                    'latest_version' => $latest,
-                    'source' => 'catalog',
-                    'can_update' => true,
-                    'error' => null,
-                ];
+            $catalogLatest = $this->normalizeVersion($catalogEntry->version);
+        }
+
+        $bestLatest = '';
+        $bestSource = null;
+        if ($githubLatest !== '' && $catalogLatest !== '') {
+            if (version_compare($catalogLatest, $githubLatest, '>')) {
+                $bestLatest = $catalogLatest;
+                $bestSource = 'catalog';
+            } else {
+                $bestLatest = $githubLatest;
+                $bestSource = 'github';
             }
-            if ($latest !== '') {
-                $base['latest_version'] = $latest;
-                $base['source'] = 'catalog';
+        } elseif ($catalogLatest !== '') {
+            $bestLatest = $catalogLatest;
+            $bestSource = 'catalog';
+        } elseif ($githubLatest !== '') {
+            $bestLatest = $githubLatest;
+            $bestSource = 'github';
+        }
+
+        if ($bestLatest === '') {
+            $base['error'] = $githubError;
+
+            return $base;
+        }
+
+        $base['latest_version'] = $bestLatest;
+        $base['source'] = $bestSource;
+        if (version_compare($bestLatest, $installed, '>')) {
+            $base['update_available'] = true;
+            if ($bestSource === 'catalog') {
+                $base['can_update'] = $catalogCanUpdate;
+            } elseif ($bestSource === 'github') {
+                $base['can_update'] = $github !== null;
             }
+        }
+
+        if (!$base['update_available'] && $githubError !== null && $catalogLatest === '') {
+            $base['error'] = $githubError;
         }
 
         return $base;

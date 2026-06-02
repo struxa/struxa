@@ -10,7 +10,7 @@
   "category": "marketing",
   "tags": ["light", "saas", "marketing", "landing"],
   "min_cms_version": "1.1.33",
-  "tested_up_to": "1.1.87",
+  "tested_up_to": "1.1.94",
   "screenshot": "assets/screenshot.png",
   "settings": {
     "accent": {
