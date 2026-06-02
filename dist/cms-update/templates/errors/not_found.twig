@@ -29,7 +29,6 @@
       </p>
       <div class="theme-error-404__actions" role="group" aria-label="{{ 'Next steps'|e }}">
         <a class="theme-home-fq__btn theme-home-fq__btn--primary" href="{{ url_for('home') }}">{{ 'Back to home'|e }}</a>
-        <a class="theme-home-fq__btn theme-home-fq__btn--ghost" href="{{ url_for('login') }}">{{ 'Sign in'|e }}</a>
       </div>
       {% if not_found_debug and not_found_debug_detail %}
         <details class="theme-error-404__debug">

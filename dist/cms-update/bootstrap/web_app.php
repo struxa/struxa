@@ -192,7 +192,6 @@ $displayErrorDetails = in_array(
     true
 );
 $errorMiddleware = $app->addErrorMiddleware($displayErrorDetails, true, true);
-$errorMiddleware->setErrorHandler(HttpNotFoundException::class, new PublicNotFoundHandler($twig));
 
 $app->get(ThemeHttpConfig::assetRoutePattern(), new ThemePublicAssetsHandler($themeManager));
 
@@ -229,6 +228,8 @@ $viewData = static function (array $extra = []) use ($auth, $pdo, $googleSso): a
         'google_sso_enabled' => $googleSso !== null,
     ], $extra);
 };
+
+$errorMiddleware->setErrorHandler(HttpNotFoundException::class, new PublicNotFoundHandler($twig, $viewData));
 
 $app->get('/', function (Request $request, Response $response) use ($twig, $viewData, $pdo, $themeManager): Response {
     $settings = (new SiteSettingsService(new SettingsRepository($pdo)))->forTwig();

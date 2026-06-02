@@ -17,8 +17,12 @@ use Throwable;
  */
 final class PublicNotFoundHandler implements ErrorHandlerInterface
 {
+    /**
+     * @param callable(array<string, mixed>=): array<string, mixed> $viewData
+     */
     public function __construct(
         private readonly Twig $twig,
+        private readonly mixed $viewData,
     ) {
     }
 
@@ -63,10 +67,10 @@ final class PublicNotFoundHandler implements ErrorHandlerInterface
             $debugDetail = $exception->getMessage() . "\n" . $exception->getFile() . ':' . $exception->getLine();
         }
 
-        return $this->twig->render($response, 'errors/not_found.twig', [
+        return $this->twig->render($response, 'errors/not_found.twig', ($this->viewData)([
             'not_found_debug' => $displayErrorDetails,
             'not_found_debug_detail' => $debugDetail,
-        ]);
+        ]));
     }
 
     private function wantsJson(ServerRequestInterface $request): bool

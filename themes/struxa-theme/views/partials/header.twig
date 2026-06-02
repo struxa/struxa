@@ -79,13 +79,6 @@
                 </form>
               </div>
             </div>
-          {% else %}
-            <a class="st-nav__journey" href="{{ header_menu|length > 0 ? header_menu|first.href : url_for('register') }}">
-              Begin your journey
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M7 17 17 7M17 7H9M17 7v8"/></svg>
-            </a>
-            <a class="st-nav__text-link{% if _rp == '/login' %} is-active{% endif %}" href="{{ url_for('login') }}">Sign in</a>
-            <a class="st-btn st-btn--primary" href="{{ url_for('register') }}">{{ theme_settings.hero_primary_label|default('Get started')|e }}</a>
           {% endif %}
         </div>
       </nav>
