@@ -11,6 +11,7 @@ use App\Editing\EditLockRepository;
 use App\Editing\EditLockService;
 use App\Editing\EditSessionContext;
 use App\Editing\EditSubjectType;
+use App\Event\Events;
 use App\Event\StorefrontCachesInvalidateEvent;
 use App\Flash;
 use App\Http\Middleware\RequireCmsStaff;

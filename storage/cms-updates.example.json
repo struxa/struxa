@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.1.73",
-    "title": "Struxa 1.1.73",
-    "summary": "Fix page save/create crash: import capturePageRevision into admin page POST route closures.",
+    "latest_version": "1.1.74",
+    "title": "Struxa 1.1.74",
+    "summary": "Fix page save: add missing Events import in admin_pages routes.",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "patch"
