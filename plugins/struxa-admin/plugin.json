@@ -1,7 +1,7 @@
 {
   "name": "Struxa Catalog Admin",
   "slug": "struxa-admin",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "author": "Struxa",
   "description": "Community plugin and theme submissions, admin review, and struxa-dist catalog publishing for struxapoint.com.",
   "requires_cms_version": "1.0.52",
@@ -26,7 +26,6 @@
     "tables": ["cms_struxa_catalog_submissions"]
   },
   "homepage": "https://struxapoint.com/plugins",
-  "repository_url": "https://github.com/struxa/admin",
   "license": "MIT",
   "category": "distribution",
   "tags": ["catalog", "marketplace", "themes", "plugins"]

@@ -61,20 +61,40 @@ final class PluginUpdateChecker
 
         if ($github !== null) {
             $remote = $this->fetchGithubPluginVersion($github['owner'], $github['repo'], self::resolveGithubRef());
+            $ghLatest = '';
+            if ($remote !== null) {
+                $ghLatest = $this->normalizeVersion($remote);
+            }
+
+            $catalogLatest = '';
+            if ($catalogEntry !== null) {
+                $catalogLatest = $this->normalizeVersion($catalogEntry->version);
+            }
+
+            $bestLatest = '';
+            $bestSource = null;
+            if ($ghLatest !== '' && ($bestLatest === '' || version_compare($ghLatest, $bestLatest, '>'))) {
+                $bestLatest = $ghLatest;
+                $bestSource = 'github';
+            }
+            if ($catalogLatest !== '' && ($bestLatest === '' || version_compare($catalogLatest, $bestLatest, '>'))) {
+                $bestLatest = $catalogLatest;
+                $bestSource = 'catalog';
+            }
+
+            if ($bestLatest !== '' && $bestSource !== null) {
+                $base['latest_version'] = $bestLatest;
+                $base['source'] = $bestSource;
+                if (version_compare($bestLatest, $installed, '>')) {
+                    $base['update_available'] = true;
+                    $base['can_update'] = true;
+                }
+
+                return $base;
+            }
+
             if ($remote === null) {
                 $base['error'] = 'Could not read plugin.json from GitHub.';
-            } else {
-                $ghLatest = $this->normalizeVersion($remote);
-                if ($ghLatest !== '') {
-                    $base['latest_version'] = $ghLatest;
-                    $base['source'] = 'github';
-                    if (version_compare($ghLatest, $installed, '>')) {
-                        $base['update_available'] = true;
-                        $base['can_update'] = true;
-                    }
-
-                    return $base;
-                }
             }
         }
 

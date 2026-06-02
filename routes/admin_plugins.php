@@ -324,25 +324,38 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             $err = null;
             $repoUrl = $discovered->manifest->repositoryUrl ?? '';
             $github = is_string($repoUrl) ? PluginUpdateChecker::parseGithubRepositoryUrl($repoUrl) : null;
+            $catalogEntry = $catalogBySlug[$slug] ?? null;
 
-            if ($github !== null) {
+            $updateFromCatalog = static function () use (
+                $catalogLoader,
+                $remoteInstaller,
+                $slug
+            ): ?string {
+                $loaded = $catalogLoader->load();
+                if (!$loaded['ok']) {
+                    return 'Plugin catalog is unavailable: ' . $loaded['error'];
+                }
+
+                return $remoteInstaller->updateFromCatalogSlug($slug, $loaded['entries']);
+            };
+
+            if ($updateStatus['source'] === 'catalog' && $catalogEntry !== null) {
+                $err = $updateFromCatalog();
+            } elseif ($github !== null) {
                 $err = $remoteInstaller->updateFromGithubRepository(
                     $slug,
                     $github['owner'],
                     $github['repo'],
                     PluginUpdateChecker::resolveGithubRef(),
                 );
-            } elseif ($updateStatus['source'] === 'catalog' && isset($catalogBySlug[$slug])) {
-                $loaded = $catalogLoader->load();
-                if (!$loaded['ok']) {
-                    Flash::set('error', 'Plugin catalog is unavailable: ' . $loaded['error']);
-                    if ($wasActive) {
-                        $repo->setActive($slug, true);
+                if ($err !== null && $catalogEntry !== null) {
+                    $catalogErr = $updateFromCatalog();
+                    if ($catalogErr === null) {
+                        $err = null;
                     }
-
-                    return $response->withHeader('Location', $back)->withStatus(302);
                 }
-                $err = $remoteInstaller->updateFromCatalogSlug($slug, $loaded['entries']);
+            } elseif ($catalogEntry !== null) {
+                $err = $updateFromCatalog();
             } else {
                 $err = 'This plugin has no GitHub repository URL or catalog entry for updates.';
             }
