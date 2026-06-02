@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Admin\AfterSaveRedirect;
+use App\Access\ActivityLogger;
 use App\Access\MemberAccessFormParser;
 use App\Access\MemberAccessRepository;
 use App\Access\RoleRepository;
@@ -198,7 +199,9 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
         $editSessions,
         $sectionPatterns,
         $builderHandler,
-        $pageDuplicator
+        $pageDuplicator,
+        $memberAccessFormContext,
+        $persistPageMemberAccess,
     ): void {
         $pageFormMediaPicker = static function (Request $request) use ($mediaRepo): array {
             /** @var array<string, mixed> $cmsUser */

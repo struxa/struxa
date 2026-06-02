@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.1.101",
-    "title": "Struxa 1.1.101",
-    "summary": "Members-only pages and entries with role gates; plugin MemberAccess API; catalog submit pages require login; struxa-admin 1.0.9.",
+    "latest_version": "1.1.102",
+    "title": "Struxa 1.1.102",
+    "summary": "Fix site-wide fatal error: restore ActivityLogger import in admin pages routes.",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "patch"
