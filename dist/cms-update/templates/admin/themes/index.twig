@@ -69,7 +69,7 @@
               {% else %}
                 <p class="admin-hint admin-theme-card-actions-note">This theme is serving the public site.</p>
               {% endif %}
-              {% if t.slug != 'default' and active_theme_slug != t.slug %}
+              {% if t.slug != 'struxa-theme' and active_theme_slug != t.slug %}
                 <form
                   method="post"
                   action="{{ url_for('admin.themes.remove') }}"

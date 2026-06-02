@@ -47,19 +47,17 @@ public/uploads/*
 scripts/.struxa-updates-cache.json
 
 # Extensions and extra themes — not in core git (install via Admin → Browse catalog / struxa-dist)
-# Only plugins/.gitkeep (+ README) and themes/default/ ship with the CMS repo.
+# Only plugins/.gitkeep (+ README) and themes/struxa-theme/ ship with the CMS repo.
 /plugins/*
 !/plugins/.gitkeep
 !/plugins/README.txt
 
 /themes/*
 !/themes/.gitkeep
-!/themes/default/
-!/themes/default/**
 !/themes/struxa-theme/
 !/themes/struxa-theme/**
 
 # dist/cms-update mirror: same policy as repo root
 dist/cms-update/plugins/
 dist/cms-update/themes/*
-!dist/cms-update/themes/default/
+!dist/cms-update/themes/struxa-theme/

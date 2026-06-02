@@ -1,4 +1,4 @@
-# Git archives / GitHub ZIP: omit local extensions (core repo ships CMS + default theme only)
+# Git archives / GitHub ZIP: omit local extensions (core repo ships CMS + Struxa Vision theme only)
 /plugins/ export-ignore
 /themes/* export-ignore
-!/themes/default/
+!/themes/struxa-theme/

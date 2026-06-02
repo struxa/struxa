@@ -15,7 +15,7 @@ final class ThemeHttpConfig
     /** Project subdirectory holding installable themes. */
     public const THEMES_DIRECTORY = 'themes';
 
-    public const FALLBACK_THEME_SLUG = 'default';
+    public const FALLBACK_THEME_SLUG = 'struxa-theme';
 
     public const MAX_PARENT_DEPTH = 8;
 

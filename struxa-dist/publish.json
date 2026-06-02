@@ -1,5 +1,7 @@
 {
-  "themes": ["default", "struxa-theme"],
+  "themes": [
+    "struxa-theme"
+  ],
   "plugins": [
     "struxa-admin",
     "forum-plugin"

@@ -48,5 +48,5 @@ scripts/.struxa-updates-cache.json
 !/plugins/.gitkeep
 /themes/*
 !/themes/.gitkeep
-!/themes/default/
-!/themes/default/**
+!/themes/struxa-theme/
+!/themes/struxa-theme/**
