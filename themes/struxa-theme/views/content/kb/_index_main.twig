@@ -14,6 +14,7 @@
     {% endif %}
   {% endif %}
   <div class="st-kb-layout__main">
+    <article class="st-kb-article st-kb-article--index">
     <header class="st-kb-index__head">
       <p class="st-eyebrow">{{ content_type.name|e }}</p>
       <h1 class="st-kb-index__title">{{ content_type.name|e }}</h1>
@@ -68,5 +69,6 @@
     {% else %}
       <p class="st-kb-index__empty">No articles published yet.</p>
     {% endif %}
+    </article>
   </div>
 </div>
