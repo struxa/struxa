@@ -56,6 +56,8 @@ scripts/.struxa-updates-cache.json
 !/themes/.gitkeep
 !/themes/default/
 !/themes/default/**
+!/themes/struxa-theme/
+!/themes/struxa-theme/**
 
 # dist/cms-update mirror: same policy as repo root
 dist/cms-update/plugins/

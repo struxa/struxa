@@ -5,9 +5,13 @@ declare(strict_types=1);
 namespace App\Twig;
 
 use App\Content\ContentEntryRepository;
+use App\Content\ContentEntryValueRepository;
+use App\Content\ContentFieldRepository;
 use App\Content\ContentTypeRepository;
 use App\Content\PublicContentIndexCardBuilder;
 use App\Content\ReservedContentSlugs;
+use App\Media\MediaUrlHelper;
+use PDO;
 use Twig\Extension\AbstractExtension;
 use Twig\TwigFunction;
 
@@ -20,6 +24,7 @@ final class ContentTypeCardsTwigExtension extends AbstractExtension
         private readonly ContentTypeRepository $types,
         private readonly ContentEntryRepository $entries,
         private readonly PublicContentIndexCardBuilder $cardBuilder,
+        private readonly PDO $pdo,
     ) {
     }
 
@@ -28,6 +33,7 @@ final class ContentTypeCardsTwigExtension extends AbstractExtension
         return [
             new TwigFunction('content_type_cards', $this->contentTypeCards(...)),
             new TwigFunction('content_type_cards_journal', $this->contentTypeCardsJournal(...)),
+            new TwigFunction('content_type_entry', $this->contentTypeEntry(...)),
         ];
     }
 
@@ -123,6 +129,67 @@ final class ContentTypeCardsTwigExtension extends AbstractExtension
         return [
             'type' => $type,
             'entries' => $this->cardBuilder->buildForEntries($type, $rows),
+        ];
+    }
+
+    /**
+     * Load one published entry (and field map) for homepage/marketing sections.
+     * Does not require the content type to have a public route.
+     *
+     * @return array{
+     *   type: \App\Content\ContentType|null,
+     *   entry: \App\Content\ContentEntry|null,
+     *   fields: array<string, string>,
+     *   featured_url: string
+     * }
+     */
+    public function contentTypeEntry(string $typeSlug, string $entrySlug = ''): array
+    {
+        $empty = ['type' => null, 'entry' => null, 'fields' => [], 'featured_url' => ''];
+        $typeSlug = trim($typeSlug);
+        if ($typeSlug === '' || ReservedContentSlugs::isReserved($typeSlug)) {
+            return $empty;
+        }
+        $type = $this->types->findBySlug($typeSlug) ?? $this->types->findBySlugCaseInsensitive($typeSlug);
+        if ($type === null) {
+            return $empty;
+        }
+
+        $entrySlug = trim($entrySlug);
+        $entry = $entrySlug !== ''
+            ? $this->entries->findPublishedByTypeSlug($type->id, $entrySlug)
+            : null;
+        if ($entry === null) {
+            $rows = $this->entries->publishedForContentTypePaged($type->id, 1, 1);
+            if ($rows !== []) {
+                $entry = \App\Content\ContentEntry::fromRow($rows[0]);
+            }
+        }
+        if ($entry === null) {
+            return ['type' => $type, 'entry' => null, 'fields' => [], 'featured_url' => ''];
+        }
+
+        $fields = new ContentFieldRepository($this->pdo);
+        $values = new ContentEntryValueRepository($this->pdo);
+        $mediaUrls = new MediaUrlHelper($this->pdo);
+
+        $fieldList = $fields->forTypeOrdered($type->id);
+        $valueMap = $values->valuesByFieldIdForEntry($entry->id);
+        $byKey = [];
+        foreach ($fieldList as $field) {
+            $byKey[$field->fieldKey] = (string) ($valueMap[$field->id] ?? '');
+        }
+
+        $featuredUrl = '';
+        if ($entry->featuredImageId !== null) {
+            $featuredUrl = $mediaUrls->pathForId($entry->featuredImageId);
+        }
+
+        return [
+            'type' => $type,
+            'entry' => $entry,
+            'fields' => $byKey,
+            'featured_url' => $featuredUrl,
         ];
     }
 }

@@ -526,7 +526,8 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             $activity,
             $permDelete,
             $pdo,
-            $viewData
+            $viewData,
+            $fieldFormContext
         ): void {
         $g->get('/content-types/new', function (Request $request, Response $response) use ($twig, $adminContext, $withCmsUser): Response {
             return $twig->render($response, 'admin/content/types/form.twig', $withCmsUser($request, array_merge($adminContext(), [
@@ -543,6 +544,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                     'supports_seo' => false,
                     'supports_featured_image' => false,
                     'supports_block_builder' => true,
+                    'comments_disabled' => false,
                 ],
             ])));
         })->setName('admin.content_types.new');
@@ -570,9 +572,9 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 $v['has_public_route'],
                 $v['supports_seo'],
                 $v['supports_featured_image'],
-                $v['supports_block_builder']
+                $v['supports_block_builder'],
+                $v['comments_disabled'],
             );
-            Flash::set('success', 'Content type created.');
             Events::dispatch(new StorefrontCachesInvalidateEvent('content_type_created'));
 
             return $response
@@ -626,7 +628,8 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 $v['has_public_route'],
                 $v['supports_seo'],
                 $v['supports_featured_image'],
-                $v['supports_block_builder']
+                $v['supports_block_builder'],
+                $v['comments_disabled'],
             );
             $redirectCount = 0;
             if ($oldTypeSlug !== $slug) {

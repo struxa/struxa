@@ -1,0 +1,190 @@
+{# Vision blog archive — featured latest + grid + sidebar. #}
+{% set _title = theme_settings.blog_archive_title|default('')|trim %}
+{% if _title == '' %}
+  {% set _title = content_index_title|default(content_type.name)|trim %}
+  {% if _title|lower == 'blog post' %}{% set _title = 'Blog' %}{% endif %}
+{% endif %}
+{% set _lead = theme_settings.blog_archive_lead|default('')|trim %}
+{% if _lead == '' %}
+  {% set _lead = content_index_description|default('')|trim %}
+{% endif %}
+{% set _read = theme_settings.blog_read_more_label|default('Read article')|trim %}
+{% set _index_url = url_for('public.content_type_index', { typeSlug: content_type.slug }) %}
+{% set _show_featured = index_page|default(1) == 1 and index_entries is not empty %}
+{% set _grid_entries = _show_featured ? index_entries|slice(1) : index_entries %}
+
+<nav class="st-breadcrumb" aria-label="Breadcrumb">
+  <ol class="st-breadcrumb__list" role="list">
+    <li><a href="{{ site_url }}/">Home</a></li>
+    <li aria-current="page"><span>{{ _title|e }}</span></li>
+  </ol>
+</nav>
+
+<div class="st-blog-index">
+  <header class="st-blog-index__head">
+    <div class="st-blog-index__head-copy">
+      <p class="st-eyebrow">Editorial</p>
+      <h1 class="st-blog-index__title">{{ _title|e }}</h1>
+      {% if _lead != '' %}
+        <p class="st-blog-index__lead">{{ _lead|e }}</p>
+      {% endif %}
+    </div>
+    {% if index_total|default(0) > 0 %}
+      <p class="st-blog-index__stat">
+        <span class="st-blog-index__stat-num">{{ index_total|e }}</span>
+        <span class="st-blog-index__stat-label">{{ index_total == 1 ? 'Article' : 'Articles' }}</span>
+      </p>
+    {% endif %}
+  </header>
+
+  <div class="st-blog-index__layout">
+    <div class="st-blog-index__main">
+      {% if index_entries is empty %}
+        <p class="st-blog-index__empty">No posts yet. Import the blog showcase blueprint or publish your first entry.</p>
+      {% else %}
+        {% if _show_featured %}
+          {% set _feat = index_entries|first %}
+          {% set _frow = _feat.row %}
+          {% set _furl = url_for('public.content_entry', { typeSlug: content_type.slug, entrySlug: _frow.slug }) %}
+          <article class="st-blog-featured">
+            <a class="st-blog-featured__link" href="{{ _furl|e('html_attr') }}">
+              <div class="st-blog-featured__media" aria-hidden="true">
+                {% if _feat.featured_url|default('')|trim != '' %}
+                  <img
+                    class="st-blog-featured__img"
+                    src="{{ _feat.featured_url|e('html_attr') }}"
+                    alt=""
+                    width="1200"
+                    height="630"
+                    loading="eager"
+                    decoding="async"
+                    fetchpriority="high"
+                  />
+                {% else %}
+                  <div class="st-blog-featured__placeholder">
+                    <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                      <rect x="8" y="12" width="48" height="40" rx="8" stroke="currentColor" stroke-width="2" opacity="0.35" />
+                      <path d="M14 48 L28 34 L36 42 L46 32" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.4" />
+                    </svg>
+                  </div>
+                {% endif %}
+                <div class="st-blog-featured__scrim"></div>
+              </div>
+              <div class="st-blog-featured__body">
+                <p class="st-blog-featured__eyebrow">Latest</p>
+                {% if _frow.published_at|default('')|trim != '' %}
+                  <time class="st-blog-featured__date" datetime="{{ _frow.published_at|e('html_attr') }}">{{ _frow.published_at|date('M j, Y') }}</time>
+                {% endif %}
+                <h2 class="st-blog-featured__title">{{ _frow.title|e }}</h2>
+                {% if _feat.excerpt_plain|default('')|trim != '' %}
+                  <p class="st-blog-featured__excerpt">{{ _feat.excerpt_plain|e }}</p>
+                {% endif %}
+                <span class="st-blog-featured__cta">{{ _read|e }} →</span>
+              </div>
+            </a>
+          </article>
+        {% endif %}
+
+        {% if _grid_entries is not empty %}
+          <ul class="st-blog-index__grid" role="list">
+            {% for item in _grid_entries %}
+              {% set row = item.row %}
+              {% set _url = url_for('public.content_entry', { typeSlug: content_type.slug, entrySlug: row.slug }) %}
+              <li>
+                <article class="st-blog-index__card">
+                  <a class="st-blog-index__card-link" href="{{ _url|e('html_attr') }}">
+                    <div class="st-blog-index__card-media" aria-hidden="true">
+                      {% if item.featured_url|default('')|trim != '' %}
+                        <img
+                          class="st-blog-index__card-img"
+                          src="{{ item.featured_url|e('html_attr') }}"
+                          alt=""
+                          width="640"
+                          height="360"
+                          loading="lazy"
+                          decoding="async"
+                        />
+                      {% else %}
+                        <div class="st-blog-index__card-placeholder">
+                          <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                            <rect x="6" y="10" width="36" height="28" rx="4" stroke="currentColor" stroke-width="2" />
+                            <path d="M10 32l8-8 6 6 8-10 6 12H10z" stroke="currentColor" stroke-width="2" stroke-linejoin="round" />
+                          </svg>
+                        </div>
+                      {% endif %}
+                    </div>
+                    <div class="st-blog-index__card-body">
+                      {% if row.published_at|default('')|trim != '' %}
+                        <time class="st-blog-index__card-date" datetime="{{ row.published_at|e('html_attr') }}">{{ row.published_at|date('M j, Y') }}</time>
+                      {% endif %}
+                      <h2 class="st-blog-index__card-title">{{ row.title|e }}</h2>
+                      {% if item.excerpt_plain|default('')|trim != '' %}
+                        <p class="st-blog-index__card-excerpt">{{ item.excerpt_plain|e }}</p>
+                      {% endif %}
+                      <span class="st-blog-index__card-cta">{{ _read|e }} →</span>
+                    </div>
+                  </a>
+                </article>
+              </li>
+            {% endfor %}
+          </ul>
+        {% endif %}
+
+        {% if index_total_pages|default(1) > 1 %}
+          <nav class="st-blog-index__pager" aria-label="Pagination">
+            {% if index_page > 1 %}
+              <a class="st-btn st-btn--outline st-blog-index__pager-step" rel="prev" href="{{ _index_url }}?page={{ index_page - 1 }}">← Newer</a>
+            {% else %}
+              <span class="st-btn st-btn--outline st-blog-index__pager-step st-blog-index__pager-step--disabled">← Newer</span>
+            {% endif %}
+
+            <ol class="st-blog-index__pager-pages" role="list">
+              {% for item in index_pager_items|default([]) %}
+                {% if item == '…' %}
+                  <li class="st-blog-index__pager-ellipsis" aria-hidden="true"><span>…</span></li>
+                {% else %}
+                  <li>
+                    {% if item == index_page %}
+                      <span class="st-blog-index__pager-num is-current" aria-current="page">{{ item }}</span>
+                    {% else %}
+                      <a class="st-blog-index__pager-num" href="{{ _index_url }}{{ item > 1 ? '?page=' ~ item : '' }}">{{ item }}</a>
+                    {% endif %}
+                  </li>
+                {% endif %}
+              {% endfor %}
+            </ol>
+
+            {% if index_page < index_total_pages %}
+              <a class="st-btn st-btn--outline st-blog-index__pager-step" rel="next" href="{{ _index_url }}?page={{ index_page + 1 }}">Older →</a>
+            {% else %}
+              <span class="st-btn st-btn--outline st-blog-index__pager-step st-blog-index__pager-step--disabled">Older →</span>
+            {% endif %}
+          </nav>
+        {% endif %}
+      {% endif %}
+    </div>
+
+    <aside class="st-blog-index__sidebar" aria-label="Blog sidebar">
+      {% include 'partials/blog_sidebar_comments.twig' with { limit: 5 } %}
+
+      <div class="st-blog-index__sidebar-panel">
+        <h2 class="st-blog-index__sidebar-title">Stay in the loop</h2>
+        <p class="st-blog-index__sidebar-lead">{{ theme_settings.blog_news_lead|default('Latest articles and updates from the team.')|e }}</p>
+        {% set _cta_url = theme_settings.footer_cta_url|default('')|trim %}
+        {% if _cta_url == '' %}{% set _cta_url = url_for('register') %}{% endif %}
+        <a class="st-btn st-btn--primary st-btn--block" href="{{ _cta_url|e('html_attr') }}">
+          {{ theme_settings.footer_cta_label|default('Schedule a Consultation')|e }}
+        </a>
+      </div>
+      {% if index_total|default(0) > 0 %}
+        <div class="st-blog-index__sidebar-panel st-blog-index__sidebar-panel--muted">
+          <h2 class="st-blog-index__sidebar-title">Archive</h2>
+          <p class="st-blog-index__sidebar-meta">
+            Page {{ index_page|default(1) }} of {{ index_total_pages|default(1) }}
+            · {{ index_total|e }} {{ index_total == 1 ? 'post' : 'posts' }} total
+          </p>
+        </div>
+      {% endif %}
+    </aside>
+  </div>
+</div>

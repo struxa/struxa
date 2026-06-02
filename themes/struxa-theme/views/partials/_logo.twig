@@ -1,0 +1,14 @@
+{# Theme default: Struxa Point wordmark. Site settings → logo overrides when set. #}
+{% set _logo_src = settings.logo_href|default('')|trim %}
+{% if _logo_src == '' %}
+  {% set _logo_src = theme_asset('images/struxapoint-logo.png') %}
+{% endif %}
+<img
+  class="{{ logo_class|default('st-brand__logo')|e('html_attr') }}"
+  src="{{ _logo_src|e('html_attr') }}"
+  alt="{{ settings.site_name|default('Struxa Point')|e('html_attr') }}"
+  width="400"
+  height="85"
+  loading="{{ logo_loading|default('eager')|e('html_attr') }}"
+  decoding="async"
+/>

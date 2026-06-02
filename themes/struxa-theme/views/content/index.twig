@@ -1,0 +1,21 @@
+{% extends 'layouts/base.twig' %}
+
+{% block title %}{{ content_type.name|e }} — {{ settings.site_name|e }}{% endblock %}
+{% block canonical_href %}{{ site_url }}/{{ content_type.slug }}{% endblock %}
+
+{% block body %}
+<main id="main-content" class="st-page">
+  <div class="st-page__inner">
+    {% include 'content/_index_grid.twig' with {
+      eyebrow_label: content_type.name,
+      blog_archive_title: content_type.name,
+      content_index_description: content_type.description|default(''),
+      empty_message: 'No entries published yet.',
+      read_more_label: 'Read more',
+      newer_label: 'Newer',
+      older_label: 'Older',
+      card_tag_fallback: 'Article',
+    } %}
+  </div>
+</main>
+{% endblock %}

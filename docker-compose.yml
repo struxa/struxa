@@ -31,6 +31,7 @@ services:
       - ./bootstrap:/var/www/html/bootstrap
       - ./src:/var/www/html/src
       - ./bin:/var/www/html/bin
+      - ./database/migrations:/var/www/html/database/migrations
       - ./public/js:/var/www/html/public/js
       - ./public/css:/var/www/html/public/css
       # Mount themes from the host so CSS/JS changes apply without rebuilding the image
@@ -49,6 +50,8 @@ services:
       DB_USER: studio
       DB_PASS: studio
       PHPAUTH_SITE_URL: http://localhost:3439
+      # Local dev: publish comments immediately (production should omit or set 0 and use Admin → Comments)
+      CMS_COMMENTS_AUTO_APPROVE: "1"
     depends_on:
       mysql:
         condition: service_healthy

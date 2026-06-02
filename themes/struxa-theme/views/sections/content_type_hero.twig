@@ -1,0 +1,110 @@
+{# Vision hero — data from a Homepage hero content entry (content_type_entry). #}
+{% set _type_slug = section.content_type_slug|default('homepage-hero')|trim %}
+{% set _entry_slug = section.entry_slug|default('main')|trim %}
+{% set pack = content_type_entry(_type_slug, _entry_slug) %}
+{% set f = pack.fields|default({}) %}
+{% set entry = pack.entry %}
+{% if entry %}
+  {% set _headline = f.headline|default('')|trim != '' ? f.headline : entry.title %}
+  {% set _lead = f.lead|default('')|trim %}
+  {% set _img = pack.featured_url|default('')|trim %}
+  {% if _img == '' and section.fallback_image|default('')|trim != '' %}
+    {% set _img = theme_asset(section.fallback_image|trim) %}
+  {% endif %}
+  {% set _primary_label = f.primary_cta_label|default('')|trim %}
+  {% set _primary_url = f.primary_cta_url|default('')|trim %}
+  {% if _primary_url == '' %}
+    {% set _primary_url = url_for('register') %}
+  {% endif %}
+  {% if _primary_label == '' %}
+    {% set _primary_label = theme_settings.hero_primary_label|default('Get started') %}
+  {% endif %}
+  <section class="st-hero" data-section="content_type_hero">
+    <div class="st-hero__inner">
+      <div class="st-hero__grid">
+        <div class="st-hero__copy">
+          {% if f.badge_1|default('')|trim != '' or f.badge_2|default('')|trim != '' %}
+            <div class="st-badges">
+              {% if f.badge_1|default('')|trim != '' %}
+                <span class="st-badge">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+                  {{ f.badge_1|e }}
+                </span>
+              {% endif %}
+              {% if f.badge_2|default('')|trim != '' %}
+                <span class="st-badge">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+                  {{ f.badge_2|e }}
+                </span>
+              {% endif %}
+            </div>
+          {% endif %}
+
+          <h1 class="st-hero__title">{{ _headline|e }}</h1>
+
+          {% if _lead != '' %}
+            <p class="st-hero__lead">{{ _lead|e|nl2br }}</p>
+          {% endif %}
+
+          {% set _proof_raw = f.hero_highlights|default(theme_settings.hero_highlights|default('Open source|Twig themes|Blueprints'))|trim %}
+          {% set _proof_items = _proof_raw != '' ? _proof_raw|split('|') : [] %}
+
+          <div class="st-hero__actions">
+            <div class="st-hero__cta-row">
+              <a class="st-btn st-btn--primary st-btn--lg" href="{{ _primary_url|e('html_attr') }}">
+                {{ _primary_label|e }}
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M7 17 17 7M17 7H9M17 7v8"/></svg>
+              </a>
+              {% if f.secondary_cta_label|default('')|trim != '' and f.secondary_cta_url|default('')|trim != '' %}
+                <a class="st-btn st-btn--outline st-btn--lg" href="{{ f.secondary_cta_url|e('html_attr') }}">{{ f.secondary_cta_label|e }}</a>
+              {% endif %}
+            </div>
+
+            {% if _proof_items is not empty %}
+              <div class="st-hero__proof" aria-label="Highlights">
+                <div class="st-hero__proof-shine" aria-hidden="true"></div>
+                <ul class="st-hero__highlights" role="list">
+                  {% for item in _proof_items|slice(0, 3) %}
+                    {% set _label = item|trim %}
+                    {% if _label != '' %}
+                      <li class="st-hero__highlight" style="--st-highlight-i: {{ loop.index0 }}">
+                        <span class="st-hero__highlight-icon" aria-hidden="true">
+                          {% if loop.index == 1 %}
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 18 4.77 5.07 5.07 0 0 0 17.91 1S16.73.65 12 2.48a11.5 11.5 0 0 0-7 0C.27.65-.09 1-.09 1A5.07 5.07 0 0 0 0 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 4 18.13V22"/></svg>
+                          {% elseif loop.index == 2 %}
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2 2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+                          {% else %}
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg>
+                          {% endif %}
+                        </span>
+                        <span class="st-hero__highlight-text">{{ _label|e }}</span>
+                      </li>
+                    {% endif %}
+                  {% endfor %}
+                </ul>
+              </div>
+            {% endif %}
+          </div>
+        </div>
+
+        {% set _visual = section.hero_visual|default('animation')|trim %}
+        {% if _visual == 'image' and _img != '' %}
+          <div class="st-hero__visual">
+            <img
+              class="st-hero__illustration"
+              src="{{ _img|e('html_attr') }}"
+              alt=""
+              width="1024"
+              height="960"
+              loading="eager"
+              decoding="async"
+              fetchpriority="high"
+            />
+          </div>
+        {% else %}
+          {% include 'partials/hero_scene.twig' %}
+        {% endif %}
+      </div>
+    </div>
+  </section>
+{% endif %}

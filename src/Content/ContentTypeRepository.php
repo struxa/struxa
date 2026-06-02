@@ -87,12 +87,13 @@ final class ContentTypeRepository
         bool $hasPublicRoute,
         bool $supportsSeo,
         bool $supportsFeaturedImage,
-        bool $supportsBlockBuilder = true
+        bool $supportsBlockBuilder = true,
+        bool $commentsDisabled = false,
     ): int {
         $stmt = $this->pdo->prepare(
             'INSERT INTO ' . self::TABLE . '
-            (name, slug, icon, description, has_public_route, supports_seo, supports_featured_image, supports_block_builder)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+            (name, slug, icon, description, has_public_route, supports_seo, supports_featured_image, supports_block_builder, comments_disabled)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
         );
         $stmt->execute([
             $name,
@@ -103,6 +104,7 @@ final class ContentTypeRepository
             $supportsSeo ? 1 : 0,
             $supportsFeaturedImage ? 1 : 0,
             $supportsBlockBuilder ? 1 : 0,
+            $commentsDisabled ? 1 : 0,
         ]);
 
         return (int) $this->pdo->lastInsertId();
@@ -117,11 +119,12 @@ final class ContentTypeRepository
         bool $hasPublicRoute,
         bool $supportsSeo,
         bool $supportsFeaturedImage,
-        bool $supportsBlockBuilder
+        bool $supportsBlockBuilder,
+        bool $commentsDisabled = false,
     ): void {
         $stmt = $this->pdo->prepare(
             'UPDATE ' . self::TABLE . ' SET name = ?, slug = ?, icon = ?, description = ?,
-             has_public_route = ?, supports_seo = ?, supports_featured_image = ?, supports_block_builder = ? WHERE id = ?'
+             has_public_route = ?, supports_seo = ?, supports_featured_image = ?, supports_block_builder = ?, comments_disabled = ? WHERE id = ?'
         );
         $stmt->execute([
             $name,
@@ -132,6 +135,7 @@ final class ContentTypeRepository
             $supportsSeo ? 1 : 0,
             $supportsFeaturedImage ? 1 : 0,
             $supportsBlockBuilder ? 1 : 0,
+            $commentsDisabled ? 1 : 0,
             $id,
         ]);
     }

@@ -1,0 +1,49 @@
+<section class="st-archive" aria-label="{{ content_type.name|e('html_attr') }}">
+  <header class="st-archive__head">
+    <p class="st-eyebrow">{{ eyebrow_label|e }}</p>
+    <h1 class="st-archive__title">{{ blog_archive_title|default(content_type.name)|e }}</h1>
+    {% if content_index_description|default('')|trim != '' %}
+      <p class="st-archive__intro">{{ content_index_description|e }}</p>
+    {% endif %}
+  </header>
+
+  {% if index_entries is empty %}
+    <p class="st-archive__empty">{{ empty_message|e }}</p>
+  {% else %}
+    <div class="st-cards">
+      {% for item in index_entries %}
+        {% set row = item.row %}
+        <article class="st-card">
+          {% if item.featured_url %}
+            <a class="st-card__thumb" href="{{ site_url }}/{{ content_type.slug|e }}/{{ row.slug|e }}" tabindex="-1" aria-hidden="true">
+              <img src="{{ item.featured_url|e('html_attr') }}" alt="" loading="lazy" decoding="async" />
+            </a>
+          {% endif %}
+          <div class="st-card__body">
+            {% if row.published_at %}
+              <time class="st-card__date" datetime="{{ row.published_at|e('html_attr') }}">{{ row.published_at|e }}</time>
+            {% endif %}
+            <h2 class="st-card__title"><a href="{{ site_url }}/{{ content_type.slug|e }}/{{ row.slug|e }}">{{ row.title|e }}</a></h2>
+            {% if item.excerpt_plain|default('')|trim != '' %}
+              <p class="st-card__excerpt">{{ item.excerpt_plain|e }}</p>
+            {% endif %}
+            <a class="st-card__link" href="{{ site_url }}/{{ content_type.slug|e }}/{{ row.slug|e }}">{{ read_more_label|e }}</a>
+          </div>
+        </article>
+      {% endfor %}
+    </div>
+
+    {% if not archive_hide_pager|default(false) and index_total_pages|default(1) > 1 %}
+      {% set _pager_base = url_for('public.content_type_index', { typeSlug: content_type.slug }) %}
+      <nav class="st-pager" aria-label="Pagination">
+        {% if index_page > 1 %}
+          <a class="st-btn st-btn--ghost" rel="prev" href="{{ _pager_base }}?page={{ index_page - 1 }}">{{ newer_label|e }}</a>
+        {% endif %}
+        <span class="st-pager__status">Page {{ index_page }} of {{ index_total_pages }}</span>
+        {% if index_page < index_total_pages %}
+          <a class="st-btn st-btn--ghost" rel="next" href="{{ _pager_base }}?page={{ index_page + 1 }}">{{ older_label|e }}</a>
+        {% endif %}
+      </nav>
+    {% endif %}
+  {% endif %}
+</section>

@@ -1,0 +1,83 @@
+{# Latest posts from a public content type (blog/news). Auto-detects journal types when slug is blank. #}
+{% set _enabled = config.blog_news_enabled|default('1')|trim %}
+{% if _enabled != '0' %}
+  {% set _type_slug = config.blog_content_type_slug|default(theme_settings.blog_content_type_slug|default(''))|trim %}
+  {% set _limit_raw = config.blog_news_limit|default(theme_settings.blog_news_limit|default('3'))|trim %}
+  {% if _type_slug != '' %}
+    {% set pack = content_type_cards(_type_slug, _limit_raw) %}
+  {% else %}
+    {% set pack = content_type_cards_journal(_limit_raw) %}
+  {% endif %}
+
+  {% if pack.type and pack.entries is not empty %}
+    {% set _headline = config.blog_news_headline|default(theme_settings.blog_news_headline|default('From the blog'))|trim %}
+    {% set _lead = config.blog_news_lead|default(theme_settings.blog_news_lead|default('Latest articles and updates from the team.'))|trim %}
+    {% set _view_all = config.blog_view_all_label|default(theme_settings.blog_view_all_label|default('View all posts'))|trim %}
+    {% set _read_more = config.blog_read_more_label|default(theme_settings.blog_read_more_label|default('Read article'))|trim %}
+    {% set _index_url = url_for('public.content_type_index', { typeSlug: pack.type.slug }) %}
+
+    <section class="st-blog-news" aria-labelledby="st-blog-news-title" data-section="blog_news">
+      <div class="st-blog-news__head">
+        <div class="st-blog-news__head-copy">
+          <p class="st-blog-news__eyebrow">{{ pack.type.name|e }}</p>
+          {% if _headline != '' %}
+            <h3 class="st-blog-news__title" id="st-blog-news-title">{{ _headline|e }}</h3>
+          {% endif %}
+          {% if _lead != '' %}
+            <p class="st-blog-news__lead">{{ _lead|e }}</p>
+          {% endif %}
+        </div>
+        <a class="st-btn st-btn--outline st-blog-news__view-all" href="{{ _index_url|e('html_attr') }}">
+          {{ _view_all|e }}
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M7 17 17 7M17 7H9M17 7v8"/></svg>
+        </a>
+      </div>
+
+      <ul class="st-blog-news__grid" role="list">
+        {% for item in pack.entries %}
+          {% set row = item.row %}
+          {% set _url = url_for('public.content_entry', { typeSlug: pack.type.slug, entrySlug: row.slug }) %}
+          <li>
+            <article class="st-blog-news__card">
+              <a class="st-blog-news__card-link" href="{{ _url|e('html_attr') }}">
+                <div class="st-blog-news__media" aria-hidden="true">
+                  {% if item.featured_url|default('')|trim != '' %}
+                    <img
+                      class="st-blog-news__img"
+                      src="{{ item.featured_url|e('html_attr') }}"
+                      alt=""
+                      width="640"
+                      height="360"
+                      loading="lazy"
+                      decoding="async"
+                    />
+                  {% else %}
+                    <div class="st-blog-news__placeholder">
+                      <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                        <rect x="6" y="10" width="36" height="28" rx="4" stroke="currentColor" stroke-width="2" />
+                        <circle cx="16" cy="20" r="3" fill="currentColor" opacity="0.35" />
+                        <path d="M10 32l8-8 6 6 8-10 6 12H10z" stroke="currentColor" stroke-width="2" stroke-linejoin="round" />
+                      </svg>
+                    </div>
+                  {% endif %}
+                </div>
+                <div class="st-blog-news__body">
+                  {% if row.published_at|default('')|trim != '' %}
+                    <time class="st-blog-news__date" datetime="{{ row.published_at|e('html_attr') }}">
+                      {{ row.published_at|date('M j, Y') }}
+                    </time>
+                  {% endif %}
+                  <h4 class="st-blog-news__card-title">{{ row.title|e }}</h4>
+                  {% if item.excerpt_plain|default('')|trim != '' %}
+                    <p class="st-blog-news__excerpt">{{ item.excerpt_plain|e }}</p>
+                  {% endif %}
+                  <span class="st-blog-news__cta">{{ _read_more|e }} →</span>
+                </div>
+              </a>
+            </article>
+          </li>
+        {% endfor %}
+      </ul>
+    </section>
+  {% endif %}
+{% endif %}

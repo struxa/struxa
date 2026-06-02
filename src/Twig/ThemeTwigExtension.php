@@ -48,7 +48,7 @@ final class ThemeTwigExtension extends AbstractExtension
                         if (is_string($minPath) && $minPath !== $path) {
                             $minSeg = ThemeFilesystem::safeRelativePathSegments($minPath);
                             if ($minSeg !== []) {
-                                $assetsRoot = $this->themes->assetsPathForSlug($this->themes->activeSlug());
+                                $assetsRoot = $this->themes->assetsPathForActive();
                                 if ($assetsRoot !== null) {
                                     $minFs = $assetsRoot . DIRECTORY_SEPARATOR . implode(DIRECTORY_SEPARATOR, $minSeg);
                                     if (is_file($minFs)) {
@@ -70,7 +70,7 @@ final class ThemeTwigExtension extends AbstractExtension
                     // is opened via 127.0.0.1 vs localhost (stylesheet appears to "not load").
                     $url = ThemeHttpConfig::assetPath($encoded);
 
-                    $assetsRoot = $this->themes->assetsPathForSlug($this->themes->activeSlug());
+                    $assetsRoot = $this->themes->assetsPathForActive();
                     if ($assetsRoot !== null) {
                         $fsPath = $assetsRoot . DIRECTORY_SEPARATOR . implode(DIRECTORY_SEPARATOR, $segments);
                         if (is_file($fsPath)) {

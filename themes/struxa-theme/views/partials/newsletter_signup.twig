@@ -1,0 +1,49 @@
+{# Vision: inline mailing-list signup via Struxa Forms. #}
+{% set _slug = config.form_slug|default('newsletter-signup')|trim %}
+{% set _title = config.title|default('Join our mailing list')|trim %}
+{% set _lead = config.lead|default('')|trim %}
+{% set _footnote = config.footnote|default('')|trim %}
+{% set _show_link = config.show_form_link|default('1')|trim != '0' %}
+
+{% if _slug != '' %}
+  {% set bundle = forms_embed_bundle(_slug) %}
+  <section class="st-newsletter" aria-labelledby="st-newsletter-title" data-section="vision_newsletter">
+    <div class="st-newsletter__inner">
+      <div class="st-newsletter__copy">
+        {% if _title != '' %}
+          <h3 class="st-newsletter__title" id="st-newsletter-title">{{ _title|e }}</h3>
+        {% endif %}
+        {% if _lead != '' %}
+          <p class="st-newsletter__lead">{{ _lead|e }}</p>
+        {% endif %}
+      </div>
+
+      <div class="st-newsletter__form-col">
+        {% if bundle is null %}
+          <p class="st-newsletter__missing">Publish a form with slug <code>{{ _slug|e }}</code> in Admin → Forms.</p>
+        {% else %}
+          <link rel="stylesheet" href="{{ asset('css/forms-public.css') }}" />
+          <div class="st-newsletter__form">
+            {% include 'public/forms/_form_fields.twig' with {
+              form: bundle.form,
+              fields: bundle.fields,
+              action_url: url_for('public.forms.submit', { slug: _slug }),
+              return_to: '',
+              flash_error: flash_error|default(''),
+              flash_success: flash_success|default(''),
+              section: { title: '', lead: '' }
+            } only %}
+          </div>
+          {% if _footnote != '' %}
+            <p class="st-newsletter__footnote">{{ _footnote|e }}</p>
+          {% endif %}
+          {% if _show_link %}
+            <p class="st-newsletter__form-link">
+              <a href="{{ url_for('public.forms.show', { slug: _slug }) }}">Open full signup form</a>
+            </p>
+          {% endif %}
+        {% endif %}
+      </div>
+    </div>
+  </section>
+{% endif %}

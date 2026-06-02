@@ -1,0 +1,95 @@
+{# Centered features grid — badges, headline, three cards with soft CTA pills. #}
+{% set _enabled = config.features_enabled|default(theme_settings.features_enabled|default('1'))|trim %}
+{% if _enabled != '0' %}
+  {% set _badge_1 = config.features_badge_1|default(theme_settings.features_badge_1|default('Content types'))|trim %}
+  {% set _badge_2 = config.features_badge_2|default(theme_settings.features_badge_2|default('Themes & plugins'))|trim %}
+  {% set _headline = config.features_headline|default(theme_settings.features_headline|default('Tailored solutions for teams who ship on Struxa.'))|trim %}
+  {% set _lead = config.features_lead|default(theme_settings.features_lead|default('Structured content, an editor-friendly admin, and themes you own — without wrestling plugins or rebuilding from scratch every launch.'))|trim %}
+  {% set _items = config.features_items_json|default([]) %}
+  {% if _items is empty %}
+    {% set _items = [
+      {
+        title: 'Structured content types',
+        body: 'Define fields once — excerpts, media, taxonomies — and publish to the site, APIs, or downstream tools without copy-pasting between spreadsheets.',
+        cta_label: 'Explore content types',
+        cta_url: '/blog'
+      },
+      {
+        title: 'Themes & plugins',
+        body: 'Ship Twig themes and installable plugins from a catalog. Extend the admin, add commerce, or drop in SEO without forking the core.',
+        cta_label: 'Browse the catalog',
+        cta_url: 'https://github.com/struxa/struxa'
+      },
+      {
+        title: 'Blueprints & migrations',
+        body: 'Seed content types, sample entries, pages, and menus in one import. Version your schema with SQL migrations instead of fragile database clones.',
+        cta_label: 'See how blueprints work',
+        cta_url: '/register'
+      }
+    ] %}
+  {% endif %}
+
+  <section class="st-features" aria-labelledby="st-features-title" data-section="features_showcase">
+    <div class="st-features__intro">
+      {% if _badge_1 != '' or _badge_2 != '' %}
+        <div class="st-badges st-features__badges">
+          {% if _badge_1 != '' %}
+            <span class="st-badge">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+              {{ _badge_1|e }}
+            </span>
+          {% endif %}
+          {% if _badge_2 != '' %}
+            <span class="st-badge">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+              {{ _badge_2|e }}
+            </span>
+          {% endif %}
+        </div>
+      {% endif %}
+      {% if _headline != '' %}
+        <h3 class="st-features__title" id="st-features-title">{{ _headline|e }}</h3>
+      {% endif %}
+      {% if _lead != '' %}
+        <p class="st-features__lead">{{ _lead|e }}</p>
+      {% endif %}
+    </div>
+
+    {% if _items is not empty %}
+      <ul class="st-features__grid" role="list">
+        {% for item in _items|slice(0, 6) %}
+          {% set _title = item.title|default('')|trim %}
+          {% set _body = item.body|default('')|trim %}
+          {% set _cta = item.cta_label|default('')|trim %}
+          {% set _url = item.cta_url|default('')|trim %}
+          {% if _title != '' %}
+            <li>
+              <article class="st-features__card">
+                <h4 class="st-features__card-title">{{ _title|e }}</h4>
+                {% if _body != '' %}
+                  <p class="st-features__card-body">{{ _body|e }}</p>
+                {% endif %}
+                {% if _cta != '' and _url != '' %}
+                  {% set _href = _url %}
+                  {% if _href matches '/^https?:\\/\\//i' %}
+                    {# external #}
+                  {% elseif _href|slice(0, 1) != '/' %}
+                    {% set _href = '/' ~ _href %}
+                  {% endif %}
+                  <a
+                    class="st-features__cta"
+                    href="{{ _href|e('html_attr') }}"
+                    {% if _url matches '/^https?:\\/\\//i' %}target="_blank" rel="noopener noreferrer"{% endif %}
+                  >
+                    {{ _cta|e }}
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M7 17 17 7M17 7H9M17 7v8"/></svg>
+                  </a>
+                {% endif %}
+              </article>
+            </li>
+          {% endif %}
+        {% endfor %}
+      </ul>
+    {% endif %}
+  </section>
+{% endif %}

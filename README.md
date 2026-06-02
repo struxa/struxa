@@ -1,6 +1,6 @@
 # Struxa CMS
 
-**Version:** 1.1.65 (canonical: `composer.json` → `version`)
+**Version:** 1.1.66 (canonical: `composer.json` → `version`)
 
 PHP content management on **Slim 4** and **Twig**: custom content types, storefront themes, admin UI, media library, SEO tools, optional **AI writing assistant**, headless **JSON/GraphQL** API, and **plugins**.
 
@@ -85,7 +85,7 @@ Run **`composer test`** (and **`composer phpstan`** locally) before pushing; CI 
 ## Deployment notes
 
 - Never commit **`.env`** or **`public/uploads/`** user media; use **`.env.example`** as a template.
-- **Plugins** and **non-default themes** are not in this git repo; install from **Admin → Browse catalog** (`struxa-dist/` + struxapoint.com). Only **`themes/default/`** ships with core.
+- **Plugins** are not in this git repo; install from **Admin → Browse catalog** (`struxa-dist/` + struxapoint.com). Core ships **`themes/default/`** and **`themes/struxa-theme/`**.
 - For a file bundle aimed at FTP merges, see **`scripts/build-safe-update-zip.sh`** and **`scripts/FTP_UPDATE_README.txt`**.
 
 ## Documentation

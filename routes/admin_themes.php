@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Access\PermissionSlug;
+use App\Dist\PackageZipUploadReader;
 use App\Event\Events;
 use App\Event\StorefrontCachesInvalidateEvent;
 use App\Flash;
@@ -107,6 +108,29 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 ->withHeader('Location', $parser->urlFor('admin.themes.index'))
                 ->withStatus(302);
         })->setName('admin.themes.install_from_catalog');
+
+        $group->post('/themes/install-upload', function (Request $request, Response $response) use ($remoteInstaller): Response {
+            $parser = RouteContext::fromRequest($request)->getRouteParser();
+            $backBrowse = $parser->urlFor('admin.themes.browse');
+            $uploaded = PackageZipUploadReader::read($request->getUploadedFiles(), 35_000_000);
+            if ($uploaded['ok'] !== true) {
+                Flash::set('error', $uploaded['error']);
+
+                return $response->withHeader('Location', $backBrowse)->withStatus(302);
+            }
+            $err = $remoteInstaller->installFromZipBody($uploaded['body']);
+            if ($err !== null) {
+                Flash::set('error', $err);
+
+                return $response->withHeader('Location', $backBrowse)->withStatus(302);
+            }
+            Flash::set('success', 'Theme installed from upload. You can activate it from the themes list.');
+            Events::dispatch(new StorefrontCachesInvalidateEvent('theme_installed_upload'));
+
+            return $response
+                ->withHeader('Location', $parser->urlFor('admin.themes.index'))
+                ->withStatus(302);
+        })->setName('admin.themes.install_upload');
 
         $group->post('/themes/activate', function (Request $request, Response $response) use ($themes, $settingsRepo, $pdo): Response {
             $body = $request->getParsedBody();

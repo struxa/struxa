@@ -72,6 +72,60 @@ final class StruxaDistCatalogClient
     }
 
     /**
+     * Theme and plugin counts for the storefront GitHub showcase.
+     * Prefers the full dist catalog (on-disk repo.json, STRUXA_DIST_CATALOG_URL, default URL)
+     * so a theme-only STRUXA_THEME_CATALOG_URL override does not hide plugin counts.
+     *
+     * @return array{themes: int, plugins: int}
+     */
+    public function loadShowcaseCounts(): array
+    {
+        $data = $this->loadShowcaseCatalogData();
+
+        return [
+            'themes' => is_array($data['themes'] ?? null) ? count($data['themes']) : 0,
+            'plugins' => is_array($data['plugins'] ?? null) ? count($data['plugins']) : 0,
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function loadShowcaseCatalogData(): array
+    {
+        $json = $this->readPublishedCatalogFromDisk();
+        if ($json === null || $json === '') {
+            $url = trim((string) ($_ENV['STRUXA_DIST_CATALOG_URL'] ?? getenv('STRUXA_DIST_CATALOG_URL') ?: ''));
+            if ($url === '') {
+                $url = self::DEFAULT_CATALOG_URL;
+            }
+            if ($url !== '' && str_starts_with($url, 'https://')) {
+                $json = $this->httpGetLimited($url, self::MAX_BYTES);
+            }
+        }
+        if ($json === null || $json === '') {
+            $json = $this->readLocalFallback();
+        }
+        if ($json === null || $json === '') {
+            $loaded = $this->loadCatalog();
+            if (!$loaded['ok']) {
+                return [];
+            }
+
+            return $loaded['data'];
+        }
+
+        try {
+            /** @var mixed $data */
+            $data = json_decode($json, true, 512, JSON_THROW_ON_ERROR);
+        } catch (\JsonException) {
+            return [];
+        }
+
+        return is_array($data) ? $data : [];
+    }
+
+    /**
      * When the CMS and catalog share a host, HTTP self-fetch often fails; read the published file instead.
      */
     private function readPublishedCatalogFromDisk(): ?string

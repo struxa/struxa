@@ -1,0 +1,31 @@
+{# Manual ZIP install for themes or plugins. #}
+<section class="admin-card admin-settings-card admin-package-upload" id="install-zip">
+  <h2 class="admin-settings-card-title">{{ title|default('Install from ZIP')|e }}</h2>
+  <p class="admin-settings-card-desc">
+    {{ description|default('Upload a package ZIP manually. The archive must contain a valid manifest at the root or in a single top-level folder.')|e }}
+  </p>
+  <form
+    method="post"
+    action="{{ upload_action|e('html_attr') }}"
+    enctype="multipart/form-data"
+    class="admin-form admin-package-upload__form"
+  >
+    <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+    <div class="admin-field admin-field--full">
+      <label class="admin-label" for="{{ field_id|default('package_zip')|e('html_attr') }}">{{ file_label|default('Package ZIP')|e }}</label>
+      <input
+        type="file"
+        id="{{ field_id|default('package_zip')|e('html_attr') }}"
+        name="package_zip"
+        accept=".zip,application/zip"
+        required
+      />
+      {% if max_mb|default(0) > 0 %}
+        <p class="admin-hint admin-package-upload__hint">Maximum size: {{ max_mb|e }} MB.</p>
+      {% endif %}
+    </div>
+    <div class="admin-form-actions">
+      <button type="submit" class="admin-btn-primary">{{ submit_label|default('Upload and install')|e }}</button>
+    </div>
+  </form>
+</section>

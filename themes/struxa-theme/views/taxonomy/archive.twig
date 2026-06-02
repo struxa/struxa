@@ -1,0 +1,45 @@
+{% extends 'layouts/base.twig' %}
+
+{% block title %}{{ taxonomy_page_title|e }} — {{ settings.site_name|default('Site')|e }}{% endblock %}
+{% block meta_description %}{{ taxonomy_meta_description|default('')|e }}{% endblock %}
+
+{% block body %}
+<main id="main-content" class="st-page">
+  <div class="st-page__inner">
+    <article class="st-article">
+      <p class="st-eyebrow">{{ taxonomy.name|e }} · {{ content_type.name|e }}</p>
+      <h1>{{ taxonomy_term.name|e }}</h1>
+      {% if taxonomy_term.description %}
+        <p class="st-archive__intro">{{ taxonomy_term.description|e }}</p>
+      {% endif %}
+
+      {% if archive_entries is empty %}
+        <p class="st-archive__empty">No published entries in this archive yet.</p>
+      {% else %}
+        <ul class="st-taxonomy-list">
+          {% for row in archive_entries %}
+            <li class="st-taxonomy-list__item">
+              <a href="{{ site_url }}/{{ content_type.slug|e }}/{{ row.slug|e }}">{{ row.title|e }}</a>
+              {% if row.published_at %}
+                <time class="st-taxonomy-list__date" datetime="{{ row.published_at|e('html_attr') }}">{{ row.published_at|e }}</time>
+              {% endif %}
+            </li>
+          {% endfor %}
+        </ul>
+
+        {% if archive_total_pages > 1 %}
+          <nav class="st-pager" aria-label="Pagination">
+            {% if archive_page > 1 %}
+              <a class="st-btn st-btn--ghost" href="{{ url_for('public.taxonomy_archive', { typeSlug: content_type.slug, taxonomySlug: taxonomy.slug, termSlug: taxonomy_term.slug }) }}?page={{ archive_page - 1 }}">Newer</a>
+            {% endif %}
+            <span class="st-pager__status">Page {{ archive_page }} of {{ archive_total_pages }}</span>
+            {% if archive_page < archive_total_pages %}
+              <a class="st-btn st-btn--ghost" href="{{ url_for('public.taxonomy_archive', { typeSlug: content_type.slug, taxonomySlug: taxonomy.slug, termSlug: taxonomy_term.slug }) }}?page={{ archive_page + 1 }}">Older</a>
+            {% endif %}
+          </nav>
+        {% endif %}
+      {% endif %}
+    </article>
+  </div>
+</main>
+{% endblock %}

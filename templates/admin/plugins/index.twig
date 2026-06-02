@@ -30,6 +30,7 @@
     </div>
     <div class="admin-toolbar-actions" style="display:flex;gap:0.5rem;flex-wrap:wrap">
       <a class="admin-btn-primary" href="{{ url_for('admin.extensions.plugins.browse') }}">Browse catalog</a>
+      <a class="admin-btn-ghost" href="{{ url_for('admin.extensions.plugins.browse') }}#install-zip">Upload ZIP</a>
       {% for row in plugin_rows|default([]) %}
         {% if row.discovered.manifest.slug == 'struxa-admin' and row.is_active and struxa_catalog_submissions_url|default(null) %}
           <a class="admin-btn-ghost" href="{{ struxa_catalog_submissions_url }}">Catalog submissions</a>

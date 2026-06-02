@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Access\ActivityLogger;
 use App\Access\PermissionSlug;
+use App\Dist\PackageZipUploadReader;
 use App\Event\Events;
 use App\Event\StorefrontCachesInvalidateEvent;
 use App\Flash;
@@ -244,6 +245,32 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 ->withHeader('Location', $parser->urlFor('admin.extensions.plugins.index'))
                 ->withStatus(302);
         })->setName('admin.extensions.plugins.install_from_catalog');
+
+        $group->post('/extensions/plugins/install-upload', function (Request $request, Response $response) use (
+            $remoteInstaller,
+            $manager
+        ): Response {
+            $parser = RouteContext::fromRequest($request)->getRouteParser();
+            $backBrowse = $parser->urlFor('admin.extensions.plugins.browse');
+            $uploaded = PackageZipUploadReader::read($request->getUploadedFiles(), 45_000_000);
+            if ($uploaded['ok'] !== true) {
+                Flash::set('error', $uploaded['error']);
+
+                return $response->withHeader('Location', $backBrowse)->withStatus(302);
+            }
+            $err = $remoteInstaller->installFromUploadedZip($uploaded['body']);
+            if ($err !== null) {
+                Flash::set('error', $err);
+
+                return $response->withHeader('Location', $backBrowse)->withStatus(302);
+            }
+            $manager->syncDiscoveredToDatabase();
+            Flash::set('success', 'Plugin installed from upload. Activate it from the plugins list to load routes and run migrations.');
+
+            return $response
+                ->withHeader('Location', $parser->urlFor('admin.extensions.plugins.index'))
+                ->withStatus(302);
+        })->setName('admin.extensions.plugins.install_upload');
 
         $group->post('/extensions/plugins/update', function (Request $request, Response $response) use (
             $catalogLoader,

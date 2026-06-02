@@ -1,0 +1,94 @@
+{% set _rp = request_path|default('/') %}
+{% set _loc = theme_settings.topbar_location|default('')|trim %}
+{% set _phone = theme_settings.topbar_phone|default('')|trim %}
+<header class="st-header">
+  <div class="st-topbar">
+    <div class="st-topbar__inner">
+      <div class="st-topbar__left">
+        {% if _loc != '' %}
+          <span class="st-topbar__item">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 21s7-4.5 7-11a7 7 0 1 0-14 0c0 6.5 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>
+            {{ _loc|e }}
+          </span>
+        {% endif %}
+        {% if _phone != '' %}
+          <span class="st-topbar__item">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.8 19.8 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.08 4.18 2 2 0 0 1 4.06 2h3a2 2 0 0 1 2 1.72c.12.86.33 1.7.62 2.5a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.58-1.14a2 2 0 0 1 2.11-.45c.8.29 1.64.5 2.5.62A2 2 0 0 1 22 16.92z"/></svg>
+            {{ _phone|e }}
+          </span>
+        {% endif %}
+      </div>
+      <div class="st-topbar__right">
+        <span class="st-topbar__item st-topbar__item--muted">English</span>
+      </div>
+    </div>
+  </div>
+  <div class="st-navbar">
+    <div class="st-navbar__inner">
+      <a class="st-brand{% if _rp == '/' %} is-active{% endif %}" href="{{ url_for('home') }}"{% if _rp == '/' %} aria-current="page"{% endif %}>
+        {% include 'partials/_logo.twig' with { logo_class: 'st-brand__logo' } %}
+      </a>
+      <button type="button" class="st-nav-toggle" aria-expanded="false" aria-controls="st-primary-nav" aria-label="Open menu">
+        <span></span><span></span><span></span>
+      </button>
+      <nav id="st-primary-nav" class="st-nav" aria-label="Primary">
+        <div class="st-nav__links">
+          {% for item in header_menu %}
+            <a class="st-nav__link{% if item.is_active|default(false) %} is-active{% endif %}" href="{{ item.href|e('html_attr') }}" {% if item.target == '_blank' %}target="_blank"{% endif %}{% if item.anchor_rel|default('')|trim != '' %} rel="{{ item.anchor_rel|e('html_attr') }}"{% elseif item.target == '_blank' %} rel="noopener noreferrer"{% endif %}{% if item.is_active|default(false) %} aria-current="page"{% endif %}>{{ item.label|e }}</a>
+          {% endfor %}
+          {% if commerce_enabled|default(false) %}
+            <a class="st-nav__link{% if _rp == '/shop' %} is-active{% endif %}" href="{{ url_for('public.commerce.shop') }}"{% if _rp == '/shop' %} aria-current="page"{% endif %}>Shop</a>
+            <a class="st-nav__link{% if _rp == '/commerce/cart' %} is-active{% endif %}" href="{{ url_for('public.commerce.cart') }}">Cart{% if commerce_cart_count|default(0) > 0 %} ({{ commerce_cart_count }}){% endif %}</a>
+          {% endif %}
+        </div>
+        <div class="st-nav__actions">
+          {% if logged_in %}
+            {% set _nav_label = user_display_name|default(user_username|default(''))|trim %}
+            {% if _nav_label == '' %}
+              {% set _nav_label = user_email|default('Account')|split('@')|first %}
+            {% endif %}
+            <div class="st-nav__account">
+              <button
+                type="button"
+                class="st-nav__account-trigger"
+                aria-expanded="false"
+                aria-haspopup="menu"
+                aria-controls="st-nav-account-menu"
+                id="st-nav-account-trigger"
+              >
+                <span class="st-nav__account-avatar" aria-hidden="true">{{ _nav_label|upper|slice(0, 1) }}</span>
+                <span class="st-nav__account-name">{{ _nav_label|e }}</span>
+                <svg class="st-nav__account-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+              </button>
+              <div id="st-nav-account-menu" class="st-nav__account-menu" role="menu" aria-labelledby="st-nav-account-trigger">
+                {% if user_email|default('')|trim != '' %}
+                  <p class="st-nav__account-email">{{ user_email|e }}</p>
+                {% endif %}
+                {% if user_can_access_admin|default(false) %}
+                  <a class="st-nav__account-item" role="menuitem" href="{{ url_for('admin.dashboard') }}">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+                    Admin dashboard
+                  </a>
+                {% endif %}
+                <form method="post" action="{{ url_for('logout') }}" class="st-nav__account-logout" role="none">
+                  <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+                  <button type="submit" class="st-nav__account-item st-nav__account-item--danger" role="menuitem">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
+                    Log out
+                  </button>
+                </form>
+              </div>
+            </div>
+          {% else %}
+            <a class="st-nav__journey" href="{{ header_menu|length > 0 ? header_menu|first.href : url_for('register') }}">
+              Begin your journey
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M7 17 17 7M17 7H9M17 7v8"/></svg>
+            </a>
+            <a class="st-nav__text-link{% if _rp == '/login' %} is-active{% endif %}" href="{{ url_for('login') }}">Sign in</a>
+            <a class="st-btn st-btn--primary" href="{{ url_for('register') }}">{{ theme_settings.hero_primary_label|default('Get started')|e }}</a>
+          {% endif %}
+        </div>
+      </nav>
+    </div>
+  </div>
+</header>

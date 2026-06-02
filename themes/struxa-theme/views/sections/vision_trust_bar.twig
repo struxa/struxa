@@ -1,0 +1,19 @@
+{# Trust bar — headline + labels from trust-logos content type entries. #}
+{% set _slug = section.content_type_slug|default('trust-logos')|trim %}
+{% set pack = content_type_cards(_slug, section.limit|default('5')) %}
+<section class="st-trust" aria-label="Trust" data-section="vision_trust_bar">
+  <div class="st-trust__inner">
+    <p class="st-trust__headline">{{ section.headline|default('')|e }}</p>
+    {% if pack.entries is not empty %}
+      <ul class="st-trust__logos" role="list">
+        {% for item in pack.entries %}
+          <li>{{ item.row.title|e }}</li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+
+    {% include 'partials/github_showcase.twig' %}
+    {% include 'partials/features_showcase.twig' with { config: section } only %}
+    {% include 'partials/blog_news.twig' with { config: section } only %}
+  </div>
+</section>

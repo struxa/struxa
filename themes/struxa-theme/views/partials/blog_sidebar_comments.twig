@@ -1,0 +1,67 @@
+{# Recent comments for a content type — sidebar on /blog when comments are enabled. #}
+{% set _pack = recent_content_comments(content_type.slug, limit|default(5)) %}
+{% if _pack.enabled %}
+  {% set _sort = _pack.sort|default('newest') %}
+  {% set _base = url_for('public.content_type_index', { typeSlug: content_type.slug }) %}
+  {% set _page = index_page|default(1) %}
+  {% set _page_qs = _page > 1 ? '&page=' ~ _page : '' %}
+  {% set _sorts = {
+    newest: 'Newest',
+    oldest: 'Oldest',
+    most_liked: 'Most liked'
+  } %}
+
+  <div class="st-blog-index__sidebar-panel st-blog-index__sidebar-panel--comments">
+    <div class="st-blog-sidebar-comments__head">
+      <h2 class="st-blog-index__sidebar-title">Recent comments</h2>
+      <div class="st-blog-sidebar-comments__sort" role="group" aria-label="Sort comments">
+        {% for _key, _label in _sorts %}
+          <a
+            class="st-blog-sidebar-comments__pill{% if _sort == _key %} is-active{% endif %}"
+            href="{{ (_base ~ '?comment_sort=' ~ _key ~ _page_qs)|e('html_attr') }}"
+            {% if _sort == _key %}aria-current="true"{% endif %}
+          >{{ _label|e }}</a>
+        {% endfor %}
+      </div>
+    </div>
+
+    {% if _pack.comments is empty %}
+      <p class="st-blog-sidebar-comments__empty">
+        {% if _sort == 'most_liked' %}
+          No liked comments yet. Like posts on articles to see them here.
+        {% else %}
+          No comments yet. Open a post and be the first to reply.
+        {% endif %}
+      </p>
+    {% else %}
+      <ul class="st-blog-sidebar-comments__list" role="list">
+        {% for c in _pack.comments %}
+          {% set _url = url_for('public.content_entry', { typeSlug: c.type_slug, entrySlug: c.entry_slug }) ~ '#comments' %}
+          <li>
+            <a class="st-blog-sidebar-comments__item" href="{{ _url|e('html_attr') }}">
+              <span class="st-blog-sidebar-comments__avatar" aria-hidden="true">{{ c.author_name|default('?')|upper|slice(0, 1) }}</span>
+              <span class="st-blog-sidebar-comments__body">
+                <span class="st-blog-sidebar-comments__meta">
+                  <strong class="st-blog-sidebar-comments__author">{{ c.author_name|default('Anonymous')|e }}</strong>
+                  {% if c.created_at|default('')|trim != '' %}
+                    <time datetime="{{ c.created_at|e('html_attr') }}">{{ c.created_at|date('M j') }}</time>
+                  {% endif %}
+                  {% if c.like_count|default(0) > 0 %}
+                    <span class="st-blog-sidebar-comments__likes" aria-label="{{ c.like_count }} like{{ c.like_count == 1 ? '' : 's' }}">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                      {{ c.like_count|e }}
+                    </span>
+                  {% endif %}
+                </span>
+                {% if c.body_plain|default('')|trim != '' %}
+                  <span class="st-blog-sidebar-comments__excerpt">{{ c.body_plain|e }}</span>
+                {% endif %}
+                <span class="st-blog-sidebar-comments__post">{{ c.entry_title|e }}</span>
+              </span>
+            </a>
+          </li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+  </div>
+{% endif %}

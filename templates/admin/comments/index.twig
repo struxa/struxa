@@ -18,6 +18,23 @@
   <div class="admin-settings-page admin-settings-page--system">
     {% include 'admin/partials/_system_subnav.twig' with { system_nav_active: 'comments' } %}
 
+    <section class="admin-card admin-settings-card" style="margin-bottom:1.25rem">
+      <h2 class="admin-settings-card-title">Public comments</h2>
+      <p class="admin-settings-card-desc">Turn discussion on or off for the whole site. When enabled, comments appear on CMS pages and content entries unless you disable them on a specific page or content type.</p>
+      <form class="admin-form" method="post" action="{{ url_for('admin.comments.settings') }}" style="margin-top:0.85rem">
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+        <div class="admin-field admin-field--full">
+          <label class="admin-check">
+            <input type="checkbox" name="comments_enabled" value="1" {{ comments_enabled|default(false) ? 'checked' : '' }} />
+            <span>Enable public comments on the site</span>
+          </label>
+        </div>
+        <div class="admin-form-actions" style="margin-top:0.75rem">
+          <button type="submit" class="admin-btn-primary">Save comment settings</button>
+        </div>
+      </form>
+    </section>
+
     <div class="admin-settings-intro admin-settings-intro--comments">
       <div class="admin-settings-intro-icon" aria-hidden="true">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">

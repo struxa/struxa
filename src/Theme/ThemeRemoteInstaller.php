@@ -94,6 +94,22 @@ final class ThemeRemoteInstaller
             return 'Could not download the theme package (size limit, network, or invalid response).' . $suffix;
         }
 
+        return $this->installFromZipBody($zipBody, $slug);
+    }
+
+    /**
+     * Install a theme from raw ZIP bytes (catalog download or manual admin upload).
+     * When $expectedCatalogSlug is set, manifest slug must match (catalog installs).
+     */
+    public function installFromZipBody(string $zipBody, ?string $expectedCatalogSlug = null): ?string
+    {
+        if (strlen($zipBody) > self::MAX_ZIP_BYTES) {
+            return 'Theme package exceeds maximum size.';
+        }
+        if (!class_exists(ZipArchive::class)) {
+            return 'PHP zip extension (ZipArchive) is required to install themes.';
+        }
+
         $work = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'struxa-theme-' . bin2hex(random_bytes(8));
         if (!@mkdir($work, 0700, true) || !is_dir($work)) {
             return 'Could not create a temporary working directory.';
@@ -102,14 +118,14 @@ final class ThemeRemoteInstaller
         $extractDir = $work . DIRECTORY_SEPARATOR . 'extract';
         try {
             if (file_put_contents($zipPath, $zipBody) === false) {
-                return 'Could not save the downloaded package.';
+                return 'Could not save the theme package.';
             }
             if (!@mkdir($extractDir, 0700, true)) {
                 return 'Could not create extract directory.';
             }
             $zip = new ZipArchive();
             if ($zip->open($zipPath) !== true) {
-                return 'Downloaded file is not a valid ZIP archive.';
+                return 'File is not a valid ZIP archive.';
             }
             if (!$this->extractZipSafely($zip, $extractDir)) {
                 $zip->close();
@@ -129,8 +145,16 @@ final class ThemeRemoteInstaller
             if ($manifest === null) {
                 return 'Theme package failed validation (check theme.json, parents, and settings schema).';
             }
-            if ($manifest->slug !== $slug) {
-                return 'Archive theme slug "' . $manifest->slug . '" does not match catalog slug "' . $slug . '".';
+
+            $slug = $manifest->slug;
+            if ($expectedCatalogSlug !== null && $slug !== $expectedCatalogSlug) {
+                return 'Archive theme slug "' . $slug . '" does not match catalog slug "' . $expectedCatalogSlug . '".';
+            }
+            if (!ThemeManifest::isValidSlug($slug)) {
+                return 'Theme manifest slug is invalid.';
+            }
+            if ($this->themes->findBySlug($slug) !== null) {
+                return 'That theme is already installed. Remove it first if you want to replace it.';
             }
 
             $dest = $this->themes->themesRoot() . DIRECTORY_SEPARATOR . $slug;

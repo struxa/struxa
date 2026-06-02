@@ -1,0 +1,22 @@
+{% extends 'layouts/base.twig' %}
+
+{% block title %}{{ content_index_title|e }} — {{ settings.site_name|default('Site')|e }}{% endblock %}
+{% block meta_description %}{{ content_index_description|default(settings.default_meta_description|default(''))|e }}{% endblock %}
+{% block canonical_href %}{{ site_url }}/lists/{{ content_list_slug }}{% if index_page > 1 %}?page={{ index_page }}{% endif %}{% endblock %}
+
+{% block body %}
+<main id="main-content" class="st-page">
+  <div class="st-page__inner">
+    {% include 'content/_index_grid.twig' with {
+      eyebrow_label: 'Collection',
+      blog_archive_title: content_index_title|default('Collection'),
+      content_index_description: content_index_description|default(''),
+      empty_message: 'No entries match this list yet.',
+      read_more_label: 'View →',
+      newer_label: 'Newer',
+      older_label: 'Older',
+      card_tag_fallback: content_type.name|default('Entry'),
+    } %}
+  </div>
+</main>
+{% endblock %}

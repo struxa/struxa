@@ -4,9 +4,14 @@ declare(strict_types=1);
 
 use App\Access\PermissionSlug;
 use App\Comment\CommentRepository;
+use App\Comment\CommentVisibility;
+use App\Event\Events;
+use App\Event\StorefrontCachesInvalidateEvent;
 use App\Flash;
 use App\Http\Middleware\RequireCmsStaff;
 use App\Http\Middleware\RequirePermission;
+use App\Settings;
+use App\Settings\SettingsRepository;
 use PHPAuth\Auth;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
@@ -21,6 +26,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
     $middleware = new RequireCmsStaff($auth, $pdo);
     $perm = new RequirePermission($pdo, [PermissionSlug::MANAGE_COMMENTS]);
     $repo = new CommentRepository($pdo);
+    $settingsRepo = new SettingsRepository($pdo);
 
     $adminContext = static fn (): array => array_merge($viewData(), []);
     $withCmsUser = static function (Request $request, array $data): array {
@@ -30,7 +36,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
         return array_merge($data, ['cms_user' => $cmsUser]);
     };
 
-    $app->group('/admin', function (\Slim\Routing\RouteCollectorProxy $group) use ($twig, $repo, $adminContext, $withCmsUser): void {
+    $app->group('/admin', function (\Slim\Routing\RouteCollectorProxy $group) use ($twig, $repo, $adminContext, $withCmsUser, $settingsRepo, $pdo): void {
         $group->get('/comments', function (Request $request, Response $response) use ($twig, $repo, $adminContext, $withCmsUser): Response {
             $q = $request->getQueryParams();
             $status = isset($q['status']) && is_string($q['status']) ? trim($q['status']) : 'pending';
@@ -44,8 +50,23 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 'comment_approved_count' => $repo->countByStatus('approved'),
                 'comment_rejected_count' => $repo->countByStatus('rejected'),
                 'comment_spam_count' => $repo->countByStatus('spam'),
+                'comments_enabled' => CommentVisibility::isGloballyEnabled(),
             ])));
         })->setName('admin.comments.index');
+
+        $group->post('/comments/settings', function (Request $request, Response $response) use ($settingsRepo, $pdo): Response {
+            $body = $request->getParsedBody();
+            $body = is_array($body) ? $body : [];
+            $enabled = !empty($body['comments_enabled']) ? '1' : '0';
+            $settingsRepo->upsert('comments_enabled', $enabled, true);
+            Settings::reload($pdo);
+            Flash::set('success', $enabled === '1' ? 'Public comments enabled.' : 'Public comments disabled.');
+            Events::dispatch(new StorefrontCachesInvalidateEvent('comments_settings'));
+
+            return $response
+                ->withHeader('Location', RouteContext::fromRequest($request)->getRouteParser()->urlFor('admin.comments.index'))
+                ->withStatus(302);
+        })->setName('admin.comments.settings');
 
         $group->post('/comments/{id:[0-9]+}/status', function (Request $request, Response $response, array $args) use ($repo): Response {
             $id = (int) ($args['id'] ?? 0);

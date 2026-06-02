@@ -1,0 +1,21 @@
+{% extends 'layouts/base.twig' %}
+
+{# Fallback when Settings → Public homepage is empty. Prefer a CMS Home page with Vision sections. #}
+{% block body %}
+<main id="main-content">
+  {% include 'sections/content_type_hero.twig' with {
+    section: {
+      content_type_slug: 'homepage-hero',
+      entry_slug: 'main',
+      fallback_image: 'images/hero-illustration.jpg',
+    }
+  } %}
+  {% include 'sections/vision_trust_bar.twig' with {
+    section: {
+      headline: theme_settings.trust_headline|default('Built for teams who ship structured content on Struxa.'),
+      content_type_slug: 'trust-logos',
+      limit: '5',
+    }
+  } %}
+</main>
+{% endblock %}

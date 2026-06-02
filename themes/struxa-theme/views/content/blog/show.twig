@@ -1,0 +1,132 @@
+{% extends 'layouts/base.twig' %}
+
+{% set _desc = content_meta_description|default('') %}
+{% if _desc == '' and settings.default_meta_description|default('') %}
+  {% set _desc = settings.default_meta_description %}
+{% endif %}
+
+{% block title %}{{ content_page_title|e }} — {{ settings.site_name|default('Site')|e }}{% endblock %}
+{% block meta_description %}{{ _desc|e }}{% endblock %}
+{% block og_title %}{{ content_page_title|e }}{% endblock %}
+{% block og_description %}{{ _desc|e }}{% endblock %}
+{% block twitter_title %}{{ content_page_title|e }}{% endblock %}
+{% block twitter_description %}{{ _desc|e }}{% endblock %}
+
+{% block head_extra %}
+  {% if content_featured_url %}
+    {% set _fu = content_featured_url|trim %}
+    {% set _og_img = (_fu|slice(0, 7) == 'http://' or _fu|slice(0, 8) == 'https://') ? _fu : site_url ~ _fu %}
+    <meta property="og:image" content="{{ _og_img|e('html_attr') }}" />
+    <meta name="twitter:image" content="{{ _og_img|e('html_attr') }}" />
+  {% endif %}
+  <link rel="canonical" href="{{ site_url }}/{{ content_type.slug }}/{{ content_entry.slug }}" />
+{% endblock %}
+
+{% set author_row = content_field_rows|filter(r => r.field_key == 'author_name')|first %}
+{% set read_row = content_field_rows|filter(r => r.field_key == 'read_time')|first %}
+{% set excerpt_row = content_field_rows|filter(r => r.field_key == 'excerpt')|first %}
+{% set body_row = content_field_rows|filter(r => r.field_key == 'body')|first %}
+{% set _blog_index = url_for('public.content_type_index', { typeSlug: content_type.slug }) %}
+
+{% block body %}
+<main id="main-content" class="st-page st-page--blog-post">
+  <div class="st-page__inner st-page__inner--wide">
+    <nav class="st-breadcrumb" aria-label="Breadcrumb">
+      <ol class="st-breadcrumb__list" role="list">
+        <li><a href="{{ site_url }}/">Home</a></li>
+        <li><a href="{{ _blog_index|e('html_attr') }}">{{ content_type.name|e }}</a></li>
+        <li aria-current="page"><span>{{ content_entry.title|e }}</span></li>
+      </ol>
+    </nav>
+
+    <div class="st-blog-layout">
+      <div class="st-blog-layout__main">
+        <article class="st-blog-post">
+        <header class="st-blog-post__header">
+          <p class="st-eyebrow">
+            <a class="st-eyebrow__link" href="{{ _blog_index|e('html_attr') }}">{{ content_type.name|e }}</a>
+          </p>
+          <h1 class="st-blog-post__title">{{ content_entry.title|e }}</h1>
+
+          <div class="st-blog-post__meta">
+            {% if author_row and author_row.value_raw|default('')|trim != '' %}
+              <span class="st-blog-post__author">{{ author_row.value_raw|e }}</span>
+            {% endif %}
+            {% if content_entry.publishedAt %}
+              <time datetime="{{ content_entry.publishedAt|e('html_attr') }}">{{ content_entry.publishedAt|date('M j, Y') }}</time>
+            {% endif %}
+            {% if read_row and read_row.value_raw|default('')|trim != '' %}
+              <span class="st-blog-post__read">{{ read_row.value_raw|e }}</span>
+            {% endif %}
+          </div>
+
+          {% if entry_taxonomy_groups is defined and entry_taxonomy_groups is not empty %}
+            <ul class="st-blog-post__pills" aria-label="Topics">
+              {% for g in entry_taxonomy_groups %}
+                {% for t in g.terms %}
+                  <li>
+                    <a class="st-blog-post__pill" href="{{ taxonomy_archive_url(content_type.slug, g.taxonomy.slug, t.slug) }}">{{ t.name|e }}</a>
+                  </li>
+                {% endfor %}
+              {% endfor %}
+            </ul>
+          {% endif %}
+        </header>
+
+        {% if content_featured_url %}
+          <figure class="st-blog-post__featured">
+            <img
+              src="{{ content_featured_url|e('html_attr') }}"
+              alt=""
+              width="1200"
+              height="630"
+              loading="eager"
+              decoding="async"
+            />
+          </figure>
+        {% else %}
+          <figure class="st-blog-post__featured st-blog-post__featured--placeholder" aria-hidden="true">
+            <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect x="8" y="12" width="48" height="40" rx="8" stroke="currentColor" stroke-width="2" opacity="0.35" />
+              <circle cx="24" cy="28" r="6" stroke="currentColor" stroke-width="2" opacity="0.5" />
+              <path d="M14 48 L28 34 L36 42 L46 32" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.4" />
+            </svg>
+          </figure>
+        {% endif %}
+
+        {% if excerpt_row and excerpt_row.value_raw|default('')|trim != '' %}
+          <p class="st-blog-post__dek">{{ excerpt_row.value_raw|e|nl2br }}</p>
+        {% endif %}
+
+        {% if content_entry_has_sections|default(false) and content_entry_sections_html|default('')|trim != '' %}
+          <div class="cms-prose st-cms-sections st-blog-post__sections" data-strux-sections>{{ content_entry_sections_html|raw }}</div>
+        {% endif %}
+
+        {% if body_row %}
+          <div class="cms-prose st-blog-post__body">{{ body_row.html|raw }}</div>
+        {% endif %}
+
+        <footer class="st-blog-post__footer">
+          <a class="st-btn st-btn--outline" href="{{ _blog_index|e('html_attr') }}">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+            Back to {{ content_type.name|e }}
+          </a>
+          {% if comments_enabled_for_view|default(false) %}
+          <a class="st-btn st-btn--ghost" href="#comments">View comments</a>
+        {% endif %}
+        {% if settings.contact_email|default('')|trim != '' %}
+            <a class="st-btn st-btn--ghost" href="mailto:{{ settings.contact_email|trim|e('html_attr') }}?subject={{ ('Question about ' ~ content_entry.title)|url_encode }}">Ask a question</a>
+          {% endif %}
+        </footer>
+        </article>
+
+        {% if comments_enabled_for_view|default(false) %}
+          {% include 'partials/st_comments.twig' %}
+        {% endif %}
+      </div>
+
+      {% include 'partials/blog_post_sidebar.twig' %}
+    </div>
+  </div>
+</main>
+{% endblock %}

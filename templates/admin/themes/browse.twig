@@ -15,6 +15,15 @@
 {% endblock %}
 
 {% block admin_content %}
+  {% include 'admin/partials/_package_zip_upload.twig' with {
+    title: 'Install from ZIP',
+    description: 'Upload a theme package manually. ZIP must contain theme.json, views/, and assets/ at the root or in one top-level folder. Folder name must match the slug in theme.json.',
+    upload_action: url_for('admin.themes.install_upload'),
+    file_label: 'Theme ZIP',
+    field_id: 'theme_package_zip',
+    max_mb: 35,
+  } %}
+
   {% if not catalog_ok %}
     <div class="admin-card admin-settings-card" style="margin-bottom:1.25rem;border-color:rgba(251,191,36,0.35)">
       <h2 class="admin-settings-card-title">Catalog unavailable</h2>

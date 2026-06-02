@@ -10,6 +10,7 @@
 {% set sse = o.supports_seo is defined ? o.supports_seo : (content_type ? content_type.supportsSeo : false) %}
 {% set sfi = o.supports_featured_image is defined ? o.supports_featured_image : (content_type ? content_type.supportsFeaturedImage : false) %}
 {% set sbb = o.supports_block_builder is defined ? o.supports_block_builder : (content_type ? content_type.supportsBlockBuilder : true) %}
+{% set cd = o.comments_disabled is defined ? o.comments_disabled : (content_type ? content_type.commentsDisabled : false) %}
 
 {% block admin_title %}{{ is_edit ? 'Edit content type' : 'New content type' }}{% endblock %}
 
@@ -74,6 +75,14 @@
           <input type="checkbox" name="supports_block_builder" value="1" {{ sbb ? 'checked' : '' }} />
           <span>Enable block builder on entries</span>
         </label>
+      </div>
+
+      <div class="admin-field admin-field--full">
+        <label class="admin-check">
+          <input type="checkbox" name="comments_disabled" value="1" {{ cd ? 'checked' : '' }} />
+          <span>Disable comments on entries of this type</span>
+        </label>
+        <p class="admin-hint">Only applies when public comments are enabled under System → Comments.</p>
       </div>
     </div>
 

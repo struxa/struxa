@@ -1,0 +1,133 @@
+{% set _headline = theme_settings.footer_headline|default('Where Vision Meets Value')|trim %}
+{% set _lead = theme_settings.footer_lead|default('')|trim %}
+{% if _lead == '' %}
+  {% set _lead = settings.site_tagline|default('Comprehensive solutions streamline operations and create transformative impact across industries today.')|trim %}
+{% endif %}
+{% set _cta_label = theme_settings.footer_cta_label|default('Schedule a Consultation')|trim %}
+{% set _cta_url = theme_settings.footer_cta_url|default('')|trim %}
+{% if _cta_url == '' %}
+  {% set _cta_url = url_for('register') %}
+{% endif %}
+{% set _terms_url = theme_settings.footer_terms_url|default('/p/terms')|trim %}
+{% set _privacy_url = theme_settings.footer_privacy_url|default('/p/privacy')|trim %}
+{% set _year = "now"|date("Y") %}
+
+{% set _fm = footer_menu|default([]) %}
+{% if _fm is empty %}
+  {% set _links_a = [
+    { label: 'Services', href: '/' },
+    { label: 'Pricing', href: '/' },
+    { label: 'Reviews', href: '/' },
+    { label: 'Coming Soon', href: '/' },
+  ] %}
+  {% set _links_b = [
+    { label: 'About', href: '/' },
+    { label: 'Blog', href: '/' },
+    { label: 'Careers', href: '/' },
+    { label: 'Job description', href: '/' },
+  ] %}
+  {% set _links_c = [
+    { label: 'Contact us', href: '/' },
+    { label: '404 Page', href: '/404' },
+  ] %}
+{% else %}
+  {% set _third = ((_fm|length + 2) / 3)|round(0, 'floor') %}
+  {% if _third < 1 %}{% set _third = 1 %}{% endif %}
+  {% set _links_a = _fm|slice(0, _third) %}
+  {% set _links_b = _fm|slice(_third, _third) %}
+  {% set _links_c = _fm|slice(_third * 2) %}
+{% endif %}
+
+{% set _social_fb = settings.social_facebook|default('')|trim %}
+{% set _social_tw = settings.social_twitter|default('')|trim %}
+{% set _social_ig = settings.social_instagram|default('')|trim %}
+{% set _has_social = _social_fb != '' or _social_tw != '' or _social_ig != '' %}
+
+<footer class="st-footer">
+  <div class="st-footer__main">
+    <div class="st-footer__inner st-footer__grid">
+      <div class="st-footer__intro">
+        {% if _headline != '' %}
+          <h2 class="st-footer__headline">{{ _headline|e }}</h2>
+        {% endif %}
+        {% if _lead != '' %}
+          <p class="st-footer__lead">{{ _lead|e }}</p>
+        {% endif %}
+        {% if _cta_label != '' %}
+          <a class="st-btn st-btn--primary st-btn--footer-cta" href="{{ _cta_url|e('html_attr') }}">
+            {{ _cta_label|e }}
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M7 17 17 7M17 7H9M17 7v8"/></svg>
+          </a>
+        {% endif %}
+      </div>
+
+      {% for col in [_links_a, _links_b, _links_c] %}
+        {% if col is not empty %}
+          <nav class="st-footer__col" aria-label="Footer links">
+            <ul class="st-footer__links">
+              {% for item in col %}
+                <li>
+                  <a href="{{ item.href|e('html_attr') }}" {% if item.target|default('') == '_blank' %}target="_blank"{% endif %}{% if item.anchor_rel|default('')|trim != '' %} rel="{{ item.anchor_rel|e('html_attr') }}"{% elseif item.target|default('') == '_blank' %} rel="noopener noreferrer"{% endif %}>{{ item.label|e }}</a>
+                </li>
+              {% endfor %}
+            </ul>
+          </nav>
+        {% endif %}
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="st-footer__rule" aria-hidden="true"></div>
+
+  <div class="st-footer__bar">
+    <div class="st-footer__inner st-footer__bar-inner">
+      <div class="st-footer__bar-start">
+        <a class="st-footer__logo" href="{{ url_for('home') }}">
+          {% include 'partials/_logo.twig' with { logo_class: 'st-footer__logo-img', logo_loading: 'lazy' } %}
+        </a>
+        <p class="st-footer__legal">
+          <span>{{ settings.site_name|e }} © {{ _year }}. All rights reserved.</span>
+          {% if _terms_url != '' %}
+            <a href="{{ _terms_url|e('html_attr') }}">Terms</a>
+          {% endif %}
+          {% if _privacy_url != '' %}
+            <a href="{{ _privacy_url|e('html_attr') }}">Privacy</a>
+          {% endif %}
+        </p>
+      </div>
+
+      <div class="st-footer__bar-end">
+        {% if theme_settings.footer_show_certified|default('1') == '1' %}
+          <div class="st-footer__cert" aria-hidden="true">
+            <span class="st-footer__cert-icon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+            </span>
+            <span class="st-footer__cert-text">Certified<br />Corporation</span>
+          </div>
+        {% endif %}
+        {% if _has_social %}
+          <div class="st-footer__social">
+            <span class="st-footer__social-label">Follow Us</span>
+            <div class="st-footer__social-icons">
+              {% if _social_fb != '' %}
+                <a class="st-footer__social-link" href="{{ _social_fb|e('html_attr') }}" target="_blank" rel="noopener noreferrer" aria-label="Facebook">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M24 12.073C24 5.405 18.627 0 12 0S0 5.405 0 12.073C0 18.1 4.388 23.094 10.125 24v-8.437H7.078v-3.49h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.49h-2.796V24C19.612 23.094 24 18.1 24 12.073z"/></svg>
+                </a>
+              {% endif %}
+              {% if _social_tw != '' %}
+                <a class="st-footer__social-link" href="{{ _social_tw|e('html_attr') }}" target="_blank" rel="noopener noreferrer" aria-label="X">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+                </a>
+              {% endif %}
+              {% if _social_ig != '' %}
+                <a class="st-footer__social-link" href="{{ _social_ig|e('html_attr') }}" target="_blank" rel="noopener noreferrer" aria-label="Instagram">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 1 0 0 12.324 6.162 6.162 0 0 0 0-12.324zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm6.406-11.845a1.44 1.44 0 1 0 0 2.881 1.44 1.44 0 0 0 0-2.881z"/></svg>
+                </a>
+              {% endif %}
+            </div>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</footer>

@@ -1,0 +1,51 @@
+{% if comments_enabled_for_view|default(false) %}
+<section id="comments" class="st-comments" aria-labelledby="st-comments-title">
+  <div class="st-comments__inner">
+    <header class="st-comments__head">
+      <div>
+        <p class="st-comments__eyebrow">Discussion</p>
+        <h2 id="st-comments-title" class="st-comments__title">Comments</h2>
+        <p class="st-comments__lead">Signed-in members can post and like. Plain text only — threads are grouped by conversation.</p>
+      </div>
+      {% set _total = comments_pager.total_roots|default(0) %}
+      {% if _total > 0 %}
+        <p class="st-comments__count">
+          <span class="st-comments__count-num">{{ _total|e }}</span>
+          <span class="st-comments__count-label">{{ _total == 1 ? 'Thread' : 'Threads' }}</span>
+        </p>
+      {% endif %}
+    </header>
+
+    {% if flash_error|default('')|trim != '' %}
+      <p class="st-comments__flash st-comments__flash--error" role="alert">{{ flash_error|e }}</p>
+    {% endif %}
+    {% if flash_success|default('')|trim != '' %}
+      <p class="st-comments__flash st-comments__flash--success" role="status">{{ flash_success|e }}</p>
+    {% endif %}
+
+    {% if logged_in|default(false) %}
+      <form method="post" action="{{ url_for('public.comments.post') }}" class="st-comments__form cms-comment-form">
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+        <input type="hidden" name="thread_key" value="{{ comments_thread_key|e('html_attr') }}" />
+        <input type="hidden" name="return_to" value="{{ comments_return_to|default('/')|e('html_attr') }}" />
+        <input type="text" name="website" value="" autocomplete="off" tabindex="-1" aria-hidden="true" class="st-comments__honeypot" />
+        <label class="st-comments__field">
+          <span class="st-comments__label">Your comment</span>
+          <textarea required name="body" maxlength="4000" rows="4" placeholder="Share a question, reaction, or idea…"></textarea>
+        </label>
+        <button type="submit" class="st-btn st-btn--primary">Post comment</button>
+      </form>
+    {% else %}
+      <p class="st-comments__signin">
+        <a class="st-comments__signin-link" href="{{ url_for('login') }}?next={{ (comments_return_to|default('') ~ '#comments')|url_encode }}">Sign in</a>
+        to join the discussion.
+      </p>
+    {% endif %}
+
+    <div class="st-comments__thread">
+      {% include 'partials/comments_thread.twig' %}
+      {% include 'partials/comments_pager.twig' %}
+    </div>
+  </div>
+</section>
+{% endif %}

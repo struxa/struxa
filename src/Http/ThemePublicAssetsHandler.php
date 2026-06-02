@@ -35,8 +35,8 @@ final class ThemePublicAssetsHandler
             throw new HttpNotFoundException($request);
         }
 
-        $slug = $this->themes->activeSlug();
-        $base = $this->themes->assetsPathForSlug($slug);
+        $slug = $this->themes->resolvedActiveSlug();
+        $base = $this->themes->assetsPathForActive();
         if ($base === null) {
             throw new HttpNotFoundException($request);
         }

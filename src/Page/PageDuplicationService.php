@@ -46,7 +46,7 @@ final class PageDuplicationService
             'draft',
             null,
             null,
-            null,
+            $page->commentsDisabled,
         );
 
         $blocks = $this->sections->exportBlocksForPage($sourceId);

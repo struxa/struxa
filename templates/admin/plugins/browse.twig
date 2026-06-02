@@ -18,6 +18,15 @@
 {% endblock %}
 
 {% block admin_content %}
+  {% include 'admin/partials/_package_zip_upload.twig' with {
+    title: 'Install from ZIP',
+    description: 'Upload a plugin package manually. ZIP must contain plugin.json at the root or in one top-level folder. Directory name must match the slug in plugin.json.',
+    upload_action: url_for('admin.extensions.plugins.install_upload'),
+    file_label: 'Plugin ZIP',
+    field_id: 'plugin_package_zip',
+    max_mb: 45,
+  } %}
+
   {% if not catalog_ok %}
     <div class="admin-card admin-settings-card" style="margin-bottom:1.25rem;border-color:rgba(251,191,36,0.35)">
       <h2 class="admin-settings-card-title">Catalog unavailable</h2>

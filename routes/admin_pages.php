@@ -491,7 +491,8 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 $v['status'],
                 $v['published_at'] ?? null,
                 $v['scheduled_publish_at'] ?? null,
-                $v['scheduled_unpublish_at'] ?? null
+                $v['scheduled_unpublish_at'] ?? null,
+                !empty($v['comments_disabled']),
             );
             $page = $repo->findById($newId);
             if ($page !== null) {
@@ -615,9 +616,9 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 $v['published_at'] ?? null,
                 $v['scheduled_publish_at'] ?? null,
                 $v['scheduled_unpublish_at'] ?? null,
-                $cmsUid($request)
+                $cmsUid($request),
+                !empty($v['comments_disabled']),
             );
-            $slugRedirect = SlugRedirectResult::none();
             if ($page->status === 'published' && $oldSlug !== $slug) {
                 $siteUrl = (string) (($viewData())['site_url'] ?? '');
                 $slugRedirect = (new SlugChangeRedirectService(new RedirectRepository($pdo)))->forPage(
@@ -907,7 +908,8 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 $revPublishedAt,
                 $revSchedPub,
                 $revSchedUnpub,
-                $cmsUid($request)
+                $cmsUid($request),
+                $page->commentsDisabled,
             );
             if (array_key_exists('sections_json', $rev) && $rev['sections_json'] !== null) {
                 $restoreSectionsFromRevision($id, (string) $rev['sections_json']);

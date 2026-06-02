@@ -1,0 +1,213 @@
+{
+  "cms_blueprint_version": "1.0",
+  "label": "Struxa Vision: homepage hero + trust bar",
+  "description": "Adds Homepage hero and Trust logos content types, sample entries (hero uses featured image from media), a published newsletter form, and a Home page with Vision sections including mailing list signup. Import with “Import content entries” enabled. Set Settings → Public site homepage to Home and activate the struxa-theme theme.",
+  "forms": [
+    {
+      "slug": "newsletter-signup",
+      "name": "Newsletter signup",
+      "template": "newsletter",
+      "status": "published",
+      "submit_label": "Subscribe",
+      "confirmation_message": "Thanks — you're on the list. Watch your inbox for Struxa updates.",
+      "description": "Homepage mailing list — email capture for product updates.",
+      "notify_enabled": false
+    }
+  ],
+  "content_types": [
+    {
+      "slug": "homepage-hero",
+      "name": "Homepage hero",
+      "icon": "star-outline",
+      "description": "Marketing hero blocks for the Vision theme (badges, headline, lead, CTAs, featured illustration).",
+      "has_public_route": false,
+      "supports_seo": false,
+      "supports_featured_image": true,
+      "supports_block_builder": false,
+      "fields": [
+        {
+          "field_key": "badge_1",
+          "label": "Badge 1",
+          "field_type": "text",
+          "sort_order": 10
+        },
+        {
+          "field_key": "badge_2",
+          "label": "Badge 2",
+          "field_type": "text",
+          "sort_order": 11
+        },
+        {
+          "field_key": "headline",
+          "label": "Headline",
+          "field_type": "text",
+          "sort_order": 20,
+          "help_text": "Overrides entry title when set."
+        },
+        {
+          "field_key": "lead",
+          "label": "Lead paragraph",
+          "field_type": "textarea",
+          "sort_order": 30
+        },
+        {
+          "field_key": "primary_cta_label",
+          "label": "Primary CTA label",
+          "field_type": "text",
+          "sort_order": 40
+        },
+        {
+          "field_key": "primary_cta_url",
+          "label": "Primary CTA URL",
+          "field_type": "url",
+          "sort_order": 41
+        },
+        {
+          "field_key": "secondary_cta_label",
+          "label": "Secondary CTA label",
+          "field_type": "text",
+          "sort_order": 42
+        },
+        {
+          "field_key": "secondary_cta_url",
+          "label": "Secondary CTA URL",
+          "field_type": "url",
+          "sort_order": 43
+        },
+        {
+          "field_key": "hero_highlights",
+          "label": "Highlight chips by CTA (pipe-separated, max 3)",
+          "field_type": "text",
+          "sort_order": 50,
+          "placeholder": "Open source|Twig themes|Blueprints"
+        }
+      ]
+    },
+    {
+      "slug": "trust-logos",
+      "name": "Trust logos",
+      "icon": "shield-outline",
+      "description": "Short labels shown in the homepage trust bar (monochrome logo row).",
+      "has_public_route": true,
+      "supports_seo": false,
+      "supports_featured_image": false,
+      "supports_block_builder": false,
+      "fields": []
+    }
+  ],
+  "content_entries": [
+    {
+      "content_type_slug": "homepage-hero",
+      "title": "Tailored solutions for teams who ship on Struxa.",
+      "slug": "main",
+      "status": "published",
+      "published_at": "2026-06-01 12:00:00",
+      "featured_image_media_slug": "struxa-hero-illustration",
+      "field_values": {
+        "badge_1": "Content types",
+        "badge_2": "Themes & plugins",
+        "headline": "Tailored solutions for teams who ship on Struxa.",
+        "lead": "Join teams who publish structured content with custom types, Twig themes, optional commerce, and an admin built for editors — not spreadsheet chaos.",
+        "primary_cta_label": "Schedule a consultation",
+        "primary_cta_url": "/register",
+        "secondary_cta_label": "",
+        "secondary_cta_url": "",
+        "hero_highlights": "Open source|Twig themes|Blueprints"
+      }
+    },
+    {
+      "content_type_slug": "trust-logos",
+      "title": "Pages & blocks",
+      "slug": "pages-blocks",
+      "status": "published",
+      "published_at": "2026-06-01 12:00:00",
+      "field_values": {}
+    },
+    {
+      "content_type_slug": "trust-logos",
+      "title": "REST & GraphQL",
+      "slug": "rest-graphql",
+      "status": "published",
+      "published_at": "2026-06-01 12:00:00",
+      "field_values": {}
+    },
+    {
+      "content_type_slug": "trust-logos",
+      "title": "Role-based admin",
+      "slug": "role-admin",
+      "status": "published",
+      "published_at": "2026-06-01 12:00:00",
+      "field_values": {}
+    },
+    {
+      "content_type_slug": "trust-logos",
+      "title": "Plugin ecosystem",
+      "slug": "plugins",
+      "status": "published",
+      "published_at": "2026-06-01 12:00:00",
+      "field_values": {}
+    },
+    {
+      "content_type_slug": "trust-logos",
+      "title": "Theme catalog",
+      "slug": "themes",
+      "status": "published",
+      "published_at": "2026-06-01 12:00:00",
+      "field_values": {}
+    }
+  ],
+  "media_seed": [],
+  "pages": [
+    {
+      "title": "Home",
+      "slug": "home",
+      "content": "",
+      "status": "published",
+      "sections": [
+        {
+          "sort_order": 0,
+          "section_key": "content_type_hero",
+          "data": {
+            "content_type_slug": "homepage-hero",
+            "entry_slug": "main",
+            "fallback_image": "images/hero-illustration.jpg"
+          },
+          "options": { "padding": "comfortable", "background": "default" }
+        },
+        {
+          "sort_order": 1,
+          "section_key": "vision_trust_bar",
+          "data": {
+            "headline": "Built for teams who ship structured content on Struxa.",
+            "content_type_slug": "trust-logos",
+            "limit": "5",
+            "blog_news_enabled": "1",
+            "blog_news_headline": "From the blog",
+            "blog_news_lead": "Latest articles and updates from the Struxa team.",
+            "blog_content_type_slug": "blog",
+            "blog_news_limit": "3",
+            "features_enabled": "1",
+            "features_badge_1": "Content types",
+            "features_badge_2": "Themes & plugins",
+            "features_headline": "Tailored solutions for teams who ship on Struxa.",
+            "features_lead": "Structured content, an editor-friendly admin, and themes you own — without wrestling plugins or rebuilding from scratch every launch."
+          },
+          "options": { "padding": "comfortable", "background": "default" }
+        },
+        {
+          "sort_order": 2,
+          "section_key": "vision_newsletter",
+          "data": {
+            "form_slug": "newsletter-signup",
+            "title": "Join our mailing list",
+            "lead": "Product updates, release notes, and Struxa tips — no spam, unsubscribe anytime.",
+            "footnote": "We use Struxa Forms to store signups. Export entries anytime from Admin → Forms.",
+            "show_form_link": "1"
+          },
+          "options": { "padding": "comfortable", "background": "default" }
+        }
+      ]
+    }
+  ],
+  "menus": []
+}

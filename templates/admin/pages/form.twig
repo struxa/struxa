@@ -14,6 +14,7 @@
 {% set page_pub_dt = page_pub_raw ? page_pub_raw|replace({' ': 'T'})|slice(0, 16) : '' %}
 {% set page_sched_pub_dt = page_sched_pub_raw ? page_sched_pub_raw|replace({' ': 'T'})|slice(0, 16) : '' %}
 {% set page_sched_unpub_dt = page_sched_unpub_raw ? page_sched_unpub_raw|replace({' ': 'T'})|slice(0, 16) : '' %}
+{% set f_comments_disabled = old is not null ? old.comments_disabled|default(false) : (page ? page.commentsDisabled : false) %}
 {% set f_fid = '' %}
 {% if old is not null %}
   {% set f_fid = (old.featured_image_id_typed|default('')|trim != '') ? old.featured_image_id_typed : (old.featured_image_id ?? '') %}
@@ -208,6 +209,14 @@
               {% endfor %}
             </select>
             {% if errors.status is defined %}<p class="admin-field-error">{{ errors.status|e }}</p>{% endif %}
+          </div>
+
+          <div class="admin-field admin-field--full">
+            <label class="admin-check">
+              <input type="checkbox" name="comments_disabled" value="1" form="page-edit-form" {{ f_comments_disabled ? 'checked' : '' }} />
+              <span>Disable comments on this page</span>
+            </label>
+            <p class="admin-hint">Only applies when public comments are enabled under System → Comments.</p>
           </div>
 
           <div class="admin-field admin-field--full {{ errors.published_at is defined ? 'admin-field--error' : '' }}">

@@ -116,11 +116,40 @@ final class ThemeManager
     }
 
     /**
+     * Theme manifest used for storefront rendering when the configured active theme is missing on disk.
+     * Matches {@see ThemeViewResolver} fallback behaviour.
+     */
+    public function resolvedActiveManifest(): ?ThemeManifest
+    {
+        $active = $this->findBySlug($this->activeSlug());
+        if ($active === null) {
+            $active = $this->findBySlug(ThemeHttpConfig::FALLBACK_THEME_SLUG);
+        }
+
+        return $active;
+    }
+
+    /**
+     * Slug of the theme that actually serves views/assets (installed active theme, else default).
+     */
+    public function resolvedActiveSlug(): string
+    {
+        $manifest = $this->resolvedActiveManifest();
+
+        return $manifest !== null ? $manifest->slug : ThemeHttpConfig::FALLBACK_THEME_SLUG;
+    }
+
+    /**
      * Absolute path to active theme views/, or null if broken (caller should fall back).
      */
     public function viewsPathForActive(): ?string
     {
-        return $this->viewsPathForSlug($this->activeSlug());
+        $manifest = $this->resolvedActiveManifest();
+        if ($manifest === null) {
+            return null;
+        }
+
+        return $this->realViewsDirectory($manifest);
     }
 
     public function viewsPathForSlug(string $slug): ?string
@@ -182,6 +211,19 @@ final class ThemeManager
         $real = realpath($assets);
 
         return $real !== false ? $real : null;
+    }
+
+    /**
+     * Absolute path to assets/ for the resolved active theme (falls back to default when missing).
+     */
+    public function assetsPathForActive(): ?string
+    {
+        $manifest = $this->resolvedActiveManifest();
+        if ($manifest === null) {
+            return null;
+        }
+
+        return $this->assetsPathForSlug($manifest->slug);
     }
 
     /**

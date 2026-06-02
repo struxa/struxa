@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Comment\CommentLikeRepository;
 use App\Comment\CommentRepository;
 use App\Comment\CommentValidator;
+use App\Comment\CommentVisibility;
 use App\Flash;
 use App\Http\ClientIp;
 use App\Http\SafeRedirectPath;
@@ -50,7 +51,8 @@ return static function (App $app, \PDO $pdo, string $projectRoot, Auth $auth): v
         $rate,
         $requireApproval,
         $auth,
-        $accountDisplay
+        $accountDisplay,
+        $pdo
     ): Response {
         $body = $request->getParsedBody();
         $body = is_array($body) ? $body : [];
@@ -81,6 +83,12 @@ return static function (App $app, \PDO $pdo, string $projectRoot, Auth $auth): v
         }
 
         $clean = $validated['clean'];
+        if (!CommentVisibility::isThreadAllowed($pdo, $clean['thread_key'])) {
+            Flash::set('error', 'Comments are not enabled for this page.');
+
+            return $response->withHeader('Location', $loc)->withStatus(302);
+        }
+
         $ip = ClientIp::fromRequest($request);
         if (!$rate->hit('comment_post_1m', $ip, 6, 60) || !$rate->hit('comment_post_1h', $ip, 30, 3600)) {
             Flash::set('error', 'Too many comment attempts. Please slow down and try again in a few minutes.');
@@ -109,7 +117,7 @@ return static function (App $app, \PDO $pdo, string $projectRoot, Auth $auth): v
         return $response->withHeader('Location', $loc)->withStatus(302);
     })->setName('public.comments.post');
 
-    $app->post('/comments/like', function (Request $request, Response $response) use ($repo, $likes, $likeRate, $auth, $accountDisplay): Response {
+    $app->post('/comments/like', function (Request $request, Response $response) use ($repo, $likes, $likeRate, $auth, $accountDisplay, $pdo): Response {
         $body = $request->getParsedBody();
         $body = is_array($body) ? $body : [];
         $rawReturnTo = isset($body['return_to']) && is_string($body['return_to']) ? $body['return_to'] : null;
@@ -137,6 +145,11 @@ return static function (App $app, \PDO $pdo, string $projectRoot, Auth $auth): v
             return $response->withHeader('Location', $returnTo . '#comments')->withStatus(302);
         }
         $c = $validated['clean'];
+        if (!CommentVisibility::isThreadAllowed($pdo, $c['thread_key'])) {
+            Flash::set('error', 'Comments are not enabled for this page.');
+
+            return $response->withHeader('Location', $returnTo . '#comments')->withStatus(302);
+        }
         $row = $repo->findApprovedInThread($c['comment_id'], $c['thread_key']);
         if ($row === null) {
             Flash::set('error', 'That comment is not available.');

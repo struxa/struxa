@@ -1,0 +1,72 @@
+{# Blog post sidebar — recent posts, topics, author, CTA. #}
+{% set _index_url = url_for('public.content_type_index', { typeSlug: content_type.slug }) %}
+{% set _recent = content_type_cards(content_type.slug, 6) %}
+{% set author_row = content_field_rows|filter(r => r.field_key == 'author_name')|first %}
+
+<aside class="st-blog-sidebar" aria-label="Post sidebar">
+  <div class="st-blog-sidebar__panel st-blog-sidebar__panel--nav">
+    <a class="st-blog-sidebar__back" href="{{ _index_url|e('html_attr') }}">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+      All {{ content_type.name|e }}
+    </a>
+  </div>
+
+  {% if author_row and author_row.value_raw|default('')|trim != '' %}
+    <div class="st-blog-sidebar__panel">
+      <h2 class="st-blog-sidebar__title">Author</h2>
+      <div class="st-blog-sidebar__author">
+        <span class="st-blog-sidebar__avatar" aria-hidden="true">{{ author_row.value_raw|trim|slice(0, 1)|upper }}</span>
+        <p class="st-blog-sidebar__author-name">{{ author_row.value_raw|e }}</p>
+      </div>
+    </div>
+  {% endif %}
+
+  {% if entry_taxonomy_groups is defined and entry_taxonomy_groups is not empty %}
+    <div class="st-blog-sidebar__panel">
+      <h2 class="st-blog-sidebar__title">Topics</h2>
+      <ul class="st-blog-sidebar__tags" role="list">
+        {% for g in entry_taxonomy_groups %}
+          {% for t in g.terms %}
+            <li>
+              <a class="st-blog-sidebar__tag" href="{{ taxonomy_archive_url(content_type.slug, g.taxonomy.slug, t.slug) }}">{{ t.name|e }}</a>
+            </li>
+          {% endfor %}
+        {% endfor %}
+      </ul>
+    </div>
+  {% endif %}
+
+  {% if _recent.entries is not empty %}
+    <div class="st-blog-sidebar__panel">
+      <h2 class="st-blog-sidebar__title">Recent posts</h2>
+      <ul class="st-blog-sidebar__recent" role="list">
+        {% for item in _recent.entries %}
+          {% set row = item.row %}
+          {% if row.slug|default('') != content_entry.slug %}
+            {% set _url = url_for('public.content_entry', { typeSlug: content_type.slug, entrySlug: row.slug }) %}
+            <li>
+              <a class="st-blog-sidebar__recent-link" href="{{ _url|e('html_attr') }}">
+                <span class="st-blog-sidebar__recent-title">{{ row.title|e }}</span>
+                {% if row.published_at|default('')|trim != '' %}
+                  <time class="st-blog-sidebar__recent-date" datetime="{{ row.published_at|e('html_attr') }}">{{ row.published_at|date('M j, Y') }}</time>
+                {% endif %}
+              </a>
+            </li>
+          {% endif %}
+        {% endfor %}
+      </ul>
+    </div>
+  {% endif %}
+
+  <div class="st-blog-sidebar__panel st-blog-sidebar__panel--cta">
+    <h2 class="st-blog-sidebar__title">{{ theme_settings.footer_headline|default('Where Vision Meets Value')|e }}</h2>
+    <p class="st-blog-sidebar__cta-lead">{{ theme_settings.footer_lead|default(settings.site_tagline|default('Ship structured content on Struxa.'))|e }}</p>
+    {% set _cta_url = theme_settings.footer_cta_url|default('')|trim %}
+    {% if _cta_url == '' %}
+      {% set _cta_url = url_for('register') %}
+    {% endif %}
+    <a class="st-btn st-btn--primary st-btn--block" href="{{ _cta_url|e('html_attr') }}">
+      {{ theme_settings.footer_cta_label|default('Schedule a Consultation')|e }}
+    </a>
+  </div>
+</aside>

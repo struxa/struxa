@@ -13,7 +13,7 @@
 
 {% block admin_content %}
   <div class="admin-toolbar admin-toolbar--spread" style="margin-bottom:1.25rem">
-    <p class="admin-hint" style="margin:0">Installable themes from your catalog (JSON).</p>
+    <p class="admin-hint" style="margin:0">Install from the catalog or <a class="admin-link" href="{{ url_for('admin.themes.browse') }}#install-zip">upload a ZIP</a>.</p>
     <a class="admin-btn-primary" href="{{ url_for('admin.themes.browse') }}">Browse catalog</a>
   </div>
 

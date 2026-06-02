@@ -122,6 +122,34 @@ final class PluginRemoteInstaller
         return $lastErr;
     }
 
+    /**
+     * Install a plugin from an uploaded ZIP (slug read from plugin.json in the archive).
+     */
+    public function installFromUploadedZip(string $zipBody): ?string
+    {
+        if (strlen($zipBody) > self::MAX_ZIP_BYTES) {
+            return 'Plugin package exceeds maximum size.';
+        }
+        if (!class_exists(ZipArchive::class)) {
+            return 'PHP zip extension (ZipArchive) is required to install plugins.';
+        }
+
+        $discovered = $this->discoverPluginSlugFromZipBody($zipBody);
+        if ($discovered === '') {
+            return 'No valid plugin (plugin.json at package root or in a single folder) was found in the archive.';
+        }
+        if (!preg_match('/^[a-z0-9]+(?:-[a-z0-9]+)*$/', $discovered)) {
+            return $discovered;
+        }
+
+        $slug = $discovered;
+        if ($this->scanner->findBySlug($slug) !== null) {
+            return 'That plugin is already installed. Remove it first if you want to replace it.';
+        }
+
+        return $this->deployFromZipBody($slug, $zipBody, false);
+    }
+
     private function fetchAndDeploy(string $slug, string $downloadUrl, bool $replace): ?string
     {
         if (!ThemeRemoteInstaller::isDownloadUrlHostAllowed($downloadUrl)) {
@@ -257,11 +285,64 @@ final class PluginRemoteInstaller
         return null;
     }
 
-    private function locatePluginRoot(string $extractDir, string $expectedSlug): ?string
+    /**
+     * Returns plugin slug on success, or an error message string.
+     */
+    private function discoverPluginSlugFromZipBody(string $zipBody): string
+    {
+        $work = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'struxa-plugin-discover-' . bin2hex(random_bytes(8));
+        if (!@mkdir($work, 0700, true) || !is_dir($work)) {
+            return 'Could not create a temporary working directory.';
+        }
+        $zipPath = $work . DIRECTORY_SEPARATOR . 'package.zip';
+        $extractDir = $work . DIRECTORY_SEPARATOR . 'extract';
+        try {
+            if (file_put_contents($zipPath, $zipBody) === false) {
+                return 'Could not save the plugin package.';
+            }
+            if (!@mkdir($extractDir, 0700, true)) {
+                return 'Could not create extract directory.';
+            }
+            $zip = new ZipArchive();
+            if ($zip->open($zipPath) !== true) {
+                return 'File is not a valid ZIP archive.';
+            }
+            if (!$this->extractZipSafely($zip, $extractDir)) {
+                $zip->close();
+
+                return 'Plugin archive contains unsafe paths and was rejected.';
+            }
+            $zip->close();
+
+            $parser = new PluginManifestParser();
+            foreach ($this->pluginRootCandidates($extractDir) as $dir) {
+                $manifestPath = $dir . DIRECTORY_SEPARATOR . 'plugin.json';
+                if (!is_file($manifestPath)) {
+                    continue;
+                }
+                $dirName = basename($dir);
+                $parsed = $parser->parseFile($manifestPath, $dirName);
+                if (!$parsed['ok']) {
+                    continue;
+                }
+
+                return $parsed['manifest']->slug;
+            }
+
+            return '';
+        } finally {
+            SafeDirectoryRemoval::removeIfInside($work, dirname($work));
+        }
+    }
+
+    /**
+     * @return list<string> absolute directory paths
+     */
+    private function pluginRootCandidates(string $extractDir): array
     {
         $extractReal = realpath($extractDir);
         if ($extractReal === false) {
-            return null;
+            return [];
         }
 
         $candidates = [$extractReal];
@@ -275,8 +356,12 @@ final class PluginRemoteInstaller
             }
         }
 
-        $match = null;
-        foreach ($candidates as $dir) {
+        return $candidates;
+    }
+
+    private function locatePluginRoot(string $extractDir, string $expectedSlug): ?string
+    {
+        foreach ($this->pluginRootCandidates($extractDir) as $dir) {
             $manifestPath = $dir . DIRECTORY_SEPARATOR . 'plugin.json';
             if (!is_file($manifestPath)) {
                 continue;
@@ -294,12 +379,11 @@ final class PluginRemoteInstaller
                 continue;
             }
             $r = realpath($dir);
-            if ($r !== false) {
-                $match = $r;
-            }
+
+            return $r !== false ? $r : null;
         }
 
-        return $match;
+        return null;
     }
 
     private function extractZipSafely(ZipArchive $zip, string $destDir): bool

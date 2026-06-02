@@ -40,6 +40,36 @@ final class SectionBlockCatalog
                 'icon' => 'text',
                 'description' => 'Small footnote or disclaimer block.',
             ],
+            'content_type_hero' => [
+                'category' => 'hero',
+                'icon' => 'hero',
+                'description' => 'Two-column hero driven by a Homepage hero content entry (badges, copy, CTA, featured image).',
+            ],
+            'vision_trust_bar' => [
+                'category' => 'social',
+                'icon' => 'stats',
+                'description' => 'Trust headline plus logo labels from a content type, GitHub spotlight, and latest blog posts.',
+            ],
+            'vision_blog_news' => [
+                'category' => 'content',
+                'icon' => 'cards',
+                'description' => 'Latest published entries from your blog or news content type.',
+            ],
+            'vision_features' => [
+                'category' => 'marketing',
+                'icon' => 'grid',
+                'description' => 'Centered headline with badge row and three feature cards with soft CTA links.',
+            ],
+            'vision_newsletter' => [
+                'category' => 'marketing',
+                'icon' => 'cta',
+                'description' => 'Mailing list signup powered by a Struxa form (email capture + submissions inbox).',
+            ],
+            'forms_embed' => [
+                'category' => 'forms',
+                'icon' => 'form',
+                'description' => 'Embed any published Struxa form by slug.',
+            ],
             'hero' => [
                 'category' => 'hero',
                 'icon' => 'hero',

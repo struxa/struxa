@@ -16,6 +16,7 @@ final class ContentType
         public readonly bool $supportsSeo,
         public readonly bool $supportsFeaturedImage,
         public readonly bool $supportsBlockBuilder,
+        public readonly bool $commentsDisabled,
         public readonly string $createdAt,
         public readonly string $updatedAt,
     ) {
@@ -36,6 +37,7 @@ final class ContentType
             (bool) ((int) ($row['supports_seo'] ?? 0)),
             (bool) ((int) ($row['supports_featured_image'] ?? 0)),
             (bool) ((int) ($row['supports_block_builder'] ?? 1)),
+            (bool) ((int) ($row['comments_disabled'] ?? 0)),
             (string) ($row['created_at'] ?? ''),
             (string) ($row['updated_at'] ?? ''),
         );

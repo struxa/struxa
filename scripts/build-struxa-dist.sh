@@ -10,15 +10,17 @@ mkdir -p "$ZIPS"
 read_publish() {
   if [[ -f "$PUBLISH" ]]; then
     PUBLISH_THEMES=$(php -r '$p=json_decode(file_get_contents($argv[1]),true); foreach($p["themes"]??["default"] as $t){echo $t," ";}' "$PUBLISH")
+    PUBLISH_PLUGIN_SLUGS=$(php -r '$p=json_decode(file_get_contents($argv[1]),true); foreach($p["plugins"]??[] as $s){echo $s," ";}' "$PUBLISH")
     PUBLISH_PLUGINS=$(php -r '$p=json_decode(file_get_contents($argv[1]),true); echo !empty($p["include_plugins"])?"1":"0";' "$PUBLISH")
   else
     PUBLISH_THEMES="default "
+    PUBLISH_PLUGIN_SLUGS=""
     PUBLISH_PLUGINS=0
   fi
 }
 read_publish
 
-echo "==> Publish allowlist: themes=(${PUBLISH_THEMES%/}) plugins=$([[ "$PUBLISH_PLUGINS" == 1 ]] && echo yes || echo no)"
+echo "==> Publish allowlist: themes=(${PUBLISH_THEMES%/}) plugins=(${PUBLISH_PLUGIN_SLUGS:-none}) include_plugins=$PUBLISH_PLUGINS"
 
 echo "==> Building theme ZIPs into struxa-dist/zips/"
 for theme_dir in "$ROOT"/themes/*/; do
@@ -36,19 +38,35 @@ done
 
 if [[ "$PUBLISH_PLUGINS" == 1 ]]; then
   echo "==> Building plugin ZIPs into struxa-dist/zips/"
-  for plugin_dir in "$ROOT"/plugins/*/; do
-    [[ -d "$plugin_dir" ]] || continue
-    slug="$(basename "$plugin_dir")"
-    [[ -f "$plugin_dir/plugin.json" ]] || continue
-    out="$ZIPS/${slug}.zip"
-    echo "  $slug"
-    rm -f "$out"
-    (cd "$plugin_dir" && zip -rq "$out" . \
-      -x '*.git/*' \
-      -x '.DS_Store' \
-      -x 'vendor/*' \
-      -x 'node_modules/*')
-  done
+  if [[ -n "${PUBLISH_PLUGIN_SLUGS// /}" ]]; then
+    for slug in $PUBLISH_PLUGIN_SLUGS; do
+      plugin_dir="$ROOT/plugins/${slug}"
+      [[ -d "$plugin_dir" ]] || continue
+      [[ -f "$plugin_dir/plugin.json" ]] || continue
+      out="$ZIPS/${slug}.zip"
+      echo "  $slug"
+      rm -f "$out"
+      (cd "$plugin_dir" && zip -rq "$out" . \
+        -x '*.git/*' \
+        -x '.DS_Store' \
+        -x 'vendor/*' \
+        -x 'node_modules/*')
+    done
+  else
+    for plugin_dir in "$ROOT"/plugins/*/; do
+      [[ -d "$plugin_dir" ]] || continue
+      slug="$(basename "$plugin_dir")"
+      [[ -f "$plugin_dir/plugin.json" ]] || continue
+      out="$ZIPS/${slug}.zip"
+      echo "  $slug"
+      rm -f "$out"
+      (cd "$plugin_dir" && zip -rq "$out" . \
+        -x '*.git/*' \
+        -x '.DS_Store' \
+        -x 'vendor/*' \
+        -x 'node_modules/*')
+    done
+  fi
 else
   echo "==> Skipping plugin ZIPs (include_plugins=false in publish.json)"
 fi
@@ -60,7 +78,9 @@ for zip in "$ZIPS"/*.zip; do
   keep=0
   if [[ " ${PUBLISH_THEMES} " == *" ${base} "* ]]; then
     keep=1
-  elif [[ "$PUBLISH_PLUGINS" == 1 && -f "$ROOT/plugins/${base}/plugin.json" ]]; then
+  elif [[ " ${PUBLISH_PLUGIN_SLUGS} " == *" ${base} "* ]]; then
+    keep=1
+  elif [[ "$PUBLISH_PLUGINS" == 1 && -z "${PUBLISH_PLUGIN_SLUGS// /}" && -f "$ROOT/plugins/${base}/plugin.json" ]]; then
     keep=1
   fi
   if [[ "$keep" == 0 ]]; then
@@ -80,6 +100,14 @@ cp "$DIST/publish.json" "$PUBLIC_DIST/publish.json"
 for zip in "$ZIPS"/*.zip; do
   [[ -f "$zip" ]] || continue
   cp "$zip" "$PUBLIC_DIST/zips/$(basename "$zip")"
+done
+for zip in "$PUBLIC_DIST/zips"/*.zip; do
+  [[ -f "$zip" ]] || continue
+  base="$(basename "$zip")"
+  if [[ ! -f "$ZIPS/$base" ]]; then
+    echo "  remove stale public/struxa-dist/zips/$base"
+    rm -f "$zip"
+  fi
 done
 
 echo "==> Done. Deploy public/struxa-dist/ to ~/public_html/struxapoint/public/struxa-dist/ on the server."

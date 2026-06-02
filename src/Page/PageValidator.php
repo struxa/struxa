@@ -121,6 +121,8 @@ final class PageValidator
             $publishedAt = $now->format('Y-m-d H:i:s');
         }
 
+        $commentsDisabled = !empty($input['comments_disabled']);
+
         $slug = $slugRaw;
         if ($slug !== '' && !preg_match(self::SLUG_PATTERN, $slug)) {
             $errors['slug'] = 'Slug may only contain lowercase letters, numbers, and hyphens.';
@@ -141,6 +143,7 @@ final class PageValidator
                 'published_at' => $publishedAt,
                 'scheduled_publish_at' => $schedPub,
                 'scheduled_unpublish_at' => $schedUnpub,
+                'comments_disabled' => $commentsDisabled,
             ],
         ];
     }

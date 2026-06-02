@@ -1,0 +1,133 @@
+{# Animated hero visual — CSS/SVG, no external assets. #}
+<div class="st-hero__visual">
+  <div class="st-hero-scene" aria-hidden="true">
+    <svg class="st-hero-scene__svg" viewBox="0 0 520 480" fill="none" xmlns="http://www.w3.org/2000/svg" role="presentation">
+      <defs>
+        <linearGradient id="st-hero-glow" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#ff6b2b" stop-opacity="0.18" />
+          <stop offset="100%" stop-color="#ff6b2b" stop-opacity="0" />
+        </linearGradient>
+        <filter id="st-hero-shadow" x="-20%" y="-20%" width="140%" height="140%">
+          <feDropShadow dx="0" dy="12" stdDeviation="18" flood-color="#632a13" flood-opacity="0.14" />
+        </filter>
+      </defs>
+
+      <ellipse class="st-hero-scene__glow" cx="270" cy="250" rx="210" ry="170" fill="url(#st-hero-glow)" />
+
+      {# Paper plane #}
+      <g class="st-hero-scene__plane">
+        <path class="st-hero-scene__plane-trail" d="M48 72 C 90 58, 130 52, 168 58" stroke="#ff6b2b" stroke-width="2" stroke-dasharray="5 7" stroke-linecap="round" opacity="0.55" />
+        <path d="M168 58 L182 52 L176 66 Z" fill="#ff6b2b" />
+        <path d="M182 52 L198 48 L188 58 L176 66 Z" fill="#fff" stroke="#111827" stroke-width="1.5" stroke-linejoin="round" />
+      </g>
+
+      {# Dashboard window #}
+      <g class="st-hero-scene__window" filter="url(#st-hero-shadow)">
+        <rect x="72" y="58" width="376" height="300" rx="18" fill="#fff" stroke="#111827" stroke-width="2" />
+        <rect x="72" y="58" width="376" height="42" rx="18" fill="#fafafa" />
+        <rect x="72" y="88" width="376" height="12" fill="#fafafa" />
+        <circle cx="94" cy="79" r="5" fill="#ff6b2b" opacity="0.85" />
+        <circle cx="110" cy="79" r="5" fill="#111827" opacity="0.12" />
+        <circle cx="126" cy="79" r="5" fill="#111827" opacity="0.12" />
+        <text x="148" y="84" fill="#ff6b2b" font-family="Plus Jakarta Sans, system-ui, sans-serif" font-size="13" font-weight="800" letter-spacing="0.06em">STRUXA CMS</text>
+
+        {# Sidebar #}
+        <rect x="88" y="112" width="44" height="228" rx="10" fill="#f9f5f2" stroke="#111827" stroke-width="1.5" />
+        <g class="st-hero-scene__nav-item st-hero-scene__nav-item--active">
+          <rect x="96" y="124" width="28" height="28" rx="8" fill="#ff6b2b" opacity="0.15" />
+          <path d="M104 140h12M110 134v12" stroke="#ff6b2b" stroke-width="2" stroke-linecap="round" />
+        </g>
+        <rect x="100" y="164" width="20" height="16" rx="3" stroke="#111827" stroke-width="1.5" />
+        <rect x="100" y="196" width="20" height="16" rx="3" stroke="#111827" stroke-width="1.5" />
+        <circle cx="110" cy="232" r="8" stroke="#111827" stroke-width="1.5" />
+
+        {# Text card #}
+        <g class="st-hero-scene__card st-hero-scene__card--1">
+          <rect x="148" y="112" width="118" height="88" rx="12" fill="#fff" stroke="#111827" stroke-width="1.5" />
+          <text x="162" y="148" fill="#ff6b2b" font-family="Plus Jakarta Sans, system-ui, sans-serif" font-size="28" font-weight="800">T</text>
+          <rect class="st-hero-scene__line st-hero-scene__line--1" x="188" y="136" width="62" height="6" rx="3" fill="#111827" opacity="0.12" />
+          <rect class="st-hero-scene__line st-hero-scene__line--2" x="188" y="150" width="48" height="6" rx="3" fill="#111827" opacity="0.08" />
+          <rect class="st-hero-scene__line st-hero-scene__line--3" x="188" y="164" width="54" height="6" rx="3" fill="#111827" opacity="0.08" />
+        </g>
+
+        {# Media card #}
+        <g class="st-hero-scene__card st-hero-scene__card--2">
+          <rect x="278" y="112" width="118" height="88" rx="12" fill="#fff" stroke="#111827" stroke-width="1.5" />
+          <path d="M294 176l22-20 16 14 18-22 24 28H294z" fill="#f9f5f2" stroke="#111827" stroke-width="1.5" stroke-linejoin="round" />
+          <circle cx="308" cy="136" r="8" fill="#ff6b2b" opacity="0.85" />
+          <g class="st-hero-scene__plus">
+            <rect x="372" y="178" width="18" height="18" rx="6" fill="#ff6b2b" />
+            <path d="M381 183v8M377 187h8" stroke="#fff" stroke-width="2" stroke-linecap="round" />
+          </g>
+        </g>
+
+        {# List card #}
+        <g class="st-hero-scene__card st-hero-scene__card--3">
+          <rect x="148" y="212" width="118" height="128" rx="12" fill="#fff" stroke="#111827" stroke-width="1.5" />
+          <g class="st-hero-scene__list-item st-hero-scene__list-item--1">
+            <circle cx="164" cy="236" r="4" fill="#ff6b2b" />
+            <rect x="176" y="232" width="72" height="8" rx="4" fill="#111827" opacity="0.1" />
+          </g>
+          <g class="st-hero-scene__list-item st-hero-scene__list-item--2">
+            <circle cx="164" cy="258" r="4" fill="#ff6b2b" />
+            <rect x="176" y="254" width="58" height="8" rx="4" fill="#111827" opacity="0.08" />
+          </g>
+          <g class="st-hero-scene__list-item st-hero-scene__list-item--3">
+            <circle cx="164" cy="280" r="4" fill="#ff6b2b" />
+            <rect x="176" y="276" width="64" height="8" rx="4" fill="#111827" opacity="0.08" />
+          </g>
+          <g class="st-hero-scene__list-item st-hero-scene__list-item--4">
+            <circle cx="164" cy="302" r="4" fill="#ff6b2b" />
+            <rect x="176" y="298" width="50" height="8" rx="4" fill="#111827" opacity="0.08" />
+          </g>
+        </g>
+
+        {# Add block #}
+        <g class="st-hero-scene__card st-hero-scene__card--4">
+          <rect x="278" y="212" width="118" height="128" rx="12" fill="#fff" stroke="#111827" stroke-width="1.5" stroke-dasharray="6 5" />
+          <g class="st-hero-scene__plus st-hero-scene__plus--center">
+            <rect x="328" y="262" width="28" height="28" rx="10" fill="#ff6b2b" />
+            <path d="M342 270v12M336 276h12" stroke="#fff" stroke-width="2.5" stroke-linecap="round" />
+          </g>
+        </g>
+
+        {# Chart + shield row #}
+        <g class="st-hero-scene__card st-hero-scene__card--5">
+          <rect x="148" y="352" width="160" height="52" rx="12" fill="#fff" stroke="#111827" stroke-width="1.5" />
+          <rect class="st-hero-scene__bar st-hero-scene__bar--1" x="164" y="378" width="14" height="12" rx="3" fill="#111827" opacity="0.12" />
+          <rect class="st-hero-scene__bar st-hero-scene__bar--2" x="184" y="370" width="14" height="20" rx="3" fill="#ff6b2b" opacity="0.85" />
+          <rect class="st-hero-scene__bar st-hero-scene__bar--3" x="204" y="362" width="14" height="28" rx="3" fill="#111827" opacity="0.12" />
+          <rect class="st-hero-scene__bar st-hero-scene__bar--4" x="224" y="366" width="14" height="24" rx="3" fill="#ff6b2b" opacity="0.55" />
+          <rect class="st-hero-scene__bar st-hero-scene__bar--5" x="244" y="358" width="14" height="32" rx="3" fill="#111827" opacity="0.12" />
+          <rect class="st-hero-scene__bar st-hero-scene__bar--6" x="264" y="372" width="14" height="18" rx="3" fill="#ff6b2b" opacity="0.7" />
+        </g>
+        <g class="st-hero-scene__card st-hero-scene__card--6">
+          <rect x="318" y="352" width="78" height="52" rx="12" fill="#fff" stroke="#111827" stroke-width="1.5" />
+          <path d="M338 378c0-8 6-14 14-14s14 6 14 14v6h-28v-6z" stroke="#111827" stroke-width="1.5" />
+          <path class="st-hero-scene__shield-check" d="M348 378l4 4 8-8" stroke="#ff6b2b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+        </g>
+      </g>
+
+      {# Person + laptop #}
+      <g class="st-hero-scene__person">
+        <ellipse cx="260" cy="418" rx="72" ry="10" fill="#111827" opacity="0.06" />
+        <path d="M228 404c0-28 16-44 32-44s32 16 32 44" fill="#fff" stroke="#111827" stroke-width="2" />
+        <circle cx="260" cy="332" r="22" fill="#fff" stroke="#111827" stroke-width="2" />
+        <path d="M246 328c4-8 24-8 28 0" stroke="#111827" stroke-width="2" stroke-linecap="round" />
+        <rect x="214" y="404" width="92" height="10" rx="5" fill="#ff6b2b" opacity="0.85" />
+        <rect x="222" y="378" width="76" height="28" rx="6" fill="#fff" stroke="#111827" stroke-width="2" />
+        <rect x="228" y="384" width="64" height="16" rx="3" fill="#f9f5f2" />
+        <rect class="st-hero-scene__cursor" x="268" y="386" width="2" height="12" rx="1" fill="#ff6b2b" />
+      </g>
+
+      {# Plant #}
+      <g class="st-hero-scene__plant">
+        <rect x="418" y="392" width="28" height="24" rx="6" fill="#fff" stroke="#111827" stroke-width="1.5" />
+        <path d="M432 392V368" stroke="#111827" stroke-width="2" stroke-linecap="round" />
+        <path class="st-hero-scene__leaf st-hero-scene__leaf--1" d="M432 376c-14-4-18-16-10-22 8 6 10 18 10 22z" fill="#fff" stroke="#111827" stroke-width="1.5" />
+        <path class="st-hero-scene__leaf st-hero-scene__leaf--2" d="M432 368c12-6 20-2 22 8-12-2-20-4-22-8z" fill="#ff6b2b" opacity="0.9" />
+        <path class="st-hero-scene__leaf st-hero-scene__leaf--3" d="M432 384c-10 8-6 18 4 20-2-10-2-16-4-20z" fill="#fff" stroke="#111827" stroke-width="1.5" />
+      </g>
+    </svg>
+  </div>
+</div>

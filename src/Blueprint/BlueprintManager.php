@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace App\Blueprint;
 
 use App\Access\WorkflowService;
+use App\Form\FormFieldRepository;
+use App\Form\FormRepository;
+use App\Form\FormTemplateCatalog;
 use App\Content\ContentEntryRepository;
 use App\Content\ContentEntryValueRepository;
 use App\Content\ContentFieldRepository;
@@ -284,6 +287,10 @@ final class BlueprintManager
 
                 $this->importFields($typeId, $t['fields'] ?? [], $opt->merge, $applied, $warnings);
                 $this->importTaxonomies($typeId, $t['taxonomies'] ?? [], $opt->merge, $applied, $warnings, $run);
+            }
+
+            if (isset($payload['forms']) && is_array($payload['forms'])) {
+                $this->importForms($payload['forms'], $opt->merge, $applied, $warnings, $run);
             }
 
             if (isset($payload['pages']) && is_array($payload['pages'])) {
@@ -1099,5 +1106,73 @@ final class BlueprintManager
         $stmt->execute([$id]);
 
         return $stmt->fetchColumn() ? $id : null;
+    }
+
+    /**
+     * @param list<mixed> $forms
+     * @param list<string> $applied
+     * @param list<string> $warnings
+     */
+    private function importForms(array $forms, bool $merge, array &$applied, array &$warnings, bool $run): void
+    {
+        if (!$run) {
+            return;
+        }
+
+        $formsRepo = new FormRepository($this->pdo);
+        $fieldsRepo = new FormFieldRepository($this->pdo);
+
+        foreach ($forms as $row) {
+            if (!is_array($row)) {
+                continue;
+            }
+            $slug = trim((string) ($row['slug'] ?? ''));
+            $name = trim((string) ($row['name'] ?? ''));
+            if ($slug === '' || $name === '') {
+                $warnings[] = 'Skipped form with missing slug or name.';
+
+                continue;
+            }
+
+            $stmt = $this->pdo->prepare('SELECT id FROM cms_forms WHERE slug = ? LIMIT 1');
+            $stmt->execute([$slug]);
+            if ($stmt->fetchColumn() !== false) {
+                if ($merge) {
+                    $warnings[] = 'Form slug exists, skipped: ' . $slug;
+                } else {
+                    $warnings[] = 'Skipped existing form: ' . $slug;
+                }
+
+                continue;
+            }
+
+            $templateKey = trim((string) ($row['template'] ?? ''));
+            $fields = [];
+            $formExtras = [];
+            if ($templateKey !== '' && FormTemplateCatalog::isValid($templateKey)) {
+                $tpl = FormTemplateCatalog::all()[$templateKey];
+                $fields = $tpl['fields'];
+                if (isset($tpl['form']) && is_array($tpl['form'])) {
+                    $formExtras = $tpl['form'];
+                }
+            }
+
+            $status = (string) ($row['status'] ?? 'published');
+            if (!in_array($status, ['draft', 'published'], true)) {
+                $status = 'published';
+            }
+
+            $formId = $formsRepo->createFromTemplate($name, $slug, $templateKey !== '' ? $templateKey : 'blank', $fields, array_merge($formExtras, [
+                'description' => isset($row['description']) && is_string($row['description']) ? trim($row['description']) : null,
+                'status' => $status,
+                'submit_label' => isset($row['submit_label']) && is_string($row['submit_label']) && trim($row['submit_label']) !== ''
+                    ? trim($row['submit_label']) : 'Subscribe',
+                'confirmation_message' => isset($row['confirmation_message']) && is_string($row['confirmation_message'])
+                    ? trim($row['confirmation_message']) : null,
+                'notify_enabled' => !empty($row['notify_enabled']),
+            ]));
+            $fieldsRepo->ensureHoneypot($formId);
+            $applied[] = 'form ' . $slug;
+        }
     }
 }

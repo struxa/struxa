@@ -338,6 +338,109 @@ final class CommentRepository
         return $rows;
     }
 
+    /**
+     * Recent approved comments on published entries of a content type (for blog sidebars).
+     *
+     * @return list<array{
+     *   id: int,
+     *   author_name: string,
+     *   body_plain: string,
+     *   created_at: string,
+     *   like_count: int,
+     *   entry_id: int,
+     *   entry_slug: string,
+     *   entry_title: string,
+     *   type_slug: string
+     * }>
+     */
+    public function listRecentForContentType(int $contentTypeId, string $order = 'newest', int $limit = 5): array
+    {
+        if ($contentTypeId < 1) {
+            return [];
+        }
+        $limit = max(1, min(12, $limit));
+        $orderKey = strtolower($order);
+        $publicEntry = "e.deleted_at IS NULL AND e.status = 'published' AND (e.published_at IS NULL OR e.published_at <= NOW(6))";
+
+        if ($orderKey === 'most_liked' && self::pdoHasCommentLikesTable($this->pdo)) {
+            [$likeSub] = $this->likeSelectSqlFragments(null);
+            $sql = 'SELECT c.id, c.author_name, c.body, c.created_at,
+                           e.id AS entry_id, e.slug AS entry_slug, e.title AS entry_title,
+                           t.slug AS type_slug, ' . $likeSub . ' AS like_count
+                    FROM cms_comments c
+                    INNER JOIN cms_content_entries e ON c.thread_key = CONCAT(\'entry:\', e.id)
+                    INNER JOIN cms_content_types t ON t.id = e.content_type_id
+                    WHERE e.content_type_id = :type_id
+                      AND ' . $publicEntry . '
+                      AND c.status = :status
+                      AND EXISTS (SELECT 1 FROM cms_comment_likes l WHERE l.comment_id = c.id)
+                    ORDER BY like_count DESC, c.created_at DESC
+                    LIMIT ' . (int) $limit;
+        } else {
+            $direction = $orderKey === 'oldest' ? 'ASC' : 'DESC';
+            $sql = 'SELECT c.id, c.author_name, c.body, c.created_at,
+                           e.id AS entry_id, e.slug AS entry_slug, e.title AS entry_title,
+                           t.slug AS type_slug, 0 AS like_count
+                    FROM cms_comments c
+                    INNER JOIN cms_content_entries e ON c.thread_key = CONCAT(\'entry:\', e.id)
+                    INNER JOIN cms_content_types t ON t.id = e.content_type_id
+                    WHERE e.content_type_id = :type_id
+                      AND ' . $publicEntry . '
+                      AND c.status = :status
+                    ORDER BY c.created_at ' . $direction . '
+                    LIMIT ' . (int) $limit;
+        }
+
+        $st = $this->pdo->prepare($sql);
+        $st->execute([':type_id' => $contentTypeId, ':status' => 'approved']);
+        $rows = $st->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+        return $this->mapSidebarCommentRows($rows);
+    }
+
+    /**
+     * @param list<array<string, mixed>> $rows
+     *
+     * @return list<array{
+     *   id: int,
+     *   author_name: string,
+     *   body_plain: string,
+     *   created_at: string,
+     *   like_count: int,
+     *   entry_id: int,
+     *   entry_slug: string,
+     *   entry_title: string,
+     *   type_slug: string
+     * }>
+     */
+    private function mapSidebarCommentRows(array $rows): array
+    {
+        $out = [];
+        foreach ($rows as $row) {
+            if (!is_array($row)) {
+                continue;
+            }
+            $body = strip_tags((string) ($row['body'] ?? ''));
+            $body = preg_replace('/\s+/u', ' ', trim($body)) ?? '';
+            if (mb_strlen($body) > 120) {
+                $body = mb_substr($body, 0, 117) . '…';
+            }
+            $out[] = [
+                'id' => (int) ($row['id'] ?? 0),
+                'author_name' => (string) ($row['author_name'] ?? ''),
+                'body_plain' => $body,
+                'created_at' => (string) ($row['created_at'] ?? ''),
+                'like_count' => (int) ($row['like_count'] ?? 0),
+                'entry_id' => (int) ($row['entry_id'] ?? 0),
+                'entry_slug' => (string) ($row['entry_slug'] ?? ''),
+                'entry_title' => (string) ($row['entry_title'] ?? ''),
+                'type_slug' => (string) ($row['type_slug'] ?? ''),
+            ];
+        }
+
+        return $out;
+    }
+
     public function findApprovedInThread(int $commentId, string $threadKey): ?array
     {
         if ($commentId < 1) {

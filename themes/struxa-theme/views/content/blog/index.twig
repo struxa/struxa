@@ -1,0 +1,19 @@
+{% extends 'layouts/base.twig' %}
+
+{% set _desc = content_index_description|default(settings.default_meta_description|default('')) %}
+
+{% block title %}{{ content_type.name|e }} — {{ settings.site_name|e }}{% endblock %}
+{% block meta_description %}{{ _desc|e }}{% endblock %}
+{% block og_title %}{{ content_type.name|e }}{% endblock %}
+{% block og_description %}{{ _desc|e }}{% endblock %}
+{% block twitter_title %}{{ content_type.name|e }}{% endblock %}
+{% block twitter_description %}{{ _desc|e }}{% endblock %}
+{% block canonical_href %}{{ site_url }}/{{ content_type.slug }}{% if index_page > 1 %}?page={{ index_page }}{% endif %}{% endblock %}
+
+{% block body %}
+<main id="main-content" class="st-page st-page--blog-index">
+  <div class="st-page__inner st-page__inner--wide">
+    {% include 'partials/blog_archive.twig' %}
+  </div>
+</main>
+{% endblock %}

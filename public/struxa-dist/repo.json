@@ -1,6 +1,6 @@
 {
     "catalog_version": 1,
-    "generated_at": "2026-06-03T12:00:00+00:00",
+    "generated_at": "2026-06-02T09:33:31+00:00",
     "themes": [
         {
             "slug": "default",
@@ -9,26 +9,25 @@
             "description": "Dark SaaS-style layout with gradient accents, header, footer, and content-focused typography. Uses global settings and menus.",
             "author": "Studio CMS",
             "download_url": "https://struxapoint.com/struxa-dist/zips/default.zip"
+        },
+        {
+            "slug": "struxa-theme",
+            "name": "Struxa Vision",
+            "version": "1.0.24",
+            "description": "Light SaaS marketing theme with warm off-white canvas, orange accents, two-tier header, hero illustration, and trust bar. Built for Struxa CMS storefront pages, content types, and menus.",
+            "author": "Struxa",
+            "download_url": "https://struxapoint.com/struxa-dist/zips/struxa-theme.zip"
         }
     ],
     "plugins": [
         {
-            "slug": "struxa-admin",
-            "name": "Struxa Catalog Admin",
+            "slug": "forum-plugin",
+            "name": "Forum",
             "version": "1.0.2",
-            "description": "Community plugin and theme submissions, admin review, and struxa-dist catalog publishing for struxapoint.com.",
-            "author": "Struxa",
-            "download_url": "https://struxapoint.com/struxa-dist/zips/struxa-admin.zip",
-            "requires_cms_version": "1.0.52"
-        },
-        {
-            "slug": "knowledge-base-plugin",
-            "name": "Knowledge Base",
-            "version": "1.0.4",
-            "description": "Built-in Struxa CMS documentation wiki for staff. Optional public storefront at /kb.",
-            "author": "Struxa",
-            "download_url": "https://struxapoint.com/struxa-dist/zips/knowledge-base-plugin.zip",
-            "requires_cms_version": "1.1.33"
+            "description": "MyBB-inspired community forum for Struxa CMS. Categories → forums → threads → posts, with sticky/locked threads, post likes, thread subscriptions, user ranks, quote replies, Markdown rendering, online-now tracking, and a full admin moderation panel. Threads are also exposed as a 'Forum thread' CMS content type so they inherit SEO metadata, slugs and featured images.",
+            "author": "Studio CMS",
+            "download_url": "https://struxapoint.com/struxa-dist/zips/forum-plugin.zip",
+            "requires_cms_version": "1.0.0"
         }
     ]
 }

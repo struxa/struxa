@@ -50,6 +50,8 @@ final class SiteSettingsService
         'google_sso_auto_provision' => '0',
         /** When "1", public HTML adds rel="nofollow" to external http(s) links (content, pages, sections, menus). */
         'seo_external_links_nofollow' => '0',
+        /** When "1", public comment UI and posting are enabled (opt out per page / content type). */
+        'comments_enabled' => '1',
     ];
 
     /** @var list<string> */

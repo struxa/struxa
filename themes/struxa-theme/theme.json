@@ -1,0 +1,168 @@
+{
+  "name": "Struxa Vision",
+  "slug": "struxa-theme",
+  "version": "1.0.24",
+  "author": "Struxa",
+  "description": "Light SaaS marketing theme with warm off-white canvas, orange accents, two-tier header, hero illustration, and trust bar. Built for Struxa CMS storefront pages, content types, and menus.",
+  "homepage": "https://struxapoint.com",
+  "repository_url": "https://github.com/struxa/struxa-theme",
+  "license": "MIT",
+  "category": "marketing",
+  "tags": ["light", "saas", "marketing", "landing"],
+  "min_cms_version": "1.1.33",
+  "tested_up_to": "1.1.65",
+  "screenshot": "assets/screenshot.png",
+  "settings": {
+    "accent": {
+      "type": "string",
+      "label": "Accent color (hex)",
+      "default": "#ff6b2b"
+    },
+    "topbar_location": {
+      "type": "string",
+      "label": "Top bar location label",
+      "default": "Geneva, Switzerland"
+    },
+    "topbar_phone": {
+      "type": "string",
+      "label": "Top bar phone or support label",
+      "default": "Call our support"
+    },
+    "hero_primary_label": {
+      "type": "string",
+      "label": "Hero primary button label",
+      "default": "Get started"
+    },
+    "hero_primary_url": {
+      "type": "string",
+      "label": "Hero primary button URL (leave empty for /register)",
+      "default": ""
+    },
+    "hero_highlights": {
+      "type": "string",
+      "label": "Hero highlight chips (pipe-separated, max 3, e.g. Open source|Twig themes|Blueprints)",
+      "default": "Open source|Twig themes|Blueprints"
+    },
+    "trust_headline": {
+      "type": "string",
+      "label": "Trust bar headline",
+      "default": "Built for teams who ship structured content on Struxa."
+    },
+    "github_repo_url": {
+      "type": "string",
+      "label": "GitHub repo URL (showcase under trust bar)",
+      "default": "https://github.com/struxa/struxa"
+    },
+    "github_showcase_title": {
+      "type": "string",
+      "label": "GitHub showcase title",
+      "default": "Fork the core on GitHub"
+    },
+    "github_showcase_lead": {
+      "type": "string",
+      "label": "GitHub showcase description",
+      "default": "Struxa CMS is open source — Slim 4, Twig, plugins, and themes you can clone, extend, and deploy."
+    },
+    "blog_news_headline": {
+      "type": "string",
+      "label": "Blog/news block headline",
+      "default": "From the blog"
+    },
+    "blog_news_lead": {
+      "type": "string",
+      "label": "Blog/news block description",
+      "default": "Latest articles and updates from the team."
+    },
+    "blog_content_type_slug": {
+      "type": "string",
+      "label": "Blog content type slug (empty = auto-detect)",
+      "default": "blog"
+    },
+    "blog_news_limit": {
+      "type": "string",
+      "label": "Blog posts to show on homepage",
+      "default": "3"
+    },
+    "blog_view_all_label": {
+      "type": "string",
+      "label": "Blog view-all button label",
+      "default": "View all posts"
+    },
+    "blog_read_more_label": {
+      "type": "string",
+      "label": "Blog card link label",
+      "default": "Read article"
+    },
+    "blog_archive_title": {
+      "type": "string",
+      "label": "Blog index page title (empty = content type name)",
+      "default": "Blog"
+    },
+    "blog_archive_lead": {
+      "type": "string",
+      "label": "Blog index page description",
+      "default": "Updates, tutorials, and editorial notes from the Struxa team."
+    },
+    "features_enabled": {
+      "type": "string",
+      "label": "Show features block on homepage (1 or 0)",
+      "default": "1"
+    },
+    "features_badge_1": {
+      "type": "string",
+      "label": "Features badge 1",
+      "default": "Content types"
+    },
+    "features_badge_2": {
+      "type": "string",
+      "label": "Features badge 2",
+      "default": "Themes & plugins"
+    },
+    "features_headline": {
+      "type": "string",
+      "label": "Features headline",
+      "default": "Tailored solutions for teams who ship on Struxa."
+    },
+    "features_lead": {
+      "type": "string",
+      "label": "Features description",
+      "default": "Structured content, an editor-friendly admin, and themes you own — without wrestling plugins or rebuilding from scratch every launch."
+    },
+    "footer_headline": {
+      "type": "string",
+      "label": "Footer headline",
+      "default": "Where Vision Meets Value"
+    },
+    "footer_lead": {
+      "type": "string",
+      "label": "Footer description (empty = site tagline)",
+      "default": ""
+    },
+    "footer_cta_label": {
+      "type": "string",
+      "label": "Footer CTA button label",
+      "default": "Schedule a Consultation"
+    },
+    "footer_cta_url": {
+      "type": "string",
+      "label": "Footer CTA URL (empty = register page)",
+      "default": ""
+    },
+    "footer_terms_url": {
+      "type": "string",
+      "label": "Terms page URL",
+      "default": "/p/terms"
+    },
+    "footer_privacy_url": {
+      "type": "string",
+      "label": "Privacy page URL",
+      "default": "/p/privacy"
+    },
+    "footer_show_certified": {
+      "type": "string",
+      "label": "Show certified badge (1 or 0)",
+      "default": "1"
+    }
+  },
+  "parents": []
+}

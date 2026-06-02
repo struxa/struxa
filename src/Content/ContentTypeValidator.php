@@ -45,6 +45,7 @@ final class ContentTypeValidator
         $supportsSeo = !empty($body['supports_seo']);
         $supportsFeatured = !empty($body['supports_featured_image']);
         $supportsBlockBuilder = !empty($body['supports_block_builder']);
+        $commentsDisabled = !empty($body['comments_disabled']);
 
         return [
             'errors' => $errors,
@@ -57,6 +58,7 @@ final class ContentTypeValidator
                 'supports_seo' => $supportsSeo,
                 'supports_featured_image' => $supportsFeatured,
                 'supports_block_builder' => $supportsBlockBuilder,
+                'comments_disabled' => $commentsDisabled,
             ],
         ];
     }

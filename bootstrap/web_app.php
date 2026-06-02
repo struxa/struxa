@@ -8,6 +8,7 @@ use App\Auth\GoogleSsoConfig;
 use App\Auth\LoginFilterPipeline;
 use App\Auth\PhpAuthUsernameRepository;
 use App\Auth\UsernameValidation;
+use App\Access\PermissionService;
 use App\Asset\CoreAssetResolver;
 use App\Cache\CacheConfig;
 use App\Cache\CacheManager;
@@ -76,6 +77,8 @@ use App\Twig\CmsTwigExtension;
 use App\Twig\FormTwigExtension;
 use App\Twig\ContentEntryRefsTwigExtension;
 use App\Twig\ContentListTwigExtension;
+use App\Twig\GithubShowcaseTwigExtension;
+use App\Twig\CommentTwigExtension;
 use App\Twig\ContentTypeCardsTwigExtension;
 use App\Twig\TaxonomyTwigExtension;
 use App\Twig\ThemeTwigExtension;
@@ -176,7 +179,10 @@ $twig->getEnvironment()->addExtension(new ContentTypeCardsTwigExtension(
         new ContentEntryValueRepository($pdo),
         $mediaUrlHelper,
     ),
+    $pdo,
 ));
+$twig->getEnvironment()->addExtension(new CommentTwigExtension($pdo, new ContentTypeRepository($pdo)));
+$twig->getEnvironment()->addExtension(new GithubShowcaseTwigExtension($root, $cacheManager->internal()));
 $twig->getEnvironment()->addExtension(new CoreAssetTwigExtension(
     new CoreAssetResolver($root . DIRECTORY_SEPARATOR . 'public', CacheConfig::preferMinifiedAssets())
 ));
@@ -227,6 +233,8 @@ $app->get(
 $viewData = static function (array $extra = []) use ($auth, $pdo, $googleSso): array {
     $userEmail = '';
     $userUsername = '';
+    $userDisplayName = '';
+    $userCanAccessAdmin = false;
     if ($auth->isLogged()) {
         $userEmail = (string) ($auth->getCurrentUser()['email'] ?? '');
         $uid = (int) $auth->getCurrentUID();
@@ -236,6 +244,26 @@ $viewData = static function (array $extra = []) use ($auth, $pdo, $googleSso): a
             } catch (\PDOException) {
                 $userUsername = '';
             }
+            if (CmsUserRepository::tableExists($pdo)) {
+                $cmsUser = CmsUserRepository::findByPhpAuthId($pdo, $uid);
+                if ($cmsUser !== null && (int) ($cmsUser['is_active'] ?? 0) === 1) {
+                    $userCanAccessAdmin = (new PermissionService())->canAccessAdmin($pdo, (int) $cmsUser['id']);
+                    if ($userUsername === '') {
+                        $displayName = trim((string) ($cmsUser['display_name'] ?? ''));
+                        if ($displayName !== '') {
+                            $userUsername = $displayName;
+                        }
+                    }
+                }
+            }
+        }
+        if ($userUsername !== '') {
+            $userDisplayName = $userUsername;
+        } elseif ($userEmail !== '') {
+            $at = strpos($userEmail, '@');
+            $userDisplayName = $at !== false ? substr($userEmail, 0, $at) : $userEmail;
+        } else {
+            $userDisplayName = 'Account';
         }
     }
 
@@ -244,6 +272,8 @@ $viewData = static function (array $extra = []) use ($auth, $pdo, $googleSso): a
         'phpauth_user_id' => $auth->isLogged() ? (int) $auth->getCurrentUID() : 0,
         'user_email' => $userEmail,
         'user_username' => $userUsername,
+        'user_display_name' => $userDisplayName,
+        'user_can_access_admin' => $userCanAccessAdmin,
         'flash_error' => Flash::pull('error'),
         'flash_success' => Flash::pull('success'),
         'site_url' => \App\Settings\SiteUrlResolver::resolve(),

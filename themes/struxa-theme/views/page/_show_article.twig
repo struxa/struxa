@@ -1,0 +1,31 @@
+<article class="st-cms-page{% if cms_page_public_home|default(false) %} st-cms-page--public-home{% endif %}">
+  {% if not _hide_page_header|default(false) %}
+    <div class="st-page__inner">
+      <header class="st-article">
+        <p class="st-eyebrow">Page</p>
+        <h1>{{ cms_page.title|e }}</h1>
+        {% if cms_page.tags is not empty %}
+          <ul class="st-cms-tags" aria-label="Tags">
+            {% for tag in cms_page.tags %}
+              <li><span class="st-cms-tag">{{ tag|replace({'-': ' '})|title|e }}</span></li>
+            {% endfor %}
+          </ul>
+        {% endif %}
+      </header>
+    </div>
+  {% endif %}
+
+  {% if cms_page_has_sections|default(false) and cms_page_sections_html|default('')|trim != '' %}
+    <div class="st-cms-sections" data-strux-sections>{{ cms_page_sections_html|raw }}</div>
+  {% endif %}
+
+  {% if cms_page.content|trim != '' %}
+    <div class="st-page__inner">
+      <div class="st-article cms-prose">{{ cms_page.content|raw }}</div>
+    </div>
+  {% endif %}
+
+  {% if comments_enabled_for_view|default(false) and not cms_page_public_home|default(false) %}
+    {% include 'partials/st_comments.twig' %}
+  {% endif %}
+</article>

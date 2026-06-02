@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="{{ settings.site_html_lang|default('en')|e('html_attr') }}">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    {% set _accent = theme_settings.accent|default('')|trim %}
+    {% if _accent == '' %}{% set _accent = '#ff6b2b' %}{% endif %}
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&amp;display=swap" />
+    {% include 'partials/_deferred_theme_css.twig' with {
+      font_url: '',
+      theme_stylesheets: ['css/app.css'],
+    } only %}
+    <title>
+      {%- if struxa_seo|default(false) -%}
+        {{- struxa_html_title|default('')|e -}}
+      {%- else -%}
+        {%- block title -%}{{ settings.default_meta_title|default(settings.site_name)|e }}{%- endblock -%}
+      {%- endif -%}
+    </title>
+    <meta
+      name="description"
+      content="{%- if struxa_seo|default(false) -%}{{ struxa_meta_description|default('')|e('html_attr') }}{%- else -%}{%- block meta_description -%}{{ settings.default_meta_description|default('')|e }}{%- endblock -%}{%- endif -%}"
+    />
+    {% block meta_extra %}
+      {% if struxa_seo|default(false) %}
+        {% include 'public/_struxa_social_head.twig' %}
+      {% endif %}
+    {% endblock %}
+    <link rel="canonical" href="{% if struxa_seo|default(false) %}{{ struxa_canonical_url|default('')|e('html_attr') }}{% else %}{% block canonical_href %}{{ site_url }}/{% endblock %}{% endif %}" />
+    <meta name="theme-color" content="#632a13" />
+    <meta name="color-scheme" content="light" />
+    <link rel="icon" href="{{ settings.favicon_href|default('/favicon.svg')|e('html_attr') }}" />
+    {% if not struxa_seo|default(false) %}
+      <meta property="og:type" content="website" />
+      <meta property="og:site_name" content="{{ settings.site_name|e }}" />
+      <meta property="og:title" content="{% block og_title %}{{ settings.default_meta_title|default(settings.site_name)|e }}{% endblock %}" />
+      <meta property="og:description" content="{% block og_description %}{{ settings.default_meta_description|default('')|e }}{% endblock %}" />
+      <meta name="twitter:card" content="summary_large_image" />
+      <meta name="twitter:title" content="{% block twitter_title %}{{ settings.default_meta_title|default(settings.site_name)|e }}{% endblock %}" />
+      <meta name="twitter:description" content="{% block twitter_description %}{{ settings.default_meta_description|default('')|e }}{% endblock %}" />
+    {% endif %}
+    {% block head_extra %}{% endblock %}
+  </head>
+  <body class="theme-struxa" style="--st-accent: {{ _accent|e('html_attr') }}">
+    <div class="st-shell">
+      <a class="st-skip-link" href="#main-content">Skip to main content</a>
+      {% include 'partials/header.twig' %}
+      <div class="st-main">
+        {% block body %}{% endblock %}
+      </div>
+      {% include 'partials/footer.twig' %}
+    </div>
+    <script src="{{ theme_asset('js/main.js') }}" defer></script>
+    {% include 'partials/_struxa_tracking.twig' %}
+    {% block scripts_extra %}{% endblock %}
+  </body>
+</html>

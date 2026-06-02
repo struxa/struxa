@@ -95,7 +95,9 @@
         <div class="blog-post-body cms-prose theme-cms-body" data-reveal data-reveal-delay="100">{{ body_row.html|raw }}</div>
       {% endif %}
     </section>
-    {% include 'partials/comments_widget.twig' %}
+    {% if comments_enabled_for_view|default(false) %}
+      {% include 'partials/comments_widget.twig' %}
+    {% endif %}
   </article>
 </main>
 {% endblock %}
