@@ -37,6 +37,7 @@ return static function (App $app, Twig $twig, \PDO $pdo, callable $viewData): vo
     $app->get('/{typeSlug}', function (Request $request, Response $response, array $args) use (
         $twig,
         $viewData,
+        $pdo,
         $types,
         $entries,
         $mediaUrls,
