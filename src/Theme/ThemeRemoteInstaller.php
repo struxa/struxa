@@ -283,10 +283,17 @@ final class ThemeRemoteInstaller
             new \RecursiveDirectoryIterator($source, \FilesystemIterator::SKIP_DOTS),
             \RecursiveIteratorIterator::SELF_FIRST
         );
+        $sourcePrefix = $sourceReal . DIRECTORY_SEPARATOR;
         foreach ($it as $item) {
-            /** @var \SplFileInfo $item */
-            $sub = $item->getSubPathname();
-            $target = $destReal . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $sub);
+            if (!$item instanceof \SplFileInfo) {
+                continue;
+            }
+            $pathname = $item->getPathname();
+            if (!str_starts_with($pathname, $sourcePrefix)) {
+                return 'Path error while copying theme.';
+            }
+            $rel = substr($pathname, strlen($sourcePrefix));
+            $target = $destReal . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $rel);
             if ($item->isDir()) {
                 if (!@mkdir($target, 0755, true) && !is_dir($target)) {
                     return 'Could not copy theme folders.';

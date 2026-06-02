@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.1.66",
-    "title": "Struxa 1.1.66",
-    "summary": "Ship Struxa Vision in-core, add homepage mailing list signup with Forms, and improve GitHub/version showcase stats.",
+    "latest_version": "1.1.67",
+    "title": "Struxa 1.1.67",
+    "summary": "Fix theme install fallback copy on hosts where SplFileInfo::getSubPathname() is unavailable.",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "patch"
