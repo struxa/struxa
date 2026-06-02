@@ -430,7 +430,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             return $previewResponse($response, $twig, $viewData, $previewPage, $rows !== [], $sectionsHtml);
         })->setName('admin.pages.preview');
 
-        $group->post('/pages/new', function (Request $request, Response $response) use ($twig, $adminContext, $withCmsUser, $repo, $revisions, $validator, $workflow, $activity, $cmsUid, $pageFormMediaPicker, $pageFormRevisionSidebar, $appendFeaturedMediaError, $pageFormFeaturedThumb, $mediaRepo, $mergePageSeoOld, $viewData): Response {
+        $group->post('/pages/new', function (Request $request, Response $response) use ($twig, $adminContext, $withCmsUser, $repo, $revisions, $validator, $workflow, $activity, $cmsUid, $pageFormMediaPicker, $pageFormRevisionSidebar, $appendFeaturedMediaError, $pageFormFeaturedThumb, $mediaRepo, $mergePageSeoOld, $viewData, $capturePageRevision): Response {
             $body = $request->getParsedBody();
             $body = is_array($body) ? $body : [];
             $result = $appendFeaturedMediaError($validator->validate($body));
@@ -545,7 +545,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             ])));
         })->setName('admin.pages.edit');
 
-        $group->post('/pages/{id:[0-9]+}/edit', function (Request $request, Response $response, array $args) use ($twig, $adminContext, $withCmsUser, $repo, $revisions, $validator, $workflow, $activity, $cmsUid, $pageFormMediaPicker, $pageFormRevisionSidebar, $appendFeaturedMediaError, $pageFormFeaturedThumb, $mediaRepo, $mergePageSeoOld, $pdo, $viewData, $pageBuilderPayload, $editSessions): Response {
+        $group->post('/pages/{id:[0-9]+}/edit', function (Request $request, Response $response, array $args) use ($twig, $adminContext, $withCmsUser, $repo, $revisions, $validator, $workflow, $activity, $cmsUid, $pageFormMediaPicker, $pageFormRevisionSidebar, $appendFeaturedMediaError, $pageFormFeaturedThumb, $mediaRepo, $mergePageSeoOld, $pdo, $viewData, $pageBuilderPayload, $editSessions, $capturePageRevision): Response {
             $id = (int) $args['id'];
             $page = $repo->findById($id);
             if ($page === null) {
