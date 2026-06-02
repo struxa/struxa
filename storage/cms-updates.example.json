@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.1.82",
-    "title": "Struxa 1.1.82",
-    "summary": "Struxa Vision 1.0.27 KB docs layout; Knowledge Base 1.0.8 aligns wiki nav with public /kb route.",
+    "latest_version": "1.1.83",
+    "title": "Struxa 1.1.83",
+    "summary": "Fix plugin migrations: drain result sets on PDOStatement, not PDO::nextRowset().",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "patch"

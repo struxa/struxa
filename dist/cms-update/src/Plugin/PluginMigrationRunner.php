@@ -76,36 +76,31 @@ final class PluginMigrationRunner
         $sql = preg_replace('/^\s*--.*$/m', '', $sql) ?? $sql;
         $parts = preg_split('/;\s*(?=\R)/', $sql) ?: [];
         foreach ($parts as $part) {
-            $stmt = trim($part);
-            if ($stmt === '') {
+            $stmtSql = trim($part);
+            if ($stmtSql === '') {
                 continue;
             }
-            $this->pdo->exec($stmt);
-            $this->drainOutstandingResults();
+            $result = $this->pdo->query($stmtSql);
+            if ($result instanceof \PDOStatement) {
+                $this->drainStatement($result);
+            }
         }
     }
 
     /**
-     * Idempotent migrations may EXECUTE dynamic SQL that returns a row (e.g. SELECT 1 no-op).
-     * MySQL PDO leaves that result unbuffered unless drained before the next statement.
+     * Idempotent migrations may EXECUTE dynamic SQL that returns rows (e.g. SELECT no-op).
+     * Consume all result sets before the next statement (MySQL PDO unbuffered-query guard).
      */
-    private function drainOutstandingResults(): void
+    private function drainStatement(\PDOStatement $result): void
     {
-        if ($this->pdo->getAttribute(PDO::ATTR_DRIVER_NAME) !== 'mysql') {
-            return;
-        }
         try {
-            while ($this->pdo->nextRowset()) {
-            }
+            do {
+                $result->fetchAll();
+            } while ($result->nextRowset());
         } catch (\PDOException) {
-        }
-        try {
-            $probe = $this->pdo->query('SELECT 1');
-            if ($probe instanceof \PDOStatement) {
-                $probe->fetchAll();
-                $probe->closeCursor();
-            }
-        } catch (\PDOException) {
+            // Some drivers throw when there is no next rowset.
+        } finally {
+            $result->closeCursor();
         }
     }
 }
