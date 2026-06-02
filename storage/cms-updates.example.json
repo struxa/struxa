@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.1.88",
-    "title": "Struxa 1.1.88",
-    "summary": "Fix /kb Slim error (pass PDO into content index route); Vision 1.0.30 forum styling; dist forum 1.1.7.",
+    "latest_version": "1.1.89",
+    "title": "Struxa 1.1.89",
+    "summary": "Vision 1.0.31: forum width matches site container (72rem), tighter row layout.",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "patch"
