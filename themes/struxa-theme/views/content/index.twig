@@ -4,8 +4,11 @@
 {% block canonical_href %}{{ site_url }}/{{ content_type.slug }}{% endblock %}
 
 {% block body %}
-<main id="main-content" class="st-page">
-  <div class="st-page__inner">
+<main id="main-content" class="st-page{% if content_type.slug == 'kb' %} st-page--kb{% endif %}">
+  <div class="st-page__inner{% if content_type.slug == 'kb' %} st-page__inner--wide{% endif %}">
+    {% if content_type.slug == 'kb' %}
+      {% include 'content/kb/_index_main.twig' %}
+    {% else %}
     {% include 'content/_index_grid.twig' with {
       eyebrow_label: content_type.name,
       blog_archive_title: content_type.name,
@@ -16,6 +19,7 @@
       older_label: 'Older',
       card_tag_fallback: 'Article',
     } %}
+    {% endif %}
   </div>
 </main>
 {% endblock %}

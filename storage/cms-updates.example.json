@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.1.85",
-    "title": "Struxa 1.1.85",
-    "summary": "Struxa Vision 1.0.28 forum overrides — light hero, orange accents, cards match storefront.",
+    "latest_version": "1.1.86",
+    "title": "Struxa 1.1.86",
+    "summary": "Fix /kb docs layout: pass wiki sections from CMS routes; KB 1.0.9; Vision 1.0.29.",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "patch"

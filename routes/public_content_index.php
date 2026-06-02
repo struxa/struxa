@@ -75,7 +75,7 @@ return static function (App $app, Twig $twig, \PDO $pdo, callable $viewData): vo
             Settings::get('site_name') ?: null
         ));
 
-        return $twig->render($response, $tpl, array_merge($viewData(), $seoTwig, [
+        $renderVars = array_merge($viewData(), $seoTwig, [
             'content_type' => $type,
             'index_entries' => $indexRows,
             'index_page' => $page,
@@ -85,6 +85,12 @@ return static function (App $app, Twig $twig, \PDO $pdo, callable $viewData): vo
             'index_pager_items' => PublicContentIndexPager::pageItems($page, $totalPages),
             'content_index_title' => $type->name,
             'content_index_description' => $type->description ?? '',
-        ]));
+        ]);
+
+        if ($typeSlug === 'kb' && class_exists(\KnowledgeBasePlugin\KnowledgeBasePublicBridge::class)) {
+            $renderVars = array_merge($renderVars, \KnowledgeBasePlugin\KnowledgeBasePublicBridge::indexViewData($pdo));
+        }
+
+        return $twig->render($response, $tpl, $renderVars);
     })->setName('public.content_type_index');
 };

@@ -1,0 +1,72 @@
+{# KB index body — expects kb_wiki_sections and/or index_entries from the route. #}
+{% set _sections = kb_wiki_sections|default([]) %}
+{% if _sections is empty and kb_wiki_sections is defined %}
+  {% set _sections = kb_wiki_sections('') %}
+{% endif %}
+
+<div class="st-kb-layout">
+  {% if kb_storefront_enabled|default(kb_public_enabled is defined and kb_public_enabled()) %}
+    {% if _sections is not empty %}
+      {% include 'partials/kb_sidebar.twig' with {
+        kb_current_slug: '',
+        kb_wiki_sections: _sections,
+      } %}
+    {% endif %}
+  {% endif %}
+  <div class="st-kb-layout__main">
+    <header class="st-kb-index__head">
+      <p class="st-eyebrow">{{ content_type.name|e }}</p>
+      <h1 class="st-kb-index__title">{{ content_type.name|e }}</h1>
+      {% if content_index_description|default('')|trim != '' %}
+        <p class="st-kb-index__intro">{{ content_index_description|e }}</p>
+      {% endif %}
+    </header>
+
+    {% if _sections is not empty %}
+      {% for section in _sections %}
+        <section class="st-kb-index__section" aria-labelledby="kb-section-{{ section.section_slug|e('html_attr') }}">
+          <h2 id="kb-section-{{ section.section_slug|e('html_attr') }}" class="st-kb-index__section-title">{{ section.section_label|e }}</h2>
+          <ul class="st-kb-index__articles">
+            {% for article in section.articles %}
+              <li class="st-kb-index__article">
+                <a class="st-kb-index__article-title" href="{{ article.public_url|e('html_attr') }}">{{ article.title|e }}</a>
+                {% if article.summary|default('')|trim != '' %}
+                  <p class="st-kb-index__article-summary">{{ article.summary|striptags|trim|e }}</p>
+                {% endif %}
+              </li>
+            {% endfor %}
+          </ul>
+        </section>
+      {% endfor %}
+    {% elseif index_entries is defined and index_entries is not empty %}
+      <section class="st-kb-index__section" aria-labelledby="kb-section-all">
+        <h2 id="kb-section-all" class="st-kb-index__section-title">Articles</h2>
+        <ul class="st-kb-index__articles">
+          {% for item in index_entries %}
+            {% set row = item.row %}
+            <li class="st-kb-index__article">
+              <a class="st-kb-index__article-title" href="{{ site_url }}/{{ content_type.slug|e }}/{{ row.slug|e }}">{{ row.title|e }}</a>
+              {% if item.excerpt_plain|default('')|trim != '' %}
+                <p class="st-kb-index__article-summary">{{ item.excerpt_plain|e }}</p>
+              {% endif %}
+            </li>
+          {% endfor %}
+        </ul>
+      </section>
+      {% if index_total_pages|default(1) > 1 %}
+        {% set _pager_base = url_for('public.content_type_index', { typeSlug: content_type.slug }) %}
+        <nav class="st-pager" aria-label="Pagination" style="margin-top:1.5rem">
+          {% if index_page > 1 %}
+            <a class="st-btn st-btn--ghost" rel="prev" href="{{ _pager_base }}?page={{ index_page - 1 }}">Newer</a>
+          {% endif %}
+          <span class="st-pager__status">Page {{ index_page }} of {{ index_total_pages }}</span>
+          {% if index_page < index_total_pages %}
+            <a class="st-btn st-btn--ghost" rel="next" href="{{ _pager_base }}?page={{ index_page + 1 }}">Older</a>
+          {% endif %}
+        </nav>
+      {% endif %}
+    {% else %}
+      <p class="st-kb-index__empty">No articles published yet.</p>
+    {% endif %}
+  </div>
+</div>

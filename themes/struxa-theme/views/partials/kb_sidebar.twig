@@ -1,5 +1,8 @@
-{# Public KB sidebar — requires knowledge-base-plugin and kb_public_enabled(). #}
-{% set _kb_sections = kb_wiki_sections(kb_current_slug|default('')) %}
+{# Public KB sidebar — sections from route (kb_wiki_sections) or plugin Twig helper. #}
+{% set _kb_sections = kb_wiki_sections|default([]) %}
+{% if _kb_sections is empty and kb_wiki_sections is defined %}
+  {% set _kb_sections = kb_wiki_sections(kb_current_slug|default('')) %}
+{% endif %}
 <aside class="st-kb-sidebar" aria-label="Documentation navigation">
   <div class="st-kb-sidebar__head">
     <p class="st-kb-sidebar__label">Documentation</p>

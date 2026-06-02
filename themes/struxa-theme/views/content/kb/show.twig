@@ -26,8 +26,11 @@
 <main id="main-content" class="st-page st-page--kb">
   <div class="st-page__inner st-page__inner--wide">
     <div class="st-kb-layout">
-      {% if kb_public_enabled is defined and kb_public_enabled() and kb_wiki_sections is defined %}
-        {% include 'partials/kb_sidebar.twig' with { kb_current_slug: content_entry.slug } %}
+      {% if kb_storefront_enabled|default(kb_public_enabled is defined and kb_public_enabled()) %}
+        {% include 'partials/kb_sidebar.twig' with {
+          kb_current_slug: content_entry.slug,
+          kb_wiki_sections: kb_wiki_sections|default([]),
+        } %}
       {% endif %}
       <div class="st-kb-layout__main">
         <article class="st-kb-article">

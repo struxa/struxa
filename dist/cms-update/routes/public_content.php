@@ -9,14 +9,22 @@ use App\Content\ContentEntryViewPresenter;
 use App\Content\ContentFieldRepository;
 use App\Content\ContentTypeRepository;
 use App\Content\ContentViewTemplates;
-use App\Comment\CommentRepository;
-use App\Comment\CommentThreadBuilder;
+use App\Comment\CommentVisibility;
+use App\Commerce\CommerceCountryCodes;
+use App\Commerce\CommerceSettings;
+use App\Commerce\Product\ProductResolver;
+use App\Commerce\Shipping\ShippingZoneRepository;
+use App\Commerce\Tax\TaxRateRepository;
 use App\Content\ReservedContentSlugs;
 use App\Media\MediaUrlHelper;
 use App\Seo\MetaTagBuilder;
 use App\Seo\SeoService;
 use App\Settings;
 use App\Taxonomy\ContentEntryTaxonomyRepository;
+use App\Section\ContentEntrySectionRepository;
+use App\Section\SectionManager;
+use App\Section\SectionRenderer;
+use App\Section\SectionTemplateResolver;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\App;
@@ -30,6 +38,10 @@ return static function (App $app, Twig $twig, \PDO $pdo, callable $viewData): vo
     $values = new ContentEntryValueRepository($pdo);
     $mediaUrls = new MediaUrlHelper($pdo);
     $entryTaxonomies = new ContentEntryTaxonomyRepository($pdo);
+    $commerceSettings = new CommerceSettings($pdo);
+    $productResolver = new ProductResolver($pdo, $commerceSettings, $fields);
+    $shippingZoneRepo = new ShippingZoneRepository($pdo);
+    $taxRateRepo = new TaxRateRepository($pdo);
 
     $app->get('/{typeSlug}/{entrySlug}', function (Request $request, Response $response, array $args) use (
         $twig,
@@ -40,7 +52,11 @@ return static function (App $app, Twig $twig, \PDO $pdo, callable $viewData): vo
         $entries,
         $values,
         $mediaUrls,
-        $entryTaxonomies
+        $entryTaxonomies,
+        $productResolver,
+        $commerceSettings,
+        $shippingZoneRepo,
+        $taxRateRepo
     ): Response {
         $typeSlug = (string) ($args['typeSlug'] ?? '');
         $entrySlug = (string) ($args['entrySlug'] ?? '');
@@ -101,44 +117,54 @@ return static function (App $app, Twig $twig, \PDO $pdo, callable $viewData): vo
             $path,
             $siteUrl,
             $plain,
-            Settings::get('site_name') ?: null
+            Settings::get('site_name') ?: null,
+            [
+                ['name' => 'Home', 'url' => '/'],
+                ['name' => $type->name, 'url' => '/' . $typeSlug],
+                ['name' => $entry->title],
+            ]
         ));
 
         $tpl = ContentViewTemplates::resolve($twig->getEnvironment(), ContentViewTemplates::contentShow($type->slug));
-        $threadKey = 'entry:' . $entry->id;
         $vd = $viewData();
         $viewerUid = isset($vd['phpauth_user_id']) && is_int($vd['phpauth_user_id']) ? $vd['phpauth_user_id'] : 0;
         $viewer = $viewerUid > 0 ? $viewerUid : null;
-        $q = $request->getQueryParams();
-        $cPage = isset($q['c_page']) && is_string($q['c_page']) && ctype_digit($q['c_page']) ? max(1, (int) $q['c_page']) : 1;
-        $perRoots = max(3, min(30, (int) ($_ENV['CMS_COMMENTS_ROOTS_PER_PAGE'] ?? 10)));
-        $pack = CommentRepository::loadThreadPagePackSafe($pdo, $threadKey, $cPage, $perRoots, $viewer);
-        $commentTree = CommentThreadBuilder::toTree($pack['rows']);
         $basePath = '/' . $typeSlug . '/' . $entrySlug;
-        $returnTo = $basePath . ($pack['page'] > 1 ? ('?c_page=' . $pack['page']) : '');
-        $pager = [
-            'page' => $pack['page'],
-            'per_page' => $pack['per_page'],
-            'total_pages' => $pack['total_pages'],
-            'total_roots' => $pack['total_roots'],
-            'from' => $pack['total_roots'] > 0 ? (($pack['page'] - 1) * $pack['per_page'] + 1) : 0,
-            'to' => $pack['total_roots'] > 0 ? min($pack['page'] * $pack['per_page'], $pack['total_roots']) : 0,
-            'base_path' => $basePath,
-        ];
+        $commentTwig = CommentVisibility::twigVarsForContentEntry($pdo, $type, $entry->id, $basePath, $request, $viewer);
 
-        return $twig->render($response, $tpl, array_merge($vd, $seoTwig, [
+        $sectionsHtml = '';
+        $hasSections = false;
+        if ($type->supportsBlockBuilder) {
+            $entrySections = new ContentEntrySectionRepository($pdo);
+            $sectionManager = new SectionManager();
+            $sectionRenderer = new SectionRenderer($sectionManager, new SectionTemplateResolver($sectionManager));
+            $sectionRows = $entrySections->listForEntry($entry->id);
+            $hasSections = $sectionRows !== [];
+            $sectionsHtml = $hasSections ? $sectionRenderer->renderBlocks($twig->getEnvironment(), $sectionRows) : '';
+        }
+
+        $renderVars = array_merge($vd, $seoTwig, [
             'content_type' => $type,
             'content_entry' => $entry,
             'content_field_rows' => $fieldRows,
             'content_featured_url' => $featuredUrl,
             'content_page_title' => $pageTitle,
             'content_meta_description' => $metaDesc,
+            'content_entry_has_sections' => $hasSections,
+            'content_entry_sections_html' => $sectionsHtml,
             'entry_taxonomy_groups' => $entryTaxonomies->termsGroupedForEntry($entry->id),
-            'comments_thread_key' => $threadKey,
-            'comments_return_to' => $returnTo,
-            'comments_pager_base' => $basePath,
-            'comments_pager' => $pager,
-            'comments_thread' => $commentTree,
-        ]));
+            'commerce_product' => $productResolver->resolvePublished($type, $entry, $valueMap),
+            'commerce_needs_checkout_country' => $commerceSettings->needsCheckoutCountry(),
+            'commerce_country_choices' => CommerceCountryCodes::forSelect(array_merge(
+                $shippingZoneRepo->allCountryCodes(),
+                array_map(static fn ($r) => $r->countryCode, $taxRateRepo->listActive()),
+            )),
+        ], $commentTwig);
+
+        if ($typeSlug === 'kb' && class_exists(\KnowledgeBasePlugin\KnowledgeBasePublicBridge::class)) {
+            $renderVars = array_merge($renderVars, \KnowledgeBasePlugin\KnowledgeBasePublicBridge::showViewData($pdo, $entrySlug));
+        }
+
+        return $twig->render($response, $tpl, $renderVars);
     })->setName('public.content_entry');
 };

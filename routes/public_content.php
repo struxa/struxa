@@ -143,7 +143,7 @@ return static function (App $app, Twig $twig, \PDO $pdo, callable $viewData): vo
             $sectionsHtml = $hasSections ? $sectionRenderer->renderBlocks($twig->getEnvironment(), $sectionRows) : '';
         }
 
-        return $twig->render($response, $tpl, array_merge($vd, $seoTwig, [
+        $renderVars = array_merge($vd, $seoTwig, [
             'content_type' => $type,
             'content_entry' => $entry,
             'content_field_rows' => $fieldRows,
@@ -159,6 +159,12 @@ return static function (App $app, Twig $twig, \PDO $pdo, callable $viewData): vo
                 $shippingZoneRepo->allCountryCodes(),
                 array_map(static fn ($r) => $r->countryCode, $taxRateRepo->listActive()),
             )),
-        ], $commentTwig));
+        ], $commentTwig);
+
+        if ($typeSlug === 'kb' && class_exists(\KnowledgeBasePlugin\KnowledgeBasePublicBridge::class)) {
+            $renderVars = array_merge($renderVars, \KnowledgeBasePlugin\KnowledgeBasePublicBridge::showViewData($pdo, $entrySlug));
+        }
+
+        return $twig->render($response, $tpl, $renderVars);
     })->setName('public.content_entry');
 };
