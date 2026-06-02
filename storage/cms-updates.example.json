@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.1.75",
-    "title": "Struxa 1.1.75",
-    "summary": "Fix page save flash when slug unchanged: default slugRedirect to none before appendFlash.",
+    "latest_version": "1.1.76",
+    "title": "Struxa 1.1.76",
+    "summary": "Refresh struxa-dist forum-plugin catalog ZIP to 1.1.4 (Struxa 1.1.75 compatible).",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "patch"

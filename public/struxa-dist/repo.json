@@ -1,6 +1,6 @@
 {
     "catalog_version": 1,
-    "generated_at": "2026-06-02T09:54:37+00:00",
+    "generated_at": "2026-06-02T10:34:36+00:00",
     "themes": [
         {
             "slug": "struxa-theme",
@@ -15,11 +15,11 @@
         {
             "slug": "forum-plugin",
             "name": "Forum",
-            "version": "1.0.2",
-            "description": "MyBB-inspired community forum for Struxa CMS. Categories → forums → threads → posts, with sticky/locked threads, post likes, thread subscriptions, user ranks, quote replies, Markdown rendering, online-now tracking, and a full admin moderation panel. Threads are also exposed as a 'Forum thread' CMS content type so they inherit SEO metadata, slugs and featured images.",
-            "author": "Studio CMS",
+            "version": "1.1.4",
+            "description": "Full community forum for Struxa CMS: categories, forums, threads and replies with Markdown, likes, subscriptions, tags, search and member profiles. Includes sticky and locked threads, online-now stats, rate limiting, reporting, and an admin moderation panel. Threads sync to a CMS content type for SEO metadata, slugs and featured images. Ships with a homepage latest-discussions widget.",
+            "author": "Struxa",
             "download_url": "https://struxapoint.com/struxa-dist/zips/forum-plugin.zip",
-            "requires_cms_version": "1.0.0"
+            "requires_cms_version": "1.1.33"
         }
     ]
 }
