@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.1.80",
-    "title": "Struxa 1.1.80",
-    "summary": "Fix plugin activation migrations on MySQL (buffered PDO, drain EXECUTE no-ops); forum 1.1.6 migration fix.",
+    "latest_version": "1.1.81",
+    "title": "Struxa 1.1.81",
+    "summary": "Refresh struxa-dist forum-plugin.zip (1.1.6 migration fix for MySQL PDO).",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "patch"
