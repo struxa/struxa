@@ -33,6 +33,7 @@ final class Page
         public readonly ?string $scheduledPublishAt,
         public readonly ?string $scheduledUnpublishAt,
         public readonly bool $commentsDisabled,
+        public readonly bool $membersOnly,
         public readonly string $createdAt,
         public readonly string $updatedAt,
     ) {
@@ -87,6 +88,7 @@ final class Page
             $sp !== null && $sp !== '' ? (string) $sp : null,
             $su !== null && $su !== '' ? (string) $su : null,
             (bool) ((int) ($row['comments_disabled'] ?? 0)),
+            (bool) ((int) ($row['members_only'] ?? 0)),
             (string) ($row['created_at'] ?? ''),
             (string) ($row['updated_at'] ?? ''),
         );
@@ -166,6 +168,7 @@ final class Page
             $this->scheduledPublishAt,
             $this->scheduledUnpublishAt,
             $this->commentsDisabled,
+            $this->membersOnly,
             $this->createdAt,
             $this->updatedAt,
         );

@@ -1,0 +1,39 @@
+{% extends theme_layout() %}
+
+{% block title %}Members only — {{ settings.site_name|default('Your Studio')|e }}{% endblock %}
+
+{% block meta_extra %}
+  {{ parent() }}
+  <meta name="robots" content="noindex, nofollow" />
+{% endblock %}
+
+{% block body %}
+<main id="main-content" class="theme-public-solo">
+  <article class="theme-cms-page theme-auth-page" aria-labelledby="members-only-heading">
+    <header class="theme-cms-page-hero">
+      <p class="eyebrow">
+        <span class="eyebrow-pulse" aria-hidden="true"></span>
+        Members
+      </p>
+      <h1 class="theme-cms-page-title" id="members-only-heading">Members only</h1>
+      <p class="theme-auth-page__intro auth-lede">
+        {% if members_only_title is defined and members_only_title %}
+          <strong>{{ members_only_title|e }}</strong> is restricted to members with the required role.
+        {% else %}
+          This page is restricted to members with the required role.
+        {% endif %}
+        Your account is signed in but does not have access. Contact the site administrator if you believe this is a mistake.
+      </p>
+      <div class="theme-auth-page__form-wrap" style="margin-top:1.25rem">
+        <a class="btn btn-primary btn-lg auth-submit" href="{{ url_for('home') }}">Back to home</a>
+        {% if logged_in %}
+          <form method="post" action="{{ url_for('logout') }}" style="margin-top:0.75rem">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+            <button class="btn btn-ghost" type="submit">Log out</button>
+          </form>
+        {% endif %}
+      </div>
+    </header>
+  </article>
+</main>
+{% endblock %}

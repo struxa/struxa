@@ -219,6 +219,8 @@
             <p class="admin-hint">Only applies when public comments are enabled under System → Comments.</p>
           </div>
 
+          {% include 'admin/partials/_member_access.twig' with { form_id: 'page-edit-form' } %}
+
           <div class="admin-field admin-field--full {{ errors.published_at is defined ? 'admin-field--error' : '' }}">
             <label class="admin-label" for="page-published-at">Published at</label>
             <input class="admin-input" id="page-published-at" name="published_at" type="datetime-local" value="{{ page_pub_dt|e('html_attr') }}" form="page-edit-form" />

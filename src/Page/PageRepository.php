@@ -10,7 +10,7 @@ final class PageRepository
 {
     private const TABLE = 'cms_pages';
 
-    private const SELECT = 'id, title, slug, seo_title, seo_description, focus_keyphrase, tags_json, featured_image_id, canonical_url, seo_noindex, og_title, og_description, og_image_id, twitter_title, twitter_description, twitter_image_id, schema_json, content, status, published_at, scheduled_publish_at, scheduled_unpublish_at, comments_disabled, created_at, updated_at, deleted_at, deleted_by';
+    private const SELECT = 'id, title, slug, seo_title, seo_description, focus_keyphrase, tags_json, featured_image_id, canonical_url, seo_noindex, og_title, og_description, og_image_id, twitter_title, twitter_description, twitter_image_id, schema_json, content, status, published_at, scheduled_publish_at, scheduled_unpublish_at, comments_disabled, members_only, created_at, updated_at, deleted_at, deleted_by';
 
     private const NOT_TRASHED = 'deleted_at IS NULL';
 
@@ -88,7 +88,7 @@ final class PageRepository
     {
         $stmt = $this->pdo->query(
             'SELECT id, title, slug, updated_at FROM ' . self::TABLE
-            . ' WHERE ' . self::PUBLIC_WHERE . ' AND COALESCE(seo_noindex, 0) = 0 ORDER BY updated_at DESC'
+            . ' WHERE ' . self::PUBLIC_WHERE . ' AND COALESCE(seo_noindex, 0) = 0 AND members_only = 0 ORDER BY updated_at DESC'
         );
         $out = [];
         while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
@@ -206,14 +206,15 @@ final class PageRepository
         ?string $scheduledPublishAt,
         ?string $scheduledUnpublishAt,
         bool $commentsDisabled = false,
+        bool $membersOnly = false,
     ): int {
         $stmt = $this->pdo->prepare(
             'INSERT INTO ' . self::TABLE . ' (
                 title, slug, seo_title, seo_description, focus_keyphrase, tags_json, featured_image_id,
                 canonical_url, seo_noindex, og_title, og_description, og_image_id,
                 twitter_title, twitter_description, twitter_image_id, schema_json,
-                content, status, published_at, scheduled_publish_at, scheduled_unpublish_at, comments_disabled
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+                content, status, published_at, scheduled_publish_at, scheduled_unpublish_at, comments_disabled, members_only
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
         );
         $stmt->execute([
             $title,
@@ -238,6 +239,7 @@ final class PageRepository
             $scheduledPublishAt,
             $scheduledUnpublishAt,
             $commentsDisabled ? 1 : 0,
+            $membersOnly ? 1 : 0,
         ]);
 
         return (int) $this->pdo->lastInsertId();
@@ -268,12 +270,13 @@ final class PageRepository
         ?string $scheduledUnpublishAt,
         ?int $updatedBy = null,
         bool $commentsDisabled = false,
+        bool $membersOnly = false,
     ): void {
         $stmt = $this->pdo->prepare(
             'UPDATE ' . self::TABLE . ' SET title = ?, slug = ?, seo_title = ?, seo_description = ?, focus_keyphrase = ?, tags_json = ?, featured_image_id = ?,
              canonical_url = ?, seo_noindex = ?, og_title = ?, og_description = ?, og_image_id = ?,
              twitter_title = ?, twitter_description = ?, twitter_image_id = ?, schema_json = ?,
-             content = ?, status = ?, published_at = ?, scheduled_publish_at = ?, scheduled_unpublish_at = ?, comments_disabled = ?, updated_by = ? WHERE id = ?'
+             content = ?, status = ?, published_at = ?, scheduled_publish_at = ?, scheduled_unpublish_at = ?, comments_disabled = ?, members_only = ?, updated_by = ? WHERE id = ?'
         );
         $stmt->execute([
             $title,
@@ -298,6 +301,7 @@ final class PageRepository
             $scheduledPublishAt,
             $scheduledUnpublishAt,
             $commentsDisabled ? 1 : 0,
+            $membersOnly ? 1 : 0,
             $updatedBy,
             $id,
         ]);

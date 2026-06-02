@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Access\MemberAccessPolicy;
 use App\Flash;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
@@ -30,6 +31,13 @@ return static function (App $app, \App\Plugin\PluginBootContext $ctx): void {
     $validator = new CatalogSubmissionValidator($github, $submissions);
     $browse = new CatalogBrowseService($root, $submissions, $settings);
     $screenshots = new ScreenshotStorage($pluginRoot);
+
+    $requireLoggedIn = $ctx->memberAccess()->middleware(
+        $twig,
+        static fn (): array => $ctx->viewData(),
+        MemberAccessPolicy::loggedIn(),
+        'Catalog submission',
+    );
 
     $renderCatalog = static function (
         Response $response,
@@ -68,7 +76,7 @@ return static function (App $app, \App\Plugin\PluginBootContext $ctx): void {
             'submit_kind' => SubmissionKind::PLUGIN,
             'submit_action' => 'public.struxa_catalog.plugins.submit',
         ]));
-    })->setName('public.struxa_catalog.plugins.submit_form');
+    })->add($requireLoggedIn)->setName('public.struxa_catalog.plugins.submit_form');
 
     $app->post('/plugins/submit', function (Request $request, Response $response) use (
         $twig,
@@ -104,7 +112,7 @@ return static function (App $app, \App\Plugin\PluginBootContext $ctx): void {
 
             return $response->withHeader('Location', $parser->urlFor('public.struxa_catalog.plugins'))->withStatus(302);
         })($request, $response);
-    })->setName('public.struxa_catalog.plugins.submit');
+    })->add($requireLoggedIn)->setName('public.struxa_catalog.plugins.submit');
 
     $app->get('/themes/submit', function (Request $request, Response $response) use ($twig, $view, $ns): Response {
         return $twig->render($response, $ns . '/public/submit.twig', $view([
@@ -112,7 +120,7 @@ return static function (App $app, \App\Plugin\PluginBootContext $ctx): void {
             'submit_kind' => SubmissionKind::THEME,
             'submit_action' => 'public.struxa_catalog.themes.submit',
         ]));
-    })->setName('public.struxa_catalog.themes.submit_form');
+    })->add($requireLoggedIn)->setName('public.struxa_catalog.themes.submit_form');
 
     $app->post('/themes/submit', function (Request $request, Response $response) use (
         $twig,
@@ -138,7 +146,7 @@ return static function (App $app, \App\Plugin\PluginBootContext $ctx): void {
         Flash::set('success', 'Thank you! Your theme was submitted for review.');
 
         return $response->withHeader('Location', $parser->urlFor('public.struxa_catalog.themes'))->withStatus(302);
-    })->setName('public.struxa_catalog.themes.submit');
+    })->add($requireLoggedIn)->setName('public.struxa_catalog.themes.submit');
 
     $app->get('/struxa-catalog/screenshot/{file}', function (Request $request, Response $response, array $args) use ($screenshots): Response {
         $file = basename((string) ($args['file'] ?? ''));

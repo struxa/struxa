@@ -1,0 +1,50 @@
+{% set _member_only = old is not null ? old.members_only|default(false) : member_access_only|default(false) %}
+{% set _role_ids = old is not null ? (old.member_role_ids|default([])) : member_access_role_ids|default([]) %}
+{% set _form_id = form_id|default('page-edit-form') %}
+
+<div class="admin-field admin-field--full admin-member-access">
+  <label class="admin-check">
+    <input type="checkbox" name="members_only" value="1" form="{{ _form_id|e('html_attr') }}" id="members-only-toggle-{{ _form_id|e('html_attr') }}" {{ _member_only ? 'checked' : '' }} data-member-access-toggle />
+    <span>Members only</span>
+  </label>
+  <p class="admin-hint">When checked, visitors must log in to view this on the public site. Staff with admin access always see it.</p>
+
+  <div class="admin-member-access-roles" data-member-access-roles {{ _member_only ? '' : 'hidden' }}>
+    <p class="admin-label" style="margin-top:0.75rem">Who can view</p>
+    <p class="admin-hint" style="margin-top:0">Leave all unchecked to allow any logged-in member. Select one or more roles to restrict further.</p>
+    <div class="admin-member-access-role-grid">
+      {% for role in cms_roles_select|default([]) %}
+        <label class="admin-check admin-member-access-role">
+          <input
+            type="checkbox"
+            name="member_role_ids[]"
+            value="{{ role.id }}"
+            form="{{ _form_id|e('html_attr') }}"
+            {{ role.id in _role_ids ? 'checked' : '' }}
+          />
+          <span>{{ role.name|e }}{% if role.is_system %} <span class="admin-table-muted">(system)</span>{% endif %}</span>
+        </label>
+      {% else %}
+        <p class="admin-hint">No roles yet. Create roles under Users → Roles, then assign them to members.</p>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  var root = document.currentScript && document.currentScript.previousElementSibling;
+  if (!root || !root.classList.contains('admin-member-access')) {
+    root = document.querySelector('.admin-member-access');
+  }
+  if (!root) return;
+  var toggle = root.querySelector('[data-member-access-toggle]');
+  var panel = root.querySelector('[data-member-access-roles]');
+  if (!toggle || !panel) return;
+  var sync = function () {
+    panel.hidden = !toggle.checked;
+  };
+  toggle.addEventListener('change', sync);
+  sync();
+})();
+</script>

@@ -73,6 +73,7 @@ return static function (App $app, Twig $twig, \PDO $pdo, callable $viewData): vo
             '/p/' . $page->slug,
             false,
             $request,
+            true,
         );
 
         return $previewHeaders($out);

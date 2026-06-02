@@ -101,6 +101,62 @@ public function boot(PluginBootContext $context): void
 
 Register segments your plugin owns (for example `my-tool` for a staff route at `/my-tool`) so they are not claimed by core content URLs.
 
+## Members-only public routes
+
+Struxa core and plugins can restrict public URLs to logged-in members (with optional CMS role checks). Staff with admin access always pass.
+
+In **`routes/public.php`**:
+
+```php
+use App\Access\MemberAccessPolicy;
+
+return static function (App $app, PluginBootContext $ctx): void {
+    $requireLogin = $ctx->memberAccess()->middleware(
+        $ctx->twig(),
+        static fn (): array => $ctx->viewData(),
+        MemberAccessPolicy::loggedIn(),
+        'My members page',
+    );
+
+    // Any logged-in member:
+    $app->get('/my-members-area', $handler)->add($requireLogin);
+
+    // Specific CMS roles only (role ids from cms_roles):
+    $requirePremium = $ctx->memberAccess()->middleware(
+        $ctx->twig(),
+        static fn (): array => $ctx->viewData(),
+        MemberAccessPolicy::roles([3, 4]),
+        'Premium content',
+    );
+    $app->get('/premium', $handler)->add($requirePremium);
+};
+```
+
+| Policy | Behavior |
+| --- | --- |
+| `MemberAccessPolicy::public()` | No gate (default) |
+| `MemberAccessPolicy::loggedIn()` | Redirect to `/login?next=…` when anonymous |
+| `MemberAccessPolicy::roles([…])` | Logged-in + at least one listed role (403 otherwise) |
+
+Inside a route handler without middleware:
+
+```php
+$denied = $ctx->memberAccess()->require(
+    $request,
+    $response,
+    $ctx->twig(),
+    static fn (): array => $ctx->viewData(),
+    MemberAccessPolicy::loggedIn(),
+    $request->getUri()->getPath(),
+    'Submit form',
+);
+if ($denied !== null) {
+    return $denied;
+}
+```
+
+Requires **`frontend.render`** in `plugin.json` capabilities. Pages and content entries use the same engine via admin **Members only** checkboxes.
+
 ## Filter pipeline (`apply_filters`)
 
 Plugins can **transform** core output at runtime (not just react to events). In `boot()`:

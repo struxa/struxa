@@ -379,21 +379,23 @@ final class ContentEntryRepository
         ?string $publishedAt,
         ?string $scheduledPublishAt,
         ?string $scheduledUnpublishAt,
-        ?int $createdBy
+        ?int $createdBy,
+        bool $membersOnly = false,
     ): int {
         $stmt = $this->pdo->prepare(
             'INSERT INTO ' . self::TABLE . ' (
-                content_type_id, title, slug, status, featured_image_id,
+                content_type_id, title, slug, status, members_only, featured_image_id,
                 seo_title, seo_description, focus_keyphrase, canonical_url, seo_noindex,
                 og_title, og_description, og_image_id, twitter_title, twitter_description, twitter_image_id, schema_json,
                 published_at, scheduled_publish_at, scheduled_unpublish_at, created_by
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
         );
         $stmt->execute([
             $contentTypeId,
             $title,
             $slug,
             $status,
+            $membersOnly ? 1 : 0,
             $featuredImageId,
             $seoTitle,
             $seoDescription,
@@ -436,10 +438,11 @@ final class ContentEntryRepository
         ?string $schemaJson,
         ?string $publishedAt,
         ?string $scheduledPublishAt,
-        ?string $scheduledUnpublishAt
+        ?string $scheduledUnpublishAt,
+        bool $membersOnly = false,
     ): void {
         $stmt = $this->pdo->prepare(
-            'UPDATE ' . self::TABLE . ' SET title = ?, slug = ?, status = ?, featured_image_id = ?,
+            'UPDATE ' . self::TABLE . ' SET title = ?, slug = ?, status = ?, members_only = ?, featured_image_id = ?,
              seo_title = ?, seo_description = ?, focus_keyphrase = ?, canonical_url = ?, seo_noindex = ?,
              og_title = ?, og_description = ?, og_image_id = ?, twitter_title = ?, twitter_description = ?, twitter_image_id = ?, schema_json = ?,
              published_at = ?, scheduled_publish_at = ?, scheduled_unpublish_at = ? WHERE id = ?'
@@ -448,6 +451,7 @@ final class ContentEntryRepository
             $title,
             $slug,
             $status,
+            $membersOnly ? 1 : 0,
             $featuredImageId,
             $seoTitle,
             $seoDescription,

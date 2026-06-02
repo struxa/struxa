@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 use App\Admin\AfterSaveRedirect;
 use App\Access\ActivityLogger;
+use App\Access\MemberAccessFormParser;
+use App\Access\MemberAccessRepository;
 use App\Access\PermissionSlug;
+use App\Access\RoleRepository;
 use App\Access\WorkflowService;
 use App\Content\ContentAdminTree;
 use App\Content\ContentEntry;
@@ -91,7 +94,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
     $entryRevRepo = new ContentEntryRevisionRepository($pdo);
     $editSessions = new EditSessionContext(new EditLockService(new EditLockRepository($pdo)), new ContentAutosaveRepository($pdo));
     $entrySections = new ContentEntrySectionRepository($pdo);
-    $entryDuplicator = new ContentEntryDuplicationService($entries, $values, $entrySections, $entryTaxonomyRepo);
+    $entryDuplicator = new ContentEntryDuplicationService($entries, $values, $entrySections, $entryTaxonomyRepo, new MemberAccessRepository($pdo));
     $sectionPatterns = new SectionPatternRepository($pdo);
     $sectionManager = new SectionManager();
     $sectionValidator = new SectionSchemaValidator($sectionManager);
@@ -163,6 +166,38 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
         $id = isset($u['id']) ? (int) $u['id'] : 0;
 
         return $id > 0 ? $id : null;
+    };
+
+    $memberAccessRepo = new MemberAccessRepository($pdo);
+    $roleRepo = new RoleRepository($pdo);
+    $memberAccessFormContext = static function (?ContentEntry $entry, ?array $old) use ($memberAccessRepo, $roleRepo): array {
+        $roles = $roleRepo->all();
+        if ($old !== null) {
+            return [
+                'cms_roles_select' => $roles,
+                'member_access_only' => MemberAccessFormParser::isMembersOnly($old),
+                'member_access_role_ids' => MemberAccessFormParser::roleIds($old),
+            ];
+        }
+        if ($entry !== null) {
+            return [
+                'cms_roles_select' => $roles,
+                'member_access_only' => $entry->membersOnly,
+                'member_access_role_ids' => $memberAccessRepo->roleIdsForEntry($entry->id),
+            ];
+        }
+
+        return [
+            'cms_roles_select' => $roles,
+            'member_access_only' => false,
+            'member_access_role_ids' => [],
+        ];
+    };
+    $persistEntryMemberAccess = static function (int $entryId, array $body, bool $membersOnly) use ($memberAccessRepo): void {
+        $memberAccessRepo->replaceEntryRoles(
+            $entryId,
+            $membersOnly ? MemberAccessFormParser::roleIds($body) : []
+        );
     };
 
     $entryBuilderHost = BlockBuilderHost::CONTENT_ENTRY;
@@ -285,6 +320,8 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             'focus_keyphrase' => trim((string) ($body['focus_keyphrase'] ?? '')),
             'scheduled_publish_at' => trim((string) ($body['scheduled_publish_at'] ?? '')),
             'scheduled_unpublish_at' => trim((string) ($body['scheduled_unpublish_at'] ?? '')),
+            'members_only' => !empty($body['members_only']),
+            'member_role_ids' => MemberAccessFormParser::roleIds($body),
         ]);
     };
 
@@ -1051,7 +1088,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 [],
                 null,
                 RouteContext::fromRequest($request)->getRouteParser()
-            ))));
+            ), $memberAccessFormContext(null, null))));
         })->setName('admin.content_types.entries.new')->add($permEntryCreate);
 
         $group->post('/content-types/{id:[0-9]+}/entries/new', function (Request $request, Response $response, array $args) use (
@@ -1154,7 +1191,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                     $result['values']['custom'],
                     null,
                     RouteContext::fromRequest($request)->getRouteParser()
-                ))));
+                ), $memberAccessFormContext(null, $old))));
             }
             $v = $result['values'];
             $slug = ContentSlugger::ensureUniqueEntry($entries, $id, $v['slug']);
@@ -1179,8 +1216,10 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 $v['published_at'],
                 $v['scheduled_publish_at'] ?? null,
                 $v['scheduled_unpublish_at'] ?? null,
-                $cmsUserId($request)
+                $cmsUserId($request),
+                MemberAccessFormParser::isMembersOnly($body),
             );
+            $persistEntryMemberAccess($eid, $body, MemberAccessFormParser::isMembersOnly($body));
             foreach ($fieldList as $f) {
                 $val = $v['custom'][$f->id] ?? null;
                 $values->upsert($eid, $f->id, $val);
@@ -1256,7 +1295,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 'entry_primary_richtext_textarea_id' => $entryPrimaryRichtextTextareaId($fieldList),
                 'entry_link_warnings' => $entryLinkWarnings,
                 'edit_form_id' => 'entry-edit-form',
-            ], $entryFormMediaContext($request, $mediaRepo, $pdo, $entry, null), $entryRefsFormContext(
+            ], $memberAccessFormContext($entry, null), $entryFormMediaContext($request, $mediaRepo, $pdo, $entry, null), $entryRefsFormContext(
                 $fieldList,
                 $valueMap,
                 $entryId,
@@ -1387,7 +1426,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                     $result['values']['custom'],
                     $entryId,
                     RouteContext::fromRequest($request)->getRouteParser()
-                ))));
+                ), $memberAccessFormContext($entry, $old))));
             }
             $v = $result['values'];
             $slug = ContentSlugger::ensureUniqueEntry($entries, $id, $v['slug'], $entryId);
@@ -1416,8 +1455,10 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 $seoParsed['schema_json'],
                 $v['published_at'],
                 $v['scheduled_publish_at'] ?? null,
-                $v['scheduled_unpublish_at'] ?? null
+                $v['scheduled_unpublish_at'] ?? null,
+                MemberAccessFormParser::isMembersOnly($body),
             );
+            $persistEntryMemberAccess($entryId, $body, MemberAccessFormParser::isMembersOnly($body));
             if ($entry->status === 'published' && $t->hasPublicRoute && $oldSlug !== $slug) {
                 $siteUrl = (string) (($viewData())['site_url'] ?? '');
                 $slugRedirect = (new SlugChangeRedirectService(new RedirectRepository($pdo)))->forEntry(

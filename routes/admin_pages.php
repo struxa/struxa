@@ -3,7 +3,9 @@
 declare(strict_types=1);
 
 use App\Admin\AfterSaveRedirect;
-use App\Access\ActivityLogger;
+use App\Access\MemberAccessFormParser;
+use App\Access\MemberAccessRepository;
+use App\Access\RoleRepository;
 use App\Access\PermissionSlug;
 use App\Access\WorkflowService;
 use App\Editing\ContentAutosaveRepository;
@@ -69,7 +71,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
     $workflow = new WorkflowService();
     $activity = new ActivityLogger($pdo);
     $pageSections = new PageSectionRepository($pdo);
-    $pageDuplicator = new PageDuplicationService($repo, $pageSections);
+    $pageDuplicator = new PageDuplicationService($repo, $pageSections, new MemberAccessRepository($pdo));
     $sectionPatterns = new SectionPatternRepository($pdo);
     $sectionManager = new SectionManager();
     $builderHandler = new BlockBuilderActionHandler($sectionManager, $sectionPatterns);
@@ -95,6 +97,38 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
         $id = isset($u['id']) ? (int) $u['id'] : 0;
 
         return $id > 0 ? $id : null;
+    };
+
+    $memberAccessRepo = new MemberAccessRepository($pdo);
+    $roleRepo = new RoleRepository($pdo);
+    $memberAccessFormContext = static function (?Page $page, ?array $old) use ($memberAccessRepo, $roleRepo): array {
+        $roles = $roleRepo->all();
+        if ($old !== null) {
+            return [
+                'cms_roles_select' => $roles,
+                'member_access_only' => MemberAccessFormParser::isMembersOnly($old),
+                'member_access_role_ids' => MemberAccessFormParser::roleIds($old),
+            ];
+        }
+        if ($page !== null) {
+            return [
+                'cms_roles_select' => $roles,
+                'member_access_only' => $page->membersOnly,
+                'member_access_role_ids' => $memberAccessRepo->roleIdsForPage($page->id),
+            ];
+        }
+
+        return [
+            'cms_roles_select' => $roles,
+            'member_access_only' => false,
+            'member_access_role_ids' => [],
+        ];
+    };
+    $persistPageMemberAccess = static function (int $pageId, array $body, bool $membersOnly) use ($memberAccessRepo): void {
+        $memberAccessRepo->replacePageRoles(
+            $pageId,
+            $membersOnly ? MemberAccessFormParser::roleIds($body) : []
+        );
     };
 
     $appendFeaturedMediaError = static function (array $result) use ($mediaRepo): array {
@@ -135,6 +169,8 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             'published_at' => trim((string) ($body['published_at'] ?? '')),
             'scheduled_publish_at' => trim((string) ($body['scheduled_publish_at'] ?? '')),
             'scheduled_unpublish_at' => trim((string) ($body['scheduled_unpublish_at'] ?? '')),
+            'members_only' => !empty($body['members_only']),
+            'member_role_ids' => MemberAccessFormParser::roleIds($body),
         ]);
     };
 
@@ -347,8 +383,8 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             ])));
         })->setName('admin.pages.index');
 
-        $group->get('/pages/new', function (Request $request, Response $response) use ($twig, $adminContext, $withCmsUser, $pageFormMediaPicker, $pageFormRevisionSidebar, $pageFormFeaturedThumb, $mediaRepo): Response {
-            return $twig->render($response, 'admin/pages/form.twig', $withCmsUser($request, array_merge($adminContext(), $pageFormMediaPicker($request), $pageFormRevisionSidebar(null), $pageFormFeaturedThumb(null, null), [
+        $group->get('/pages/new', function (Request $request, Response $response) use ($twig, $adminContext, $withCmsUser, $pageFormMediaPicker, $pageFormRevisionSidebar, $pageFormFeaturedThumb, $mediaRepo, $memberAccessFormContext): Response {
+            return $twig->render($response, 'admin/pages/form.twig', $withCmsUser($request, array_merge($adminContext(), $pageFormMediaPicker($request), $pageFormRevisionSidebar(null), $pageFormFeaturedThumb(null, null), $memberAccessFormContext(null, null), [
                 'admin_nav' => 'pages',
                 'form_mode' => 'create',
                 'page' => null,
@@ -431,7 +467,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             return $previewResponse($response, $twig, $viewData, $previewPage, $rows !== [], $sectionsHtml);
         })->setName('admin.pages.preview');
 
-        $group->post('/pages/new', function (Request $request, Response $response) use ($twig, $adminContext, $withCmsUser, $repo, $revisions, $validator, $workflow, $activity, $cmsUid, $pageFormMediaPicker, $pageFormRevisionSidebar, $appendFeaturedMediaError, $pageFormFeaturedThumb, $mediaRepo, $mergePageSeoOld, $viewData, $capturePageRevision): Response {
+        $group->post('/pages/new', function (Request $request, Response $response) use ($twig, $adminContext, $withCmsUser, $repo, $revisions, $validator, $workflow, $activity, $cmsUid, $pageFormMediaPicker, $pageFormRevisionSidebar, $appendFeaturedMediaError, $pageFormFeaturedThumb, $mediaRepo, $mergePageSeoOld, $viewData, $capturePageRevision, $memberAccessFormContext, $persistPageMemberAccess): Response {
             $body = $request->getParsedBody();
             $body = is_array($body) ? $body : [];
             $result = $appendFeaturedMediaError($validator->validate($body));
@@ -446,7 +482,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             }
 
             if ($result['errors'] !== []) {
-                return $twig->render($response, 'admin/pages/form.twig', $withCmsUser($request, array_merge($adminContext(), $pageFormMediaPicker($request), $pageFormRevisionSidebar(null), $pageFormFeaturedThumb(null, $mergePageSeoOld($result['values'], $body)), [
+                return $twig->render($response, 'admin/pages/form.twig', $withCmsUser($request, array_merge($adminContext(), $pageFormMediaPicker($request), $pageFormRevisionSidebar(null), $pageFormFeaturedThumb(null, $mergePageSeoOld($result['values'], $body)), $memberAccessFormContext(null, $mergePageSeoOld($result['values'], $body)), [
                     'admin_nav' => 'pages',
                     'form_mode' => 'create',
                     'page' => null,
@@ -494,7 +530,9 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 $v['scheduled_publish_at'] ?? null,
                 $v['scheduled_unpublish_at'] ?? null,
                 !empty($v['comments_disabled']),
+                MemberAccessFormParser::isMembersOnly($body),
             );
+            $persistPageMemberAccess($newId, $body, MemberAccessFormParser::isMembersOnly($body));
             $page = $repo->findById($newId);
             if ($page !== null) {
                 $capturePageRevision($page, $cmsUid($request));
@@ -520,7 +558,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 ->withStatus(302);
         })->setName('admin.pages.store');
 
-        $group->get('/pages/{id:[0-9]+}/edit', function (Request $request, Response $response, array $args) use ($twig, $adminContext, $withCmsUser, $repo, $workflow, $pageFormMediaPicker, $pageFormRevisionSidebar, $pageFormFeaturedThumb, $mediaRepo, $pageBuilderPayload, $editSessions, $cmsUid): Response {
+        $group->get('/pages/{id:[0-9]+}/edit', function (Request $request, Response $response, array $args) use ($twig, $adminContext, $withCmsUser, $repo, $workflow, $pageFormMediaPicker, $pageFormRevisionSidebar, $pageFormFeaturedThumb, $mediaRepo, $pageBuilderPayload, $editSessions, $cmsUid, $memberAccessFormContext): Response {
             $id = (int) $args['id'];
             $page = $repo->findById($id);
             if ($page === null) {
@@ -534,7 +572,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 ? $editSessions->forEditForm(EditSubjectType::PAGE, $id, $page->updatedAt, $uid)
                 : [];
 
-            return $twig->render($response, 'admin/pages/form.twig', $withCmsUser($request, array_merge($adminContext(), $pageFormMediaPicker($request), $pageFormRevisionSidebar($id), $pageFormFeaturedThumb($page, null), $pageBuilderPayload($id), $editSession, [
+            return $twig->render($response, 'admin/pages/form.twig', $withCmsUser($request, array_merge($adminContext(), $pageFormMediaPicker($request), $pageFormRevisionSidebar($id), $pageFormFeaturedThumb($page, null), $pageBuilderPayload($id), $editSession, $memberAccessFormContext($page, null), [
                 'edit_form_id' => 'page-edit-form',
                 'admin_nav' => 'pages',
                 'form_mode' => 'edit',
@@ -546,7 +584,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             ])));
         })->setName('admin.pages.edit');
 
-        $group->post('/pages/{id:[0-9]+}/edit', function (Request $request, Response $response, array $args) use ($twig, $adminContext, $withCmsUser, $repo, $revisions, $validator, $workflow, $activity, $cmsUid, $pageFormMediaPicker, $pageFormRevisionSidebar, $appendFeaturedMediaError, $pageFormFeaturedThumb, $mediaRepo, $mergePageSeoOld, $pdo, $viewData, $pageBuilderPayload, $editSessions, $capturePageRevision): Response {
+        $group->post('/pages/{id:[0-9]+}/edit', function (Request $request, Response $response, array $args) use ($twig, $adminContext, $withCmsUser, $repo, $revisions, $validator, $workflow, $activity, $cmsUid, $pageFormMediaPicker, $pageFormRevisionSidebar, $appendFeaturedMediaError, $pageFormFeaturedThumb, $mediaRepo, $mergePageSeoOld, $pdo, $viewData, $pageBuilderPayload, $editSessions, $capturePageRevision, $memberAccessFormContext, $persistPageMemberAccess): Response {
             $id = (int) $args['id'];
             $page = $repo->findById($id);
             if ($page === null) {
@@ -567,7 +605,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             }
 
             if ($result['errors'] !== []) {
-                return $twig->render($response, 'admin/pages/form.twig', $withCmsUser($request, array_merge($adminContext(), $pageFormMediaPicker($request), $pageFormRevisionSidebar($id), $pageFormFeaturedThumb($page, $mergePageSeoOld($result['values'], $body)), $pageBuilderPayload($id), [
+                return $twig->render($response, 'admin/pages/form.twig', $withCmsUser($request, array_merge($adminContext(), $pageFormMediaPicker($request), $pageFormRevisionSidebar($id), $pageFormFeaturedThumb($page, $mergePageSeoOld($result['values'], $body)), $pageBuilderPayload($id), $memberAccessFormContext($page, $mergePageSeoOld($result['values'], $body)), [
                     'admin_nav' => 'pages',
                     'form_mode' => 'edit',
                     'page' => $page,
@@ -619,8 +657,9 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 $v['scheduled_unpublish_at'] ?? null,
                 $cmsUid($request),
                 !empty($v['comments_disabled']),
+                MemberAccessFormParser::isMembersOnly($body),
             );
-            $slugRedirect = SlugRedirectResult::none();
+            $persistPageMemberAccess($id, $body, MemberAccessFormParser::isMembersOnly($body));
             if ($page->status === 'published' && $oldSlug !== $slug) {
                 $siteUrl = (string) (($viewData())['site_url'] ?? '');
                 $slugRedirect = (new SlugChangeRedirectService(new RedirectRepository($pdo)))->forPage(

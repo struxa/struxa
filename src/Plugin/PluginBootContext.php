@@ -212,4 +212,17 @@ final class PluginBootContext
         $this->capabilityGuard->assertCapability(PluginCapability::FRONTEND_RENDER);
         SectionDefinitionRegistry::instance()->registerProvider($provider);
     }
+
+    /**
+     * Members-only access checks for public plugin routes (login redirect, role gates).
+     *
+     * @see \App\Access\MemberAccess
+     * @see \App\Access\MemberAccessPolicy
+     */
+    public function memberAccess(): \App\Access\MemberAccess
+    {
+        $this->capabilityGuard->assertCapability(PluginCapability::FRONTEND_RENDER);
+
+        return new \App\Access\MemberAccess($this->pdo);
+    }
 }

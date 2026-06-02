@@ -4,6 +4,9 @@
   <section class="st-catalog__form-wrap">
     <h2 class="st-catalog__form-title">Submit for review</h2>
     <p class="st-catalog__form-lead">We pull your package from <strong>GitHub</strong> (public repo). Put a valid <code class="st-catalog__slug">plugin.json</code> or <code class="st-catalog__slug">theme.json</code> at the repo root or in one subfolder. Themes need <code class="st-catalog__slug">views/</code> and <code class="st-catalog__slug">assets/</code>.</p>
+    {% if user_email|default('') %}
+      <p class="st-catalog__hint">Signed in as {{ user_display_name|default(user_email)|e }}. Submissions are tied to your account when approved.</p>
+    {% endif %}
 
     {% if errors is defined and errors is not empty %}
       <ul class="st-catalog__errors">

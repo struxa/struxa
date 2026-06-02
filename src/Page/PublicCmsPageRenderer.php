@@ -5,6 +5,10 @@ declare(strict_types=1);
 namespace App\Page;
 
 use App\Comment\CommentVisibility;
+use App\Access\MemberAccessGate;
+use App\Access\MemberAccessRepository;
+use App\Access\MemberAccessService;
+use App\Access\RoleUserRepository;
 use App\Filter\FilterHook;
 use App\Filter\Filters;
 use App\Media\MediaUrlHelper;
@@ -38,7 +42,27 @@ final class PublicCmsPageRenderer
         string $pathForSeoFromRoot,
         bool $servedAtSiteRoot,
         ?ServerRequestInterface $request = null,
+        bool $bypassMemberAccess = false,
     ): ResponseInterface {
+        if (!$bypassMemberAccess && $request !== null) {
+            $memberAccess = new MemberAccessService($pdo, new MemberAccessRepository($pdo), new RoleUserRepository($pdo));
+            $roleIds = $page->membersOnly ? (new MemberAccessRepository($pdo))->roleIdsForPage($page->id) : [];
+            $denied = MemberAccessGate::enforce(
+                $request,
+                $response,
+                $twig,
+                $viewData,
+                $memberAccess,
+                $page->membersOnly,
+                $roleIds,
+                $pathForSeoFromRoot,
+                $page->title,
+            );
+            if ($denied !== null) {
+                return $denied;
+            }
+        }
+
         $pageSections = new PageSectionRepository($pdo);
         $sectionManager = new SectionManager();
         $sectionRenderer = new SectionRenderer($sectionManager, new SectionTemplateResolver($sectionManager));

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Page;
 
+use App\Access\MemberAccessRepository;
 use App\Section\PageSectionRepository;
 
 final class PageDuplicationService
@@ -11,6 +12,7 @@ final class PageDuplicationService
     public function __construct(
         private readonly PageRepository $pages,
         private readonly PageSectionRepository $sections,
+        private readonly MemberAccessRepository $memberAccess,
     ) {
     }
 
@@ -46,8 +48,12 @@ final class PageDuplicationService
             'draft',
             null,
             null,
+            null,
             $page->commentsDisabled,
+            $page->membersOnly,
         );
+
+        $this->memberAccess->copyPageRoles($sourceId, $newId);
 
         $blocks = $this->sections->exportBlocksForPage($sourceId);
         if ($blocks !== []) {

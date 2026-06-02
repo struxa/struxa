@@ -260,6 +260,8 @@
           {% if errors.status is defined %}<p class="admin-field-error">{{ errors.status|e }}</p>{% endif %}
         </div>
 
+        {% include 'admin/partials/_member_access.twig' with { form_id: 'entry-edit-form' } %}
+
         <details class="admin-entry-aside-schedule"{% if errors.published_at is defined or errors.scheduled_publish_at is defined or errors.scheduled_unpublish_at is defined %} open{% endif %}>
           <summary class="admin-entry-aside-schedule-summary">Dates &amp; scheduling</summary>
           <div class="admin-entry-aside-schedule-body">

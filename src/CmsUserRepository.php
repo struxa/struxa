@@ -129,7 +129,17 @@ final class CmsUserRepository
         );
         $stmt->execute([$phpauthUserId, $email, $displayName]);
 
-        return (int) $pdo->lastInsertId();
+        $newId = (int) $pdo->lastInsertId();
+        $memberRole = $pdo->query("SELECT id FROM cms_roles WHERE slug = 'member' LIMIT 1");
+        if ($memberRole !== false) {
+            $roleId = $memberRole->fetchColumn();
+            if ($roleId !== false) {
+                $pdo->prepare('INSERT IGNORE INTO cms_role_user (role_id, user_id) VALUES (?, ?)')
+                    ->execute([(int) $roleId, $newId]);
+            }
+        }
+
+        return $newId;
     }
 
     public static function updateProfile(PDO $pdo, int $id, string $displayName): void

@@ -10,198 +10,322 @@
 {% block admin_hero_sub %}
   <p class="admin-hero-sub admin-hero-sub--tight">
     <a class="admin-link" href="{{ url_for('admin.struxa_catalog.submissions') }}">← Submissions</a>
-    · <code class="admin-inline-code">{{ submission.slug|e }}</code>
-    · v{{ submission.version|e }}
-    {% if submission.kind == 'theme' %}
-      · <span class="admin-pill admin-pill--accent">Theme</span>
-    {% else %}
-      · <span class="admin-pill">Plugin</span>
-    {% endif %}
-    {% if submission.status == 'pending' %}
-      · <span class="admin-badge admin-badge--review">Pending</span>
-    {% elseif submission.status == 'approved' %}
-      · <span class="admin-badge admin-badge--ok">Approved</span>
-    {% elseif submission.status == 'rejected' %}
-      · <span class="admin-badge admin-badge--archived">Rejected</span>
-    {% else %}
-      · {{ ui.status_badge(submission.status) }}
-    {% endif %}
   </p>
 {% endblock %}
 
-{% block admin_content %}
-  <div class="admin-toolbar admin-toolbar--spread" style="margin-bottom:1.25rem">
-    <div class="admin-plugin-toolbar-copy">
-      <p class="admin-plugin-toolbar-title">Submission #{{ submission.id }}</p>
-      <p class="admin-hint admin-plugin-toolbar-lead" style="margin:0">
-        Submitted {{ submission.createdAt|e }}
-        {% if submission.publishedAt %} · Published {{ submission.publishedAt|e }}{% endif %}
-      </p>
-    </div>
-    <div class="admin-toolbar-actions" style="display:flex;gap:0.5rem;flex-wrap:wrap">
-      <a class="admin-btn-ghost" href="{{ url_for('admin.struxa_catalog.settings') }}">Catalog settings</a>
-      {% if submission.kind == 'theme' %}
-        <a class="admin-btn-ghost" href="{{ url_for('public.struxa_catalog.themes') }}" target="_blank" rel="noopener">Public themes</a>
-      {% else %}
-        <a class="admin-btn-ghost" href="{{ url_for('public.struxa_catalog.plugins') }}" target="_blank" rel="noopener">Public plugins</a>
-      {% endif %}
-    </div>
+{% block admin_hero_meta %}
+  <div class="admin-hero-chips" aria-label="Package summary">
+    <span class="admin-hero-chip admin-hero-chip--mono"><code class="admin-inline-code">{{ submission.slug|e }}</code></span>
+    <span class="admin-hero-chip">v{{ submission.version|e }}</span>
+    {% if submission.kind == 'theme' %}
+      <span class="admin-hero-chip admin-hero-chip--accent">Theme</span>
+    {% else %}
+      <span class="admin-hero-chip">Plugin</span>
+    {% endif %}
+    {% if submission.status == 'pending' %}
+      <span class="admin-hero-chip admin-hero-chip--warn">Pending review</span>
+    {% elseif submission.status == 'approved' %}
+      <span class="admin-hero-chip admin-hero-chip--ok">Live in catalog</span>
+    {% elseif submission.status == 'rejected' %}
+      <span class="admin-hero-chip admin-hero-chip--danger">Rejected</span>
+    {% else %}
+      <span class="admin-hero-chip">{{ submission.status|e }}</span>
+    {% endif %}
   </div>
+{% endblock %}
 
-  <div style="display:grid;gap:1.25rem;grid-template-columns:repeat(auto-fit,minmax(min(100%,20rem),1fr));align-items:start">
-    <div style="display:grid;gap:1.25rem">
-      <section class="admin-card admin-settings-card">
-        <header class="admin-settings-card-head-row">
-          <div>
-            <h2 class="admin-settings-card-title">Package</h2>
-            <p class="admin-settings-card-desc" style="margin-bottom:0">Manifest metadata from the submitted repository.</p>
-          </div>
-        </header>
-        <dl class="admin-stat-details" style="margin-top:0.85rem">
-          <div class="admin-stat-row">
-            <dt>Slug</dt>
-            <dd><code class="admin-inline-code">{{ submission.slug|e }}</code></dd>
-          </div>
-          <div class="admin-stat-row">
-            <dt>Version</dt>
-            <dd>{{ submission.version|e }}</dd>
-          </div>
-          {% if submission.author %}
-            <div class="admin-stat-row">
-              <dt>Author</dt>
-              <dd>{{ submission.author|e }}</dd>
-            </div>
-          {% endif %}
-          {% if submission.manifest.requires_cms_version is defined and submission.manifest.requires_cms_version %}
-            <div class="admin-stat-row">
-              <dt>Requires CMS</dt>
-              <dd>{{ submission.manifest.requires_cms_version|e }}+</dd>
-            </div>
-          {% endif %}
-          {% if submission.description %}
-            <div class="admin-stat-row">
-              <dt>Description</dt>
-              <dd>{{ submission.description|e }}</dd>
-            </div>
-          {% endif %}
-        </dl>
-      </section>
+{% block admin_hero_actions %}
+  <a class="admin-btn-ghost" href="{{ url_for('admin.struxa_catalog.settings') }}">Catalog settings</a>
+  {% if submission.kind == 'theme' %}
+    <a class="admin-btn-ghost" href="{{ url_for('public.struxa_catalog.themes') }}" target="_blank" rel="noopener">Public themes</a>
+  {% else %}
+    <a class="admin-btn-ghost" href="{{ url_for('public.struxa_catalog.plugins') }}" target="_blank" rel="noopener">Public plugins</a>
+  {% endif %}
+  {% if zip_base_url is defined and zip_base_url %}
+    <a class="admin-btn-ghost" href="{{ zip_base_url|e('html_attr') }}/{{ submission.slug|e }}.zip" target="_blank" rel="noopener">Download ZIP</a>
+  {% endif %}
+{% endblock %}
 
-      <section class="admin-card admin-settings-card">
-        <header class="admin-settings-card-head-row">
-          <div>
-            <h2 class="admin-settings-card-title">Source repository</h2>
-            <p class="admin-settings-card-desc" style="margin-bottom:0">Approval downloads this branch and builds the distribution ZIP.</p>
-          </div>
-        </header>
-        <dl class="admin-stat-details" style="margin-top:0.85rem">
-          <div class="admin-stat-row">
-            <dt>Git URL</dt>
-            <dd><a class="admin-link" href="{{ submission.gitRepoUrl|e('html_attr') }}" rel="noopener noreferrer" target="_blank">{{ submission.gitRepoUrl|e }}</a></dd>
-          </div>
-          <div class="admin-stat-row">
-            <dt>Branch</dt>
-            <dd><code class="admin-inline-code">{{ submission.gitBranch|e }}</code></dd>
-          </div>
-          <div class="admin-stat-row">
-            <dt>Dist ZIP</dt>
-            <dd><code class="admin-inline-code">{{ dist_root|e }}/zips/{{ submission.slug|e }}.zip</code></dd>
-          </div>
-        </dl>
-      </section>
+{% block admin_content %}
+  <div class="admin-settings-page admin-catalog-submission-page">
+    {% set _status_intro = submission.status == 'pending' ? 'pending' : (submission.status == 'approved' ? 'approved' : (submission.status == 'rejected' ? 'rejected' : 'default')) %}
 
-      <section class="admin-card admin-settings-card">
-        <header class="admin-settings-card-head-row">
-          <div>
-            <h2 class="admin-settings-card-title">Manifest JSON</h2>
-            <p class="admin-settings-card-desc" style="margin-bottom:0">Parsed from <code class="admin-inline-code">plugin.json</code> or <code class="admin-inline-code">theme.json</code> at validation time.</p>
-          </div>
-        </header>
-        <pre class="admin-jobs-payload-pre" style="margin-top:0.85rem;max-height:20rem;overflow:auto">{{ submission.manifest|json_encode|e }}</pre>
-      </section>
+    <div class="admin-settings-intro admin-catalog-submission-intro admin-catalog-submission-intro--{{ _status_intro }}">
+      <div class="admin-settings-intro-icon" aria-hidden="true">
+        {% if submission.kind == 'theme' %}
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="13.5" cy="6.5" r="0.5" fill="currentColor" />
+            <circle cx="17.5" cy="10.5" r="0.5" fill="currentColor" />
+            <circle cx="8.5" cy="7.5" r="0.5" fill="currentColor" />
+            <circle cx="6.5" cy="12.5" r="0.5" fill="currentColor" />
+            <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z" />
+          </svg>
+        {% else %}
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+            <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+            <line x1="12" y1="22.08" x2="12" y2="12" />
+          </svg>
+        {% endif %}
+      </div>
+      <div class="admin-settings-intro-body">
+        <p class="admin-settings-intro-title">
+          Submission #{{ submission.id }}
+          {% if submission.status == 'pending' %}
+            · Awaiting review
+          {% elseif submission.status == 'approved' %}
+            · Published to catalog
+          {% elseif submission.status == 'rejected' %}
+            · Not published
+          {% endif %}
+        </p>
+        <p class="admin-settings-intro-text">
+          {% if submission.status == 'pending' %}
+            Approve to download the GitHub repo, build <code class="admin-inline-code">{{ submission.slug|e }}.zip</code>, and regenerate
+            <code class="admin-inline-code">repo.json</code> from all approved packages.
+          {% elseif submission.status == 'approved' %}
+            This package is included when the catalog regenerates
+            <code class="admin-inline-code">repo.json</code> from approved submissions.
+            {% if submission.publishedAt %}Last published {{ submission.publishedAt|e }}.{% endif %}
+          {% elseif submission.status == 'rejected' %}
+            This submission was rejected and is not listed in the public catalog.
+            {% if submission.reviewedAt %}Reviewed {{ submission.reviewedAt|e }}.{% endif %}
+          {% else %}
+            Catalog submission for <strong class="admin-settings-intro-strong">{{ submission.slug|e }}</strong>.
+          {% endif %}
+        </p>
+      </div>
+      {% if submission.status == 'pending' %}
+        <span class="admin-pill admin-pill--warn admin-hub-status-pill">Action required</span>
+      {% elseif submission.status == 'approved' %}
+        <span class="admin-pill admin-pill--ok admin-hub-status-pill">Approved</span>
+      {% endif %}
     </div>
 
-    <aside style="display:grid;gap:1.25rem">
-      <section class="admin-card admin-settings-card">
-        <header class="admin-settings-card-head-row">
-          <div>
-            <h2 class="admin-settings-card-title">Submitter</h2>
-          </div>
-        </header>
-        <dl class="admin-stat-details" style="margin-top:0.85rem">
-          <div class="admin-stat-row">
-            <dt>Name</dt>
-            <dd>{{ submission.submitterName|e }}</dd>
-          </div>
-          <div class="admin-stat-row">
-            <dt>Email</dt>
-            <dd><a class="admin-link" href="mailto:{{ submission.submitterEmail|e('html_attr') }}">{{ submission.submitterEmail|e }}</a></dd>
-          </div>
-        </dl>
-      </section>
-
-      {% if submission.screenshotPath %}
-        <section class="admin-card admin-settings-card">
-          <header class="admin-settings-card-head-row">
-            <div>
-              <h2 class="admin-settings-card-title">Screenshot</h2>
-            </div>
-          </header>
-          <img
-            src="{{ url_for('public.struxa_catalog.screenshot', { file: submission.screenshotPath|split('/')|last }) }}"
-            alt="Screenshot for {{ submission.name|e('html_attr') }}"
-            style="width:100%;max-height:220px;object-fit:cover;border-radius:var(--admin-radius-sm);margin-top:0.85rem;display:block"
-            loading="lazy"
-          />
-        </section>
+    <div class="admin-metrics admin-catalog-submission-metrics" aria-label="Submission details">
+      <article class="admin-metric">
+        <p class="admin-metric-label">Submitted</p>
+        <p class="admin-metric-value admin-metric-value--mono">{{ submission.createdAt|e }}</p>
+        <p class="admin-metric-meta">Queue entry</p>
+      </article>
+      {% if submission.author %}
+        <article class="admin-metric">
+          <p class="admin-metric-label">Author</p>
+          <p class="admin-metric-value">{{ submission.author|e }}</p>
+          <p class="admin-metric-meta">Manifest author</p>
+        </article>
       {% endif %}
+      {% if submission.manifest.requires_cms_version is defined and submission.manifest.requires_cms_version %}
+        <article class="admin-metric">
+          <p class="admin-metric-label">Requires CMS</p>
+          <p class="admin-metric-value admin-metric-value--mono">{{ submission.manifest.requires_cms_version|e }}+</p>
+          <p class="admin-metric-meta">Minimum version</p>
+        </article>
+      {% endif %}
+      {% if submission.publishedAt %}
+        <article class="admin-metric admin-metric--health-good">
+          <p class="admin-metric-label">Published</p>
+          <p class="admin-metric-value admin-metric-value--mono">{{ submission.publishedAt|e }}</p>
+          <p class="admin-metric-meta">In live catalog</p>
+        </article>
+      {% endif %}
+    </div>
 
-      {% if submission.reviewerNotes or submission.reviewedAt %}
-        <section class="admin-card admin-settings-card">
+    <div class="admin-catalog-submission-layout">
+      <div class="admin-catalog-submission-main">
+        {% if submission.description %}
+          <section class="admin-card admin-settings-card admin-catalog-submission-card">
+            <header class="admin-settings-card-head-row">
+              <div>
+                <h2 class="admin-settings-card-title">About this package</h2>
+                <p class="admin-settings-card-desc" style="margin-bottom:0">Description from the manifest.</p>
+              </div>
+            </header>
+            <div class="admin-prose admin-catalog-submission-desc">{{ submission.description|e }}</div>
+          </section>
+        {% endif %}
+
+        <section class="admin-card admin-settings-card admin-catalog-submission-card">
           <header class="admin-settings-card-head-row">
             <div>
-              <h2 class="admin-settings-card-title">Review history</h2>
+              <h2 class="admin-settings-card-title">Package metadata</h2>
+              <p class="admin-settings-card-desc" style="margin-bottom:0">Slug, version, and distribution paths.</p>
             </div>
           </header>
-          <dl class="admin-stat-details" style="margin-top:0.85rem">
-            {% if submission.reviewedAt %}
-              <div class="admin-stat-row">
-                <dt>Reviewed</dt>
-                <dd>{{ submission.reviewedAt|e }}</dd>
-              </div>
-            {% endif %}
-            {% if submission.reviewerNotes %}
-              <div class="admin-stat-row">
-                <dt>Notes</dt>
-                <dd>{{ submission.reviewerNotes|e }}</dd>
+          <dl class="admin-catalog-kv">
+            <div class="admin-catalog-kv-row">
+              <dt>Slug</dt>
+              <dd><code class="admin-inline-code">{{ submission.slug|e }}</code></dd>
+            </div>
+            <div class="admin-catalog-kv-row">
+              <dt>Version</dt>
+              <dd>{{ submission.version|e }}</dd>
+            </div>
+            <div class="admin-catalog-kv-row">
+              <dt>Kind</dt>
+              <dd>
+                {% if submission.kind == 'theme' %}
+                  <span class="admin-pill admin-pill--accent">Theme</span>
+                {% else %}
+                  <span class="admin-pill">Plugin</span>
+                {% endif %}
+              </dd>
+            </div>
+            <div class="admin-catalog-kv-row">
+              <dt>Dist ZIP</dt>
+              <dd><code class="admin-inline-code admin-tools-code-break">{{ dist_root|e }}/zips/{{ submission.slug|e }}.zip</code></dd>
+            </div>
+            {% if zip_base_url is defined and zip_base_url %}
+              <div class="admin-catalog-kv-row">
+                <dt>Public URL</dt>
+                <dd>
+                  <a class="admin-link admin-tools-code-break" href="{{ zip_base_url|e('html_attr') }}/{{ submission.slug|e }}.zip" target="_blank" rel="noopener">{{ zip_base_url|e }}/{{ submission.slug|e }}.zip</a>
+                </dd>
               </div>
             {% endif %}
           </dl>
         </section>
-      {% endif %}
 
-      {% if submission.status == 'pending' %}
-        <section class="admin-card admin-settings-card">
+        <section class="admin-card admin-settings-card admin-catalog-submission-card">
           <header class="admin-settings-card-head-row">
             <div>
-              <h2 class="admin-settings-card-title">Review</h2>
-              <p class="admin-settings-card-desc" style="margin-bottom:0">Approve builds the ZIP and updates the live catalog.</p>
+              <h2 class="admin-settings-card-title">Source repository</h2>
+              <p class="admin-settings-card-desc" style="margin-bottom:0">Approval downloads this branch and builds the distribution ZIP.</p>
             </div>
           </header>
-          <form method="post" action="{{ url_for('admin.struxa_catalog.submission_review', { id: submission.id }) }}" class="admin-form" style="margin-top:0.85rem">
-            <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
-            <div class="admin-field">
-              <label class="admin-label" for="reviewer_notes">Reviewer notes (optional)</label>
-              <textarea class="admin-input" id="reviewer_notes" name="reviewer_notes" rows="4">{{ submission.reviewerNotes|default('')|e }}</textarea>
+          <dl class="admin-catalog-kv">
+            <div class="admin-catalog-kv-row">
+              <dt>Git URL</dt>
+              <dd>
+                <a class="admin-link admin-tools-code-break" href="{{ submission.gitRepoUrl|e('html_attr') }}" rel="noopener noreferrer" target="_blank">{{ submission.gitRepoUrl|e }}</a>
+              </dd>
             </div>
-            <p class="admin-hint">Writes <code class="admin-inline-code">publish.json</code> and regenerates <code class="admin-inline-code">repo.json</code> from approved submissions.</p>
-            <div class="admin-form-actions" style="flex-direction:column;align-items:stretch;gap:0.5rem">
-              <button type="submit" name="action" value="approve" class="admin-btn-primary" onclick="return confirm('Publish this package to the live catalog?');">Approve &amp; publish</button>
-              <button type="submit" name="action" value="reject" class="admin-btn-ghost" onclick="return confirm('Reject this submission?');">Reject</button>
+            <div class="admin-catalog-kv-row">
+              <dt>Branch</dt>
+              <dd><code class="admin-inline-code">{{ submission.gitBranch|e }}</code></dd>
             </div>
-          </form>
+          </dl>
         </section>
-      {% endif %}
-    </aside>
+
+        <details class="admin-card admin-settings-card admin-catalog-submission-card admin-catalog-submission-details">
+          <summary class="admin-catalog-submission-details-summary">
+            <span>
+              <strong class="admin-settings-card-title">Manifest JSON</strong>
+              <span class="admin-settings-card-desc">Parsed from <code class="admin-inline-code">plugin.json</code> or <code class="admin-inline-code">theme.json</code></span>
+            </span>
+            <span class="admin-catalog-submission-details-chevron" aria-hidden="true"></span>
+          </summary>
+          <pre class="admin-jobs-payload-pre admin-catalog-submission-manifest">{{ submission.manifest|json_encode(128)|e }}</pre>
+        </details>
+      </div>
+
+      <aside class="admin-catalog-submission-aside">
+        <section class="admin-card admin-settings-card admin-catalog-submission-card">
+          <header class="admin-settings-card-head-row">
+            <div>
+              <h2 class="admin-settings-card-title">Submitter</h2>
+              {% if submission.submitterEmail == 'catalog@import.local' %}
+                <p class="admin-settings-card-desc" style="margin-bottom:0">Seeded from repo.json import.</p>
+              {% endif %}
+            </div>
+          </header>
+          <dl class="admin-catalog-kv admin-catalog-kv--compact">
+            <div class="admin-catalog-kv-row">
+              <dt>Name</dt>
+              <dd>{{ submission.submitterName|e }}</dd>
+            </div>
+            {% if submission.submitterEmail != 'catalog@import.local' %}
+              <div class="admin-catalog-kv-row">
+                <dt>Email</dt>
+                <dd><a class="admin-link" href="mailto:{{ submission.submitterEmail|e('html_attr') }}">{{ submission.submitterEmail|e }}</a></dd>
+              </div>
+            {% endif %}
+          </dl>
+        </section>
+
+        {% if submission.screenshotPath %}
+          <section class="admin-card admin-settings-card admin-catalog-submission-card">
+            <header class="admin-settings-card-head-row">
+              <div>
+                <h2 class="admin-settings-card-title">Screenshot</h2>
+              </div>
+            </header>
+            <figure class="admin-catalog-screenshot">
+              <img
+                src="{{ url_for('public.struxa_catalog.screenshot', { file: submission.screenshotPath|split('/')|last }) }}"
+                alt="Screenshot for {{ submission.name|e('html_attr') }}"
+                loading="lazy"
+              />
+            </figure>
+          </section>
+        {% endif %}
+
+        {% if submission.status == 'pending' %}
+          <section class="admin-card admin-settings-card admin-catalog-submission-card admin-catalog-submission-review">
+            <header class="admin-settings-card-head-row">
+              <div>
+                <h2 class="admin-settings-card-title">Review</h2>
+                <p class="admin-settings-card-desc" style="margin-bottom:0">Approve builds the ZIP and updates the live catalog.</p>
+              </div>
+            </header>
+            <form method="post" action="{{ url_for('admin.struxa_catalog.submission_review', { id: submission.id }) }}" class="admin-form admin-catalog-submission-review-form">
+              <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+              <div class="admin-field">
+                <label class="admin-label" for="reviewer_notes">Reviewer notes (optional)</label>
+                <textarea class="admin-input" id="reviewer_notes" name="reviewer_notes" rows="4" placeholder="Reason for approval or rejection…">{{ submission.reviewerNotes|default('')|e }}</textarea>
+              </div>
+              <p class="admin-hint">Updates <code class="admin-inline-code">publish.json</code> and regenerates <code class="admin-inline-code">repo.json</code>.</p>
+              <div class="admin-catalog-submission-review-actions">
+                <button type="submit" name="action" value="approve" class="admin-btn-primary" onclick="return confirm('Publish this package to the live catalog?');">Approve &amp; publish</button>
+                <button type="submit" name="action" value="reject" class="admin-btn-ghost admin-btn-danger" onclick="return confirm('Reject this submission?');">Reject</button>
+              </div>
+            </form>
+          </section>
+        {% endif %}
+
+        {% if submission.reviewerNotes or submission.reviewedAt %}
+          <section class="admin-card admin-settings-card admin-catalog-submission-card">
+            <header class="admin-settings-card-head-row">
+              <div>
+                <h2 class="admin-settings-card-title">Review history</h2>
+              </div>
+            </header>
+            <dl class="admin-catalog-kv admin-catalog-kv--compact">
+              {% if submission.reviewedAt %}
+                <div class="admin-catalog-kv-row">
+                  <dt>Reviewed</dt>
+                  <dd>{{ submission.reviewedAt|e }}</dd>
+                </div>
+              {% endif %}
+              {% if submission.reviewerNotes %}
+                <div class="admin-catalog-kv-row admin-catalog-kv-row--stack">
+                  <dt>Notes</dt>
+                  <dd class="admin-prose admin-catalog-submission-notes">{{ submission.reviewerNotes|e }}</dd>
+                </div>
+              {% endif %}
+            </dl>
+          </section>
+        {% endif %}
+
+        {% if submission.status == 'approved' %}
+          <section class="admin-card admin-settings-card admin-catalog-submission-card admin-catalog-submission-live">
+            <header class="admin-settings-card-head-row">
+              <div>
+                <h2 class="admin-settings-card-title">Live catalog</h2>
+                <p class="admin-settings-card-desc" style="margin-bottom:0">Included in the public distribution index.</p>
+              </div>
+            </header>
+            <div class="admin-catalog-submission-live-links">
+              <a class="admin-btn-ghost admin-btn-ghost--sm" href="{{ url_for('admin.extensions.plugins.browse') }}">Browse in admin</a>
+              {% if submission.kind == 'theme' %}
+                <a class="admin-btn-ghost admin-btn-ghost--sm" href="{{ url_for('public.struxa_catalog.themes') }}" target="_blank" rel="noopener">Public themes page</a>
+              {% else %}
+                <a class="admin-btn-ghost admin-btn-ghost--sm" href="{{ url_for('public.struxa_catalog.plugins') }}" target="_blank" rel="noopener">Public plugins page</a>
+              {% endif %}
+            </div>
+          </section>
+        {% endif %}
+      </aside>
+    </div>
   </div>
 {% endblock %}

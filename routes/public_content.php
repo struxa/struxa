@@ -2,6 +2,10 @@
 
 declare(strict_types=1);
 
+use App\Access\MemberAccessGate;
+use App\Access\MemberAccessRepository;
+use App\Access\MemberAccessService;
+use App\Access\RoleUserRepository;
 use App\Content\ContentEntryRepository;
 use App\Content\ContentEntrySeoHelper;
 use App\Content\ContentEntryValueRepository;
@@ -42,6 +46,8 @@ return static function (App $app, Twig $twig, \PDO $pdo, callable $viewData): vo
     $productResolver = new ProductResolver($pdo, $commerceSettings, $fields);
     $shippingZoneRepo = new ShippingZoneRepository($pdo);
     $taxRateRepo = new TaxRateRepository($pdo);
+    $memberAccess = new MemberAccessService($pdo, new MemberAccessRepository($pdo), new RoleUserRepository($pdo));
+    $memberAccessRoles = new MemberAccessRepository($pdo);
 
     $app->get('/{typeSlug}/{entrySlug}', function (Request $request, Response $response, array $args) use (
         $twig,
@@ -56,7 +62,9 @@ return static function (App $app, Twig $twig, \PDO $pdo, callable $viewData): vo
         $productResolver,
         $commerceSettings,
         $shippingZoneRepo,
-        $taxRateRepo
+        $taxRateRepo,
+        $memberAccess,
+        $memberAccessRoles
     ): Response {
         $typeSlug = (string) ($args['typeSlug'] ?? '');
         $entrySlug = (string) ($args['entrySlug'] ?? '');
@@ -72,6 +80,23 @@ return static function (App $app, Twig $twig, \PDO $pdo, callable $viewData): vo
         $entry = $entries->findPublishedByTypeSlug($type->id, $entrySlug);
         if ($entry === null) {
             throw new HttpNotFoundException($request);
+        }
+
+        $path = '/' . $typeSlug . '/' . $entrySlug;
+        $roleIds = $entry->membersOnly ? $memberAccessRoles->roleIdsForEntry($entry->id) : [];
+        $denied = MemberAccessGate::enforce(
+            $request,
+            $response,
+            $twig,
+            $viewData,
+            $memberAccess,
+            $entry->membersOnly,
+            $roleIds,
+            $path,
+            $entry->title,
+        );
+        if ($denied !== null) {
+            return $denied;
         }
 
         $fieldList = $fields->forTypeOrdered($type->id);

@@ -14353,3 +14353,276 @@ a.admin-entry-row:hover .admin-entry-row-go {
 .admin-jobs-detail-dl {
   margin-top: 1rem;
 }
+
+/* —— Struxa catalog submission detail —— */
+.admin-catalog-submission-page {
+  padding-bottom: 2rem;
+}
+
+.admin-catalog-submission-intro--pending {
+  border-color: rgba(251, 191, 36, 0.28);
+  background:
+    linear-gradient(135deg, rgba(251, 191, 36, 0.1) 0%, transparent 42%),
+    linear-gradient(165deg, rgba(255, 255, 255, 0.04) 0%, rgba(18, 22, 31, 0.88) 100%);
+}
+
+.admin-catalog-submission-intro--pending .admin-settings-intro-icon {
+  color: #fde68a;
+  background: linear-gradient(145deg, rgba(251, 191, 36, 0.35), rgba(245, 158, 11, 0.18));
+  border-color: rgba(251, 191, 36, 0.35);
+}
+
+.admin-catalog-submission-intro--approved {
+  border-color: rgba(45, 212, 191, 0.28);
+  background:
+    linear-gradient(135deg, rgba(45, 212, 191, 0.1) 0%, transparent 42%),
+    linear-gradient(165deg, rgba(255, 255, 255, 0.04) 0%, rgba(18, 22, 31, 0.88) 100%);
+}
+
+.admin-catalog-submission-intro--approved .admin-settings-intro-icon {
+  color: #99f6e4;
+  background: linear-gradient(145deg, rgba(45, 212, 191, 0.35), rgba(20, 184, 166, 0.18));
+  border-color: rgba(45, 212, 191, 0.35);
+}
+
+.admin-catalog-submission-intro--rejected {
+  border-color: rgba(248, 113, 113, 0.22);
+  background:
+    linear-gradient(135deg, rgba(248, 113, 113, 0.08) 0%, transparent 42%),
+    linear-gradient(165deg, rgba(255, 255, 255, 0.03) 0%, rgba(18, 22, 31, 0.88) 100%);
+}
+
+.admin-catalog-submission-intro--rejected .admin-settings-intro-icon {
+  color: #fecaca;
+  background: linear-gradient(145deg, rgba(248, 113, 113, 0.28), rgba(239, 68, 68, 0.14));
+  border-color: rgba(248, 113, 113, 0.3);
+}
+
+.admin-hero-chip--mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.625rem;
+  letter-spacing: -0.01em;
+}
+
+.admin-hero-chip--ok {
+  color: #99f6e4;
+  border-color: rgba(45, 212, 191, 0.35);
+  background: rgba(45, 212, 191, 0.12);
+}
+
+.admin-hero-chip--danger {
+  color: #fecaca;
+  border-color: rgba(248, 113, 113, 0.35);
+  background: rgba(248, 113, 113, 0.1);
+}
+
+.admin-catalog-submission-metrics {
+  margin-bottom: 1.35rem;
+}
+
+.admin-catalog-submission-layout {
+  display: grid;
+  gap: 1.25rem;
+  grid-template-columns: minmax(0, 1fr) minmax(16rem, 22rem);
+  align-items: start;
+}
+
+.admin-catalog-submission-main,
+.admin-catalog-submission-aside {
+  display: grid;
+  gap: 1.25rem;
+  align-content: start;
+}
+
+.admin-catalog-submission-card {
+  margin: 0;
+}
+
+.admin-catalog-submission-desc {
+  margin: 0.85rem 0 0;
+  max-width: none;
+  font-size: 0.875rem;
+  line-height: 1.65;
+  color: var(--admin-muted);
+}
+
+.admin-catalog-kv {
+  margin: 0.85rem 0 0;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.admin-catalog-kv--compact {
+  gap: 0.6rem;
+}
+
+.admin-catalog-kv-row {
+  display: grid;
+  grid-template-columns: minmax(5.5rem, 7rem) minmax(0, 1fr);
+  gap: 0.75rem 1rem;
+  align-items: baseline;
+  font-size: 0.8125rem;
+}
+
+.admin-catalog-kv-row--stack {
+  align-items: start;
+}
+
+.admin-catalog-kv-row dt {
+  margin: 0;
+  font-weight: 700;
+  color: var(--admin-dim);
+}
+
+.admin-catalog-kv-row dd {
+  margin: 0;
+  font-weight: 600;
+  color: var(--admin-text);
+  min-width: 0;
+}
+
+.admin-catalog-submission-details {
+  padding: 0;
+  overflow: hidden;
+}
+
+.admin-catalog-submission-details-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.15rem 1.3rem;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+
+.admin-catalog-submission-details-summary::-webkit-details-marker {
+  display: none;
+}
+
+.admin-catalog-submission-details-summary .admin-settings-card-title {
+  display: block;
+  margin: 0 0 0.2rem;
+}
+
+.admin-catalog-submission-details-summary .admin-settings-card-desc {
+  display: block;
+  margin: 0;
+}
+
+.admin-catalog-submission-details-chevron {
+  flex-shrink: 0;
+  width: 0.55rem;
+  height: 0.55rem;
+  border-right: 2px solid var(--admin-dim);
+  border-bottom: 2px solid var(--admin-dim);
+  transform: rotate(45deg);
+  transition: transform 0.2s ease;
+  margin-top: -0.15rem;
+}
+
+.admin-catalog-submission-details[open] .admin-catalog-submission-details-chevron {
+  transform: rotate(-135deg);
+  margin-top: 0.2rem;
+}
+
+.admin-catalog-submission-manifest {
+  margin: 0;
+  border-radius: 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  max-height: 18rem;
+}
+
+.admin-catalog-screenshot {
+  margin: 0.85rem 0 0;
+}
+
+.admin-catalog-screenshot img {
+  display: block;
+  width: 100%;
+  max-height: 240px;
+  object-fit: cover;
+  border-radius: var(--admin-radius-sm);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.admin-catalog-submission-review {
+  border-color: rgba(251, 191, 36, 0.28);
+  background: linear-gradient(165deg, rgba(251, 191, 36, 0.06) 0%, var(--admin-bg2) 100%);
+}
+
+.admin-catalog-submission-review-form {
+  margin-top: 0.85rem;
+}
+
+.admin-catalog-submission-review-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.admin-catalog-submission-review-actions .admin-btn-primary,
+.admin-catalog-submission-review-actions .admin-btn-ghost {
+  width: 100%;
+  justify-content: center;
+}
+
+.admin-catalog-submission-notes {
+  margin: 0;
+  font-size: 0.8125rem;
+  line-height: 1.55;
+  font-weight: 500;
+}
+
+.admin-catalog-submission-live {
+  border-color: rgba(45, 212, 191, 0.22);
+  background: linear-gradient(165deg, rgba(45, 212, 191, 0.05) 0%, var(--admin-bg2) 100%);
+}
+
+.admin-catalog-submission-live-links {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  margin-top: 0.85rem;
+}
+
+.admin-catalog-submission-live-links .admin-btn-ghost {
+  justify-content: center;
+}
+
+@media (max-width: 960px) {
+  .admin-catalog-submission-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-catalog-submission-review {
+    order: -1;
+  }
+}
+
+@media (min-width: 961px) {
+  .admin-catalog-submission-aside .admin-catalog-submission-review {
+    position: sticky;
+    top: 1rem;
+  }
+}
+
+.admin-member-access-role-grid {
+  display: grid;
+  gap: 0.45rem 0.75rem;
+  margin-top: 0.5rem;
+}
+
+@media (min-width: 640px) {
+  .admin-member-access-role-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.admin-member-access-role {
+  margin: 0;
+  font-size: 0.8125rem;
+}
+

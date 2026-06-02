@@ -221,6 +221,7 @@ final class StruxaCatalogAdminRouteRegistrar
                 return $twig->render($response, $ns . '/admin/submission_show.twig', $adminView($request, [
                     'submission' => $row,
                     'dist_root' => $settings->distRoot(),
+                    'zip_base_url' => $settings->zipBaseUrl(),
                 ]));
             })->setName('admin.struxa_catalog.submission_show');
 

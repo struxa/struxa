@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Content;
 
+use App\Access\MemberAccessRepository;
 use App\Page\PageDuplicationService;
 use App\Section\ContentEntrySectionRepository;
 use App\Taxonomy\ContentEntryTaxonomyRepository;
@@ -16,6 +17,7 @@ final class ContentEntryDuplicationService
         private readonly ContentEntryValueRepository $values,
         private readonly ContentEntrySectionRepository $sections,
         private readonly ContentEntryTaxonomyRepository $entryTaxonomy,
+        private readonly MemberAccessRepository $memberAccess,
     ) {
     }
 
@@ -56,7 +58,10 @@ final class ContentEntryDuplicationService
             null,
             null,
             $createdBy,
+            $entry->membersOnly,
         );
+
+        $this->memberAccess->copyEntryRoles($sourceEntryId, $newId);
 
         foreach ($this->values->valuesByFieldIdForEntry($sourceEntryId) as $fieldId => $value) {
             $this->values->upsert($newId, $fieldId, $value !== '' ? $value : null);
