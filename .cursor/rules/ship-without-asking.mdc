@@ -1,0 +1,14 @@
+---
+description: Finish shippable work without asking — commit, bump, push, deploy steps
+alwaysApply: true
+---
+
+# Ship without asking
+
+When a task produces shippable CMS/plugin/theme work:
+
+1. **Do it** — implement, bump versions (`version-bump-on-push.mdc`), commit, and push to `origin` on the current branch. Do not end with “Want me to commit/push/deploy?”
+2. **Deploy notes** — if server access is not available, state what was pushed and the exact server commands/paths in one short block. No permission prompts.
+3. **Only ask** when the task is genuinely ambiguous (multiple valid approaches, destructive ops, or missing secrets/credentials).
+
+User saying “commit”, “ship”, “push”, or expressing frustration about being asked = execute immediately.
