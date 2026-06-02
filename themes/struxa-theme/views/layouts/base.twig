@@ -49,7 +49,15 @@
   <body class="theme-struxa" style="--st-accent: {{ _accent|e('html_attr') }}">
     <div class="st-shell">
       <a class="st-skip-link" href="#main-content">Skip to main content</a>
-      {% if storefront_search_enabled|default(false) %}
+      {% set _search_on = false %}
+      {% if storefront_search_on is defined and storefront_search_on() %}
+        {% set _search_on = true %}
+      {% elseif storefront_search_enabled|default(false) %}
+        {% set _search_on = true %}
+      {% elseif settings.content_search_enabled|default('0') == '1' %}
+        {% set _search_on = true %}
+      {% endif %}
+      {% if _search_on %}
         {% include 'partials/site_search_modal.twig' %}
       {% endif %}
       {% include 'partials/header.twig' %}

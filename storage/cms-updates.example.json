@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.1.91",
-    "title": "Struxa 1.1.91",
-    "summary": "Vision 1.0.34: header search modal and themed /search. Site health stack versions/sync panel. Staging smoke (composer smoke:staging) and Playwright e2e for public routes.",
+    "latest_version": "1.1.92",
+    "title": "Struxa 1.1.92",
+    "summary": "Fix storefront search icon when public search is on: live storefront_search_on() Twig helper, settings fallback, icon visible beside menu on mobile. Vision 1.0.35.",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "patch"

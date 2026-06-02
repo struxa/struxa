@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 use App\Access\PermissionSlug;
 use App\Content\ContentTypeRepository;
+use App\Event\Events;
+use App\Event\StorefrontCachesInvalidateEvent;
 use App\Flash;
 use App\Http\Middleware\RequireCmsStaff;
 use App\Http\Middleware\RequirePermission;
@@ -81,6 +83,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             }
         }
         SearchSettings::save($pdo, $enabled, array_keys($cleanIds), $includeFields, $perPage);
+        Events::dispatch(new StorefrontCachesInvalidateEvent('search_settings'));
         Flash::set('success', 'Search settings saved.');
 
         $url = RouteContext::fromRequest($request)->getRouteParser()->urlFor('admin.settings.search');

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Twig;
 
 use App\Media\MediaUrlHelper;
+use App\Search\SearchSettings;
 use App\Security\CsrfToken;
 use Twig\Extension\AbstractExtension;
 use Twig\TwigFilter;
@@ -23,6 +24,7 @@ final class CmsTwigExtension extends AbstractExtension
             new TwigFunction('media_url', $this->mediaUrlCallable()),
             new TwigFunction('cms_can', $this->cmsCan(...), ['needs_context' => true]),
             new TwigFunction('csrf_token', static fn (): string => CsrfToken::getOrCreate()),
+            new TwigFunction('storefront_search_on', static fn (): bool => SearchSettings::enabled()),
         ];
     }
 

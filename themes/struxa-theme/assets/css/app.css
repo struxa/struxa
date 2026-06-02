@@ -94,6 +94,12 @@ a { color: inherit; }
 .st-nav-toggle span {
   display: block; width: 22px; height: 2px; background: var(--st-text); border-radius: 1px;
 }
+.st-navbar__tools {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-shrink: 0;
+}
 .st-nav {
   display: flex; align-items: center; gap: 0.65rem; margin-left: auto;
 }
@@ -3259,6 +3265,7 @@ body.theme-struxa .theme-auth-page .auth-submit {
 
 @media (max-width: 768px) {
   .st-nav-toggle { display: flex; }
+  .st-navbar__tools { margin-left: auto; }
   .st-nav {
     position: fixed; inset: 0 0 auto 0; top: 0; padding: 5rem 1.25rem 1.5rem;
     background: var(--st-surface); flex-direction: column; align-items: stretch;
