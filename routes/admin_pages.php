@@ -620,6 +620,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 $cmsUid($request),
                 !empty($v['comments_disabled']),
             );
+            $slugRedirect = SlugRedirectResult::none();
             if ($page->status === 'published' && $oldSlug !== $slug) {
                 $siteUrl = (string) (($viewData())['site_url'] ?? '');
                 $slugRedirect = (new SlugChangeRedirectService(new RedirectRepository($pdo)))->forPage(
