@@ -159,7 +159,28 @@ final class ThemeRemoteInstaller
 
             $dest = $this->themes->themesRoot() . DIRECTORY_SEPARATOR . $slug;
             if (is_dir($dest)) {
-                return 'Target theme directory already exists.';
+                $installed = ThemeManifest::tryLoad($dest);
+                if ($installed !== null && $installed->slug === $slug) {
+                    return 'That theme is already installed. Activate it from Themes.';
+                }
+
+                // If a previous failed install left an empty directory behind, clean it and continue.
+                $entries = @scandir($dest);
+                if (is_array($entries)) {
+                    $nonDot = array_values(array_filter($entries, static fn (string $n): bool => $n !== '.' && $n !== '..'));
+                    if ($nonDot === []) {
+                        $rm = SafeDirectoryRemoval::removeIfInside($dest, $this->themes->themesRoot());
+                        if ($rm === null && !is_dir($dest)) {
+                            // cleaned; continue install
+                        } else {
+                            return 'Target theme directory already exists.';
+                        }
+                    } else {
+                        return 'Theme directory already exists but is not a valid installed theme. Remove themes/' . $slug . ' and retry.';
+                    }
+                } else {
+                    return 'Target theme directory already exists.';
+                }
             }
             if (!@rename($themeRoot, $dest)) {
                 $err = $this->copyDirectoryTree($themeRoot, $dest);
