@@ -335,6 +335,15 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 ->withStatus(302);
         })->setName('admin.tools.blueprints.import');
 
+        // Guardrail: visiting the POST endpoint directly should bounce back cleanly.
+        $group->get('/tools/blueprints/import', function (Request $request, Response $response): Response {
+            Flash::set('error', 'Use the Blueprints form to import (POST).');
+
+            return $response
+                ->withHeader('Location', RouteContext::fromRequest($request)->getRouteParser()->urlFor('admin.tools.blueprints'))
+                ->withStatus(302);
+        });
+
         $group->get('/tools/import-export', function (Request $request, Response $response) use (
             $twig,
             $adminContext,

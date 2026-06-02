@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.1.71",
-    "title": "Struxa 1.1.71",
+    "latest_version": "1.1.72",
+    "title": "Struxa 1.1.72",
     "summary": "Make Struxa Vision the only shipped default theme and retire the legacy default theme from core and dist catalogs.",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
