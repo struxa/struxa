@@ -1,0 +1,32 @@
+{# Public KB sidebar — requires knowledge-base-plugin and kb_public_enabled(). #}
+{% set _kb_sections = kb_wiki_sections(kb_current_slug|default('')) %}
+<aside class="st-kb-sidebar" aria-label="Documentation navigation">
+  <div class="st-kb-sidebar__head">
+    <p class="st-kb-sidebar__label">Documentation</p>
+    <a
+      class="st-kb-sidebar__home{% if kb_current_slug|default('') == '' %} is-active{% endif %}"
+      href="{{ url_for('public.content_type_index', { typeSlug: content_type.slug }) }}"
+    >All articles</a>
+  </div>
+
+  {% if _kb_sections is empty %}
+    <p class="st-kb-sidebar__empty">No articles published yet.</p>
+  {% else %}
+    {% for section in _kb_sections %}
+      <div class="st-kb-sidebar__section">
+        <h2 class="st-kb-sidebar__section-title">{{ section.section_label|e }}</h2>
+        <ul class="st-kb-sidebar__list">
+          {% for article in section.articles %}
+            <li>
+              <a
+                href="{{ article.public_url|e('html_attr') }}"
+                class="st-kb-sidebar__link{% if article.is_active|default(false) %} is-active{% endif %}"
+                {% if article.is_active|default(false) %} aria-current="page"{% endif %}
+              >{{ article.title|e }}</a>
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+    {% endfor %}
+  {% endif %}
+</aside>

@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.1.78",
-    "title": "Struxa 1.1.78",
-    "summary": "Forum plugin dist 1.1.5: idempotent icon_image migration for activation on existing schemas.",
+    "latest_version": "1.1.79",
+    "title": "Struxa 1.1.79",
+    "summary": "Struxa Vision KB layout with docs sidebar; Knowledge Base plugin exposes kb_wiki_sections for /kb.",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "patch"
