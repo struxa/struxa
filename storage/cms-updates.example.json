@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.1.83",
-    "title": "Struxa 1.1.83",
-    "summary": "Fix plugin migrations: drain result sets on PDOStatement, not PDO::nextRowset().",
+    "latest_version": "1.1.84",
+    "title": "Struxa 1.1.84",
+    "summary": "Theme catalog updates: Update button on installed themes (replaces themes/{slug}/ from repo.json or GitHub).",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "patch"

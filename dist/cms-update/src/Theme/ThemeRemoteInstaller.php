@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Theme;
 
+use App\Dist\DistPackageFetcher;
 use App\Filesystem\SafeDirectoryRemoval;
 use ZipArchive;
 
@@ -82,9 +83,129 @@ final class ThemeRemoteInstaller
             return 'That theme is already installed. Remove it first if you want to replace it.';
         }
 
-        $zipBody = $this->httpGetLimited($entry->downloadUrl, self::MAX_ZIP_BYTES);
+        $fetcher = new DistPackageFetcher($this->themes->projectRoot());
+        $zipBody = $fetcher->fetchZip($entry->downloadUrl, self::MAX_ZIP_BYTES);
         if ($zipBody === null) {
-            return 'Could not download the theme package (size limit, network, or invalid response).';
+            $hint = $fetcher->localZipHint($entry->downloadUrl);
+            $suffix = $hint !== null
+                ? ' Place the file at ' . $hint . ' on this server, or publish it to the URL in repo.json.'
+                : '';
+
+            return 'Could not download the theme package (size limit, network, or invalid response).' . $suffix;
+        }
+
+        return $this->installFromZipBody($zipBody, $slug, false);
+    }
+
+    /**
+     * @param list<ThemeCatalogEntry> $catalogEntries
+     */
+    public function updateFromCatalogSlug(string $slug, array $catalogEntries): ?string
+    {
+        $slug = strtolower(trim($slug));
+        if (!ThemeManifest::isValidSlug($slug)) {
+            return 'Invalid theme slug.';
+        }
+        $entry = null;
+        foreach ($catalogEntries as $e) {
+            if ($e->slug === $slug) {
+                $entry = $e;
+                break;
+            }
+        }
+        if ($entry === null) {
+            return 'That theme is not in the current catalog.';
+        }
+        if ($this->themes->findBySlug($slug) === null) {
+            return 'Theme is not installed.';
+        }
+        if (!self::isDownloadUrlHostAllowed($entry->downloadUrl)) {
+            return 'Download URL is not allowed.';
+        }
+        if (!class_exists(ZipArchive::class)) {
+            return 'PHP zip extension (ZipArchive) is required to update themes from the catalog.';
+        }
+
+        $fetcher = new DistPackageFetcher($this->themes->projectRoot());
+        $zipBody = $fetcher->fetchZip($entry->downloadUrl, self::MAX_ZIP_BYTES);
+        if ($zipBody === null) {
+            $hint = $fetcher->localZipHint($entry->downloadUrl);
+            $suffix = $hint !== null
+                ? ' Place the file at ' . $hint . ' on this server, or publish it to the URL in repo.json.'
+                : '';
+
+            return 'Could not download the theme package (size limit, network, or invalid response).' . $suffix;
+        }
+
+        return $this->installFromZipBody($zipBody, $slug, true);
+    }
+
+    public function updateFromGithubRepository(string $slug, string $owner, string $repo, string $ref = 'main'): ?string
+    {
+        $slug = strtolower(trim($slug));
+        if (!ThemeManifest::isValidSlug($slug)) {
+            return 'Invalid theme slug.';
+        }
+        if ($this->themes->findBySlug($slug) === null) {
+            return 'Theme is not installed.';
+        }
+
+        $owner = trim($owner);
+        $repo = trim($repo);
+        $ref = trim($ref);
+        if ($owner === '' || $repo === '' || $ref === '') {
+            return 'Invalid GitHub repository.';
+        }
+
+        $urls = [
+            sprintf(
+                'https://codeload.github.com/%s/%s/zip/refs/heads/%s',
+                rawurlencode($owner),
+                rawurlencode($repo),
+                rawurlencode($ref),
+            ),
+            sprintf(
+                'https://github.com/%s/%s/archive/refs/heads/%s.zip',
+                rawurlencode($owner),
+                rawurlencode($repo),
+                rawurlencode($ref),
+            ),
+        ];
+
+        $lastErr = 'Could not download the theme package from GitHub.';
+        foreach ($urls as $zipUrl) {
+            if (!self::isDownloadUrlHostAllowed($zipUrl)) {
+                continue;
+            }
+            if (!class_exists(ZipArchive::class)) {
+                return 'PHP zip extension (ZipArchive) is required to update themes.';
+            }
+            $fetcher = new DistPackageFetcher($this->themes->projectRoot());
+            $zipBody = $fetcher->fetchZip($zipUrl, self::MAX_ZIP_BYTES);
+            if ($zipBody === null) {
+                continue;
+            }
+            $err = $this->installFromZipBody($zipBody, $slug, true);
+            if ($err === null) {
+                return null;
+            }
+            $lastErr = $err;
+        }
+
+        return $lastErr;
+    }
+
+    /**
+     * Install a theme from raw ZIP bytes (catalog download or manual admin upload).
+     * When $expectedCatalogSlug is set, manifest slug must match (catalog installs).
+     */
+    public function installFromZipBody(string $zipBody, ?string $expectedCatalogSlug = null, bool $replace = false): ?string
+    {
+        if (strlen($zipBody) > self::MAX_ZIP_BYTES) {
+            return 'Theme package exceeds maximum size.';
+        }
+        if (!class_exists(ZipArchive::class)) {
+            return 'PHP zip extension (ZipArchive) is required to install themes.';
         }
 
         $work = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'struxa-theme-' . bin2hex(random_bytes(8));
@@ -95,14 +216,14 @@ final class ThemeRemoteInstaller
         $extractDir = $work . DIRECTORY_SEPARATOR . 'extract';
         try {
             if (file_put_contents($zipPath, $zipBody) === false) {
-                return 'Could not save the downloaded package.';
+                return 'Could not save the theme package.';
             }
             if (!@mkdir($extractDir, 0700, true)) {
                 return 'Could not create extract directory.';
             }
             $zip = new ZipArchive();
             if ($zip->open($zipPath) !== true) {
-                return 'Downloaded file is not a valid ZIP archive.';
+                return 'File is not a valid ZIP archive.';
             }
             if (!$this->extractZipSafely($zip, $extractDir)) {
                 $zip->close();
@@ -122,25 +243,72 @@ final class ThemeRemoteInstaller
             if ($manifest === null) {
                 return 'Theme package failed validation (check theme.json, parents, and settings schema).';
             }
-            if ($manifest->slug !== $slug) {
-                return 'Archive theme slug "' . $manifest->slug . '" does not match catalog slug "' . $slug . '".';
+
+            $slug = $manifest->slug;
+            if ($expectedCatalogSlug !== null && $slug !== $expectedCatalogSlug) {
+                return 'Archive theme slug "' . $slug . '" does not match catalog slug "' . $expectedCatalogSlug . '".';
+            }
+            if (!ThemeManifest::isValidSlug($slug)) {
+                return 'Theme manifest slug is invalid.';
             }
 
             $dest = $this->themes->themesRoot() . DIRECTORY_SEPARATOR . $slug;
-            if (is_dir($dest)) {
-                return 'Target theme directory already exists.';
+            $themesRootReal = realpath($this->themes->themesRoot());
+            if ($themesRootReal === false) {
+                return 'Could not resolve themes directory.';
             }
+
+            if ($replace) {
+                if (!is_dir($dest)) {
+                    return 'Theme is not installed.';
+                }
+                $destReal = realpath($dest);
+                if ($destReal === false) {
+                    return 'Could not resolve installed theme path.';
+                }
+                $rm = SafeDirectoryRemoval::removeIfInside($destReal, $themesRootReal);
+                if ($rm !== null) {
+                    return 'Could not remove the existing theme before update: ' . $rm;
+                }
+            } else {
+                if ($this->themes->findBySlug($slug) !== null) {
+                    return 'That theme is already installed. Use Update on the themes list or remove it first.';
+                }
+
+                if (is_dir($dest)) {
+                    $installed = ThemeManifest::tryLoad($dest);
+                    if ($installed !== null && $installed->slug === $slug) {
+                        return 'That theme is already installed. Activate it from Themes.';
+                    }
+
+                    $entries = @scandir($dest);
+                    if (is_array($entries)) {
+                        $nonDot = array_values(array_filter($entries, static fn (string $n): bool => $n !== '.' && $n !== '..'));
+                        if ($nonDot === []) {
+                            $rm = SafeDirectoryRemoval::removeIfInside($dest, $this->themes->themesRoot());
+                            if ($rm !== null && is_dir($dest)) {
+                                return 'Target theme directory already exists.';
+                            }
+                        } else {
+                            return 'Theme directory already exists but is not a valid installed theme. Remove themes/' . $slug . ' and retry.';
+                        }
+                    } else {
+                        return 'Target theme directory already exists.';
+                    }
+                }
+            }
+
+            if (!@mkdir($dest, 0755, true) && !is_dir($dest)) {
+                return 'Could not create theme directory.';
+            }
+
             if (!@rename($themeRoot, $dest)) {
                 $err = $this->copyDirectoryTree($themeRoot, $dest);
                 if ($err !== null) {
                     return $err;
                 }
-                $rm = SafeDirectoryRemoval::removeIfInside($themeRoot, $extractDir);
-                if ($rm !== null) {
-                    SafeDirectoryRemoval::removeIfInside($dest, $this->themes->themesRoot());
-
-                    return 'Could not finalize theme install.';
-                }
+                // Best effort cleanup only. Do not fail a successful install copy if temp cleanup fails.
+                SafeDirectoryRemoval::removeIfInside($themeRoot, $extractDir);
             }
 
             $installed = ThemeManifest::tryLoad($dest);
@@ -158,43 +326,6 @@ final class ThemeRemoteInstaller
                 SafeDirectoryRemoval::removeIfInside($work, dirname($work));
             }
         }
-    }
-
-    private function httpGetLimited(string $url, int $maxBytes): ?string
-    {
-        $ctx = stream_context_create([
-            'http' => [
-                'timeout' => 120,
-                'follow_location' => 1,
-                'max_redirects' => 8,
-                'header' => "User-Agent: Struxa-ThemeInstall/1.0\r\n",
-            ],
-            'ssl' => [
-                'verify_peer' => true,
-                'verify_peer_name' => true,
-            ],
-        ]);
-        $h = @fopen($url, 'r', false, $ctx);
-        if ($h === false) {
-            return null;
-        }
-        $data = '';
-        while (!feof($h) && strlen($data) < $maxBytes) {
-            $chunk = fread($h, 65_536);
-            if ($chunk === false) {
-                break;
-            }
-            $data .= $chunk;
-        }
-        fclose($h);
-        if (strlen($data) >= $maxBytes) {
-            return null;
-        }
-        if ($data === '') {
-            return null;
-        }
-
-        return $data;
     }
 
     private function extractZipSafely(ZipArchive $zip, string $destDir): bool
@@ -289,10 +420,17 @@ final class ThemeRemoteInstaller
             new \RecursiveDirectoryIterator($source, \FilesystemIterator::SKIP_DOTS),
             \RecursiveIteratorIterator::SELF_FIRST
         );
+        $sourcePrefix = $sourceReal . DIRECTORY_SEPARATOR;
         foreach ($it as $item) {
-            /** @var \SplFileInfo $item */
-            $sub = $item->getSubPathname();
-            $target = $destReal . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $sub);
+            if (!$item instanceof \SplFileInfo) {
+                continue;
+            }
+            $pathname = $item->getPathname();
+            if (!str_starts_with($pathname, $sourcePrefix)) {
+                return 'Path error while copying theme.';
+            }
+            $rel = substr($pathname, strlen($sourcePrefix));
+            $target = $destReal . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $rel);
             if ($item->isDir()) {
                 if (!@mkdir($target, 0755, true) && !is_dir($target)) {
                     return 'Could not copy theme folders.';

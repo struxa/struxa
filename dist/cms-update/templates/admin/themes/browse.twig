@@ -15,6 +15,15 @@
 {% endblock %}
 
 {% block admin_content %}
+  {% include 'admin/partials/_package_zip_upload.twig' with {
+    title: 'Install from ZIP',
+    description: 'Upload a theme package manually. ZIP must contain theme.json, views/, and assets/ at the root or in one top-level folder. Folder name must match the slug in theme.json.',
+    upload_action: url_for('admin.themes.install_upload'),
+    file_label: 'Theme ZIP',
+    field_id: 'theme_package_zip',
+    max_mb: 35,
+  } %}
+
   {% if not catalog_ok %}
     <div class="admin-card admin-settings-card" style="margin-bottom:1.25rem;border-color:rgba(251,191,36,0.35)">
       <h2 class="admin-settings-card-title">Catalog unavailable</h2>
@@ -47,7 +56,21 @@
             <p class="admin-hint" style="margin-top:0.75rem;word-break:break-all;font-size:0.72rem">Package: {{ t.downloadUrl|e }}</p>
             <div class="admin-theme-card-actions">
               {% if installed_theme_slugs[t.slug] is defined %}
+                {% set upd = installed_theme_updates[t.slug]|default(null) %}
                 <span class="admin-badge admin-badge--ok">Installed</span>
+                {% if upd and upd.update_available and upd.can_update %}
+                  <form
+                    method="post"
+                    action="{{ url_for('admin.themes.update') }}"
+                    class="admin-theme-activate-form"
+                    onsubmit="return confirm('Update {{ t.slug|e('js') }} to v{{ upd.latest_version|e('js') }}?');"
+                  >
+                    <input type="hidden" name="theme_slug" value="{{ t.slug|e('html_attr') }}" />
+                    <button type="submit" class="admin-btn-primary">Update to v{{ upd.latest_version|e }}</button>
+                  </form>
+                {% elseif upd and upd.update_available %}
+                  <span class="admin-hint">v{{ upd.latest_version|e }} available — configure catalog or GitHub download</span>
+                {% endif %}
                 <a class="admin-link" href="{{ url_for('admin.themes.index') }}">Open themes list</a>
               {% else %}
                 <form method="post" action="{{ url_for('admin.themes.install_from_catalog') }}" class="admin-theme-activate-form" onsubmit="return confirm('Install theme {{ t.slug|e('js') }} from the catalog?');">

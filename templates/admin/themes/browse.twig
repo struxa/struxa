@@ -56,7 +56,21 @@
             <p class="admin-hint" style="margin-top:0.75rem;word-break:break-all;font-size:0.72rem">Package: {{ t.downloadUrl|e }}</p>
             <div class="admin-theme-card-actions">
               {% if installed_theme_slugs[t.slug] is defined %}
+                {% set upd = installed_theme_updates[t.slug]|default(null) %}
                 <span class="admin-badge admin-badge--ok">Installed</span>
+                {% if upd and upd.update_available and upd.can_update %}
+                  <form
+                    method="post"
+                    action="{{ url_for('admin.themes.update') }}"
+                    class="admin-theme-activate-form"
+                    onsubmit="return confirm('Update {{ t.slug|e('js') }} to v{{ upd.latest_version|e('js') }}?');"
+                  >
+                    <input type="hidden" name="theme_slug" value="{{ t.slug|e('html_attr') }}" />
+                    <button type="submit" class="admin-btn-primary">Update to v{{ upd.latest_version|e }}</button>
+                  </form>
+                {% elseif upd and upd.update_available %}
+                  <span class="admin-hint">v{{ upd.latest_version|e }} available — configure catalog or GitHub download</span>
+                {% endif %}
                 <a class="admin-link" href="{{ url_for('admin.themes.index') }}">Open themes list</a>
               {% else %}
                 <form method="post" action="{{ url_for('admin.themes.install_from_catalog') }}" class="admin-theme-activate-form" onsubmit="return confirm('Install theme {{ t.slug|e('js') }} from the catalog?');">
