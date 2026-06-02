@@ -1,7 +1,7 @@
 {
     "name": "struxa/cms",
     "description": "Struxa — Slim/Twig content CMS",
-    "version": "1.1.90",
+    "version": "1.1.91",
     "require": {
         "php": ">=8.2",
         "slim/slim": "^4.12",
@@ -50,6 +50,7 @@
         "check:plugin-deps": "php bin/plugin-dependency-health.php",
         "cache:clear": "php bin/cache-clear.php",
         "build:struxa-dist": "bash scripts/build-struxa-dist.sh",
-        "serve": "php -S localhost:8080 -t public public/router.php"
+        "serve": "php -S localhost:8080 -t public public/router.php",
+        "smoke:staging": "php bin/smoke-staging.php"
     }
 }

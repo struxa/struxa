@@ -23,6 +23,8 @@ use App\Plugin\PluginScanner;
 use App\Theme\ThemeManager;
 use App\Theme\ThemeSettingsResolver;
 use App\News\StruxaNewsFeed;
+use App\Search\ContentSearchService;
+use App\Search\SearchSettings;
 use App\Update\CmsUpdateChecker;
 use InvalidArgumentException;
 use PDO;
@@ -188,6 +190,11 @@ final class TwigCmsGlobals implements MiddlewareInterface
             }
         }
         $env->addGlobal('commerce_cart_count', $cartCount);
+
+        $storefrontSearchOn = SearchSettings::enabled();
+        $env->addGlobal('storefront_search_enabled', $storefrontSearchOn);
+        $env->addGlobal('search_query_min_length', ContentSearchService::MIN_QUERY_LENGTH);
+        $env->addGlobal('search_query_max_length', ContentSearchService::MAX_QUERY_LENGTH);
 
         $adminPath = $this->normalizeRequestPath($request->getUri()->getPath());
         $internalForUpdates = $internal ?? (new CacheManager(

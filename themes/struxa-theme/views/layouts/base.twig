@@ -49,6 +49,9 @@
   <body class="theme-struxa" style="--st-accent: {{ _accent|e('html_attr') }}">
     <div class="st-shell">
       <a class="st-skip-link" href="#main-content">Skip to main content</a>
+      {% if storefront_search_enabled|default(false) %}
+        {% include 'partials/site_search_modal.twig' %}
+      {% endif %}
       {% include 'partials/header.twig' %}
       <div class="st-main">
         {% block body %}{% endblock %}

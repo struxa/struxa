@@ -37,6 +37,61 @@ document.querySelectorAll('.st-nav__account').forEach((account) => {
   });
 });
 
+(() => {
+  const modal = document.getElementById('st-site-search');
+  if (!modal) return;
+
+  const openers = document.querySelectorAll('[data-st-search-open]');
+  const closers = modal.querySelectorAll('[data-st-search-close]');
+  const input = modal.querySelector('[data-st-search-input]');
+  let lastFocus = null;
+
+  const setOpen = (open) => {
+    openers.forEach((btn) => btn.setAttribute('aria-expanded', open ? 'true' : 'false'));
+    if (open) {
+      lastFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+      modal.removeAttribute('hidden');
+      modal.setAttribute('aria-hidden', 'false');
+      modal.classList.add('is-open');
+      document.body.classList.add('st-search-modal-open');
+      window.setTimeout(() => input?.focus(), 0);
+    } else {
+      modal.setAttribute('hidden', '');
+      modal.setAttribute('aria-hidden', 'true');
+      modal.classList.remove('is-open');
+      document.body.classList.remove('st-search-modal-open');
+      if (lastFocus) {
+        lastFocus.focus();
+        lastFocus = null;
+      }
+    }
+  };
+
+  openers.forEach((btn) => {
+    btn.addEventListener('click', () => setOpen(true));
+  });
+
+  closers.forEach((el) => {
+    el.addEventListener('click', () => setOpen(false));
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && modal.classList.contains('is-open')) {
+      e.preventDefault();
+      setOpen(false);
+      return;
+    }
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+      const tag = document.activeElement?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || document.activeElement?.isContentEditable) {
+        return;
+      }
+      e.preventDefault();
+      setOpen(true);
+    }
+  });
+})();
+
 document.querySelectorAll('.st-github-repo__copy[data-copy-target]').forEach((btn) => {
   btn.addEventListener('click', (e) => {
     e.preventDefault();

@@ -1,6 +1,6 @@
 # Struxa CMS
 
-**Version:** 1.1.90 (canonical: `composer.json` → `version`)
+**Version:** 1.1.91 (canonical: `composer.json` → `version`)
 
 PHP content management on **Slim 4** and **Twig**: custom content types, storefront themes, admin UI, media library, SEO tools, optional **AI writing assistant**, headless **JSON/GraphQL** API, and **plugins**.
 
@@ -46,10 +46,34 @@ For development (includes dev deps in plugins): `composer plugin-deps`.
 | `composer phpstan` | Static analysis |
 | `composer plugin-deps:prod` | Install all plugin `vendor/` trees (production) |
 | `composer cache:clear` | Clear internal caches |
+| `composer smoke:staging` | HTTP smoke for `/`, `/kb`, `/forum`, `/shop` (set `STRUXA_SMOKE_BASE_URL`) |
+| `composer serve` | PHP built-in server on `http://127.0.0.1:8080` |
+
+### Staging smoke & Playwright
+
+After deploy (or locally with `composer serve` + migrated DB):
+
+```bash
+STRUXA_SMOKE_BASE_URL=https://your-staging.example composer smoke:staging
+```
+
+Optional: `STRUXA_SMOKE_STRICT=0` allows HTTP 404 on routes; `STRUXA_SMOKE_SKIP=/forum` skips paths.
+
+Playwright (public routes only):
+
+```bash
+npm install
+npx playwright install chromium
+STRUXA_E2E_BASE_URL=https://your-staging.example npm run e2e
+```
+
+Admin **Site health** includes a **Stack versions & sync** table (CMS, theme, plugins).
 
 ## CI
 
 GitHub Actions (`.github/workflows/ci.yml`) runs `composer install`, `composer plugin-deps:prod`, `composer test`, and `composer phpstan` on PHP 8.2 and 8.3.
+
+Optional workflow `.github/workflows/staging-smoke.yml` runs `composer smoke:staging` when `STRUXA_SMOKE_BASE_URL` is configured as a repository secret.
 
 ## Pushing code (GitHub)
 

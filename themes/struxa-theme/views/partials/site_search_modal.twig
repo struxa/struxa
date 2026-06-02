@@ -1,0 +1,52 @@
+{# Storefront search modal — shown when Admin → Settings → Search enables /search. #}
+<div
+  id="st-site-search"
+  class="st-search-modal"
+  hidden
+  aria-hidden="true"
+>
+  <div class="st-search-modal__backdrop" data-st-search-close tabindex="-1" aria-hidden="true"></div>
+  <div
+    class="st-search-modal__dialog"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="st-search-modal-title"
+  >
+    <header class="st-search-modal__head">
+      <h2 id="st-search-modal-title" class="st-search-modal__title">Search site</h2>
+      <button type="button" class="st-search-modal__close" data-st-search-close aria-label="Close search">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <path d="M18 6 6 18M6 6l12 12" />
+        </svg>
+      </button>
+    </header>
+    <form class="st-search-modal__form" action="{{ url_for('public.search') }}" method="get" role="search">
+      <label class="sr-only" for="st-search-modal-q">Search</label>
+      <div class="st-search-modal__field">
+        <svg class="st-search-modal__field-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <circle cx="11" cy="11" r="7" />
+          <path d="m20 20-3.5-3.5" />
+        </svg>
+        <input
+          type="search"
+          name="q"
+          id="st-search-modal-q"
+          class="st-search-modal__input"
+          value="{{ search_query_raw|default('')|e('html_attr') }}"
+          placeholder="Search articles and pages…"
+          autocomplete="off"
+          spellcheck="false"
+          minlength="{{ search_query_min_length|default(2) }}"
+          maxlength="{{ search_query_max_length|default(80) }}"
+          data-st-search-input
+        />
+      </div>
+      <button type="submit" class="st-btn st-btn--primary st-search-modal__submit">Search</button>
+    </form>
+    <p class="st-search-modal__hint">
+      <kbd class="st-kbd">Esc</kbd> close
+      <span class="st-search-modal__hint-sep" aria-hidden="true">·</span>
+      <kbd class="st-kbd">⌘</kbd><kbd class="st-kbd">K</kbd> open
+    </p>
+  </div>
+</div>

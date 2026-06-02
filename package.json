@@ -1,0 +1,13 @@
+{
+  "name": "struxa-cms",
+  "private": true,
+  "description": "Playwright e2e for Struxa public routes",
+  "scripts": {
+    "e2e": "playwright test",
+    "e2e:install": "playwright install chromium",
+    "e2e:ui": "playwright test --ui"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.52.0"
+  }
+}

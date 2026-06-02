@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Access\PermissionSlug;
 use App\Health\SiteHealthService;
+use App\Health\SiteHealthStackCollector;
 use App\Health\SiteHealthStatus;
 use App\Http\Middleware\RequireCmsStaff;
 use App\Http\Middleware\RequirePermission;
@@ -36,12 +37,16 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
         $adminContext,
         $withCmsUser,
         $health,
+        $root,
+        $pdo,
     ): void {
         $group->get('/tools/site-health', function (Request $request, Response $response) use (
             $twig,
             $adminContext,
             $withCmsUser,
             $health,
+            $root,
+            $pdo,
         ): Response {
             $uri = $request->getUri();
             $report = $health->report([
@@ -50,8 +55,11 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 'server_software' => trim((string) ($request->getServerParams()['SERVER_SOFTWARE'] ?? '')),
             ]);
 
+            $stack = (new SiteHealthStackCollector($pdo, $root))->collect();
+
             return $twig->render($response, 'admin/tools/site_health.twig', $withCmsUser($request, array_merge($adminContext(), [
                 'admin_nav' => 'site_health',
+                'health_stack' => $stack,
                 'health_report' => $report,
                 'health_overall' => $report->overallStatus(),
                 'health_counts' => $report->counts(),

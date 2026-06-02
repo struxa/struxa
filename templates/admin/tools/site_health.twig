@@ -139,6 +139,120 @@
         </section>
       {% endfor %}
 
+      {% set stack = health_stack|default({}) %}
+      {% set stack_cms = stack.cms|default(null) %}
+      {% set stack_theme = stack.theme|default(null) %}
+      {% set stack_plugins = stack.plugins|default([]) %}
+
+      <section class="admin-card admin-settings-card admin-settings-section" id="health-stack-versions">
+        <header class="admin-settings-card-head-row">
+          <div>
+            <h2 class="admin-settings-card-title">Stack versions &amp; sync</h2>
+            <p class="admin-settings-card-desc" style="margin-bottom:0">
+              Installed CMS, active theme, and plugins compared with on-disk metadata and update feeds.
+            </p>
+          </div>
+        </header>
+
+        <div class="admin-table-wrap" style="margin-top:0.85rem">
+          <table class="admin-table admin-table--comfortable admin-health-table admin-health-stack-table">
+            <thead>
+              <tr>
+                <th scope="col">Component</th>
+                <th scope="col">Installed</th>
+                <th scope="col">Latest</th>
+                <th scope="col">Sync</th>
+                <th scope="col">Details</th>
+                <th scope="col" class="admin-table-col-actions"><span class="admin-table-muted">Action</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              {% if stack_cms %}
+                {% set sync = stack_cms.sync_status|default('ok') %}
+                {% set pill = sync in ['missing_on_disk', 'not_registered'] ? 'critical' : (sync == 'ok' ? 'good' : 'recommended') %}
+                <tr>
+                  <td><strong class="admin-table-primary">{{ stack_cms.name|e }}</strong><br><span class="admin-table-muted">{{ stack_cms.slug|e }}</span></td>
+                  <td><code class="admin-inline-code">{{ stack_cms.installed_version|e }}</code></td>
+                  <td>
+                    {% if stack_cms.latest_version|default('') != '' %}
+                      <code class="admin-inline-code">{{ stack_cms.latest_version|e }}</code>
+                    {% else %}
+                      <span class="admin-table-muted">—</span>
+                    {% endif %}
+                  </td>
+                  <td><span class="admin-pill admin-health-pill admin-health-pill--{{ pill|e('html_attr') }}">{{ stack_cms.sync_label|e }}</span></td>
+                  <td class="admin-health-detail"><p class="admin-health-message">{{ stack_cms.detail|e }}</p></td>
+                  <td class="admin-table-actions">
+                    {% if stack_cms.action_route|default('') != '' %}
+                      <a class="admin-btn-ghost admin-btn-ghost--sm" href="{{ url_for(stack_cms.action_route) }}">{{ stack_cms.action_label|default('Open')|e }}</a>
+                    {% else %}
+                      <span class="admin-table-muted">—</span>
+                    {% endif %}
+                  </td>
+                </tr>
+              {% endif %}
+              {% if stack_theme %}
+                {% set sync = stack_theme.sync_status|default('ok') %}
+                {% set pill = sync in ['missing_on_disk', 'not_registered'] ? 'critical' : (sync == 'ok' ? 'good' : 'recommended') %}
+                <tr>
+                  <td><strong class="admin-table-primary">{{ stack_theme.name|e }}</strong><br><span class="admin-table-muted">Theme · {{ stack_theme.slug|e }}</span></td>
+                  <td><code class="admin-inline-code">{{ stack_theme.installed_version|e }}</code></td>
+                  <td>
+                    {% if stack_theme.latest_version|default('') != '' %}
+                      <code class="admin-inline-code">{{ stack_theme.latest_version|e }}</code>
+                    {% else %}
+                      <span class="admin-table-muted">—</span>
+                    {% endif %}
+                  </td>
+                  <td><span class="admin-pill admin-health-pill admin-health-pill--{{ pill|e('html_attr') }}">{{ stack_theme.sync_label|e }}</span></td>
+                  <td class="admin-health-detail"><p class="admin-health-message">{{ stack_theme.detail|e }}</p></td>
+                  <td class="admin-table-actions">
+                    {% if stack_theme.action_route|default('') != '' %}
+                      <a class="admin-btn-ghost admin-btn-ghost--sm" href="{{ url_for(stack_theme.action_route) }}">{{ stack_theme.action_label|default('Open')|e }}</a>
+                    {% else %}
+                      <span class="admin-table-muted">—</span>
+                    {% endif %}
+                  </td>
+                </tr>
+              {% endif %}
+              {% for row in stack_plugins %}
+                {% set sync = row.sync_status|default('ok') %}
+                {% set pill = sync in ['missing_on_disk', 'not_registered'] ? 'critical' : (sync == 'ok' ? 'good' : 'recommended') %}
+                <tr>
+                  <td>
+                    <strong class="admin-table-primary">{{ row.name|e }}</strong>
+                    <br>
+                    <span class="admin-table-muted">
+                      Plugin · {{ row.slug|e }}{% if row.active %} · active{% else %} · inactive{% endif %}
+                    </span>
+                  </td>
+                  <td>
+                    <code class="admin-inline-code">{{ row.installed_version|e }}</code>
+                    {% if row.disk_version|default('') != '' and row.disk_version != row.installed_version %}
+                      <br><span class="admin-table-muted">disk {{ row.disk_version|e }}</span>
+                    {% endif %}
+                  </td>
+                  <td><span class="admin-table-muted">—</span></td>
+                  <td><span class="admin-pill admin-health-pill admin-health-pill--{{ pill|e('html_attr') }}">{{ row.sync_label|e }}</span></td>
+                  <td class="admin-health-detail"><p class="admin-health-message">{{ row.detail|e }}</p></td>
+                  <td class="admin-table-actions">
+                    {% if row.action_route|default('') != '' %}
+                      <a class="admin-btn-ghost admin-btn-ghost--sm" href="{{ url_for(row.action_route) }}">{{ row.action_label|default('Open')|e }}</a>
+                    {% else %}
+                      <span class="admin-table-muted">—</span>
+                    {% endif %}
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        <p class="admin-hint admin-settings-card-footnote">
+          Run <code class="admin-inline-code">composer smoke:staging</code> against staging (set <code class="admin-inline-code">STRUXA_SMOKE_BASE_URL</code>) to verify public routes.
+          Plugin ZIP versions are compared on disk vs the database; CMS and theme rows may show catalog/GitHub latest when reachable.
+        </p>
+      </section>
+
       <section class="admin-card admin-settings-card admin-settings-section" id="health-system-info">
         <h2 class="admin-settings-card-title">System info</h2>
         <p class="admin-settings-card-desc">Runtime versions and paths reported by the health service.</p>
