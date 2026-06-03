@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.2.11",
-    "title": "Struxa 1.2.11",
-    "summary": "Theme updates read versions from the struxa/struxa monorepo (themes/slug/theme.json); legacy struxa-theme repo URLs are normalized (struxa-admin 1.0.25).",
+    "latest_version": "1.2.12",
+    "title": "Struxa 1.2.12",
+    "summary": "Fix theme update from GitHub: use bundled themes/struxa-theme on server for monorepo, deep-scan archives, higher zip cap.",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "minor"

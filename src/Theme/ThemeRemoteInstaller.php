@@ -25,6 +25,9 @@ final class ThemeRemoteInstaller
 
     private const MAX_ZIP_BYTES = 35_000_000;
 
+    /** Full CMS repo archives (GitHub zipball) need a higher cap than single theme ZIPs. */
+    private const MAX_MONOREPO_ZIP_BYTES = 100_000_000;
+
     public function __construct(
         private readonly ThemeManager $themes,
     ) {
@@ -162,6 +165,19 @@ final class ThemeRemoteInstaller
             $repo = 'struxa';
         }
 
+        $isCmsMonorepo = strtolower($owner) === 'struxa' && strtolower($repo) === 'struxa';
+        if ($isCmsMonorepo) {
+            $bundled = $this->themes->projectRoot() . DIRECTORY_SEPARATOR . 'themes' . DIRECTORY_SEPARATOR . $slug;
+            if (ThemeManifest::tryLoadRelaxedPath($bundled) !== null) {
+                $err = $this->replaceInstalledThemeFromDirectory($bundled, $slug);
+                if ($err === null) {
+                    return null;
+                }
+
+                return $err;
+            }
+        }
+
         $urls = [
             sprintf(
                 'https://codeload.github.com/%s/%s/zip/refs/heads/%s',
@@ -186,7 +202,8 @@ final class ThemeRemoteInstaller
                 return 'PHP zip extension (ZipArchive) is required to update themes.';
             }
             $fetcher = new DistPackageFetcher($this->themes->projectRoot());
-            $zipBody = $fetcher->fetchZip($zipUrl, self::MAX_ZIP_BYTES);
+            $maxBytes = $isCmsMonorepo ? self::MAX_MONOREPO_ZIP_BYTES : self::MAX_ZIP_BYTES;
+            $zipBody = $fetcher->fetchZip($zipUrl, $maxBytes);
             if ($zipBody === null) {
                 continue;
             }
@@ -243,7 +260,9 @@ final class ThemeRemoteInstaller
             $preferSlug = $expectedCatalogSlug ?? null;
             $themeRoot = $this->locateRelaxedThemeRoot($extractDir, $preferSlug);
             if ($themeRoot === null) {
-                return 'No valid theme (theme.json + views/ + assets/) was found in the archive.';
+                return 'No valid theme (theme.json + views/ + assets/) was found in the archive.'
+                    . ' For Struxa Vision on this server, run scripts/sync-struxa-theme-from-github.sh first,'
+                    . ' or update from the catalog ZIP instead of the full CMS GitHub archive.';
             }
             $manifest = ThemeManifest::tryLoadRelaxedPath($themeRoot);
             if ($manifest === null) {
@@ -390,52 +409,114 @@ final class ThemeRemoteInstaller
             return null;
         }
 
-        $candidates = [$extractReal];
-        foreach (scandir($extractReal) ?: [] as $n) {
-            if ($n === '.' || $n === '..') {
+        $deep = $this->findThemePackageRecursive($extractReal, $preferredSlug, 10);
+        if ($deep !== null) {
+            return $deep;
+        }
+
+        return null;
+    }
+
+    /**
+     * Walk extracted archives (GitHub zipballs, catalog ZIPs) to find a valid theme package root.
+     */
+    private function findThemePackageRecursive(string $root, ?string $preferredSlug, int $maxDepth): ?string
+    {
+        $preferredSlug = $preferredSlug !== null ? strtolower(trim($preferredSlug)) : '';
+        $preferredMatch = null;
+        $fallback = null;
+
+        try {
+            $iterator = new \RecursiveIteratorIterator(
+                new \RecursiveDirectoryIterator($root, \FilesystemIterator::SKIP_DOTS),
+                \RecursiveIteratorIterator::SELF_FIRST
+            );
+        } catch (\Throwable) {
+            return null;
+        }
+
+        foreach ($iterator as $item) {
+            if (!$item instanceof \SplFileInfo || !$item->isDir()) {
                 continue;
             }
-            $p = $extractReal . DIRECTORY_SEPARATOR . $n;
-            if (is_dir($p)) {
-                $candidates[] = $p;
+            if ($iterator->getDepth() > $maxDepth) {
+                continue;
             }
-        }
-
-        if ($preferredSlug !== null && $preferredSlug !== '') {
-            foreach ($candidates as $dir) {
-                $nested = $dir . DIRECTORY_SEPARATOR . 'themes' . DIRECTORY_SEPARATOR . $preferredSlug;
-                if (ThemeManifest::tryLoadRelaxedPath($nested) !== null) {
-                    $r = realpath($nested);
-
-                    return $r !== false ? $r : null;
+            $path = $item->getPathname();
+            if (ThemeManifest::tryLoadRelaxedPath($path) === null) {
+                continue;
+            }
+            $real = realpath($path);
+            if ($real === false) {
+                continue;
+            }
+            if ($preferredSlug !== '') {
+                $norm = str_replace('\\', '/', $real);
+                if (preg_match('#/themes/' . preg_quote($preferredSlug, '#') . '/?$#', $norm) === 1) {
+                    return $real;
+                }
+                if ($preferredMatch === null && basename($real) === $preferredSlug) {
+                    $preferredMatch = $real;
                 }
             }
-        }
-
-        foreach ($candidates as $dir) {
-            $themesDir = $dir . DIRECTORY_SEPARATOR . 'themes';
-            if (is_dir($themesDir)) {
-                foreach (scandir($themesDir) ?: [] as $n) {
-                    if ($n === '.' || $n === '..') {
-                        continue;
-                    }
-                    $nested = $themesDir . DIRECTORY_SEPARATOR . $n;
-                    if (is_dir($nested) && ThemeManifest::tryLoadRelaxedPath($nested) !== null) {
-                        $r = realpath($nested);
-
-                        return $r !== false ? $r : null;
-                    }
-                }
+            if ($fallback === null) {
+                $fallback = $real;
             }
         }
 
-        foreach ($candidates as $dir) {
-            if (ThemeManifest::tryLoadRelaxedPath($dir) !== null) {
-                $r = realpath($dir);
+        return $preferredMatch ?? $fallback;
+    }
 
-                return $r !== false ? $r : null;
-            }
+    /**
+     * Replace an installed theme from themes/{slug}/ in the CMS project (Struxa monorepo on struxapoint.com).
+     */
+    private function replaceInstalledThemeFromDirectory(string $sourceDir, string $slug): ?string
+    {
+        $sourceReal = realpath($sourceDir);
+        if ($sourceReal === false) {
+            return 'Bundled theme directory is not readable.';
         }
+
+        $manifest = ThemeManifest::tryLoadRelaxedPath($sourceReal);
+        if ($manifest === null) {
+            return 'Bundled theme failed validation (theme.json, views/, assets/).';
+        }
+        if ($manifest->slug !== $slug) {
+            return 'Bundled theme slug does not match.';
+        }
+
+        $dest = $this->themes->themesRoot() . DIRECTORY_SEPARATOR . $slug;
+        $themesRootReal = realpath($this->themes->themesRoot());
+        if ($themesRootReal === false) {
+            return 'Could not resolve themes directory.';
+        }
+        if (!is_dir($dest)) {
+            return 'Theme is not installed.';
+        }
+        $destReal = realpath($dest);
+        if ($destReal === false) {
+            return 'Could not resolve installed theme path.';
+        }
+        $rm = SafeDirectoryRemoval::removeIfInside($destReal, $themesRootReal);
+        if ($rm !== null) {
+            return 'Could not remove the existing theme before update: ' . $rm;
+        }
+        if (!@mkdir($dest, 0755, true) && !is_dir($dest)) {
+            return 'Could not create theme directory.';
+        }
+
+        $err = $this->copyDirectoryTree($sourceReal, $dest);
+        if ($err !== null) {
+            return $err;
+        }
+
+        if (ThemeManifest::tryLoad($dest) === null) {
+            SafeDirectoryRemoval::removeIfInside($dest, $themesRootReal);
+
+            return 'Installed theme failed final validation.';
+        }
+
+        $this->themes->clearDiscoverCache();
 
         return null;
     }
