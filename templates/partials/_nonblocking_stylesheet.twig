@@ -1,0 +1,6 @@
+{# Load CSS without blocking first paint (Lighthouse-safe media=print trick). #}
+{% set _href = href|default('')|trim %}
+{% if _href != '' %}
+  <link rel="stylesheet" href="{{ _href|e('html_attr') }}" media="print" onload="this.media='all'" />
+  <noscript><link rel="stylesheet" href="{{ _href|e('html_attr') }}" /></noscript>
+{% endif %}

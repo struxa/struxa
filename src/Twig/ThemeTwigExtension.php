@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Twig;
 
 use App\Media\MediaDerivativeWidths;
+use App\Media\MediaUrlHelper;
 use App\Theme\PublicLayoutContract;
 use App\Theme\ThemeFilesystem;
 use App\Theme\ThemeHttpConfig;
@@ -20,6 +21,7 @@ final class ThemeTwigExtension extends AbstractExtension
     public function __construct(
         private readonly ThemeManager $themes,
         private readonly bool $preferMinified = false,
+        private readonly ?MediaUrlHelper $mediaUrls = null,
     ) {
     }
 
@@ -37,6 +39,16 @@ final class ThemeTwigExtension extends AbstractExtension
                     }
 
                     return '/media-rs/' . $width . '/' . $id;
+                }
+            ),
+            new TwigFunction(
+                'media_id_for_url',
+                function (string $url): int {
+                    if ($this->mediaUrls === null) {
+                        return 0;
+                    }
+
+                    return $this->mediaUrls->idForWebPath($url);
                 }
             ),
             new TwigFunction(

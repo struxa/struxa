@@ -14,6 +14,9 @@ final class MediaUrlHelper
     /** @var array<int, string> */
     private array $idPathCache = [];
 
+    /** @var array<string, int> */
+    private array $pathIdCache = [];
+
     public function __construct(private readonly PDO $pdo)
     {
     }
@@ -55,5 +58,32 @@ final class MediaUrlHelper
         }
 
         return MediaStorage::isSafeManagedWebPath($path) ? $path : '';
+    }
+
+    /**
+     * Resolve /uploads/… path to a media id for responsive derivatives (0 when unknown).
+     */
+    public function idForWebPath(string $webPath): int
+    {
+        $webPath = trim($webPath);
+        if ($webPath === '') {
+            return 0;
+        }
+        if (!str_starts_with($webPath, '/') && preg_match('#^uploads/#', $webPath) === 1) {
+            $webPath = '/' . $webPath;
+        }
+        if (!MediaStorage::isSafeManagedWebPath($webPath)) {
+            return 0;
+        }
+
+        if (array_key_exists($webPath, $this->pathIdCache)) {
+            return $this->pathIdCache[$webPath];
+        }
+
+        $repo = new MediaRepository($this->pdo);
+        $id = $repo->findIdByWebPath($webPath);
+        $this->pathIdCache[$webPath] = $id;
+
+        return $id;
     }
 }

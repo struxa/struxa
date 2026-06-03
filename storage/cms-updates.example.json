@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.2.5",
-    "title": "Struxa 1.2.5",
-    "summary": "Storefront PageSpeed: non-blocking theme and form CSS, async Google Fonts, long-cache versioned static assets, responsive WebP card images via /media-rs, and a smaller theme logo WebP.",
+    "latest_version": "1.2.6",
+    "title": "Struxa 1.2.6",
+    "summary": "PageSpeed follow-up: media=print non-blocking CSS, drop Google Fonts, resolve upload paths to /media-rs srcset, fix search modal inert/aria, WCAG contrast, and heading order.",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "minor"

@@ -14,10 +14,7 @@
       .st-main{flex:1}
       .st-skip-link{position:absolute;left:-9999px}
     </style>
-    {% set _fonts_url = 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap' %}
     {% include 'partials/_deferred_theme_css.twig' with {
-      font_url: _fonts_url,
-      theme_stylesheets: [],
       theme_stylesheets_async: ['css/app.css'],
     } only %}
     <title>
@@ -51,9 +48,7 @@
     {% endif %}
     {% block head_extra %}{% endblock %}
     {% if request_path|default('') starts with '/forum' %}
-      {% set _forum_css = theme_asset('css/forum-overrides.css') %}
-      <link rel="preload" as="style" href="{{ _forum_css|e('html_attr') }}" onload="this.onload=null;this.rel='stylesheet'" />
-      <noscript><link rel="stylesheet" href="{{ _forum_css|e('html_attr') }}" /></noscript>
+      {% include 'partials/_nonblocking_stylesheet.twig' with { href: theme_asset('css/forum-overrides.css') } only %}
     {% endif %}
   </head>
   <body class="theme-struxa" style="--st-accent: {{ _accent|e('html_attr') }}">

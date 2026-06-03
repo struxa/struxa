@@ -4,7 +4,10 @@
   --st-bg: #f9f5f2;
   --st-surface: #ffffff;
   --st-text: #111827;
-  --st-muted: #6b7280;
+  --st-muted: #4b5563;
+  --st-accent-text: #9a3412;
+  --st-accent-btn: #c2410c;
+  --st-accent-btn-hover: #9a3412;
   --st-topbar: #632a13;
   --st-topbar-text: rgba(255, 255, 255, 0.92);
   --st-border: rgba(17, 24, 39, 0.08);
@@ -13,8 +16,8 @@
   --st-radius: 10px;
   --st-radius-lg: 16px;
   --st-max: 72rem;
-  --st-font: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
-  --st-font-ui: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --st-font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --st-font-ui: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 
 *, *::before, *::after { box-sizing: border-box; }
@@ -323,11 +326,11 @@ a { color: inherit; }
   transition: background 0.15s, border-color 0.15s, color 0.15s, transform 0.15s;
 }
 .st-btn--primary {
-  background-color: var(--st-accent, #ff6b2b);
+  background-color: var(--st-accent-btn, #c2410c);
   color: #fff;
 }
 .st-btn--primary:hover {
-  background-color: var(--st-accent-hover, #e85a1a);
+  background-color: var(--st-accent-btn-hover, #9a3412);
   color: #fff;
 }
 .st-btn--outline {
@@ -654,7 +657,7 @@ a { color: inherit; }
 }
 .st-trust__logos li {
   font-size: 1.05rem; font-weight: 800; letter-spacing: -0.02em;
-  color: rgba(17, 24, 39, 0.55);
+  color: #374151;
 }
 
 /* GitHub showcase (under trust bar) */
@@ -941,16 +944,16 @@ a { color: inherit; }
   margin-top: auto;
   padding: 0.5rem 0.85rem;
   border-radius: 999px;
-  background: rgba(255, 107, 43, 0.12);
-  color: var(--st-accent, #ff6b2b);
+  background: rgba(154, 52, 18, 0.1);
+  color: var(--st-accent-text, #9a3412);
   font-size: 0.8125rem;
   font-weight: 700;
   text-decoration: none;
   transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease;
 }
 .st-features__cta:hover {
-  background: rgba(255, 107, 43, 0.2);
-  color: var(--st-accent-hover, #e85a1a);
+  background: rgba(154, 52, 18, 0.16);
+  color: var(--st-accent-btn-hover, #9a3412);
 }
 .st-features__cta svg { flex-shrink: 0; }
 
@@ -1055,7 +1058,7 @@ a { color: inherit; }
   min-height: 2.75rem;
   padding: 0.7rem 1.35rem;
   border-radius: var(--st-radius);
-  background: var(--st-accent, #ff6b2b);
+  background: var(--st-accent-btn, #c2410c);
   color: #fff;
   font-family: var(--st-font-ui);
   font-size: 0.9375rem;
@@ -1063,7 +1066,7 @@ a { color: inherit; }
   white-space: nowrap;
 }
 .st-newsletter__form .struxa-form-submit:hover {
-  background: var(--st-accent-hover, #e85a1a);
+  background: var(--st-accent-btn-hover, #9a3412);
   opacity: 1;
 }
 .st-newsletter__form .struxa-form-flash {
@@ -1122,7 +1125,7 @@ a { color: inherit; }
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: var(--st-accent, #ff6b2b);
+  color: var(--st-accent-text, #9a3412);
 }
 .st-blog-news__title {
   margin: 0 0 0.45rem;
@@ -1228,7 +1231,7 @@ a { color: inherit; }
   padding-top: 0.35rem;
   font-size: 0.8125rem;
   font-weight: 700;
-  color: var(--st-accent, #ff6b2b);
+  color: var(--st-accent-text, #9a3412);
 }
 
 @media (max-width: 768px) {

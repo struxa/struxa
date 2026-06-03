@@ -187,7 +187,7 @@ $twig->getEnvironment()->addExtension(new GithubShowcaseTwigExtension($root, $ca
 $twig->getEnvironment()->addExtension(new CoreAssetTwigExtension(
     new CoreAssetResolver($root . DIRECTORY_SEPARATOR . 'public', CacheConfig::preferMinifiedAssets())
 ));
-$twig->getEnvironment()->addExtension(new ThemeTwigExtension($themeManager, CacheConfig::preferMinifiedAssets()));
+$twig->getEnvironment()->addExtension(new ThemeTwigExtension($themeManager, CacheConfig::preferMinifiedAssets(), $mediaUrlHelper));
 $twig->getEnvironment()->addExtension(new TaxonomyTwigExtension(
     new ContentEntryTaxonomyRepository($pdo),
     new TaxonomyRepository($pdo),

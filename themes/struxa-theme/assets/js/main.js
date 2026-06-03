@@ -51,13 +51,13 @@ document.querySelectorAll('.st-nav__account').forEach((account) => {
     if (open) {
       lastFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
       modal.removeAttribute('hidden');
-      modal.setAttribute('aria-hidden', 'false');
+      modal.removeAttribute('inert');
       modal.classList.add('is-open');
       document.body.classList.add('st-search-modal-open');
       window.setTimeout(() => input?.focus(), 0);
     } else {
       modal.setAttribute('hidden', '');
-      modal.setAttribute('aria-hidden', 'true');
+      modal.setAttribute('inert', '');
       modal.classList.remove('is-open');
       document.body.classList.remove('st-search-modal-open');
       if (lastFocus) {

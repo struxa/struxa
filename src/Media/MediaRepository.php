@@ -44,6 +44,38 @@ final class MediaRepository
     }
 
     /**
+     * Resolve a managed uploads web path to a media library id (0 when unknown).
+     */
+    public function findIdByWebPath(string $webPath): int
+    {
+        $webPath = trim($webPath);
+        if ($webPath === '' || !MediaStorage::isSafeManagedWebPath($webPath)) {
+            return 0;
+        }
+
+        $candidates = [$webPath];
+        if (str_starts_with($webPath, '/')) {
+            $candidates[] = ltrim($webPath, '/');
+        } else {
+            $candidates[] = '/' . $webPath;
+        }
+
+        $stmt = $this->pdo->prepare(
+            'SELECT id FROM ' . self::TABLE . ' WHERE path = ? AND ' . self::NOT_TRASHED . ' LIMIT 1'
+        );
+
+        foreach (array_unique($candidates) as $path) {
+            $stmt->execute([$path]);
+            $id = $stmt->fetchColumn();
+            if ($id !== false) {
+                return (int) $id;
+            }
+        }
+
+        return 0;
+    }
+
+    /**
      * @return int new id
      */
     public function insert(

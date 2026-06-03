@@ -127,6 +127,12 @@ final class PublicContentIndexCardBuilder
                     }
                 }
             }
+            if ($featuredMediaId === null && $featuredUrl !== '' && str_starts_with($featuredUrl, '/uploads/')) {
+                $resolvedId = $this->mediaUrls->idForWebPath($featuredUrl);
+                if ($resolvedId > 0) {
+                    $featuredMediaId = $resolvedId;
+                }
+            }
             $buyUrl = '';
             $buyLabel = '';
             foreach ($buyFieldKeysPriority as $bk) {
@@ -144,7 +150,7 @@ final class PublicContentIndexCardBuilder
                 'row' => $row,
                 'excerpt_plain' => $excerptShort,
                 'featured_url' => $featuredUrl,
-                'featured_media_id' => ($featuredUrl !== '' && $featuredMediaId !== null) ? $featuredMediaId : null,
+                'featured_media_id' => $featuredMediaId,
                 'score_raw' => $scores[$eid] ?? '',
                 'price_plain' => $prices[$eid] ?? '',
                 'buy_url' => $buyUrl,

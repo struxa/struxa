@@ -2,6 +2,10 @@
 {% set _url = src|default('')|trim %}
 {% if _url == '' %}{% else %}
   {% set _mid = media_id|default(null) %}
+  {% if not _mid and _url starts with '/uploads/' %}
+    {% set _resolved = media_id_for_url(_url) %}
+    {% if _resolved > 0 %}{% set _mid = _resolved %}{% endif %}
+  {% endif %}
   {% set _class = class|default('')|trim %}
   {% set _sizes = sizes|default('(max-width: 640px) 92vw, 305px')|trim %}
   {% set _w = width|default(null) %}

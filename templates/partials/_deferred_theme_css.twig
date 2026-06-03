@@ -1,18 +1,7 @@
-{# Google Fonts: preconnect only when a font stylesheet loads (avoids unused preconnect when font_url is empty). #}
-{% if font_url|default('')|trim != '' %}
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link rel="preload" as="style" href="{{ font_url|e('html_attr') }}" onload="this.onload=null;this.rel='stylesheet'" />
-  <noscript><link rel="stylesheet" href="{{ font_url|e('html_attr') }}" /></noscript>
-{% endif %}
-{# Preload + stylesheet: same URL so the browser can start fetching before the parser reaches the blocking link (LCP / critical path). #}
+{# Theme CSS: non-blocking load. Google Fonts removed — system stacks in app.css. #}
 {% for sheet in theme_stylesheets|default([]) %}
-  {% set href = theme_asset(sheet) %}
-  <link rel="preload" as="style" href="{{ href|e('html_attr') }}" />
-  <link rel="stylesheet" href="{{ href|e('html_attr') }}" />
+  {% include 'partials/_nonblocking_stylesheet.twig' with { href: theme_asset(sheet) } only %}
 {% endfor %}
 {% for sheet in theme_stylesheets_async|default([]) %}
-  {% set href = theme_asset(sheet) %}
-  <link rel="preload" as="style" href="{{ href|e('html_attr') }}" onload="this.onload=null;this.rel='stylesheet'" />
-  <noscript><link rel="stylesheet" href="{{ href|e('html_attr') }}" /></noscript>
+  {% include 'partials/_nonblocking_stylesheet.twig' with { href: theme_asset(sheet) } only %}
 {% endfor %}

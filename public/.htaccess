@@ -5,14 +5,14 @@
     RewriteRule ^ index.php [QSA,L]
 </IfModule>
 
-# Long cache for versioned static assets (asset() and theme_asset() append ?v=mtime).
+# Long cache for core CSS/JS (asset() appends ?v=filemtime).
 <IfModule mod_headers.c>
-    <FilesMatch "\.(css|js|mjs|woff2?|ttf|otf|eot|svg|webp|avif|jpe?g|png|gif|ico)$">
-        <If "%{QUERY_STRING} =~ /(^|&)v=[0-9]+/">
-            Header set Cache-Control "public, max-age=31536000, immutable"
-        </If>
-        <Else>
-            Header set Cache-Control "public, max-age=604800, must-revalidate"
-        </Else>
+    <FilesMatch "\.(css|js|mjs)$">
+        Header set Cache-Control "public, max-age=31536000, immutable"
     </FilesMatch>
+</IfModule>
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType text/css "access plus 1 year"
+    ExpiresByType application/javascript "access plus 1 year"
 </IfModule>
