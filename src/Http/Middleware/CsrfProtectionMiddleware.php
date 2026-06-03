@@ -96,6 +96,10 @@ final class CsrfProtectionMiddleware implements MiddlewareInterface
             return true;
         }
 
+        if (preg_match('#^/(?:plugins|themes)/[a-z0-9]+(?:-[a-z0-9]+)*/reviews$#', $path) === 1) {
+            return true;
+        }
+
         if ($path === '/commerce/orders/lookup') {
             return true;
         }

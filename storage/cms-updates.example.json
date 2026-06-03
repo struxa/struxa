@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.1.112",
-    "title": "Struxa 1.1.112",
-    "summary": "Catalog submission detail admin page: edit author, metadata, repo URL, and link members by username search.",
+    "latest_version": "1.1.113",
+    "title": "Struxa 1.1.113",
+    "summary": "Catalog plugin detail pages: unified reviews (stars + text), one review per member, AJAX submit, paginated list hidden until reviews pill is clicked.",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "patch"

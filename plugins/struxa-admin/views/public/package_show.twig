@@ -4,17 +4,11 @@
   {% set p = catalog_package %}
   {% set kind_label = catalog_package_kind == 'plugin' ? 'Plugin' : 'Theme' %}
   {% set detail_path = url_for(catalog_package_kind == 'plugin' ? 'public.struxa_catalog.plugin_show' : 'public.struxa_catalog.theme_show', {slug: p.slug}) %}
+  {% set user_review = catalog_user_review|default(null) %}
 
   <p class="st-catalog__back">
     <a href="{{ url_for(catalog_list_url) }}">← All {{ catalog_package_kind == 'plugin' ? 'plugins' : 'themes' }}</a>
   </p>
-
-  {% if flash_success|default('') %}
-    <p class="st-catalog__notice st-catalog__notice--ok">{{ flash_success|e }}</p>
-  {% endif %}
-  {% if flash_error|default('') %}
-    <p class="st-catalog__notice st-catalog__notice--error">{{ flash_error|e }}</p>
-  {% endif %}
 
   <article class="st-catalog__detail">
     <header class="st-catalog__detail-head">
@@ -26,7 +20,10 @@
         </p>
         {% if p.author %}<p class="st-catalog__byline">by {{ p.author|e }}</p>{% endif %}
         {% if p.requires_cms_version %}<p class="st-catalog__req">Requires CMS {{ p.requires_cms_version|e }}+</p>{% endif %}
-        {% include '@plugin_struxa_admin/public/_catalog_stats.twig' with { item: p } only %}
+        {% include '@plugin_struxa_admin/public/_catalog_stats.twig' with {
+          item: p,
+          catalog_stats_interactive: catalog_stats_interactive|default(false)
+        } only %}
       </div>
       {% if p.screenshot_url %}
         <div class="st-catalog__detail-media">
@@ -55,70 +52,279 @@
       </div>
     </section>
 
-    <section class="st-catalog__detail-section" id="rate">
-      <h2 class="st-catalog__section-title">Rate this {{ kind_label|lower|e }}</h2>
+    <section
+      class="st-catalog__detail-section st-catalog__reviews-panel"
+      id="catalog-reviews-panel"
+      hidden
+      data-catalog-reviews
+      data-reviews-get="{{ url_for(catalog_reviews_url, {slug: p.slug})|e('html_attr') }}"
+      data-reviews-post="{{ url_for(catalog_reviews_post_url, {slug: p.slug})|e('html_attr') }}"
+      data-csrf="{{ csrf_token()|e('html_attr') }}"
+      data-can-engage="{{ catalog_can_engage ? '1' : '0' }}"
+      data-login-url="{{ url_for('login')|e('html_attr') }}?next={{ detail_path|url_encode }}%23reviews"
+      data-user-rating="{{ user_review ? user_review.rating : '' }}"
+      data-user-body="{{ user_review ? user_review.body|e('html_attr') : '' }}"
+    >
+      <h2 class="st-catalog__section-title">Reviews</h2>
+
       {% if catalog_can_engage %}
-        <form class="st-catalog__rate-form" method="post" action="{{ url_for(catalog_rate_action, {slug: p.slug}) }}">
-          <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+        <form class="st-catalog__review-form" data-review-form novalidate>
           <fieldset class="st-catalog__rate-fieldset">
-            <legend class="st-catalog__rate-legend">Your rating{% if catalog_user_rating %} (currently {{ catalog_user_rating }} star{{ catalog_user_rating == 1 ? '' : 's' }}){% endif %}</legend>
+            <legend class="st-catalog__rate-legend">
+              {% if user_review %}Update your review{% else %}Your review{% endif %}
+            </legend>
             <div class="st-catalog__rate-stars">
               {% for star in 1..5 %}
                 <label class="st-catalog__rate-label">
-                  <input class="st-catalog__rate-input" type="radio" name="rating" value="{{ star }}"{% if catalog_user_rating == star %} checked{% endif %} required />
+                  <input class="st-catalog__rate-input" type="radio" name="rating" value="{{ star }}"{% if user_review and user_review.rating == star %} checked{% endif %} required />
                   <span class="st-catalog__rate-star" aria-hidden="true">★</span>
                   <span class="visually-hidden">{{ star }} star{{ star == 1 ? '' : 's' }}</span>
                 </label>
               {% endfor %}
             </div>
           </fieldset>
-          <button type="submit" class="st-btn st-btn--primary st-catalog__rate-submit">Save rating</button>
-        </form>
-      {% else %}
-        <p class="st-catalog__engage-hint">
-          <a href="{{ url_for('login') }}?next={{ detail_path|url_encode }}">Sign in</a> to rate this {{ kind_label|lower|e }}.
-        </p>
-      {% endif %}
-    </section>
-
-    <section class="st-catalog__detail-section" id="comments">
-      <h2 class="st-catalog__section-title">
-        Comments
-        <span class="st-catalog__pill st-catalog__pill--comments st-catalog__pill--inline">{{ p.comment_count|default(0) }}</span>
-      </h2>
-
-      {% if catalog_can_engage %}
-        <form class="st-catalog__comment-form" method="post" action="{{ url_for(catalog_comment_action, {slug: p.slug}) }}">
-          <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
-          <label class="st-catalog__label" for="catalog_comment_body">Add a comment</label>
-          <textarea class="st-catalog__textarea" id="catalog_comment_body" name="body" rows="4" maxlength="2000" required placeholder="Share feedback, tips, or questions…"></textarea>
+          <label class="st-catalog__label" for="catalog_review_body">Review</label>
+          <textarea class="st-catalog__textarea" id="catalog_review_body" name="body" rows="4" maxlength="2000" required placeholder="Share your experience…">{{ user_review ? user_review.body|e : '' }}</textarea>
           <div class="st-catalog__actions">
-            <button type="submit" class="st-btn st-btn--primary">Post comment</button>
+            <button type="submit" class="st-btn st-btn--primary" data-review-submit>
+              {% if user_review %}Update review{% else %}Post review{% endif %}
+            </button>
           </div>
+          <p class="st-catalog__form-msg" data-review-msg hidden role="status"></p>
         </form>
       {% else %}
         <p class="st-catalog__engage-hint">
-          <a href="{{ url_for('login') }}?next={{ detail_path|url_encode }}#comments">Sign in</a> to join the discussion.
+          <a href="{{ url_for('login') }}?next={{ detail_path|url_encode }}%23reviews">Sign in</a> to write a review.
         </p>
       {% endif %}
 
-      {% if catalog_comments is empty %}
-        <p class="st-catalog__empty st-catalog__empty--inline">No comments yet. Be the first to share feedback.</p>
-      {% else %}
-        <ol class="st-catalog__comment-list">
-          {% for c in catalog_comments %}
-            <li class="st-catalog__comment">
-              <p class="st-catalog__comment-meta">
-                <strong class="st-catalog__comment-author">{{ c.author_name|e }}</strong>
-                {% if c.created_at %}
-                  · <time datetime="{{ c.created_at|e('html_attr') }}">{{ c.created_at|date('M j, Y') }}</time>
-                {% endif %}
-              </p>
-              <p class="st-catalog__comment-body">{{ c.body|e|nl2br }}</p>
-            </li>
-          {% endfor %}
-        </ol>
-      {% endif %}
+      <div class="st-catalog__reviews-body" data-reviews-body aria-live="polite">
+        <p class="st-catalog__empty st-catalog__empty--inline" data-reviews-placeholder>Loading reviews…</p>
+      </div>
+      <nav class="st-catalog__pagination" data-reviews-pagination hidden aria-label="Review pages"></nav>
     </section>
   </article>
+{% endblock %}
+
+{% block catalog_scripts %}
+<script>
+(function () {
+  var panel = document.querySelector('[data-catalog-reviews]');
+  var toggle = document.querySelector('[data-reviews-toggle]');
+  if (!panel || !toggle) return;
+
+  var getUrl = panel.getAttribute('data-reviews-get');
+  var postUrl = panel.getAttribute('data-reviews-post');
+  var csrf = panel.getAttribute('data-csrf') || '';
+  var canEngage = panel.getAttribute('data-can-engage') === '1';
+  var bodyEl = panel.querySelector('[data-reviews-body]');
+  var paginationEl = panel.querySelector('[data-reviews-pagination]');
+  var form = panel.querySelector('[data-review-form]');
+  var msgEl = panel.querySelector('[data-review-msg]');
+  var statsRoot = document.querySelector('[data-catalog-stats]');
+  var currentPage = 1;
+  var loaded = false;
+  var open = false;
+
+  function escapeHtml(text) {
+    var d = document.createElement('div');
+    d.textContent = text;
+    return d.innerHTML;
+  }
+
+  function formatDate(iso) {
+    if (!iso) return '';
+    var d = new Date(iso.replace(' ', 'T') + 'Z');
+    if (isNaN(d.getTime())) return iso.slice(0, 10);
+    return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+  }
+
+  function renderStars(rating) {
+    var html = '';
+    for (var i = 1; i <= 5; i++) {
+      html += '<span class="st-catalog__star' + (i <= rating ? ' is-on' : '') + '" aria-hidden="true">★</span>';
+    }
+    return html;
+  }
+
+  function updateStats(stats) {
+    if (!statsRoot || !stats) return;
+    var countEl = statsRoot.querySelector('[data-stat-review-count]');
+    if (countEl) countEl.textContent = String(stats.count || 0);
+    var ratingEmpty = statsRoot.querySelector('[data-stat-rating-empty]');
+    var ratingPill = statsRoot.querySelector('[data-stat-rating]');
+    if (stats.count > 0 && stats.average != null) {
+      if (ratingEmpty) ratingEmpty.hidden = true;
+      if (ratingPill) {
+        ratingPill.hidden = false;
+        var avgEl = ratingPill.querySelector('[data-stat-average]');
+        if (avgEl) avgEl.textContent = Number(stats.average).toFixed(1);
+        var stars = ratingPill.querySelectorAll('.st-catalog__star');
+        var avg = Number(stats.average);
+        stars.forEach(function (star, idx) {
+          var n = idx + 1;
+          star.classList.toggle('is-on', avg >= n);
+          star.classList.toggle('is-half', avg >= n - 0.5 && avg < n);
+        });
+        ratingPill.title = stats.count + ' review' + (stats.count === 1 ? '' : 's');
+      }
+    } else if (ratingPill) {
+      ratingPill.hidden = true;
+      if (ratingEmpty) ratingEmpty.hidden = false;
+    }
+  }
+
+  function renderReviews(data) {
+    var reviews = data.reviews || [];
+    var pag = data.pagination || {};
+    if (reviews.length === 0) {
+      bodyEl.innerHTML = '<p class="st-catalog__empty st-catalog__empty--inline">No reviews yet. Be the first to share feedback.</p>';
+    } else {
+      var html = '<ol class="st-catalog__review-list">';
+      reviews.forEach(function (r) {
+        html += '<li class="st-catalog__review' + (r.is_own ? ' is-own' : '') + '">';
+        html += '<p class="st-catalog__review-meta">';
+        html += '<strong class="st-catalog__review-author">' + escapeHtml(r.author_name || 'Member') + '</strong>';
+        html += ' · <span class="st-catalog__stars st-catalog__stars--sm" aria-label="' + r.rating + ' stars">' + renderStars(r.rating) + '</span>';
+        if (r.created_at) {
+          html += ' · <time datetime="' + escapeHtml(r.created_at) + '">' + escapeHtml(formatDate(r.created_at)) + '</time>';
+        }
+        html += '</p>';
+        html += '<p class="st-catalog__review-body">' + escapeHtml(r.body).replace(/\n/g, '<br>') + '</p>';
+        html += '</li>';
+      });
+      html += '</ol>';
+      bodyEl.innerHTML = html;
+    }
+
+    if (pag.pages > 1) {
+      paginationEl.hidden = false;
+      var phtml = '';
+      if (pag.page > 1) {
+        phtml += '<button type="button" class="st-catalog__page-btn" data-page="' + (pag.page - 1) + '">← Previous</button>';
+      }
+      phtml += '<span class="st-catalog__page-info">Page ' + pag.page + ' of ' + pag.pages + '</span>';
+      if (pag.page < pag.pages) {
+        phtml += '<button type="button" class="st-catalog__page-btn" data-page="' + (pag.page + 1) + '">Next →</button>';
+      }
+      paginationEl.innerHTML = phtml;
+    } else {
+      paginationEl.hidden = true;
+      paginationEl.innerHTML = '';
+    }
+
+    if (data.stats) updateStats(data.stats);
+  }
+
+  function loadReviews(page) {
+    currentPage = page || 1;
+    bodyEl.innerHTML = '<p class="st-catalog__empty st-catalog__empty--inline">Loading reviews…</p>';
+    fetch(getUrl + '?page=' + encodeURIComponent(String(currentPage)), {
+      headers: { Accept: 'application/json' },
+      credentials: 'same-origin'
+    })
+      .then(function (res) { return res.json(); })
+      .then(function (data) {
+        if (!data.ok) throw new Error('load_failed');
+        renderReviews(data);
+        loaded = true;
+      })
+      .catch(function () {
+        bodyEl.innerHTML = '<p class="st-catalog__notice st-catalog__notice--error">Could not load reviews. Try again.</p>';
+      });
+  }
+
+  function setOpen(next) {
+    open = next;
+    panel.hidden = !open;
+    toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+    toggle.classList.toggle('is-active', open);
+    if (open && !loaded) loadReviews(1);
+    if (open) {
+      if (window.location.hash !== '#reviews') {
+        history.replaceState(null, '', '#reviews');
+      }
+    } else if (window.location.hash === '#reviews') {
+      history.replaceState(null, '', window.location.pathname + window.location.search);
+    }
+  }
+
+  toggle.addEventListener('click', function () {
+    setOpen(!open);
+  });
+
+  paginationEl.addEventListener('click', function (e) {
+    var btn = e.target.closest('[data-page]');
+    if (!btn) return;
+    var page = parseInt(btn.getAttribute('data-page'), 10);
+    if (!page || page < 1) return;
+    loadReviews(page);
+    panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+
+  if (form && canEngage) {
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      if (msgEl) {
+        msgEl.hidden = true;
+        msgEl.textContent = '';
+        msgEl.className = 'st-catalog__form-msg';
+      }
+      var ratingInput = form.querySelector('input[name="rating"]:checked');
+      var bodyInput = form.querySelector('[name="body"]');
+      var rating = ratingInput ? parseInt(ratingInput.value, 10) : 0;
+      var body = bodyInput ? bodyInput.value.trim() : '';
+      if (rating < 1 || rating > 5 || body === '') {
+        if (msgEl) {
+          msgEl.textContent = 'Choose a star rating and write your review.';
+          msgEl.className = 'st-catalog__form-msg st-catalog__form-msg--error';
+          msgEl.hidden = false;
+        }
+        return;
+      }
+      var submitBtn = form.querySelector('[data-review-submit]');
+      if (submitBtn) submitBtn.disabled = true;
+      var fd = new FormData();
+      fd.append('_csrf_token', csrf);
+      fd.append('rating', String(rating));
+      fd.append('body', body);
+      fetch(postUrl, {
+        method: 'POST',
+        body: fd,
+        credentials: 'same-origin',
+        headers: { Accept: 'application/json' }
+      })
+        .then(function (res) { return res.json().then(function (data) { return { status: res.status, data: data }; }); })
+        .then(function (result) {
+          if (!result.data.ok) {
+            throw new Error(result.data.message || 'Could not save review.');
+          }
+          if (msgEl) {
+            msgEl.textContent = result.data.message || 'Review saved.';
+            msgEl.className = 'st-catalog__form-msg st-catalog__form-msg--ok';
+            msgEl.hidden = false;
+          }
+          if (submitBtn) {
+            submitBtn.textContent = 'Update review';
+            submitBtn.disabled = false;
+          }
+          if (result.data.stats) updateStats(result.data.stats);
+          loadReviews(1);
+        })
+        .catch(function (err) {
+          if (msgEl) {
+            msgEl.textContent = err.message || 'Could not save review.';
+            msgEl.className = 'st-catalog__form-msg st-catalog__form-msg--error';
+            msgEl.hidden = false;
+          }
+          if (submitBtn) submitBtn.disabled = false;
+        });
+    });
+  }
+
+  if (window.location.hash === '#reviews') {
+    setOpen(true);
+  }
+})();
+</script>
 {% endblock %}

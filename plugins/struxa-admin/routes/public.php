@@ -10,13 +10,12 @@ use Slim\App;
 use Slim\Routing\RouteContext;
 use Slim\Views\Twig;
 use StruxaAdmin\CatalogBrowseService;
-use StruxaAdmin\CatalogCommentRepository;
 use StruxaAdmin\CatalogDownloadStatsRepository;
 use StruxaAdmin\CatalogEngagementActor;
 use StruxaAdmin\CatalogEntryEngagement;
 use StruxaAdmin\CatalogMemberContext;
 use StruxaAdmin\CatalogPackageDownload;
-use StruxaAdmin\CatalogRatingRepository;
+use StruxaAdmin\CatalogReviewRepository;
 use StruxaAdmin\CatalogSettings;
 use StruxaAdmin\CatalogSubmissionRepository;
 use StruxaAdmin\CatalogSubmissionValidator;
@@ -36,9 +35,8 @@ return static function (App $app, \App\Plugin\PluginBootContext $ctx): void {
     $settings = new CatalogSettings($pdo, $root);
     $submissions = new CatalogSubmissionRepository($pdo);
     $downloadStats = new CatalogDownloadStatsRepository($pdo);
-    $ratings = new CatalogRatingRepository($pdo);
-    $comments = new CatalogCommentRepository($pdo);
-    $engagement = new CatalogEntryEngagement($downloadStats, $ratings, $comments);
+    $reviews = new CatalogReviewRepository($pdo);
+    $engagement = new CatalogEntryEngagement($downloadStats, $reviews);
     $packageDownload = new CatalogPackageDownload($settings, $downloadStats);
     $github = new GitHubRepoClient($settings->githubToken());
     $validator = new CatalogSubmissionValidator($github, $submissions);
@@ -92,6 +90,15 @@ return static function (App $app, \App\Plugin\PluginBootContext $ctx): void {
         return $engagement->enrichOne($kind, $entry);
     };
 
+    $jsonResponse = static function (Response $response, array $payload, int $status = 200): Response {
+        $response->getBody()->write(json_encode($payload, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE));
+
+        return $response
+            ->withStatus($status)
+            ->withHeader('Content-Type', 'application/json; charset=utf-8')
+            ->withHeader('Cache-Control', 'private, no-store');
+    };
+
     $renderPackageShow = static function (
         Response $response,
         string $kind,
@@ -104,8 +111,7 @@ return static function (App $app, \App\Plugin\PluginBootContext $ctx): void {
         $pdo,
         $browse,
         $engagement,
-        $ratings,
-        $comments,
+        $reviews,
         $resolvePackage
     ): Response {
         $catalog = $browse->loadMergedCatalog();
@@ -119,12 +125,13 @@ return static function (App $app, \App\Plugin\PluginBootContext $ctx): void {
         }
 
         $actor = CatalogEngagementActor::fromView($pdo, $viewData);
-        $userRating = null;
+        $userReview = null;
         if ($actor['ok']) {
-            $userRating = $ratings->userRating($kind, $slug, $actor['cms_user_id']);
+            $userReview = $reviews->userReview($kind, $slug, $actor['cms_user_id']);
         }
 
         $isPlugin = $kind === SubmissionKind::PLUGIN;
+
         $payload = array_merge($view([
             'page_title' => (string) ($package['name'] ?? $slug),
             'catalog_nav' => $isPlugin ? 'plugins' : 'themes',
@@ -132,19 +139,16 @@ return static function (App $app, \App\Plugin\PluginBootContext $ctx): void {
             'catalog_error' => null,
             'catalog_package' => $package,
             'catalog_package_kind' => $kind,
-            'catalog_comments' => CatalogEngagementActor::decorateComments(
-                $pdo,
-                $comments->listVisible($kind, $slug)
-            ),
-            'catalog_user_rating' => $userRating,
+            'catalog_user_review' => $userReview,
             'catalog_can_engage' => $actor['ok'],
             'catalog_list_url' => $isPlugin ? 'public.struxa_catalog.plugins' : 'public.struxa_catalog.themes',
-            'catalog_rate_action' => $isPlugin
-                ? 'public.struxa_catalog.plugin_rate'
-                : 'public.struxa_catalog.theme_rate',
-            'catalog_comment_action' => $isPlugin
-                ? 'public.struxa_catalog.plugin_comment'
-                : 'public.struxa_catalog.theme_comment',
+            'catalog_reviews_url' => $isPlugin
+                ? 'public.struxa_catalog.plugin_reviews'
+                : 'public.struxa_catalog.theme_reviews',
+            'catalog_reviews_post_url' => $isPlugin
+                ? 'public.struxa_catalog.plugin_reviews_post'
+                : 'public.struxa_catalog.theme_reviews_post',
+            'catalog_stats_interactive' => true,
         ]), [
             'catalog_themes' => $engagement->enrichList(SubmissionKind::THEME, $catalog['themes']),
             'catalog_plugins' => $engagement->enrichList(SubmissionKind::PLUGIN, $catalog['plugins']),
@@ -161,91 +165,100 @@ return static function (App $app, \App\Plugin\PluginBootContext $ctx): void {
         return $renderCatalog($response, 'public/themes.twig', 'Struxa themes', ['catalog_nav' => 'themes']);
     })->setName('public.struxa_catalog.themes');
 
-    $postPackageRating = static function (
+    $getPackageReviews = static function (
         Request $request,
         Response $response,
         array $args,
         string $kind
-    ) use ($view, $pdo, $ratings, $resolvePackage): Response {
-        $parser = RouteContext::fromRequest($request)->getRouteParser();
+    ) use ($view, $pdo, $reviews, $resolvePackage, $jsonResponse): Response {
         $slug = (string) ($args['slug'] ?? '');
-        $listRoute = $kind === SubmissionKind::PLUGIN
-            ? 'public.struxa_catalog.plugin_show'
-            : 'public.struxa_catalog.theme_show';
-
         if ($resolvePackage($kind, $slug) === null) {
-            return $response->withStatus(404);
+            return $jsonResponse($response, ['ok' => false, 'error' => 'not_found'], 404);
+        }
+
+        $params = $request->getQueryParams();
+        $page = max(1, (int) ($params['page'] ?? 1));
+        $result = $reviews->listPage($kind, $slug, $page);
+        $actor = CatalogEngagementActor::fromView($pdo, $view());
+        $viewerId = $actor['ok'] ? $actor['cms_user_id'] : null;
+        $stats = $reviews->statsFor($kind, $slug);
+
+        return $jsonResponse($response, [
+            'ok' => true,
+            'reviews' => CatalogEngagementActor::decorateReviews($pdo, $result['items'], $viewerId),
+            'pagination' => [
+                'page' => $result['page'],
+                'pages' => $result['pages'],
+                'total' => $result['total'],
+                'per_page' => $result['per_page'],
+            ],
+            'stats' => [
+                'average' => $stats['average'],
+                'count' => $stats['count'],
+            ],
+        ]);
+    };
+
+    $postPackageReview = static function (
+        Request $request,
+        Response $response,
+        array $args,
+        string $kind
+    ) use ($view, $pdo, $reviews, $resolvePackage, $jsonResponse): Response {
+        $slug = (string) ($args['slug'] ?? '');
+        if ($resolvePackage($kind, $slug) === null) {
+            return $jsonResponse($response, ['ok' => false, 'error' => 'not_found'], 404);
         }
 
         $actor = CatalogEngagementActor::fromView($pdo, $view());
         if (!$actor['ok']) {
-            return $response->withStatus(403);
+            return $jsonResponse($response, [
+                'ok' => false,
+                'error' => 'auth_required',
+                'message' => 'Sign in to post a review.',
+            ], 403);
         }
 
         $body = $request->getParsedBody();
         $body = is_array($body) ? $body : [];
         $rating = (int) ($body['rating'] ?? 0);
-        if ($rating < 1 || $rating > 5) {
-            Flash::set('error', 'Please choose a rating from 1 to 5 stars.');
-
-            return $response
-                ->withHeader('Location', $parser->urlFor($listRoute, ['slug' => $slug]) . '#rate')
-                ->withStatus(302);
-        }
-
-        $ratings->upsert($kind, $slug, $actor['cms_user_id'], $rating);
-        Flash::set('success', 'Thanks — your rating was saved.');
-
-        return $response
-            ->withHeader('Location', $parser->urlFor($listRoute, ['slug' => $slug]) . '#rate')
-            ->withStatus(302);
-    };
-
-    $postPackageComment = static function (
-        Request $request,
-        Response $response,
-        array $args,
-        string $kind
-    ) use ($view, $pdo, $comments, $resolvePackage): Response {
-        $parser = RouteContext::fromRequest($request)->getRouteParser();
-        $slug = (string) ($args['slug'] ?? '');
-        $listRoute = $kind === SubmissionKind::PLUGIN
-            ? 'public.struxa_catalog.plugin_show'
-            : 'public.struxa_catalog.theme_show';
-
-        if ($resolvePackage($kind, $slug) === null) {
-            return $response->withStatus(404);
-        }
-
-        $actor = CatalogEngagementActor::fromView($pdo, $view());
-        if (!$actor['ok']) {
-            return $response->withStatus(403);
-        }
-
-        $body = $request->getParsedBody();
-        $body = is_array($body) ? $body : [];
         $text = trim((string) ($body['body'] ?? ''));
+
+        if ($rating < 1 || $rating > 5) {
+            return $jsonResponse($response, [
+                'ok' => false,
+                'error' => 'invalid_rating',
+                'message' => 'Please choose a rating from 1 to 5 stars.',
+            ], 422);
+        }
         if ($text === '') {
-            Flash::set('error', 'Comment cannot be empty.');
-
-            return $response
-                ->withHeader('Location', $parser->urlFor($listRoute, ['slug' => $slug]) . '#comments')
-                ->withStatus(302);
+            return $jsonResponse($response, [
+                'ok' => false,
+                'error' => 'empty_body',
+                'message' => 'Review text cannot be empty.',
+            ], 422);
         }
-        if (mb_strlen($text) > CatalogCommentRepository::MAX_BODY_LENGTH) {
-            Flash::set('error', 'Comment is too long (max ' . CatalogCommentRepository::MAX_BODY_LENGTH . ' characters).');
-
-            return $response
-                ->withHeader('Location', $parser->urlFor($listRoute, ['slug' => $slug]) . '#comments')
-                ->withStatus(302);
+        if (mb_strlen($text) > CatalogReviewRepository::MAX_BODY_LENGTH) {
+            return $jsonResponse($response, [
+                'ok' => false,
+                'error' => 'body_too_long',
+                'message' => 'Review is too long (max ' . CatalogReviewRepository::MAX_BODY_LENGTH . ' characters).',
+            ], 422);
         }
 
-        $comments->insert($kind, $slug, $actor['cms_user_id'], $text);
-        Flash::set('success', 'Comment posted.');
+        $reviews->upsert($kind, $slug, $actor['cms_user_id'], $rating, $text);
+        $stats = $reviews->statsFor($kind, $slug);
+        $userReview = $reviews->userReview($kind, $slug, $actor['cms_user_id']);
 
-        return $response
-            ->withHeader('Location', $parser->urlFor($listRoute, ['slug' => $slug]) . '#comments')
-            ->withStatus(302);
+        return $jsonResponse($response, [
+            'ok' => true,
+            'message' => 'Review saved.',
+            'user_review' => $userReview,
+            'stats' => [
+                'average' => $stats['average'],
+                'count' => $stats['count'],
+            ],
+        ]);
     };
 
     $app->get('/plugins/submit', function (Request $request, Response $response) use ($twig, $memberView, $ns): Response {
@@ -365,37 +378,37 @@ return static function (App $app, \App\Plugin\PluginBootContext $ctx): void {
         );
     })->setName('public.struxa_catalog.theme_show');
 
-    $app->post('/plugins/{slug:' . $catalogSlugPattern . '}/rate', function (
+    $app->get('/plugins/{slug:' . $catalogSlugPattern . '}/reviews', function (
         Request $request,
         Response $response,
         array $args
-    ) use ($postPackageRating, $requireLoggedIn): Response {
-        return $postPackageRating($request, $response, $args, SubmissionKind::PLUGIN);
-    })->add($requireLoggedIn)->setName('public.struxa_catalog.plugin_rate');
+    ) use ($getPackageReviews): Response {
+        return $getPackageReviews($request, $response, $args, SubmissionKind::PLUGIN);
+    })->setName('public.struxa_catalog.plugin_reviews');
 
-    $app->post('/plugins/{slug:' . $catalogSlugPattern . '}/comment', function (
+    $app->post('/plugins/{slug:' . $catalogSlugPattern . '}/reviews', function (
         Request $request,
         Response $response,
         array $args
-    ) use ($postPackageComment, $requireLoggedIn): Response {
-        return $postPackageComment($request, $response, $args, SubmissionKind::PLUGIN);
-    })->add($requireLoggedIn)->setName('public.struxa_catalog.plugin_comment');
+    ) use ($postPackageReview, $requireLoggedIn): Response {
+        return $postPackageReview($request, $response, $args, SubmissionKind::PLUGIN);
+    })->add($requireLoggedIn)->setName('public.struxa_catalog.plugin_reviews_post');
 
-    $app->post('/themes/{slug:' . $catalogSlugPattern . '}/rate', function (
+    $app->get('/themes/{slug:' . $catalogSlugPattern . '}/reviews', function (
         Request $request,
         Response $response,
         array $args
-    ) use ($postPackageRating, $requireLoggedIn): Response {
-        return $postPackageRating($request, $response, $args, SubmissionKind::THEME);
-    })->add($requireLoggedIn)->setName('public.struxa_catalog.theme_rate');
+    ) use ($getPackageReviews): Response {
+        return $getPackageReviews($request, $response, $args, SubmissionKind::THEME);
+    })->setName('public.struxa_catalog.theme_reviews');
 
-    $app->post('/themes/{slug:' . $catalogSlugPattern . '}/comment', function (
+    $app->post('/themes/{slug:' . $catalogSlugPattern . '}/reviews', function (
         Request $request,
         Response $response,
         array $args
-    ) use ($postPackageComment, $requireLoggedIn): Response {
-        return $postPackageComment($request, $response, $args, SubmissionKind::THEME);
-    })->add($requireLoggedIn)->setName('public.struxa_catalog.theme_comment');
+    ) use ($postPackageReview, $requireLoggedIn): Response {
+        return $postPackageReview($request, $response, $args, SubmissionKind::THEME);
+    })->add($requireLoggedIn)->setName('public.struxa_catalog.theme_reviews_post');
 
     $app->get('/struxa-catalog/download/{kind}/{slug}', function (
         Request $request,

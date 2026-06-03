@@ -51,15 +51,15 @@ final class CatalogEngagementActor
     }
 
     /**
-     * @param list<array{cms_user_id: int, body: string, created_at: string, id: int}> $comments
+     * @param list<array{cms_user_id: int, rating: int, body: string, created_at: string, updated_at: string}> $reviews
      *
-     * @return list<array{id: int, body: string, created_at: string, author_name: string}>
+     * @return list<array{rating: int, body: string, created_at: string, updated_at: string, author_name: string, cms_user_id: int}>
      */
-    public static function decorateComments(\PDO $pdo, array $comments): array
+    public static function decorateReviews(\PDO $pdo, array $reviews, ?int $viewerUserId = null): array
     {
         $out = [];
-        foreach ($comments as $comment) {
-            $userId = (int) ($comment['cms_user_id'] ?? 0);
+        foreach ($reviews as $review) {
+            $userId = (int) ($review['cms_user_id'] ?? 0);
             $author = 'Member';
             if ($userId > 0) {
                 $user = CmsUserRepository::findById($pdo, $userId);
@@ -75,10 +75,13 @@ final class CatalogEngagementActor
                 }
             }
             $out[] = [
-                'id' => (int) ($comment['id'] ?? 0),
-                'body' => (string) ($comment['body'] ?? ''),
-                'created_at' => (string) ($comment['created_at'] ?? ''),
+                'cms_user_id' => $userId,
+                'rating' => (int) ($review['rating'] ?? 0),
+                'body' => (string) ($review['body'] ?? ''),
+                'created_at' => (string) ($review['created_at'] ?? ''),
+                'updated_at' => (string) ($review['updated_at'] ?? ''),
                 'author_name' => $author,
+                'is_own' => $viewerUserId !== null && $viewerUserId > 0 && $userId === $viewerUserId,
             ];
         }
 

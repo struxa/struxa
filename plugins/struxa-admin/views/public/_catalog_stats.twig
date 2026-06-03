@@ -1,24 +1,28 @@
 {% set avg = item.rating_average|default(null) %}
-{% set rc = item.rating_count|default(0) %}
-{% set cc = item.comment_count|default(0) %}
+{% set rc = item.review_count|default(0) %}
 {% set dc = item.download_count|default(0) %}
-<div class="st-catalog__stats" aria-label="Community stats">
-  {% if rc > 0 and avg is not null %}
-    <span class="st-catalog__pill st-catalog__pill--rating" title="{{ rc }} rating{{ rc == 1 ? '' : 's' }}">
-      <span class="st-catalog__stars" aria-hidden="true">
-        {% for i in 1..5 %}
-          <span class="st-catalog__star{% if avg >= i %} is-on{% elseif avg >= i - 0.5 %} is-half{% endif %}">★</span>
-        {% endfor %}
-      </span>
-      <span class="st-catalog__pill-value">{{ avg|number_format(1) }}</span>
+{% set interactive = catalog_stats_interactive|default(false) %}
+<div class="st-catalog__stats{% if interactive %} is-interactive{% endif %}" aria-label="Community stats"{% if interactive %} data-catalog-stats{% endif %}>
+  <span class="st-catalog__pill st-catalog__pill--rating" title="{{ rc > 0 ? rc ~ ' review' ~ (rc == 1 ? '' : 's') : '' }}" data-stat-rating{% if rc == 0 or avg is null %} hidden{% endif %}>
+    <span class="st-catalog__stars" aria-hidden="true">
+      {% for i in 1..5 %}
+        <span class="st-catalog__star{% if avg is not null and avg >= i %} is-on{% elseif avg is not null and avg >= i - 0.5 %} is-half{% endif %}">★</span>
+      {% endfor %}
     </span>
-  {% else %}
-    <span class="st-catalog__pill st-catalog__pill--muted">No ratings yet</span>
-  {% endif %}
-  <span class="st-catalog__pill st-catalog__pill--comments">
-    <span class="st-catalog__pill-icon" aria-hidden="true">💬</span>
-    {{ cc }} comment{{ cc == 1 ? '' : 's' }}
+    <span class="st-catalog__pill-value" data-stat-average>{% if avg is not null %}{{ avg|number_format(1) }}{% endif %}</span>
   </span>
+  <span class="st-catalog__pill st-catalog__pill--muted" data-stat-rating-empty{% if rc > 0 and avg is not null %} hidden{% endif %}>No reviews yet</span>
+  {% if interactive %}
+    <button type="button" class="st-catalog__pill st-catalog__pill--reviews st-catalog__pill--toggle" data-reviews-toggle aria-expanded="false" aria-controls="catalog-reviews-panel">
+      <span class="st-catalog__pill-icon" aria-hidden="true">★</span>
+      <span data-stat-review-count>{{ rc }}</span> review{{ rc == 1 ? '' : 's' }}
+    </button>
+  {% else %}
+    <span class="st-catalog__pill st-catalog__pill--reviews">
+      <span class="st-catalog__pill-icon" aria-hidden="true">★</span>
+      {{ rc }} review{{ rc == 1 ? '' : 's' }}
+    </span>
+  {% endif %}
   <span class="st-catalog__pill st-catalog__pill--downloads">
     <span class="st-catalog__pill-icon" aria-hidden="true">↓</span>
     {{ dc }} download{{ dc == 1 ? '' : 's' }}
