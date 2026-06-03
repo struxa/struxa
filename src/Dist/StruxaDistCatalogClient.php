@@ -13,6 +13,8 @@ final class StruxaDistCatalogClient
 
     private const MAX_BYTES = 512_000;
 
+    private const MAX_SHARD_BYTES = 512_000;
+
     public function __construct(
         private readonly string $projectRoot,
     ) {
@@ -45,7 +47,7 @@ final class StruxaDistCatalogClient
             $json = $this->httpGetLimited($url, self::MAX_BYTES);
         }
         if ($json === null || $json === '') {
-            $json = $this->readPublishedCatalogFromDisk();
+            $json = $this->readPublishedCatalogFromDisk('repo.json');
         }
         if ($json === null || $json === '') {
             $json = $this->readLocalFallback();
@@ -68,24 +70,140 @@ final class StruxaDistCatalogClient
             return ['ok' => false, 'error' => 'Distribution catalog must be a JSON object.'];
         }
 
-        return ['ok' => true, 'data' => $data];
+        $normalized = $this->normalizeCatalogData($data, $this->catalogBaseFromUrl($url));
+
+        return ['ok' => true, 'data' => $normalized];
     }
 
     /**
      * Theme and plugin counts for the storefront GitHub showcase.
-     * Prefers the full dist catalog (on-disk repo.json, STRUXA_DIST_CATALOG_URL, default URL)
-     * so a theme-only STRUXA_THEME_CATALOG_URL override does not hide plugin counts.
+     * Reads repo-summary.json when available so large catalogs do not require parsing every plugin entry.
      *
-     * @return array{themes: int, plugins: int}
+     * @return array{themes: int, plugins: int, generated_at: ?string}
      */
     public function loadShowcaseCounts(): array
     {
+        $summary = $this->readSummary();
+        if ($summary !== null) {
+            return [
+                'themes' => max(0, (int) ($summary['themes_count'] ?? 0)),
+                'plugins' => max(0, (int) ($summary['plugins_count'] ?? 0)),
+                'generated_at' => isset($summary['generated_at']) && is_string($summary['generated_at'])
+                    ? $summary['generated_at']
+                    : null,
+            ];
+        }
+
         $data = $this->loadShowcaseCatalogData();
 
         return [
             'themes' => is_array($data['themes'] ?? null) ? count($data['themes']) : 0,
             'plugins' => is_array($data['plugins'] ?? null) ? count($data['plugins']) : 0,
+            'generated_at' => isset($data['generated_at']) && is_string($data['generated_at'])
+                ? $data['generated_at']
+                : null,
         ];
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    public function readSummary(): ?array
+    {
+        $json = $this->readPublishedCatalogFromDisk('repo-summary.json');
+        if ($json === null || $json === '') {
+            $url = trim((string) ($_ENV['STRUXA_DIST_CATALOG_URL'] ?? getenv('STRUXA_DIST_CATALOG_URL') ?: ''));
+            if ($url === '') {
+                $url = self::DEFAULT_CATALOG_URL;
+            }
+            if (str_starts_with($url, 'https://') && str_ends_with($url, 'repo.json')) {
+                $summaryUrl = substr($url, 0, -strlen('repo.json')) . 'repo-summary.json';
+                $json = $this->httpGetLimited($summaryUrl, 16_384);
+            }
+        }
+        if ($json === null || $json === '') {
+            return null;
+        }
+        try {
+            /** @var mixed $data */
+            $data = json_decode($json, true, 32, JSON_THROW_ON_ERROR);
+        } catch (\JsonException) {
+            return null;
+        }
+
+        return is_array($data) ? $data : null;
+    }
+
+    /**
+     * Expand v2 sharded catalogs into the v1 shape callers expect.
+     *
+     * @param array<string, mixed> $data
+     *
+     * @return array<string, mixed>
+     */
+    public function normalizeCatalogData(array $data, string $catalogBaseUrl = ''): array
+    {
+        $plugins = $data['plugins'] ?? null;
+        if (!is_array($plugins) || $this->isList($plugins)) {
+            return $data;
+        }
+
+        $shards = $plugins['shards'] ?? null;
+        if (!is_array($shards) || $shards === []) {
+            $data['plugins'] = [];
+
+            return $data;
+        }
+
+        $merged = [];
+        foreach ($shards as $shard) {
+            if (!is_string($shard) || trim($shard) === '') {
+                continue;
+            }
+            foreach ($this->loadPluginShard($shard, $catalogBaseUrl) as $entry) {
+                $merged[] = $entry;
+            }
+        }
+        $data['plugins'] = $merged;
+
+        return $data;
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function loadPluginShard(string $shardRef, string $catalogBaseUrl): array
+    {
+        $json = null;
+        if (str_starts_with($shardRef, 'https://')) {
+            $json = $this->httpGetLimited($shardRef, self::MAX_SHARD_BYTES);
+        } else {
+            $relative = ltrim(str_replace('\\', '/', $shardRef), '/');
+            $json = $this->readPublishedCatalogFromDisk($relative);
+            if (($json === null || $json === '') && $catalogBaseUrl !== '') {
+                $json = $this->httpGetLimited(rtrim($catalogBaseUrl, '/') . '/' . $relative, self::MAX_SHARD_BYTES);
+            }
+        }
+        if ($json === null || $json === '') {
+            return [];
+        }
+        try {
+            /** @var mixed $data */
+            $data = json_decode($json, true, 512, JSON_THROW_ON_ERROR);
+        } catch (\JsonException) {
+            return [];
+        }
+        if (!is_array($data) || !isset($data['plugins']) || !is_array($data['plugins'])) {
+            return [];
+        }
+        $out = [];
+        foreach ($data['plugins'] as $row) {
+            if (is_array($row)) {
+                $out[] = $row;
+            }
+        }
+
+        return $out;
     }
 
     /**
@@ -93,7 +211,7 @@ final class StruxaDistCatalogClient
      */
     private function loadShowcaseCatalogData(): array
     {
-        $json = $this->readPublishedCatalogFromDisk();
+        $json = $this->readPublishedCatalogFromDisk('repo.json');
         if ($json === null || $json === '') {
             $url = trim((string) ($_ENV['STRUXA_DIST_CATALOG_URL'] ?? getenv('STRUXA_DIST_CATALOG_URL') ?: ''));
             if ($url === '') {
@@ -121,18 +239,34 @@ final class StruxaDistCatalogClient
         } catch (\JsonException) {
             return [];
         }
+        if (!is_array($data)) {
+            return [];
+        }
 
-        return is_array($data) ? $data : [];
+        return $this->normalizeCatalogData($data, $this->catalogBaseFromUrl($this->resolveCatalogUrl()));
+    }
+
+    private function catalogBaseFromUrl(string $url): string
+    {
+        if ($url === '' || !str_starts_with($url, 'https://')) {
+            return 'https://struxapoint.com/struxa-dist';
+        }
+        if (str_ends_with($url, 'repo.json')) {
+            return substr($url, 0, -strlen('repo.json'));
+        }
+
+        return rtrim($url, '/');
     }
 
     /**
      * When the CMS and catalog share a host, HTTP self-fetch often fails; read the published file instead.
      */
-    private function readPublishedCatalogFromDisk(): ?string
+    private function readPublishedCatalogFromDisk(string $relativePath): ?string
     {
+        $relativePath = ltrim(str_replace('\\', '/', $relativePath), '/');
         foreach ([
-            $this->projectRoot . DIRECTORY_SEPARATOR . 'public' . DIRECTORY_SEPARATOR . 'struxa-dist' . DIRECTORY_SEPARATOR . 'repo.json',
-            $this->projectRoot . DIRECTORY_SEPARATOR . 'struxa-dist' . DIRECTORY_SEPARATOR . 'repo.json',
+            $this->projectRoot . DIRECTORY_SEPARATOR . 'public' . DIRECTORY_SEPARATOR . 'struxa-dist' . DIRECTORY_SEPARATOR . $relativePath,
+            $this->projectRoot . DIRECTORY_SEPARATOR . 'struxa-dist' . DIRECTORY_SEPARATOR . $relativePath,
         ] as $path) {
             if (!is_readable($path)) {
                 continue;
@@ -208,5 +342,17 @@ final class StruxaDistCatalogClient
         }
 
         return $data;
+    }
+
+    /**
+     * @param array<mixed> $value
+     */
+    private function isList(array $value): bool
+    {
+        if ($value === []) {
+            return true;
+        }
+
+        return array_keys($value) === range(0, count($value) - 1);
     }
 }

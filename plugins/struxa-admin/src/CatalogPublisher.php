@@ -7,7 +7,7 @@ namespace StruxaAdmin;
 use App\Filesystem\SafeDirectoryRemoval;
 use App\Plugin\PluginManifestParser;
 use App\Theme\ThemeManifest;
-use ZipArchive;
+use App\Dist\StruxaDistCatalogWriter;
 
 /**
  * Builds ZIPs from GitHub and regenerates struxa-dist/repo.json + publish.json.
@@ -97,19 +97,9 @@ final class CatalogPublisher
         usort($themes, static fn (array $a, array $b): int => strcmp($a['slug'], $b['slug']));
         usort($plugins, static fn (array $a, array $b): int => strcmp($a['slug'], $b['slug']));
 
-        $catalog = [
-            'catalog_version' => 1,
-            'generated_at' => gmdate('c'),
-            'themes' => $themes,
-            'plugins' => $plugins,
-        ];
-
-        $json = json_encode($catalog, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
-        if ($json === false) {
-            return ['ok' => false, 'error' => 'Failed to encode catalog JSON.'];
-        }
-        if (file_put_contents($distRoot . '/repo.json', $json . "\n") === false) {
-            return ['ok' => false, 'error' => 'Could not write repo.json to ' . $distRoot];
+        $written = (new StruxaDistCatalogWriter())->write($distRoot, $themes, $plugins);
+        if (!$written['ok']) {
+            return ['ok' => false, 'error' => $written['error'] ?? 'Failed to write catalog.'];
         }
 
         return ['ok' => true];

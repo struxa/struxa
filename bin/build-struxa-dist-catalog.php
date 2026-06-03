@@ -171,18 +171,13 @@ if ($publishPluginSlugs !== []) {
 }
 usort($plugins, static fn (array $a, array $b): int => strcmp($a['slug'], $b['slug']));
 
-$catalog = [
-    'catalog_version' => 1,
-    'generated_at' => gmdate('c'),
-    'themes' => $themes,
-    'plugins' => $plugins,
-];
+require $root . '/vendor/autoload.php';
 
-$out = json_encode($catalog, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
-if ($out === false) {
-    fwrite(STDERR, "Failed to encode catalog JSON.\n");
+$result = (new \App\Dist\StruxaDistCatalogWriter())->write($distRoot, $themes, $plugins);
+if (!$result['ok']) {
+    fwrite(STDERR, ($result['error'] ?? 'Catalog write failed.') . "\n");
     exit(1);
 }
 
-file_put_contents($distRoot . '/repo.json', $out . "\n");
-echo 'Wrote ' . $distRoot . '/repo.json (' . count($themes) . ' themes, ' . count($plugins) . " plugins)\n";
+echo 'Wrote ' . $distRoot . '/repo.json (' . $result['themes'] . ' themes, ' . $result['plugins'] . ' plugins'
+    . ($result['sharded'] ? ', sharded v2' : ', v1') . ")\n";

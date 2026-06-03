@@ -21,6 +21,11 @@ final class CatalogSettings
     ) {
     }
 
+    public function projectRoot(): string
+    {
+        return $this->projectRoot;
+    }
+
     public function distRoot(): string
     {
         $custom = trim(Settings::get(self::KEY_DIST_ROOT, ''));

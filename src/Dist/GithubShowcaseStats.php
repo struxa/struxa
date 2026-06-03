@@ -43,17 +43,18 @@ final class GithubShowcaseStats
             return $this->emptyPack('', 'Invalid GitHub repository URL.');
         }
 
-        $cacheKey = self::CACHE_KEY_PREFIX . hash('sha256', $repo);
+        $catalogCounts = (new StruxaDistCatalogClient($this->projectRoot))->loadShowcaseCounts();
+        $themesCount = $catalogCounts['themes'];
+        $pluginsCount = $catalogCounts['plugins'];
+        $catalogStamp = $catalogCounts['generated_at'] ?? '';
+        $cacheKey = self::CACHE_KEY_PREFIX . hash('sha256', $repo . '|' . $catalogStamp);
+
         /** @var mixed $cached */
         $cached = $this->cache->get($cacheKey);
         if (is_array($cached) && isset($cached['repo']) && is_string($cached['repo']) && $cached['repo'] === $repo) {
             /** @var array{ok: bool, repo: string, latest_version: ?string, release_url: ?string, themes_count: int, plugins_count: int, stars: ?int, error: ?string} $cached */
             return $cached;
         }
-
-        $catalogCounts = (new StruxaDistCatalogClient($this->projectRoot))->loadShowcaseCounts();
-        $themesCount = $catalogCounts['themes'];
-        $pluginsCount = $catalogCounts['plugins'];
 
         $releaseUrl = 'https://github.com/' . $repo . '/releases/latest';
         $latest = null;

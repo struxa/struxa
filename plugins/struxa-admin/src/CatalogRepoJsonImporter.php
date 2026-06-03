@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace StruxaAdmin;
 
+use App\Dist\StruxaDistCatalogClient;
+
 /**
  * Seeds approved catalog submissions from an existing struxa-dist/repo.json on disk.
  */
@@ -41,6 +43,8 @@ final class CatalogRepoJsonImporter
         if (!is_array($data)) {
             return ['ok' => false, 'error' => 'repo.json must be a JSON object.'];
         }
+
+        $data = (new StruxaDistCatalogClient($this->settings->projectRoot()))->normalizeCatalogData($data);
 
         $imported = 0;
         $updated = 0;

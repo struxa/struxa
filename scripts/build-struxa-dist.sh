@@ -97,6 +97,13 @@ echo "==> Syncing to public/struxa-dist/ (served at /struxa-dist/ on struxapoint
 mkdir -p "$PUBLIC_DIST/zips"
 cp "$DIST/repo.json" "$PUBLIC_DIST/repo.json"
 cp "$DIST/publish.json" "$PUBLIC_DIST/publish.json"
+if [[ -f "$DIST/repo-summary.json" ]]; then
+  cp "$DIST/repo-summary.json" "$PUBLIC_DIST/repo-summary.json"
+fi
+if [[ -d "$DIST/catalog" ]]; then
+  mkdir -p "$PUBLIC_DIST/catalog"
+  cp "$DIST/catalog"/*.json "$PUBLIC_DIST/catalog/" 2>/dev/null || true
+fi
 for zip in "$ZIPS"/*.zip; do
   [[ -f "$zip" ]] || continue
   cp "$zip" "$PUBLIC_DIST/zips/$(basename "$zip")"

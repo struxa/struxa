@@ -30,6 +30,8 @@ The **Struxa CMS** git repo stays the core product; **this** repo is only distri
 
 ## `repo.json` shape
 
+Small catalogs use **v1** (monolithic). When the encoded catalog exceeds ~450KB, the builder switches to **v2**: a lightweight `repo.json` index plus plugin **shards** under `catalog/plugins-NNN.json` (100 plugins per file). **`repo-summary.json`** is always written with theme/plugin counts for the homepage and other cheap lookups.
+
 ```json
 {
   "catalog_version": 1,
@@ -56,6 +58,22 @@ The **Struxa CMS** git repo stays the core product; **this** repo is only distri
   ]
 }
 ```
+
+**v2 index** (when the catalog is too large for one file — plugins split into `catalog/plugins-NNN.json`, 100 per shard):
+
+```json
+{
+  "catalog_version": 2,
+  "totals": { "themes": 1, "plugins": 1000 },
+  "themes": [ "..." ],
+  "plugins": {
+    "shards": ["catalog/plugins-001.json", "catalog/plugins-002.json"],
+    "page_size": 100
+  }
+}
+```
+
+**`repo-summary.json`** is always written alongside `repo.json` with cheap counts for the StruxaPoint homepage (`themes_count`, `plugins_count`).
 
 ## `news.json` (admin dashboard)
 
