@@ -73,6 +73,16 @@ final class CatalogReviewRepository
         ];
     }
 
+    public function hasSubmittedReview(string $kind, string $slug, int $cmsUserId): bool
+    {
+        $review = $this->userReview($kind, $slug, $cmsUserId);
+        if ($review === null) {
+            return false;
+        }
+
+        return trim($review['body']) !== '';
+    }
+
     public function countFor(string $kind, string $slug): int
     {
         if (!SubmissionKind::isValid($kind)) {

@@ -1,0 +1,40 @@
+{% if catalog_can_engage %}
+  {% if catalog_user_has_review|default(false) and user_review %}
+    <div class="st-catalog__already-reviewed" data-already-reviewed>
+      <p class="st-catalog__already-reviewed-title">You have already voted.</p>
+      <p class="st-catalog__already-reviewed-meta">
+        Your rating:
+        <span class="st-catalog__stars st-catalog__stars--sm" aria-label="{{ user_review.rating }} stars">
+          {% for i in 1..5 %}
+            <span class="st-catalog__star{% if i <= user_review.rating %} is-on{% endif %}">★</span>
+          {% endfor %}
+        </span>
+      </p>
+    </div>
+  {% else %}
+    <form class="st-catalog__review-form st-catalog__review-form--card" data-review-form novalidate>
+      <fieldset class="st-catalog__rate-fieldset">
+        <legend class="st-catalog__rate-legend">Your rating</legend>
+        <div class="st-catalog__rate-stars">
+          {% for star in 1..5 %}
+            <label class="st-catalog__rate-label">
+              <input class="st-catalog__rate-input" type="radio" name="rating" value="{{ star }}" required />
+              <span class="st-catalog__rate-star" aria-hidden="true">★</span>
+              <span class="visually-hidden">{{ star }} star{{ star == 1 ? '' : 's' }}</span>
+            </label>
+          {% endfor %}
+        </div>
+      </fieldset>
+      <label class="st-catalog__label" for="catalog_review_body">Your review</label>
+      <textarea class="st-catalog__textarea" id="catalog_review_body" name="body" rows="4" maxlength="2000" required placeholder="What works well? Would you recommend it?"></textarea>
+      <div class="st-catalog__actions">
+        <button type="submit" class="st-btn st-btn--primary" data-review-submit>Post review</button>
+      </div>
+      <p class="st-catalog__form-msg" data-review-msg hidden role="status"></p>
+    </form>
+  {% endif %}
+{% else %}
+  <p class="st-catalog__engage-hint st-catalog__engage-hint--card">
+    <a href="{{ login_url|default('#') }}">Sign in</a> to write a review.
+  </p>
+{% endif %}

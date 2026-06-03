@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.1.115",
-    "title": "Struxa 1.1.115",
-    "summary": "Redesigned StruxaPoint catalog package detail pages: hero layout, install sidebar, cleaner review stats.",
+    "latest_version": "1.1.116",
+    "title": "Struxa 1.1.116",
+    "summary": "Catalog reviews: hide the vote form after submitting and show “You have already voted” with your rating.",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "patch"

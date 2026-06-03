@@ -126,8 +126,10 @@ return static function (App $app, \App\Plugin\PluginBootContext $ctx): void {
 
         $actor = CatalogEngagementActor::fromView($pdo, $viewData);
         $userReview = null;
+        $userHasReview = false;
         if ($actor['ok']) {
             $userReview = $reviews->userReview($kind, $slug, $actor['cms_user_id']);
+            $userHasReview = $reviews->hasSubmittedReview($kind, $slug, $actor['cms_user_id']);
         }
 
         $isPlugin = $kind === SubmissionKind::PLUGIN;
@@ -140,6 +142,7 @@ return static function (App $app, \App\Plugin\PluginBootContext $ctx): void {
             'catalog_package' => $package,
             'catalog_package_kind' => $kind,
             'catalog_user_review' => $userReview,
+            'catalog_user_has_review' => $userHasReview,
             'catalog_can_engage' => $actor['ok'],
             'catalog_list_url' => $isPlugin ? 'public.struxa_catalog.plugins' : 'public.struxa_catalog.themes',
             'catalog_reviews_url' => $isPlugin
@@ -187,6 +190,8 @@ return static function (App $app, \App\Plugin\PluginBootContext $ctx): void {
         return $jsonResponse($response, [
             'ok' => true,
             'reviews' => CatalogEngagementActor::decorateReviews($pdo, $result['items'], $viewerId),
+            'viewer_has_review' => $viewerId !== null && $viewerId > 0
+                && $reviews->hasSubmittedReview($kind, $slug, $viewerId),
             'pagination' => [
                 'page' => $result['page'],
                 'pages' => $result['pages'],
@@ -245,6 +250,14 @@ return static function (App $app, \App\Plugin\PluginBootContext $ctx): void {
                 'error' => 'body_too_long',
                 'message' => 'Review is too long (max ' . CatalogReviewRepository::MAX_BODY_LENGTH . ' characters).',
             ], 422);
+        }
+
+        if ($reviews->hasSubmittedReview($kind, $slug, $actor['cms_user_id'])) {
+            return $jsonResponse($response, [
+                'ok' => false,
+                'error' => 'already_reviewed',
+                'message' => 'You have already submitted a review for this package.',
+            ], 409);
         }
 
         $reviews->upsert($kind, $slug, $actor['cms_user_id'], $rating, $text);

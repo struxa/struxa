@@ -17,7 +17,7 @@
     <button type="button" class="st-catalog__stat-block st-catalog__stat-block--reviews st-catalog__pill--toggle" data-reviews-toggle aria-expanded="false" aria-controls="catalog-reviews-panel">
       <span class="st-catalog__stat-icon" aria-hidden="true">✎</span>
       <span class="st-catalog__stat-label">
-        {% if rc > 0 %}
+        {% if catalog_user_has_review|default(false) or rc > 0 %}
           Read reviews
         {% else %}
           Write a review
