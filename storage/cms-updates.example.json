@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.2.6",
-    "title": "Struxa 1.2.6",
-    "summary": "PageSpeed follow-up: media=print non-blocking CSS, drop Google Fonts, resolve upload paths to /media-rs srcset, fix search modal inert/aria, WCAG contrast, and heading order.",
+    "latest_version": "1.2.7",
+    "title": "Struxa 1.2.7",
+    "summary": "Fix storefront FOUC: load theme app.css blocking again, intrinsic hero SVG dimensions; forms CSS stays non-blocking.",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "minor"

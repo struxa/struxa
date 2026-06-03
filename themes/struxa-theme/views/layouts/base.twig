@@ -5,17 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     {% set _accent = theme_settings.accent|default('')|trim %}
     {% if _accent == '' %}{% set _accent = '#ff6b2b' %}{% endif %}
-    <style>
-      :root{--st-bg:#f9f5f2;--st-surface:#fff;--st-text:#111827;--st-topbar:#632a13;--st-accent:#ff6b2b}
-      *,*::before,*::after{box-sizing:border-box}
-      body.theme-struxa{margin:0;background:var(--st-bg);color:var(--st-text);font-family:ui-sans-serif,system-ui,sans-serif;line-height:1.6}
-      img{max-width:100%;height:auto;display:block}
-      .st-shell{min-height:100vh;display:flex;flex-direction:column}
-      .st-main{flex:1}
-      .st-skip-link{position:absolute;left:-9999px}
-    </style>
     {% include 'partials/_deferred_theme_css.twig' with {
-      theme_stylesheets_async: ['css/app.css'],
+      theme_stylesheets: ['css/app.css'],
     } only %}
     <title>
       {%- if struxa_seo|default(false) -%}

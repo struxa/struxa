@@ -1,6 +1,8 @@
-{# Theme CSS: non-blocking load. Google Fonts removed — system stacks in app.css. #}
+{# Theme shell CSS loads in head (blocking) to avoid FOUC on hero SVGs and layout. Forms use _nonblocking_stylesheet. #}
 {% for sheet in theme_stylesheets|default([]) %}
-  {% include 'partials/_nonblocking_stylesheet.twig' with { href: theme_asset(sheet) } only %}
+  {% set href = theme_asset(sheet) %}
+  <link rel="preload" as="style" href="{{ href|e('html_attr') }}" />
+  <link rel="stylesheet" href="{{ href|e('html_attr') }}" />
 {% endfor %}
 {% for sheet in theme_stylesheets_async|default([]) %}
   {% include 'partials/_nonblocking_stylesheet.twig' with { href: theme_asset(sheet) } only %}
