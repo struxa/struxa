@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.2.8",
-    "title": "Struxa 1.2.8",
-    "summary": "Catalog regenerate syncs newer bundled themes/plugins from the CMS tree into struxa-dist ZIPs before writing repo.json (struxa-admin 1.0.24).",
+    "latest_version": "1.2.9",
+    "title": "Struxa 1.2.9",
+    "summary": "Add republish-bundled-theme.sh server script and PUBLISH troubleshooting when catalog ZIP lags bundled themes/struxa-theme.",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "minor"

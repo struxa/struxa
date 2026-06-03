@@ -50,6 +50,22 @@ bash scripts/deploy-struxa-dist-on-server.sh
 curl -sS https://struxapoint.com/struxa-dist/repo.json | head
 ```
 
+### Theme ZIP still shows an old version (e.g. 1.0.38)
+
+`repo.json` reads **`theme.json` inside `public/struxa-dist/zips/struxa-theme.zip`**, which is built from **`themes/struxa-theme/` on the server**. If that folder was never updated, regenerate and `build-struxa-dist.sh` both keep publishing the old version.
+
+```bash
+cd ~/public_html/struxapoint
+grep '"version"' themes/struxa-theme/theme.json    # must be 1.0.41+ after deploy
+git pull origin main                               # if you deploy via git
+# or: Admin → Updates → install latest CMS
+
+bash scripts/republish-bundled-theme.sh            # rebuild ZIP from themes/
+# Admin → Struxa catalog → Regenerate catalog    # refresh repo.json
+```
+
+Use `bash scripts/...` if `./scripts/...` returns Permission denied.
+
 **Deploy CMS only** — merge application code via git pull, self-update, or FTP safe ZIP. Never upload git’s `public/struxa-dist/repo.json` or `zips/` over the live folder.
 
 ## 3. Optional: GitHub mirror (`struxa/struxa-dist`)
