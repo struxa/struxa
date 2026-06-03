@@ -1,5 +1,4 @@
-<article class="st-catalog__card">
-  <a class="st-catalog__card-hit" href="{{ url_for(show_route, {slug: item.slug}) }}" aria-label="View {{ item.name|e }}"></a>
+<a class="st-catalog__card st-catalog__card--link" href="{{ url_for(show_route, {slug: item.slug}) }}">
   {% if item.screenshot_url %}
     <div class="st-catalog__card-media">
       <img class="st-catalog__shot" src="{{ item.screenshot_url|e('html_attr') }}" alt="" loading="lazy" width="640" height="360" />
@@ -22,5 +21,6 @@
       <p class="st-catalog__desc">{{ desc|length > 140 ? desc|slice(0, 137) ~ '…' : desc }}</p>
     {% endif %}
     {% include '@plugin_struxa_admin/public/_catalog_stats.twig' with { item: item } only %}
+    <span class="st-catalog__card-cta">View details →</span>
   </div>
-</article>
+</a>
