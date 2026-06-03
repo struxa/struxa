@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.2.13",
-    "title": "Struxa 1.2.13",
-    "summary": "Fix theme update wiping struxa-theme when bundled and installed paths are the same; restore previous theme on failed validation.",
+    "latest_version": "1.2.14",
+    "title": "Struxa 1.2.14",
+    "summary": "Include themes/struxa-theme in GitHub archives (remove broken export-ignore); sync script falls back to catalog ZIP.",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "minor"
