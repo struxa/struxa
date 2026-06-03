@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Run ON the struxapoint server (no git required): bash scripts/deploy-struxa-dist-on-server.sh
+# Run ON the struxapoint server after a CMS update (optional sanity check).
+# Live catalog (repo.json, zips/) is owned by struxa-admin — never copied from git.
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
@@ -14,30 +15,19 @@ fi
 DEST="$ROOT/public/struxa-dist"
 mkdir -p "$DEST/zips"
 
-# Catalog Admin reads publish.json + repo.json from public/struxa-dist
-if [[ -f "$ROOT/struxa-dist/publish.json" ]]; then
-  cp "$ROOT/struxa-dist/publish.json" "$DEST/publish.json"
-fi
-if [[ -f "$ROOT/public/struxa-dist/repo.json" ]]; then
-  cp "$ROOT/public/struxa-dist/repo.json" "$DEST/repo.json"
-elif [[ -f "$ROOT/struxa-dist/repo.json" ]]; then
-  cp "$ROOT/struxa-dist/repo.json" "$DEST/repo.json"
-fi
+echo ""
+echo "==> Live catalog check (NOT synced from git)"
+echo "    CMS updates and git pull must not overwrite repo.json or zips/."
+echo "    Regenerate via Admin → Struxa catalog → Regenerate catalog after approving packages."
 
-for slug in knowledge-base-plugin struxa-admin forum-plugin struxa-theme default; do
-  zip="$slug.zip"
-  if [[ -f "$ROOT/public/struxa-dist/zips/$zip" ]]; then
-    cp "$ROOT/public/struxa-dist/zips/$zip" "$DEST/zips/$zip"
-  elif [[ -f "$ROOT/struxa-dist/zips/$zip" ]]; then
-    cp "$ROOT/struxa-dist/zips/$zip" "$DEST/zips/$zip"
-  fi
-done
-
-echo "==> public/struxa-dist/repo.json"
 if [[ -f "$DEST/repo.json" ]]; then
-  grep -E 'generated_at|"slug"|"version"' "$DEST/repo.json" | head -20
+  echo ""
+  echo "==> public/struxa-dist/repo.json (on disk)"
+  grep -E 'generated_at|"slug"|"version"|catalog_version' "$DEST/repo.json" | head -20
 else
-  echo "MISSING: $DEST/repo.json — upload public/struxa-dist/ from your dev machine"
+  echo ""
+  echo "WARN: Missing $DEST/repo.json"
+  echo "      Install struxa-admin, upload ZIPs, approve submissions, then Regenerate catalog."
   exit 1
 fi
 
@@ -53,6 +43,5 @@ if command -v curl >/dev/null 2>&1; then
 fi
 
 echo ""
-echo "Done. In Admin → Struxa catalog → Catalog settings: set dist root to:"
+echo "Done. Catalog dist root for struxa-admin:"
 echo "  $DEST"
-echo "Then click Import from repo.json"

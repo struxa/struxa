@@ -15,9 +15,11 @@ CMS sites download from `https://struxapoint.com/struxa-dist/repo.json` and inst
 
 **On struxapoint.com** the live folder is `~/public_html/struxapoint/public/struxa-dist/` (not the repo root `struxa-dist/` alone).
 
-**Struxa Catalog Admin** (`struxa-admin` plugin) can **regenerate** `repo.json` from `public/struxa-dist/publish.json` plus whatever ZIPs exist in `public/struxa-dist/zips/`. If `publish.json` there only lists `struxa-admin`, other plugins disappear from the catalog. Keep `public/struxa-dist/publish.json` in sync with `struxa-dist/publish.json` in git.
+**Struxa Catalog Admin** (`struxa-admin` plugin) **owns the live catalog** on production: it writes `repo.json`, `repo-summary.json`, and serves ZIPs from `public/struxa-dist/zips/` after you approve submissions. **CMS self-updates and FTP update ZIPs do not overwrite** those files (see `CmsSelfUpdater`, `.gitattributes`, and `scripts/build-safe-update-zip.sh`).
 
-## 1. Build from the CMS repo
+The git repo still contains `public/struxa-dist/` for **local dev and build reference** only (`./scripts/build-struxa-dist.sh`).
+
+## 1. Build from the CMS repo (dev / reference)
 
 From the **Struxa CMS** repo root, rebuild ZIPs and `repo.json` after changing themes/plugins:
 
@@ -25,26 +27,30 @@ From the **Struxa CMS** repo root, rebuild ZIPs and `repo.json` after changing t
 ./scripts/build-struxa-dist.sh
 ```
 
-## 2. Deploy to struxapoint.com (required)
+This syncs into `public/struxa-dist/` on your machine. **Do not rsync that folder to production** — it would overwrite the live catalog.
 
-Upload **`struxa-dist/`** (including `repo.json`, `zips/`, and `.htaccess`) to your hosting docroot:
+## 2. Production catalog on struxapoint.com
 
-| Public URL | File on disk |
-|------------|----------------|
-| `https://struxapoint.com/struxa-dist/repo.json` | `struxa-dist/repo.json` |
-| `https://struxapoint.com/struxa-dist/zips/{slug}.zip` | `struxa-dist/zips/{slug}.zip` |
+| Public URL | Source on production |
+|------------|----------------------|
+| `https://struxapoint.com/struxa-dist/repo.json` | **struxa-admin → Regenerate catalog** |
+| `https://struxapoint.com/struxa-dist/zips/{slug}.zip` | Approved submissions + uploads in Admin |
 
-```bash
-rsync -avz public/struxa-dist/ USER@HOST:~/public_html/struxapoint/public/struxa-dist/
-curl -sS https://struxapoint.com/struxa-dist/repo.json | head
-```
+After deploying **CMS code** (not catalog files):
 
-On the server (after git pull):
+1. Update the **struxa-admin** plugin from Admin → Plugins if needed.
+2. Approve or upload packages in **Admin → Struxa catalog**.
+3. Click **Regenerate catalog** so `repo.json` and ZIP URLs match the live registry.
+
+Optional sanity check on the server (does **not** copy from git):
 
 ```bash
 cd ~/public_html/struxapoint
 bash scripts/deploy-struxa-dist-on-server.sh
+curl -sS https://struxapoint.com/struxa-dist/repo.json | head
 ```
+
+**Deploy CMS only** — merge application code via git pull, self-update, or FTP safe ZIP. Never upload git’s `public/struxa-dist/repo.json` or `zips/` over the live folder.
 
 ## 3. Optional: GitHub mirror (`struxa/struxa-dist`)
 

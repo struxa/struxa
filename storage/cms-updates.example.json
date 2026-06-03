@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.1.117",
-    "title": "Struxa 1.1.117",
-    "summary": "Redesigned Admin → Extensions → Browse plugin catalog with card grid, sidebar ZIP upload, and catalog source panel.",
+    "latest_version": "1.1.118",
+    "title": "Struxa 1.1.118",
+    "summary": "CMS self-updates and FTP safe ZIPs no longer overwrite the live StruxaPoint catalog (repo.json, ZIPs, shards); production catalog stays owned by struxa-admin.",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "patch"
