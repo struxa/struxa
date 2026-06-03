@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.1.114",
-    "title": "Struxa 1.1.114",
-    "summary": "Scalable struxa-dist catalog: repo-summary.json for homepage counts, v2 sharded plugin pages when repo.json grows large.",
+    "latest_version": "1.1.115",
+    "title": "Struxa 1.1.115",
+    "summary": "Redesigned StruxaPoint catalog package detail pages: hero layout, install sidebar, cleaner review stats.",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "patch"

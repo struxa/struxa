@@ -10,99 +10,113 @@
     <a href="{{ url_for(catalog_list_url) }}">← All {{ catalog_package_kind == 'plugin' ? 'plugins' : 'themes' }}</a>
   </p>
 
-  <article class="st-catalog__detail">
-    <header class="st-catalog__detail-head">
-      <div class="st-catalog__detail-copy">
-        <p class="st-eyebrow">{{ kind_label|e }}</p>
-        <h1 class="st-catalog__detail-title">{{ p.name|e }}</h1>
-        <p class="st-catalog__meta">
-          <code class="st-catalog__slug">{{ p.slug|e }}</code>{% if p.version %} · v{{ p.version|e }}{% endif %}
-        </p>
-        {% if p.author %}<p class="st-catalog__byline">by {{ p.author|e }}</p>{% endif %}
-        {% if p.requires_cms_version %}<p class="st-catalog__req">Requires CMS {{ p.requires_cms_version|e }}+</p>{% endif %}
+  <article class="st-catalog__pkg">
+    <header class="st-catalog__pkg-hero">
+      <div class="st-catalog__pkg-hero-copy">
+        <span class="st-catalog__pkg-kind">{{ kind_label|e }}</span>
+        <h1 class="st-catalog__pkg-title">{{ p.name|e }}</h1>
+        <div class="st-catalog__pkg-chips">
+          <code class="st-catalog__chip st-catalog__chip--slug">{{ p.slug|e }}</code>
+          {% if p.version %}
+            <span class="st-catalog__chip">v{{ p.version|e }}</span>
+          {% endif %}
+          {% if p.author %}
+            <span class="st-catalog__chip">by {{ p.author|e }}</span>
+          {% endif %}
+          {% if p.requires_cms_version %}
+            <span class="st-catalog__chip st-catalog__chip--req">CMS {{ p.requires_cms_version|e }}+</span>
+          {% endif %}
+        </div>
         {% include '@plugin_struxa_admin/public/_catalog_stats.twig' with {
           item: p,
-          catalog_stats_interactive: catalog_stats_interactive|default(false)
+          catalog_stats_interactive: catalog_stats_interactive|default(false),
+          catalog_stats_detail: true
         } only %}
       </div>
-      {% if p.screenshot_url %}
-        <div class="st-catalog__detail-media">
-          <img class="st-catalog__detail-shot" src="{{ p.screenshot_url|e('html_attr') }}" alt="" width="960" height="540" />
-        </div>
-      {% endif %}
+      <div class="st-catalog__pkg-hero-media{% if not p.screenshot_url %} st-catalog__pkg-hero-media--empty{% endif %}">
+        {% if p.screenshot_url %}
+          <img class="st-catalog__pkg-shot" src="{{ p.screenshot_url|e('html_attr') }}" alt="" width="960" height="540" />
+        {% else %}
+          <span class="st-catalog__pkg-placeholder" aria-hidden="true">{{ catalog_package_kind == 'plugin' ? '⚙' : '◆' }}</span>
+        {% endif %}
+      </div>
     </header>
 
-    {% if p.description %}
-      <section class="st-catalog__detail-section">
-        <h2 class="st-catalog__section-title">About</h2>
-        <p class="st-catalog__detail-desc">{{ p.description|e|nl2br }}</p>
-      </section>
-    {% endif %}
+    <div class="st-catalog__pkg-layout">
+      <div class="st-catalog__pkg-main">
+        {% if p.description %}
+          <section class="st-catalog__pkg-section">
+            <h2 class="st-catalog__pkg-section-title">About</h2>
+            <div class="st-catalog__pkg-prose">{{ p.description|e|nl2br }}</div>
+          </section>
+        {% endif %}
 
-    <section class="st-catalog__detail-section st-catalog__detail-actions">
-      <h2 class="st-catalog__section-title">Install</h2>
-      <p class="st-catalog__detail-lead">On any Struxa site: <strong>Admin → Extensions</strong> → Browse catalog, or download the ZIP directly.</p>
-      <div class="st-catalog__action-row">
-        {% if p.download_url %}
-          <a class="st-btn st-btn--primary" href="{{ p.download_url|e('html_attr') }}" rel="noopener">Download ZIP</a>
-        {% endif %}
-        {% if p.repository_url %}
-          <a class="st-btn st-btn--outline" href="{{ p.repository_url|e('html_attr') }}" rel="noopener noreferrer">Source repository</a>
-        {% endif %}
+        <section
+          class="st-catalog__pkg-section st-catalog__reviews-panel"
+          id="catalog-reviews-panel"
+          hidden
+          data-catalog-reviews
+          data-reviews-get="{{ url_for(catalog_reviews_url, {slug: p.slug})|e('html_attr') }}"
+          data-reviews-post="{{ url_for(catalog_reviews_post_url, {slug: p.slug})|e('html_attr') }}"
+          data-csrf="{{ csrf_token()|e('html_attr') }}"
+          data-can-engage="{{ catalog_can_engage ? '1' : '0' }}"
+          data-login-url="{{ url_for('login')|e('html_attr') }}?next={{ detail_path|url_encode }}%23reviews"
+          data-user-rating="{{ user_review ? user_review.rating : '' }}"
+          data-user-body="{{ user_review ? user_review.body|e('html_attr') : '' }}"
+        >
+          <h2 class="st-catalog__pkg-section-title">Reviews</h2>
+
+          {% if catalog_can_engage %}
+            <form class="st-catalog__review-form st-catalog__review-form--card" data-review-form novalidate>
+              <fieldset class="st-catalog__rate-fieldset">
+                <legend class="st-catalog__rate-legend">
+                  {% if user_review %}Update your review{% else %}Your rating{% endif %}
+                </legend>
+                <div class="st-catalog__rate-stars">
+                  {% for star in 1..5 %}
+                    <label class="st-catalog__rate-label">
+                      <input class="st-catalog__rate-input" type="radio" name="rating" value="{{ star }}"{% if user_review and user_review.rating == star %} checked{% endif %} required />
+                      <span class="st-catalog__rate-star" aria-hidden="true">★</span>
+                      <span class="visually-hidden">{{ star }} star{{ star == 1 ? '' : 's' }}</span>
+                    </label>
+                  {% endfor %}
+                </div>
+              </fieldset>
+              <label class="st-catalog__label" for="catalog_review_body">Your review</label>
+              <textarea class="st-catalog__textarea" id="catalog_review_body" name="body" rows="4" maxlength="2000" required placeholder="What works well? Would you recommend it?">{{ user_review ? user_review.body|e : '' }}</textarea>
+              <div class="st-catalog__actions">
+                <button type="submit" class="st-btn st-btn--primary" data-review-submit>
+                  {% if user_review %}Update review{% else %}Post review{% endif %}
+                </button>
+              </div>
+              <p class="st-catalog__form-msg" data-review-msg hidden role="status"></p>
+            </form>
+          {% else %}
+            <p class="st-catalog__engage-hint st-catalog__engage-hint--card">
+              <a href="{{ url_for('login') }}?next={{ detail_path|url_encode }}%23reviews">Sign in</a> to write a review.
+            </p>
+          {% endif %}
+
+          <div class="st-catalog__reviews-body" data-reviews-body aria-live="polite"></div>
+          <nav class="st-catalog__pagination" data-reviews-pagination hidden aria-label="Review pages"></nav>
+        </section>
       </div>
-    </section>
 
-    <section
-      class="st-catalog__detail-section st-catalog__reviews-panel"
-      id="catalog-reviews-panel"
-      hidden
-      data-catalog-reviews
-      data-reviews-get="{{ url_for(catalog_reviews_url, {slug: p.slug})|e('html_attr') }}"
-      data-reviews-post="{{ url_for(catalog_reviews_post_url, {slug: p.slug})|e('html_attr') }}"
-      data-csrf="{{ csrf_token()|e('html_attr') }}"
-      data-can-engage="{{ catalog_can_engage ? '1' : '0' }}"
-      data-login-url="{{ url_for('login')|e('html_attr') }}?next={{ detail_path|url_encode }}%23reviews"
-      data-user-rating="{{ user_review ? user_review.rating : '' }}"
-      data-user-body="{{ user_review ? user_review.body|e('html_attr') : '' }}"
-    >
-      <h2 class="st-catalog__section-title">Reviews</h2>
-
-      {% if catalog_can_engage %}
-        <form class="st-catalog__review-form" data-review-form novalidate>
-          <fieldset class="st-catalog__rate-fieldset">
-            <legend class="st-catalog__rate-legend">
-              {% if user_review %}Update your review{% else %}Your review{% endif %}
-            </legend>
-            <div class="st-catalog__rate-stars">
-              {% for star in 1..5 %}
-                <label class="st-catalog__rate-label">
-                  <input class="st-catalog__rate-input" type="radio" name="rating" value="{{ star }}"{% if user_review and user_review.rating == star %} checked{% endif %} required />
-                  <span class="st-catalog__rate-star" aria-hidden="true">★</span>
-                  <span class="visually-hidden">{{ star }} star{{ star == 1 ? '' : 's' }}</span>
-                </label>
-              {% endfor %}
-            </div>
-          </fieldset>
-          <label class="st-catalog__label" for="catalog_review_body">Review</label>
-          <textarea class="st-catalog__textarea" id="catalog_review_body" name="body" rows="4" maxlength="2000" required placeholder="Share your experience…">{{ user_review ? user_review.body|e : '' }}</textarea>
-          <div class="st-catalog__actions">
-            <button type="submit" class="st-btn st-btn--primary" data-review-submit>
-              {% if user_review %}Update review{% else %}Post review{% endif %}
-            </button>
+      <aside class="st-catalog__pkg-aside">
+        <div class="st-catalog__install-card">
+          <h2 class="st-catalog__install-title">Install</h2>
+          <p class="st-catalog__install-lead">On any Struxa site, open <strong>Admin → Extensions</strong> → Browse catalog, or download the ZIP.</p>
+          <div class="st-catalog__install-actions">
+            {% if p.download_url %}
+              <a class="st-btn st-btn--primary st-btn--block" href="{{ p.download_url|e('html_attr') }}" rel="noopener">Download ZIP</a>
+            {% endif %}
+            {% if p.repository_url %}
+              <a class="st-btn st-btn--outline st-btn--block" href="{{ p.repository_url|e('html_attr') }}" rel="noopener noreferrer">View source on GitHub</a>
+            {% endif %}
           </div>
-          <p class="st-catalog__form-msg" data-review-msg hidden role="status"></p>
-        </form>
-      {% else %}
-        <p class="st-catalog__engage-hint">
-          <a href="{{ url_for('login') }}?next={{ detail_path|url_encode }}%23reviews">Sign in</a> to write a review.
-        </p>
-      {% endif %}
-
-      <div class="st-catalog__reviews-body" data-reviews-body aria-live="polite">
-        <p class="st-catalog__empty st-catalog__empty--inline" data-reviews-placeholder>Loading reviews…</p>
-      </div>
-      <nav class="st-catalog__pagination" data-reviews-pagination hidden aria-label="Review pages"></nav>
-    </section>
+        </div>
+      </aside>
+    </div>
   </article>
 {% endblock %}
 
@@ -151,26 +165,22 @@
     if (!statsRoot || !stats) return;
     var countEl = statsRoot.querySelector('[data-stat-review-count]');
     if (countEl) countEl.textContent = String(stats.count || 0);
-    var ratingEmpty = statsRoot.querySelector('[data-stat-rating-empty]');
-    var ratingPill = statsRoot.querySelector('[data-stat-rating]');
-    if (stats.count > 0 && stats.average != null) {
-      if (ratingEmpty) ratingEmpty.hidden = true;
-      if (ratingPill) {
-        ratingPill.hidden = false;
-        var avgEl = ratingPill.querySelector('[data-stat-average]');
-        if (avgEl) avgEl.textContent = Number(stats.average).toFixed(1);
-        var stars = ratingPill.querySelectorAll('.st-catalog__star');
-        var avg = Number(stats.average);
-        stars.forEach(function (star, idx) {
-          var n = idx + 1;
-          star.classList.toggle('is-on', avg >= n);
-          star.classList.toggle('is-half', avg >= n - 0.5 && avg < n);
-        });
-        ratingPill.title = stats.count + ' review' + (stats.count === 1 ? '' : 's');
-      }
-    } else if (ratingPill) {
-      ratingPill.hidden = true;
-      if (ratingEmpty) ratingEmpty.hidden = false;
+    var ratingBlock = statsRoot.querySelector('[data-stat-rating]');
+    if (stats.count > 0 && stats.average != null && ratingBlock) {
+      ratingBlock.hidden = false;
+      var avgEl = ratingBlock.querySelector('[data-stat-average]') || ratingBlock.querySelector('.st-catalog__stat-value');
+      if (avgEl) avgEl.textContent = Number(stats.average).toFixed(1);
+      var stars = ratingBlock.querySelectorAll('.st-catalog__star');
+      var avg = Number(stats.average);
+      stars.forEach(function (star, idx) {
+        var n = idx + 1;
+        star.classList.toggle('is-on', avg >= n);
+        star.classList.toggle('is-half', avg >= n - 0.5 && avg < n);
+      });
+    }
+    var reviewBtn = statsRoot.querySelector('[data-reviews-toggle] .st-catalog__stat-label');
+    if (reviewBtn && stats.count > 0) {
+      reviewBtn.textContent = 'Read reviews';
     }
   }
 
@@ -183,13 +193,13 @@
       var html = '<ol class="st-catalog__review-list">';
       reviews.forEach(function (r) {
         html += '<li class="st-catalog__review' + (r.is_own ? ' is-own' : '') + '">';
-        html += '<p class="st-catalog__review-meta">';
+        html += '<div class="st-catalog__review-head">';
         html += '<strong class="st-catalog__review-author">' + escapeHtml(r.author_name || 'Member') + '</strong>';
-        html += ' · <span class="st-catalog__stars st-catalog__stars--sm" aria-label="' + r.rating + ' stars">' + renderStars(r.rating) + '</span>';
+        html += '<span class="st-catalog__stars st-catalog__stars--sm" aria-label="' + r.rating + ' stars">' + renderStars(r.rating) + '</span>';
         if (r.created_at) {
-          html += ' · <time datetime="' + escapeHtml(r.created_at) + '">' + escapeHtml(formatDate(r.created_at)) + '</time>';
+          html += '<time class="st-catalog__review-date" datetime="' + escapeHtml(r.created_at) + '">' + escapeHtml(formatDate(r.created_at)) + '</time>';
         }
-        html += '</p>';
+        html += '</div>';
         html += '<p class="st-catalog__review-body">' + escapeHtml(r.body).replace(/\n/g, '<br>') + '</p>';
         html += '</li>';
       });
@@ -244,6 +254,7 @@
       if (window.location.hash !== '#reviews') {
         history.replaceState(null, '', '#reviews');
       }
+      panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     } else if (window.location.hash === '#reviews') {
       history.replaceState(null, '', window.location.pathname + window.location.search);
     }
@@ -259,7 +270,6 @@
     var page = parseInt(btn.getAttribute('data-page'), 10);
     if (!page || page < 1) return;
     loadReviews(page);
-    panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
   });
 
   if (form && canEngage) {

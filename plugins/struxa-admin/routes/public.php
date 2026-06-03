@@ -149,6 +149,7 @@ return static function (App $app, \App\Plugin\PluginBootContext $ctx): void {
                 ? 'public.struxa_catalog.plugin_reviews_post'
                 : 'public.struxa_catalog.theme_reviews_post',
             'catalog_stats_interactive' => true,
+            'catalog_detail_page' => true,
         ]), [
             'catalog_themes' => $engagement->enrichList(SubmissionKind::THEME, $catalog['themes']),
             'catalog_plugins' => $engagement->enrichList(SubmissionKind::PLUGIN, $catalog['plugins']),
