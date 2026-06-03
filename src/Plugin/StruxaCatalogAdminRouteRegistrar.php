@@ -178,7 +178,8 @@ final class StruxaCatalogAdminRouteRegistrar
             $cmsUid,
             $ns,
             $permMw,
-            $authMw
+            $authMw,
+            $pdo
         ): void {
             $group->get('/extensions/struxa-catalog/submissions', function (Request $request, Response $response) use (
                 $twig,
