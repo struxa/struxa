@@ -23,7 +23,11 @@ if [[ "$VER" == "" ]]; then
 fi
 
 if [[ "$VER" == "1.0.38" ]]; then
-  echo "WARN: Bundled theme is still 1.0.38 — run: git pull origin main  (or CMS self-update to 1.2.8+)" >&2
+  echo "WARN: Bundled theme is still 1.0.38." >&2
+  echo "      Fix the source tree first, then re-run this script:" >&2
+  echo "        git fetch origin && git checkout origin/main -- themes/struxa-theme" >&2
+  echo "        bash scripts/sync-struxa-theme-from-github.sh" >&2
+  exit 1
 fi
 
 mkdir -p "$(dirname "$ZIP")"

@@ -66,6 +66,14 @@ bash scripts/republish-bundled-theme.sh            # rebuild ZIP from themes/
 
 Use `bash scripts/...` if `./scripts/...` returns Permission denied.
 
+If `themes/struxa-theme/theme.json` stays at **1.0.38** after `git pull`, the server tree was not updated (FTP-only deploy, old branch, or local overrides). Refresh only the theme from GitHub:
+
+```bash
+bash scripts/sync-struxa-theme-from-github.sh
+bash scripts/republish-bundled-theme.sh
+# Admin → Struxa catalog → Regenerate catalog
+```
+
 **Deploy CMS only** — merge application code via git pull, self-update, or FTP safe ZIP. Never upload git’s `public/struxa-dist/repo.json` or `zips/` over the live folder.
 
 ## 3. Optional: GitHub mirror (`struxa/struxa-dist`)
