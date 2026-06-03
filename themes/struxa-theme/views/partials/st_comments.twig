@@ -28,7 +28,7 @@
         <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
         <input type="hidden" name="thread_key" value="{{ comments_thread_key|e('html_attr') }}" />
         <input type="hidden" name="return_to" value="{{ comments_return_to|default('/')|e('html_attr') }}" />
-        <input type="text" name="website" value="" autocomplete="off" tabindex="-1" aria-hidden="true" class="st-comments__honeypot" />
+        <input type="text" name="website" value="" autocomplete="off" tabindex="-1" hidden class="st-comments__honeypot" />
         <label class="st-comments__field">
           <span class="st-comments__label">Your comment</span>
           <textarea required name="body" maxlength="4000" rows="4" placeholder="Share a question, reaction, or idea…"></textarea>

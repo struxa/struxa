@@ -4,9 +4,9 @@
 {% set cond = field.conditional|default(null) %}
 <div class="struxa-form-field-wrap" data-field-key="{{ key|e('html_attr') }}"{% if cond %} data-conditional='{{ cond|json_encode|e('html_attr') }}'{% endif %}>
   {% if type == 'honeypot' %}
-    <div class="struxa-form-hp" aria-hidden="true">
+    <div class="struxa-form-hp">
       <label for="sf-{{ key|e('html_attr') }}">{{ field.label|default('Leave blank')|e }}</label>
-      <input type="text" id="sf-{{ key|e('html_attr') }}" name="{{ key|e('html_attr') }}" tabindex="-1" autocomplete="off" />
+      <input type="text" id="sf-{{ key|e('html_attr') }}" name="{{ key|e('html_attr') }}" tabindex="-1" autocomplete="off" hidden />
     </div>
   {% elseif type == 'hidden' %}
     <input type="hidden" name="{{ key|e('html_attr') }}" value="{{ field.settings.default|default('')|e('html_attr') }}" />

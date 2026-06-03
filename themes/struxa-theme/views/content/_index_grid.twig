@@ -15,14 +15,15 @@
         {% set row = item.row %}
         <article class="st-card">
           {% if item.featured_url %}
-            <a class="st-card__thumb" href="{{ site_url }}/{{ content_type.slug|e }}/{{ row.slug|e }}" tabindex="-1" aria-hidden="true">
+            <div class="st-card__thumb">
               {% include 'partials/_responsive_featured_img.twig' with {
                 src: item.featured_url,
                 media_id: item.featured_media_id|default(null),
                 sizes: '(max-width: 768px) 92vw, 320px',
                 loading: 'lazy',
+                alt: '',
               } only %}
-            </a>
+            </div>
           {% endif %}
           <div class="st-card__body">
             {% if row.published_at %}

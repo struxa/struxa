@@ -48,7 +48,7 @@
           {% set _furl = url_for('public.content_entry', { typeSlug: content_type.slug, entrySlug: _frow.slug }) %}
           <article class="st-blog-featured">
             <a class="st-blog-featured__link" href="{{ _furl|e('html_attr') }}">
-              <div class="st-blog-featured__media" aria-hidden="true">
+              <div class="st-blog-featured__media">
                 {% if _feat.featured_url|default('')|trim != '' %}
                   <img
                     class="st-blog-featured__img"
@@ -93,7 +93,7 @@
               <li>
                 <article class="st-blog-index__card">
                   <a class="st-blog-index__card-link" href="{{ _url|e('html_attr') }}">
-                    <div class="st-blog-index__card-media" aria-hidden="true">
+                    <div class="st-blog-index__card-media">
                       {% if item.featured_url|default('')|trim != '' %}
                         <img
                           class="st-blog-index__card-img"

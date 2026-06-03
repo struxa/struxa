@@ -40,7 +40,7 @@
           <li>
             <article class="st-blog-news__card">
               <a class="st-blog-news__card-link" href="{{ _url|e('html_attr') }}">
-                <div class="st-blog-news__media" aria-hidden="true">
+                <div class="st-blog-news__media">
                   {% if item.featured_url|default('')|trim != '' %}
                     {% include 'partials/_responsive_featured_img.twig' with {
                       src: item.featured_url,

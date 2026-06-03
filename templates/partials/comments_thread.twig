@@ -44,7 +44,7 @@
           <input type="hidden" name="thread_key" value="{{ thread_key|e('html_attr') }}" />
           <input type="hidden" name="parent_id" value="{{ node.id }}" />
           <input type="hidden" name="return_to" value="{{ return_to|e('html_attr') }}" />
-          <input type="text" name="website" value="" autocomplete="off" tabindex="-1" aria-hidden="true" style="position:absolute;left:-9999px;opacity:0" />
+          <input type="text" name="website" value="" autocomplete="off" tabindex="-1" hidden />
           <label>
             <span>Reply</span>
             <textarea required name="body" maxlength="4000" rows="3" placeholder="Add to the thread…"></textarea>

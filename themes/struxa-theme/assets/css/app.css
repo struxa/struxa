@@ -1277,6 +1277,11 @@ body.st-search-modal-open { overflow: hidden; }
 .st-search-modal__backdrop {
   position: absolute;
   inset: 0;
+  margin: 0;
+  padding: 0;
+  border: none;
+  appearance: none;
+  cursor: pointer;
   background: rgba(17, 24, 39, 0.45);
   backdrop-filter: blur(4px);
   opacity: 0;

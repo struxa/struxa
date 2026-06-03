@@ -123,7 +123,7 @@
         <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
         <input type="hidden" name="thread_key" value="{{ comments_thread_key|e('html_attr') }}" />
         <input type="hidden" name="return_to" value="{{ comments_return_to|e('html_attr') }}" />
-        <input type="text" name="website" value="" autocomplete="off" tabindex="-1" aria-hidden="true" style="position:absolute;left:-9999px;opacity:0" />
+        <input type="text" name="website" value="" autocomplete="off" tabindex="-1" hidden />
         <label>
           <span>Your comment</span>
           <textarea required name="body" maxlength="4000" rows="4" placeholder="Ideas, questions, or reactions…"></textarea>
