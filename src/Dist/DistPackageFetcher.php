@@ -21,16 +21,31 @@ final class DistPackageFetcher
     {
         $local = $this->resolveLocalZipPath($url);
         if ($local !== null) {
-            $size = filesize($local);
-            if ($size !== false && $size > 0 && $size <= $maxBytes) {
-                $data = file_get_contents($local);
-                if ($data !== false && $data !== '') {
-                    return $data;
-                }
+            $data = $this->readLocalZip($local, $maxBytes);
+            if ($data !== null) {
+                return $data;
             }
         }
 
-        return $this->httpGetLimited($url, $maxBytes);
+        $data = $this->httpGetLimited($url, $maxBytes);
+        if ($data !== null) {
+            return $data;
+        }
+
+        $fallbackUrl = $this->staticZipUrlFallback($url);
+        if ($fallbackUrl !== null && $fallbackUrl !== $url) {
+            $local = $this->resolveLocalZipPath($fallbackUrl);
+            if ($local !== null) {
+                $data = $this->readLocalZip($local, $maxBytes);
+                if ($data !== null) {
+                    return $data;
+                }
+            }
+
+            return $this->httpGetLimited($fallbackUrl, $maxBytes);
+        }
+
+        return null;
     }
 
     /**
@@ -72,11 +87,52 @@ final class DistPackageFetcher
     private function zipBasenameFromUrl(string $url): ?string
     {
         $path = parse_url($url, PHP_URL_PATH);
-        if (!is_string($path) || !preg_match('#/struxa-dist/zips/([a-z0-9][a-z0-9\-]*\.zip)$#i', $path, $m)) {
+        if (!is_string($path)) {
             return null;
         }
 
-        return strtolower($m[1]);
+        if (preg_match('#/struxa-catalog/download/(?:plugin|theme)/([a-z0-9][a-z0-9\-]*)$#i', $path, $m)) {
+            return strtolower($m[1]) . '.zip';
+        }
+
+        if (preg_match('#/struxa-dist/zips/([a-z0-9][a-z0-9\-]*\.zip)$#i', $path, $m)) {
+            return strtolower($m[1]);
+        }
+
+        return null;
+    }
+
+    /**
+     * When repo.json uses tracked download URLs but the route is not deployed yet,
+     * fall back to the static struxa-dist ZIP on the same host.
+     */
+    private function staticZipUrlFallback(string $url): ?string
+    {
+        $path = parse_url($url, PHP_URL_PATH);
+        if (!is_string($path) || !preg_match('#/struxa-catalog/download/(?:plugin|theme)/([a-z0-9][a-z0-9\-]*)$#i', $path, $m)) {
+            return null;
+        }
+
+        $host = parse_url($url, PHP_URL_HOST);
+        if (!is_string($host) || $host === '') {
+            return null;
+        }
+
+        return 'https://' . $host . '/struxa-dist/zips/' . strtolower($m[1]) . '.zip';
+    }
+
+    private function readLocalZip(string $path, int $maxBytes): ?string
+    {
+        $size = filesize($path);
+        if ($size === false || $size <= 0 || $size > $maxBytes) {
+            return null;
+        }
+        $data = file_get_contents($path);
+        if ($data === false || $data === '') {
+            return null;
+        }
+
+        return $data;
     }
 
     private function httpGetLimited(string $url, int $maxBytes): ?string
