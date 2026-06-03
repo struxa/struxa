@@ -61,19 +61,85 @@ final class GitHubRepoClient
     public function resolveBranch(string $owner, string $repo, string $branch): array
     {
         $info = $this->apiGet('/repos/' . rawurlencode($owner) . '/' . rawurlencode($repo));
-        if ($info === null) {
-            return ['ok' => false, 'error' => 'Could not reach GitHub for this repository (check the URL is public).'];
-        }
-        $default = is_string($info['default_branch'] ?? null) ? (string) $info['default_branch'] : 'main';
-        if ($branch === '' || $branch === 'main' || $branch === 'master') {
-            return ['ok' => true, 'branch' => $default];
-        }
-        $ref = $this->apiGet('/repos/' . rawurlencode($owner) . '/' . rawurlencode($repo) . '/git/ref/heads/' . rawurlencode($branch));
-        if ($ref === null) {
-            return ['ok' => false, 'error' => 'Branch "' . $branch . '" was not found on GitHub.'];
+        if ($info !== null) {
+            if (isset($info['message']) && !isset($info['default_branch'])) {
+                $apiErr = $this->apiErrorMessage($info);
+                if ($apiErr !== null) {
+                    $fallback = $this->resolveBranchViaRaw($owner, $repo, $branch);
+                    if ($fallback['ok']) {
+                        return $fallback;
+                    }
+
+                    return ['ok' => false, 'error' => $apiErr];
+                }
+            }
+            $default = is_string($info['default_branch'] ?? null) ? (string) $info['default_branch'] : 'main';
+            if ($branch === '' || $branch === 'main' || $branch === 'master') {
+                return ['ok' => true, 'branch' => $default];
+            }
+            $ref = $this->apiGet('/repos/' . rawurlencode($owner) . '/' . rawurlencode($repo) . '/git/ref/heads/' . rawurlencode($branch));
+            if ($ref === null) {
+                if ($this->rawPathExists($owner, $repo, $branch, 'plugin.json')
+                    || $this->rawPathExists($owner, $repo, $branch, 'theme.json')) {
+                    return ['ok' => true, 'branch' => $branch];
+                }
+
+                return ['ok' => false, 'error' => 'Branch "' . $branch . '" was not found on GitHub.'];
+            }
+
+            return ['ok' => true, 'branch' => $branch];
         }
 
-        return ['ok' => true, 'branch' => $branch];
+        return $this->resolveBranchViaRaw($owner, $repo, $branch);
+    }
+
+    /**
+     * @return array{ok: true, branch: string}|array{ok: false, error: string}
+     */
+    private function resolveBranchViaRaw(string $owner, string $repo, string $branch): array
+    {
+        $candidates = [];
+        foreach ([$branch, 'main', 'master'] as $candidate) {
+            $candidate = trim($candidate);
+            if ($candidate === '' || in_array($candidate, $candidates, true)) {
+                continue;
+            }
+            $candidates[] = $candidate;
+        }
+
+        foreach ($candidates as $tryBranch) {
+            if ($this->rawPathExists($owner, $repo, $tryBranch, 'plugin.json')
+                || $this->rawPathExists($owner, $repo, $tryBranch, 'theme.json')
+                || $this->rawPathExists($owner, $repo, $tryBranch, 'README.md')) {
+                return ['ok' => true, 'branch' => $tryBranch];
+            }
+        }
+
+        return ['ok' => false, 'error' => 'Could not reach GitHub for this repository (check the URL is public).'];
+    }
+
+    private function rawPathExists(string $owner, string $repo, string $branch, string $path): bool
+    {
+        return $this->fetchRawFile($owner, $repo, $branch, $path) !== null;
+    }
+
+    /**
+     * @param array<string, mixed> $info
+     */
+    private function apiErrorMessage(array $info): ?string
+    {
+        $msg = trim((string) ($info['message'] ?? ''));
+        if ($msg === '') {
+            return null;
+        }
+        if (stripos($msg, 'rate limit') !== false) {
+            return 'GitHub API rate limit reached. Add a GitHub token under Catalog settings or try again in an hour.';
+        }
+        if (stripos($msg, 'not found') !== false) {
+            return 'Repository not found on GitHub (check the URL is public).';
+        }
+
+        return 'GitHub API error: ' . $msg;
     }
 
     /**
@@ -218,8 +284,11 @@ final class GitHubRepoClient
             '/repos/' . rawurlencode($owner) . '/' . rawurlencode($repo) . '/contents/' . implode('/', array_map('rawurlencode', explode('/', $path)))
             . '?ref=' . rawurlencode($branch)
         );
+        if (is_array($data) && isset($data['type'])) {
+            return true;
+        }
 
-        return is_array($data) && isset($data['type']);
+        return $this->rawPathExists($owner, $repo, $branch, $path);
     }
 
     public function fetchRawFile(string $owner, string $repo, string $branch, string $path): ?string
@@ -257,16 +326,47 @@ final class GitHubRepoClient
 
     private function httpGet(string $url, int $maxBytes, bool $followRedirects): ?string
     {
-        $headers = "User-Agent: Struxa-Catalog-Admin/1.0\r\nAccept: application/json\r\n";
-        if ($this->githubToken !== null) {
-            $headers .= 'Authorization: Bearer ' . $this->githubToken . "\r\n";
+        $accept = str_contains($url, 'raw.githubusercontent.com') ? '*/*' : 'application/json';
+        $headerLines = [
+            'User-Agent: Struxa-Catalog-Admin/1.0',
+            'Accept: ' . $accept,
+        ];
+        if ($this->githubToken !== null && str_contains($url, 'api.github.com')) {
+            $headerLines[] = 'Authorization: Bearer ' . $this->githubToken;
         }
+
+        if (function_exists('curl_init')) {
+            $ch = curl_init($url);
+            if ($ch !== false) {
+                curl_setopt_array($ch, [
+                    CURLOPT_RETURNTRANSFER => true,
+                    CURLOPT_FOLLOWLOCATION => $followRedirects,
+                    CURLOPT_MAXREDIRS => 8,
+                    CURLOPT_CONNECTTIMEOUT => 15,
+                    CURLOPT_TIMEOUT => 45,
+                    CURLOPT_HTTPHEADER => $headerLines,
+                    CURLOPT_SSL_VERIFYPEER => true,
+                    CURLOPT_SSL_VERIFYHOST => 2,
+                ]);
+                $raw = curl_exec($ch);
+                $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                if (is_string($raw) && $code >= 200 && $code < 300 && $raw !== '' && strlen($raw) < $maxBytes) {
+                    return $raw;
+                }
+                if ($code === 404) {
+                    return null;
+                }
+            }
+        }
+
+        $headers = implode("\r\n", $headerLines) . "\r\n";
         $ctx = stream_context_create([
             'http' => [
                 'timeout' => 45,
                 'follow_location' => $followRedirects ? 1 : 0,
                 'max_redirects' => 5,
                 'header' => $headers,
+                'ignore_errors' => true,
             ],
             'ssl' => [
                 'verify_peer' => true,
@@ -286,6 +386,14 @@ final class GitHubRepoClient
             $data .= $chunk;
         }
         fclose($h);
+        $status = 0;
+        $responseHeaders = function_exists('http_get_last_response_headers') ? http_get_last_response_headers() : null;
+        if (is_array($responseHeaders) && isset($responseHeaders[0]) && preg_match('#\s(\d{3})\s#', (string) $responseHeaders[0], $sm)) {
+            $status = (int) $sm[1];
+        }
+        if ($status === 404 || $status >= 400) {
+            return null;
+        }
         if ($data === '' || strlen($data) >= $maxBytes) {
             return null;
         }

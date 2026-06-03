@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.1.110",
-    "title": "Struxa 1.1.110",
-    "summary": "Catalog detail star ratings highlight all stars up to the selected value on hover and after save.",
+    "latest_version": "1.1.111",
+    "title": "Struxa 1.1.111",
+    "summary": "Catalog GitHub validation falls back to raw.githubusercontent.com when the API is blocked or rate-limited.",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "patch"
