@@ -160,6 +160,44 @@ final class CatalogSubmissionRepository
         return $out;
     }
 
+    /**
+     * @param array<string, mixed> $manifest
+     */
+    public function updateDetails(
+        int $id,
+        string $gitRepoUrl,
+        string $gitBranch,
+        string $name,
+        string $version,
+        string $description,
+        string $author,
+        array $manifest,
+        ?int $submitterUserId,
+        string $submitterUsername,
+        string $submitterEmail,
+    ): void {
+        $stmt = $this->pdo->prepare(
+            'UPDATE cms_struxa_catalog_submissions
+             SET git_repo_url = ?, git_branch = ?, name = ?, version = ?, description = ?, author = ?,
+                 manifest_json = ?, submitter_user_id = ?, submitter_username = ?, submitter_email = ?,
+                 updated_at = UTC_TIMESTAMP()
+             WHERE id = ?'
+        );
+        $stmt->execute([
+            $gitRepoUrl,
+            $gitBranch,
+            $name,
+            $version,
+            $description,
+            $author,
+            json_encode($manifest, JSON_THROW_ON_ERROR),
+            $submitterUserId,
+            $submitterUsername !== '' ? $submitterUsername : null,
+            $submitterEmail,
+            $id,
+        ]);
+    }
+
     public function setStatus(int $id, string $status, ?string $reviewerNotes, ?int $reviewedBy, ?string $publishedAt = null): void
     {
         $stmt = $this->pdo->prepare(

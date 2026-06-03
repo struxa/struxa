@@ -16,9 +16,11 @@ use Slim\App;
 use Slim\Exception\HttpNotFoundException;
 use Slim\Routing\RouteContext;
 use Slim\Views\Twig;
+use StruxaAdmin\CatalogMemberLookup;
 use StruxaAdmin\CatalogPublisher;
 use StruxaAdmin\CatalogRepoJsonImporter;
 use StruxaAdmin\CatalogSettings;
+use StruxaAdmin\CatalogSubmissionEditor;
 use StruxaAdmin\CatalogSubmissionRepository;
 use StruxaAdmin\GitHubRepoClient;
 use StruxaAdmin\SubmissionStatus;
@@ -147,6 +149,7 @@ final class StruxaCatalogAdminRouteRegistrar
         $submissions = new CatalogSubmissionRepository($pdo);
         $github = new GitHubRepoClient($settings->githubToken());
         $publisher = new CatalogPublisher($settings, $submissions, $github);
+        $submissionEditor = new CatalogSubmissionEditor($submissions, $github, $publisher);
 
         $authMw = new RequireCmsStaff($auth, $pdo);
         $permMw = new RequirePermission($pdo, [PermissionSlug::MANAGE_PLUGINS]);
@@ -179,7 +182,8 @@ final class StruxaCatalogAdminRouteRegistrar
             $ns,
             $permMw,
             $authMw,
-            $pdo
+            $pdo,
+            $submissionEditor
         ): void {
             $group->get('/extensions/struxa-catalog/submissions', function (Request $request, Response $response) use (
                 $twig,
@@ -226,8 +230,61 @@ final class StruxaCatalogAdminRouteRegistrar
                     'dist_root' => $settings->distRoot(),
                     'zip_base_url' => $settings->zipBaseUrl(),
                     'download_count' => $downloadCount,
+                    'member_search_url' => RouteContext::fromRequest($request)->getRouteParser()
+                        ->urlFor('admin.struxa_catalog.member_search'),
                 ]));
             })->setName('admin.struxa_catalog.submission_show');
+
+            $group->get('/extensions/struxa-catalog/members/search', function (
+                Request $request,
+                Response $response
+            ) use ($pdo): Response {
+                $q = trim((string) ($request->getQueryParams()['q'] ?? ''));
+                $members = CatalogMemberLookup::search($pdo, $q);
+                $payload = json_encode(['members' => $members], JSON_THROW_ON_ERROR);
+
+                return $response
+                    ->withHeader('Content-Type', 'application/json; charset=utf-8')
+                    ->withHeader('Cache-Control', 'private, no-store')
+                    ->withBody((static function (string $json) {
+                        $stream = fopen('php://temp', 'r+');
+                        if ($stream === false) {
+                            throw new \RuntimeException('Could not open temp stream.');
+                        }
+                        fwrite($stream, $json);
+                        rewind($stream);
+
+                        return new \Slim\Psr7\Stream($stream);
+                    })($payload));
+            })->setName('admin.struxa_catalog.member_search');
+
+            $group->post('/extensions/struxa-catalog/submissions/{id:[0-9]+}/update', function (
+                Request $request,
+                Response $response,
+                array $args
+            ) use ($submissions, $submissionEditor, $pdo): Response {
+                $id = (int) $args['id'];
+                $row = $submissions->findById($id);
+                $parser = RouteContext::fromRequest($request)->getRouteParser();
+                $back = $parser->urlFor('admin.struxa_catalog.submission_show', ['id' => (string) $id]);
+                if ($row === null) {
+                    throw new HttpNotFoundException($request);
+                }
+                $body = $request->getParsedBody();
+                $body = is_array($body) ? $body : [];
+                $result = $submissionEditor->update($pdo, $id, $body);
+                if (!$result['ok']) {
+                    Flash::set('error', implode(' ', $result['errors']));
+
+                    return $response->withHeader('Location', $back . '#edit')->withStatus(302);
+                }
+                $msg = !empty($result['regenerated'])
+                    ? 'Submission updated and live catalog regenerated.'
+                    : 'Submission updated.';
+                Flash::set('success', $msg);
+
+                return $response->withHeader('Location', $back . '#edit')->withStatus(302);
+            })->setName('admin.struxa_catalog.submission_update');
 
             $group->post('/extensions/struxa-catalog/submissions/{id:[0-9]+}/review', function (
                 Request $request,

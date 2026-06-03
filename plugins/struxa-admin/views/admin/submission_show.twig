@@ -140,12 +140,83 @@
 
     <div class="admin-catalog-submission-layout">
       <div class="admin-catalog-submission-main">
+        <section class="admin-card admin-settings-card admin-catalog-submission-card" id="edit">
+          <header class="admin-settings-card-head-row">
+            <div>
+              <h2 class="admin-settings-card-title">Edit submission</h2>
+              <p class="admin-settings-card-desc" style="margin-bottom:0">Update catalog metadata, author, source repo, or linked member account.</p>
+            </div>
+          </header>
+          <form method="post" action="{{ url_for('admin.struxa_catalog.submission_update', { id: submission.id }) }}" class="admin-form admin-catalog-submission-edit-form">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+            <div class="admin-form-grid">
+              <div class="admin-field">
+                <label class="admin-label" for="catalog_edit_name">Name</label>
+                <input class="admin-input" id="catalog_edit_name" name="name" required maxlength="255" value="{{ submission.name|e('html_attr') }}" />
+              </div>
+              <div class="admin-field">
+                <label class="admin-label" for="catalog_edit_version">Version</label>
+                <input class="admin-input" id="catalog_edit_version" name="version" required maxlength="64" value="{{ submission.version|e('html_attr') }}" />
+              </div>
+              <div class="admin-field">
+                <label class="admin-label" for="catalog_edit_author">Author</label>
+                <input class="admin-input" id="catalog_edit_author" name="author" maxlength="255" value="{{ submission.author|e('html_attr') }}" placeholder="Shown in the public catalog" />
+                <p class="admin-hint">Display name on <a class="admin-link" href="{{ submission.kind == 'theme' ? url_for('public.struxa_catalog.theme_show', {slug: submission.slug}) : url_for('public.struxa_catalog.plugin_show', {slug: submission.slug}) }}" target="_blank" rel="noopener">public listing</a>.</p>
+              </div>
+              <div class="admin-field">
+                <label class="admin-label" for="catalog_edit_requires_cms">Requires CMS</label>
+                <input class="admin-input" id="catalog_edit_requires_cms" name="requires_cms_version" maxlength="32" value="{{ submission.manifest.requires_cms_version|default('')|e('html_attr') }}" placeholder="1.1.33" />
+              </div>
+            </div>
+            <div class="admin-field">
+              <label class="admin-label" for="catalog_edit_description">Description</label>
+              <textarea class="admin-input" id="catalog_edit_description" name="description" rows="5" maxlength="8000">{{ submission.description|e }}</textarea>
+            </div>
+            <div class="admin-form-grid">
+              <div class="admin-field">
+                <label class="admin-label" for="catalog_edit_git">Git repository URL</label>
+                <input class="admin-input" id="catalog_edit_git" name="git_repo_url" required value="{{ submission.gitRepoUrl|e('html_attr') }}" />
+              </div>
+              <div class="admin-field">
+                <label class="admin-label" for="catalog_edit_branch">Branch</label>
+                <input class="admin-input" id="catalog_edit_branch" name="git_branch" required maxlength="120" value="{{ submission.gitBranch|e('html_attr') }}" />
+              </div>
+            </div>
+            <div class="admin-field">
+              <label class="admin-label" for="catalog_edit_submitter_username">Linked member username</label>
+              <input
+                class="admin-input"
+                id="catalog_edit_submitter_username"
+                name="submitter_username"
+                maxlength="191"
+                value="{{ submission.submitterUsername|default('')|e('html_attr') }}"
+                placeholder="Search active members…"
+                autocomplete="off"
+                list="catalog_member_usernames"
+                data-member-search-url="{{ member_search_url|default('')|e('html_attr') }}"
+              />
+              <datalist id="catalog_member_usernames"></datalist>
+              <p class="admin-hint">Type at least 2 characters to search usernames, emails, or display names. Must match an active member when set.</p>
+              {% if submission.submitterUserId %}
+                <label class="admin-checkbox-label" style="margin-top:.65rem">
+                  <input type="checkbox" name="clear_submitter_link" value="1" />
+                  Remove member link (keep submitter email {{ submission.submitterEmail|e }})
+                </label>
+              {% endif %}
+            </div>
+            <p class="admin-hint">Slug <code class="admin-inline-code">{{ submission.slug|e }}</code> is fixed after submission.{% if submission.status == 'approved' %} Saving regenerates <code class="admin-inline-code">repo.json</code>.{% endif %}</p>
+            <div class="admin-catalog-submission-review-actions">
+              <button type="submit" class="admin-btn-primary">Save changes</button>
+            </div>
+          </form>
+        </section>
+
         {% if submission.description %}
           <section class="admin-card admin-settings-card admin-catalog-submission-card">
             <header class="admin-settings-card-head-row">
               <div>
                 <h2 class="admin-settings-card-title">About this package</h2>
-                <p class="admin-settings-card-desc" style="margin-bottom:0">Description from the manifest.</p>
+                <p class="admin-settings-card-desc" style="margin-bottom:0">Preview of the public catalog description.</p>
               </div>
             </header>
             <div class="admin-prose admin-catalog-submission-desc">{{ submission.description|e }}</div>
@@ -155,18 +226,14 @@
         <section class="admin-card admin-settings-card admin-catalog-submission-card">
           <header class="admin-settings-card-head-row">
             <div>
-              <h2 class="admin-settings-card-title">Package metadata</h2>
-              <p class="admin-settings-card-desc" style="margin-bottom:0">Slug, version, and distribution paths.</p>
+              <h2 class="admin-settings-card-title">Package identifiers</h2>
+              <p class="admin-settings-card-desc" style="margin-bottom:0">Slug and distribution paths (read-only).</p>
             </div>
           </header>
           <dl class="admin-catalog-kv">
             <div class="admin-catalog-kv-row">
               <dt>Slug</dt>
               <dd><code class="admin-inline-code">{{ submission.slug|e }}</code></dd>
-            </div>
-            <div class="admin-catalog-kv-row">
-              <dt>Version</dt>
-              <dd>{{ submission.version|e }}</dd>
             </div>
             <div class="admin-catalog-kv-row">
               <dt>Kind</dt>
@@ -190,27 +257,6 @@
                 </dd>
               </div>
             {% endif %}
-          </dl>
-        </section>
-
-        <section class="admin-card admin-settings-card admin-catalog-submission-card">
-          <header class="admin-settings-card-head-row">
-            <div>
-              <h2 class="admin-settings-card-title">Source repository</h2>
-              <p class="admin-settings-card-desc" style="margin-bottom:0">Approval downloads this branch and builds the distribution ZIP.</p>
-            </div>
-          </header>
-          <dl class="admin-catalog-kv">
-            <div class="admin-catalog-kv-row">
-              <dt>Git URL</dt>
-              <dd>
-                <a class="admin-link admin-tools-code-break" href="{{ submission.gitRepoUrl|e('html_attr') }}" rel="noopener noreferrer" target="_blank">{{ submission.gitRepoUrl|e }}</a>
-              </dd>
-            </div>
-            <div class="admin-catalog-kv-row">
-              <dt>Branch</dt>
-              <dd><code class="admin-inline-code">{{ submission.gitBranch|e }}</code></dd>
-            </div>
           </dl>
         </section>
 
@@ -356,4 +402,34 @@
       </aside>
     </div>
   </div>
+  {% if member_search_url|default('') %}
+  <script>
+  (function () {
+    var input = document.getElementById('catalog_edit_submitter_username');
+    var list = document.getElementById('catalog_member_usernames');
+    if (!input || !list || !input.dataset.memberSearchUrl) return;
+    var timer = null;
+    input.addEventListener('input', function () {
+      window.clearTimeout(timer);
+      timer = window.setTimeout(function () {
+        var q = input.value.trim();
+        list.innerHTML = '';
+        if (q.length < 2) return;
+        fetch(input.dataset.memberSearchUrl + '?q=' + encodeURIComponent(q), {
+          headers: { Accept: 'application/json' },
+          credentials: 'same-origin'
+        }).then(function (res) { return res.ok ? res.json() : { members: [] }; })
+          .then(function (data) {
+            (data.members || []).forEach(function (m) {
+              var opt = document.createElement('option');
+              opt.value = m.username || '';
+              opt.label = (m.display_name || m.username || '') + (m.email ? ' · ' + m.email : '');
+              list.appendChild(opt);
+            });
+          }).catch(function () {});
+      }, 250);
+    });
+  })();
+  </script>
+  {% endif %}
 {% endblock %}

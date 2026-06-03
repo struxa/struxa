@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.1.111",
-    "title": "Struxa 1.1.111",
-    "summary": "Catalog GitHub validation falls back to raw.githubusercontent.com when the API is blocked or rate-limited.",
+    "latest_version": "1.1.112",
+    "title": "Struxa 1.1.112",
+    "summary": "Catalog submission detail admin page: edit author, metadata, repo URL, and link members by username search.",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "patch"
