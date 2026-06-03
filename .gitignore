@@ -64,7 +64,18 @@ scripts/.struxa-updates-cache.json
 !/themes/struxa-theme/
 !/themes/struxa-theme/**
 
-# dist/cms-update mirror: same policy as repo root
-dist/cms-update/plugins/
-dist/cms-update/themes/*
-!dist/cms-update/themes/struxa-theme/
+# Build staging (scripts/build-safe-update-zip.sh) — never commit
+dist/cms-update/
+
+# Generated catalog (scripts/build-struxa-dist.sh or struxa-admin Regenerate on production)
+struxa-dist/repo.json
+struxa-dist/repo-summary.json
+struxa-dist/zips/
+public/struxa-dist/repo.json
+public/struxa-dist/repo-summary.json
+public/struxa-dist/publish.json
+public/struxa-dist/zips/
+public/struxa-dist/catalog/
+
+# Runtime plugin boot telemetry (see PluginPerformanceStore)
+storage/plugin-performance.json

@@ -1,9 +1,0 @@
-# Struxa distribution folder on struxapoint.com (static catalog + ZIPs).
-# Upload this directory as public_html/struxa-dist/ (or equivalent docroot path).
-
-Options -Indexes
-
-<IfModule mod_mime.c>
-  AddType application/json .json
-  AddType application/zip .zip
-</IfModule>

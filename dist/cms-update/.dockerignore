@@ -1,6 +1,0 @@
-vendor
-.git
-.env
-*.md
-.cursor
-terminals

@@ -152,5 +152,5 @@ See **`PUBLISH.md`** for GitHub + struxapoint.com upload steps.
 1. Develop theme/plugin in the main Struxa repo (or its own repo).
 2. Bump `version` in `theme.json` / `plugin.json`.
 3. Run `./scripts/build-struxa-dist.sh` (local dev / reference copy in git).
-4. On **StruxaPoint production**: approve or upload packages in **struxa-admin**, then **Regenerate catalog** — do not rsync git’s `repo.json` or `zips/` to the server.
+4. On **StruxaPoint production**: approve or upload packages in **struxa-admin**, then **Regenerate catalog** — generated `repo.json` and `zips/` are not committed to git (run `./scripts/build-struxa-dist.sh` locally for a dev copy).
 5. Sites refresh catalog on next **Browse catalog** page load.
