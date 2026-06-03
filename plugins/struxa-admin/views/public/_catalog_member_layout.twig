@@ -1,0 +1,12 @@
+{% extends '@plugin_struxa_admin/public/_catalog_layout.twig' %}
+
+{% block catalog_body %}
+  <div class="st-catalog__member-layout{% if catalog_member is defined and catalog_member %} st-catalog__member-layout--with-sidebar{% endif %}">
+    {% if catalog_member is defined and catalog_member %}
+      {% include '@plugin_struxa_admin/public/_catalog_member_sidebar.twig' %}
+    {% endif %}
+    <div class="st-catalog__member-main">
+      {% block catalog_member_body %}{% endblock %}
+    </div>
+  </div>
+{% endblock %}

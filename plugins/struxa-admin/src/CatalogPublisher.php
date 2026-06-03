@@ -366,7 +366,7 @@ final class CatalogPublisher
             'version' => trim((string) ($manifest['version'] ?? '1.0.0')),
             'description' => trim((string) ($manifest['description'] ?? '')),
             'author' => trim((string) ($manifest['author'] ?? '')),
-            'download_url' => $baseUrl . '/' . rawurlencode($slug) . '.zip',
+            'download_url' => $this->settings->trackedDownloadUrl($kind, $slug),
         ];
         $req = $manifest['requires_cms_version'] ?? $manifest['min_cms_version'] ?? null;
         if (is_string($req) && trim($req) !== '') {

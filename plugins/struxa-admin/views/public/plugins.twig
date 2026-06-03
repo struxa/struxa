@@ -8,19 +8,10 @@
   {% else %}
     <div class="st-catalog__grid">
       {% for p in catalog_plugins %}
-        <article class="st-catalog__card">
-          {% if p.screenshot_url %}
-            <img class="st-catalog__shot" src="{{ p.screenshot_url|e('html_attr') }}" alt="" loading="lazy" />
-          {% endif %}
-          <h2 class="st-catalog__card-title">{{ p.name|e }}</h2>
-          <p class="st-catalog__meta"><code class="st-catalog__slug">{{ p.slug|e }}</code>{% if p.version %} · v{{ p.version|e }}{% endif %}</p>
-          {% if p.author %}<p class="st-catalog__byline">by {{ p.author|e }}</p>{% endif %}
-          {% if p.requires_cms_version %}<p class="st-catalog__req">Requires CMS {{ p.requires_cms_version|e }}+</p>{% endif %}
-          {% if p.description %}<p class="st-catalog__desc">{{ p.description|e }}</p>{% endif %}
-          {% if p.repository_url %}
-            <p class="st-catalog__links"><a href="{{ p.repository_url|e('html_attr') }}" rel="noopener noreferrer">Source repository</a></p>
-          {% endif %}
-        </article>
+        {% include '@plugin_struxa_admin/public/_catalog_card.twig' with {
+          item: p,
+          show_route: 'public.struxa_catalog.plugin_show'
+        } only %}
       {% endfor %}
     </div>
   {% endif %}

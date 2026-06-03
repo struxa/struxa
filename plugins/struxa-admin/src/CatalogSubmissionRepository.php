@@ -101,15 +101,15 @@ final class CatalogSubmissionRepository
         string $author,
         array $manifest,
         ?string $screenshotPath,
-        string $submitterName,
         string $submitterEmail,
-        ?int $submitterUserId,
+        CatalogSubmitterContext $submitter,
     ): int {
         $stmt = $this->pdo->prepare(
             'INSERT INTO cms_struxa_catalog_submissions
              (kind, status, git_repo_url, git_branch, slug, name, version, description, author,
-              manifest_json, screenshot_path, submitter_name, submitter_email, submitter_user_id)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+              manifest_json, screenshot_path, submitter_name, submitter_email, submitter_user_id,
+              submitter_username, submitter_ip, submitter_user_agent)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
         );
         $stmt->execute([
             $kind,
@@ -123,12 +123,41 @@ final class CatalogSubmissionRepository
             $author,
             json_encode($manifest, JSON_THROW_ON_ERROR),
             $screenshotPath,
-            $submitterName,
+            '',
             $submitterEmail,
-            $submitterUserId,
+            $submitter->cmsUserId,
+            $submitter->username,
+            $submitter->ip,
+            $submitter->userAgent,
         ]);
 
         return (int) $this->pdo->lastInsertId();
+    }
+
+    /**
+     * @return list<CatalogSubmission>
+     */
+    public function listBySubmitterUserId(int $cmsUserId, int $limit = 50): array
+    {
+        if ($cmsUserId <= 0) {
+            return [];
+        }
+        $limit = max(1, min(100, $limit));
+        $stmt = $this->pdo->prepare(
+            'SELECT * FROM cms_struxa_catalog_submissions
+             WHERE submitter_user_id = ?
+             ORDER BY created_at DESC
+             LIMIT ' . $limit
+        );
+        $stmt->execute([$cmsUserId]);
+        $out = [];
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            if (is_array($row)) {
+                $out[] = CatalogSubmission::fromRow($row);
+            }
+        }
+
+        return $out;
     }
 
     public function setStatus(int $id, string $status, ?string $reviewerNotes, ?int $reviewedBy, ?string $publishedAt = null): void

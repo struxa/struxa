@@ -1,0 +1,69 @@
+{% extends '@plugin_struxa_admin/public/_catalog_member_layout.twig' %}
+
+{% block catalog_member_body %}
+  {% if flash_success|default('') %}
+    <p class="st-catalog__notice st-catalog__notice--ok">{{ flash_success|e }}</p>
+  {% endif %}
+  {% if flash_error|default('') %}
+    <p class="st-catalog__notice st-catalog__notice--error">{{ flash_error|e }}</p>
+  {% endif %}
+  <section class="st-catalog__form-wrap">
+    <h2 class="st-catalog__form-title">Your submissions</h2>
+    <p class="st-catalog__form-lead">Packages you submitted for catalog review. Approved entries appear in the public plugin and theme directories. Download counts reflect installs from the Struxa catalog (tracked ZIP downloads).</p>
+
+    {% if catalog_member.submissions is empty %}
+      <p class="st-catalog__empty">You have not submitted anything yet.</p>
+      <p class="st-catalog__links">
+        <a href="{{ url_for('public.struxa_catalog.plugins.submit_form') }}">Submit a plugin</a>
+        ·
+        <a href="{{ url_for('public.struxa_catalog.themes.submit_form') }}">Submit a theme</a>
+      </p>
+    {% else %}
+      <div class="st-catalog__submission-table-wrap">
+        <table class="st-catalog__submission-table">
+          <thead>
+            <tr>
+              <th scope="col">Submitted</th>
+              <th scope="col">Kind</th>
+              <th scope="col">Package</th>
+              <th scope="col">Status</th>
+              <th scope="col">Downloads</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in catalog_member.submissions %}
+              {% set dl = catalog_member.download_counts[row.kind ~ ':' ~ row.slug]|default(0) %}
+              <tr>
+                <td><time datetime="{{ row.createdAt|e('html_attr') }}">{{ row.createdAt|e }}</time></td>
+                <td>{{ row.kind == 'theme' ? 'Theme' : 'Plugin' }}</td>
+                <td>
+                  <strong>{{ row.name|e }}</strong><br />
+                  <code class="st-catalog__slug">{{ row.slug|e }}</code>
+                  {% if row.version %} · v{{ row.version|e }}{% endif %}
+                </td>
+                <td>
+                  {% if row.status == 'pending' %}
+                    Pending review
+                  {% elseif row.status == 'approved' %}
+                    Live in catalog
+                  {% elseif row.status == 'rejected' %}
+                    Rejected
+                  {% else %}
+                    {{ row.status|e }}
+                  {% endif %}
+                </td>
+                <td>
+                  {% if row.status == 'approved' %}
+                    {{ dl }}
+                  {% else %}
+                    —
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% endif %}
+  </section>
+{% endblock %}

@@ -54,6 +54,28 @@ final class CatalogSettings
         return rtrim($custom !== '' ? $custom : '', '/');
     }
 
+    public function catalogPublicBaseUrl(): string
+    {
+        $base = $this->screenshotPublicBaseUrl();
+        if ($base !== '') {
+            return $base;
+        }
+
+        return rtrim(\App\Settings\SiteUrlResolver::resolve(), '/');
+    }
+
+    public function trackedDownloadUrl(string $kind, string $slug): string
+    {
+        $kind = SubmissionKind::isValid($kind) ? $kind : SubmissionKind::PLUGIN;
+        $slug = strtolower(trim($slug));
+
+        return $this->catalogPublicBaseUrl()
+            . '/struxa-catalog/download/'
+            . rawurlencode($kind)
+            . '/'
+            . rawurlencode($slug);
+    }
+
     public function githubToken(): ?string
     {
         $t = trim(Settings::get(self::KEY_GITHUB_TOKEN, ''));

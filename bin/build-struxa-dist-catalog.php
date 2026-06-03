@@ -12,7 +12,7 @@ declare(strict_types=1);
 $root = dirname(__DIR__);
 $distRoot = $root . '/struxa-dist';
 $zipsDir = $distRoot . '/zips';
-$baseUrl = 'https://struxapoint.com/struxa-dist/zips';
+$downloadBase = 'https://struxapoint.com/struxa-catalog/download';
 $publishPath = $distRoot . '/publish.json';
 
 /** @var list<string> $publishThemes */
@@ -92,7 +92,7 @@ if (is_dir($themesDir)) {
             'version' => trim((string) ($data['version'] ?? '1.0.0')),
             'description' => trim((string) ($data['description'] ?? '')),
             'author' => trim((string) ($data['author'] ?? '')),
-            'download_url' => $baseUrl . '/' . rawurlencode($slug) . '.zip',
+            'download_url' => $downloadBase . '/theme/' . rawurlencode($slug),
         ];
     }
 }
@@ -101,7 +101,7 @@ usort($themes, static fn (array $a, array $b): int => strcmp($a['slug'], $b['slu
 
 $plugins = [];
 $pluginsDir = $root . '/plugins';
-$addPluginFromManifest = static function (string $slug, array $data) use ($baseUrl, &$plugins): void {
+$addPluginFromManifest = static function (string $slug, array $data) use ($downloadBase, &$plugins): void {
     $slug = strtolower(trim($slug));
     $entry = [
         'slug' => $slug,
@@ -109,7 +109,7 @@ $addPluginFromManifest = static function (string $slug, array $data) use ($baseU
         'version' => trim((string) ($data['version'] ?? '1.0.0')),
         'description' => trim((string) ($data['description'] ?? '')),
         'author' => trim((string) ($data['author'] ?? '')),
-        'download_url' => $baseUrl . '/' . rawurlencode($slug) . '.zip',
+        'download_url' => $downloadBase . '/plugin/' . rawurlencode($slug),
     ];
     $req = isset($data['requires_cms_version']) && is_string($data['requires_cms_version']) && trim($data['requires_cms_version']) !== ''
         ? trim($data['requires_cms_version'])

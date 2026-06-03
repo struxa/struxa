@@ -122,6 +122,13 @@
           <p class="admin-metric-meta">Minimum version</p>
         </article>
       {% endif %}
+      {% if submission.status == 'approved' %}
+        <article class="admin-metric admin-metric--health-good">
+          <p class="admin-metric-label">Downloads</p>
+          <p class="admin-metric-value">{{ download_count|default(0) }}</p>
+          <p class="admin-metric-meta">Catalog ZIP installs</p>
+        </article>
+      {% endif %}
       {% if submission.publishedAt %}
         <article class="admin-metric admin-metric--health-good">
           <p class="admin-metric-label">Published</p>
@@ -230,14 +237,35 @@
             </div>
           </header>
           <dl class="admin-catalog-kv admin-catalog-kv--compact">
-            <div class="admin-catalog-kv-row">
-              <dt>Name</dt>
-              <dd>{{ submission.submitterName|e }}</dd>
-            </div>
-            {% if submission.submitterEmail != 'catalog@import.local' %}
+            {% set _submitter = submission.submitterUsername|default('') != '' ? submission.submitterUsername : submission.submitterName %}
+            {% if _submitter != '' %}
               <div class="admin-catalog-kv-row">
-                <dt>Email</dt>
+                <dt>Username</dt>
+                <dd>{{ _submitter|e }}</dd>
+              </div>
+            {% endif %}
+            {% if submission.submitterUserId %}
+              <div class="admin-catalog-kv-row">
+                <dt>Member ID</dt>
+                <dd><code class="admin-inline-code">#{{ submission.submitterUserId }}</code></dd>
+              </div>
+            {% endif %}
+            {% if submission.submitterEmail != 'catalog@import.local' and submission.submitterEmail != '' %}
+              <div class="admin-catalog-kv-row">
+                <dt>Account email</dt>
                 <dd><a class="admin-link" href="mailto:{{ submission.submitterEmail|e('html_attr') }}">{{ submission.submitterEmail|e }}</a></dd>
+              </div>
+            {% endif %}
+            {% if submission.submitterIp|default('') != '' %}
+              <div class="admin-catalog-kv-row">
+                <dt>IP address</dt>
+                <dd><code class="admin-inline-code">{{ submission.submitterIp|e }}</code></dd>
+              </div>
+            {% endif %}
+            {% if submission.submitterUserAgent|default('') != '' %}
+              <div class="admin-catalog-kv-row admin-catalog-kv-row--stack">
+                <dt>Browser</dt>
+                <dd class="admin-table-muted admin-tools-code-break">{{ submission.submitterUserAgent|e }}</dd>
               </div>
             {% endif %}
           </dl>

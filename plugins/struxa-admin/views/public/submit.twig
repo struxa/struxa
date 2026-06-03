@@ -1,12 +1,9 @@
-{% extends '@plugin_struxa_admin/public/_catalog_layout.twig' %}
+{% extends '@plugin_struxa_admin/public/_catalog_member_layout.twig' %}
 
-{% block catalog_body %}
+{% block catalog_member_body %}
   <section class="st-catalog__form-wrap">
     <h2 class="st-catalog__form-title">Submit for review</h2>
     <p class="st-catalog__form-lead">We pull your package from <strong>GitHub</strong> (public repo). Put a valid <code class="st-catalog__slug">plugin.json</code> or <code class="st-catalog__slug">theme.json</code> at the repo root or in one subfolder. Themes need <code class="st-catalog__slug">views/</code> and <code class="st-catalog__slug">assets/</code>.</p>
-    {% if user_email|default('') %}
-      <p class="st-catalog__hint">Signed in as {{ user_display_name|default(user_email)|e }}. Submissions are tied to your account when approved.</p>
-    {% endif %}
 
     {% if errors is defined and errors is not empty %}
       <ul class="st-catalog__errors">
@@ -28,14 +25,6 @@
         <label class="st-catalog__label" for="screenshot">Screenshot (optional)</label>
         <input class="st-catalog__input" id="screenshot" name="screenshot" type="file" accept="image/jpeg,image/png,image/webp" />
         <p class="st-catalog__hint">JPEG, PNG, or WebP · max 2.5 MB. Only the image is uploaded to struxapoint.</p>
-      </div>
-      <div class="st-catalog__field">
-        <label class="st-catalog__label" for="submitter_name">Your name</label>
-        <input class="st-catalog__input" id="submitter_name" name="submitter_name" required value="{{ old.submitter_name|default('')|e('html_attr') }}" />
-      </div>
-      <div class="st-catalog__field">
-        <label class="st-catalog__label" for="submitter_email">Contact email</label>
-        <input class="st-catalog__input" id="submitter_email" name="submitter_email" type="email" required value="{{ old.submitter_email|default('')|e('html_attr') }}" />
       </div>
       <div class="st-catalog__actions">
         <button type="submit" class="st-btn st-btn--primary">Validate &amp; submit</button>

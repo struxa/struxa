@@ -25,6 +25,9 @@ final class CatalogSubmission
         public readonly string $submitterName,
         public readonly string $submitterEmail,
         public readonly ?int $submitterUserId,
+        public readonly string $submitterUsername,
+        public readonly string $submitterIp,
+        public readonly ?string $submitterUserAgent,
         public readonly ?string $reviewerNotes,
         public readonly ?int $reviewedBy,
         public readonly ?string $reviewedAt,
@@ -69,6 +72,11 @@ final class CatalogSubmission
             (string) ($row['submitter_name'] ?? ''),
             (string) ($row['submitter_email'] ?? ''),
             isset($row['submitter_user_id']) && $row['submitter_user_id'] !== null ? (int) $row['submitter_user_id'] : null,
+            (string) ($row['submitter_username'] ?? ''),
+            (string) ($row['submitter_ip'] ?? ''),
+            isset($row['submitter_user_agent']) && $row['submitter_user_agent'] !== null && $row['submitter_user_agent'] !== ''
+                ? (string) $row['submitter_user_agent']
+                : null,
             isset($row['reviewer_notes']) && $row['reviewer_notes'] !== null ? (string) $row['reviewer_notes'] : null,
             isset($row['reviewed_by']) && $row['reviewed_by'] !== null ? (int) $row['reviewed_by'] : null,
             isset($row['reviewed_at']) && $row['reviewed_at'] !== null ? (string) $row['reviewed_at'] : null,

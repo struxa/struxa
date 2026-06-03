@@ -211,17 +211,20 @@ final class StruxaCatalogAdminRouteRegistrar
                 Request $request,
                 Response $response,
                 array $args
-            ) use ($twig, $adminView, $submissions, $settings, $ns): Response {
+            ) use ($twig, $adminView, $submissions, $settings, $ns, $pdo): Response {
                 $id = (int) $args['id'];
                 $row = $submissions->findById($id);
                 if ($row === null) {
                     throw new HttpNotFoundException($request);
                 }
+                $downloadCount = (new \StruxaAdmin\CatalogDownloadStatsRepository($pdo))
+                    ->countFor($row->kind, $row->slug);
 
                 return $twig->render($response, $ns . '/admin/submission_show.twig', $adminView($request, [
                     'submission' => $row,
                     'dist_root' => $settings->distRoot(),
                     'zip_base_url' => $settings->zipBaseUrl(),
+                    'download_count' => $downloadCount,
                 ]));
             })->setName('admin.struxa_catalog.submission_show');
 

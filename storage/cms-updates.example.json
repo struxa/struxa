@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.1.102",
-    "title": "Struxa 1.1.102",
-    "summary": "Fix site-wide fatal error: restore ActivityLogger import in admin pages routes.",
+    "latest_version": "1.1.105",
+    "title": "Struxa 1.1.105",
+    "summary": "Catalog browse detail pages with ratings and comments; submitter sidebar and tracked download stats for approved packages.",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "patch"

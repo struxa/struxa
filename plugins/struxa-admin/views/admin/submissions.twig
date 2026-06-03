@@ -148,8 +148,14 @@
                   {% endif %}
                 </td>
                 <td>
-                  <strong class="admin-table-primary">{{ row.submitterName|e }}</strong>
-                  <br /><a class="admin-link admin-table-muted" href="mailto:{{ row.submitterEmail|e('html_attr') }}">{{ row.submitterEmail|e }}</a>
+                  {% set _submitter = row.submitterUsername|default('') != '' ? row.submitterUsername : row.submitterName %}
+                  <strong class="admin-table-primary">{{ _submitter|e }}</strong>
+                  {% if row.submitterEmail != 'catalog@import.local' and row.submitterEmail != '' %}
+                    <br /><a class="admin-link admin-table-muted" href="mailto:{{ row.submitterEmail|e('html_attr') }}">{{ row.submitterEmail|e }}</a>
+                  {% endif %}
+                  {% if row.submitterIp|default('') != '' %}
+                    <br /><span class="admin-table-muted admin-metric-value--mono">{{ row.submitterIp|e }}</span>
+                  {% endif %}
                 </td>
                 <td>
                   {% if row.status == 'pending' %}

@@ -1,0 +1,48 @@
+{% if catalog_member is defined and catalog_member %}
+  <aside class="st-catalog__sidebar" aria-label="Your account">
+    <div class="st-catalog__sidebar-card">
+      <p class="st-catalog__sidebar-eyebrow">Signed in</p>
+      <p class="st-catalog__sidebar-name">{{ catalog_member.display_name|e }}</p>
+      {% if catalog_member.email %}
+        <p class="st-catalog__sidebar-email">{{ catalog_member.email|e }}</p>
+      {% endif %}
+      <nav class="st-catalog__sidebar-nav" aria-label="Submission links">
+        <a class="st-catalog__sidebar-link{% if catalog_sidebar_nav|default('') == 'submissions' %} is-active{% endif %}" href="{{ url_for('public.struxa_catalog.my_submissions') }}">Your submissions</a>
+        <a class="st-catalog__sidebar-link{% if catalog_sidebar_nav|default('') == 'plugin' %} is-active{% endif %}" href="{{ url_for('public.struxa_catalog.plugins.submit_form') }}">Submit a plugin</a>
+        <a class="st-catalog__sidebar-link{% if catalog_sidebar_nav|default('') == 'theme' %} is-active{% endif %}" href="{{ url_for('public.struxa_catalog.themes.submit_form') }}">Submit a theme</a>
+        <a class="st-catalog__sidebar-link" href="{{ url_for('public.struxa_catalog.plugins') }}">Browse plugins</a>
+        <a class="st-catalog__sidebar-link" href="{{ url_for('public.struxa_catalog.themes') }}">Browse themes</a>
+      </nav>
+    </div>
+
+    {% if catalog_member.recent_submissions is not empty %}
+      <div class="st-catalog__sidebar-card">
+        <h2 class="st-catalog__sidebar-title">Recent submissions</h2>
+        <ul class="st-catalog__sidebar-list">
+          {% for row in catalog_member.recent_submissions %}
+            {% set dl = catalog_member.download_counts[row.kind ~ ':' ~ row.slug]|default(0) %}
+            <li class="st-catalog__sidebar-item">
+              <span class="st-catalog__sidebar-item-kind">{{ row.kind == 'theme' ? 'Theme' : 'Plugin' }}</span>
+              <strong class="st-catalog__sidebar-item-name">{{ row.name|e }}</strong>
+              <span class="st-catalog__sidebar-item-meta">
+                <code class="st-catalog__slug">{{ row.slug|e }}</code>
+                · {{ row.status|e }}
+                {% if row.status == 'approved' and dl > 0 %}
+                  · {{ dl }} download{{ dl == 1 ? '' : 's' }}
+                {% endif %}
+              </span>
+              <time class="st-catalog__sidebar-item-date" datetime="{{ row.createdAt|e('html_attr') }}">{{ row.createdAt|e }}</time>
+            </li>
+          {% endfor %}
+        </ul>
+        {% if catalog_member.submissions|length > catalog_member.recent_submissions|length %}
+          <p class="st-catalog__sidebar-more"><a href="{{ url_for('public.struxa_catalog.my_submissions') }}">View all {{ catalog_member.submissions|length }} submissions →</a></p>
+        {% endif %}
+      </div>
+    {% else %}
+      <div class="st-catalog__sidebar-card">
+        <p class="st-catalog__sidebar-empty">No submissions yet. Use the form to submit your first package for review.</p>
+      </div>
+    {% endif %}
+  </aside>
+{% endif %}

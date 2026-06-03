@@ -39,7 +39,7 @@ final class CatalogBrowseService
                 'version' => $sub->version,
                 'description' => $sub->description,
                 'author' => $sub->author,
-                'download_url' => $this->settings->zipBaseUrl() . '/' . rawurlencode($sub->slug) . '.zip',
+                'download_url' => $this->settings->trackedDownloadUrl($sub->kind, $sub->slug),
                 'repository_url' => $sub->gitRepoUrl,
             ];
             if ($screenshotBase !== '' && $sub->screenshotPath !== null) {
@@ -54,6 +54,34 @@ final class CatalogBrowseService
         }
 
         return ['ok' => true, 'themes' => $themes, 'plugins' => $plugins];
+    }
+
+    /**
+     * @return ?array<string, mixed>
+     */
+    public function findPackage(string $kind, string $slug): ?array
+    {
+        if (!SubmissionKind::isValid($kind)) {
+            return null;
+        }
+        $slug = strtolower(trim($slug));
+        if ($slug === '' || !preg_match('/^[a-z0-9]+(?:-[a-z0-9]+)*$/', $slug)) {
+            return null;
+        }
+
+        $catalog = $this->loadMergedCatalog();
+        if (!$catalog['ok']) {
+            return null;
+        }
+
+        $list = $kind === SubmissionKind::THEME ? $catalog['themes'] : $catalog['plugins'];
+        foreach ($list as $entry) {
+            if (($entry['slug'] ?? '') === $slug) {
+                return $entry;
+            }
+        }
+
+        return null;
     }
 
     /**
