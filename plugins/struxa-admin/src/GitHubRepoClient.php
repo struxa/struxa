@@ -35,12 +35,12 @@ final class GitHubRepoClient
             ];
         }
 
-        if (!preg_match('#^https?://(?:www\.)?github\.com/([^/]+)/([^/#?]+)#i', $url, $m)) {
+        if (!preg_match('#^https?://(?:www\.)?github\.com/([^/]+)/([^/?]+)#i', $url, $m)) {
             return ['ok' => false, 'error' => 'Only public GitHub repository URLs are supported (https://github.com/owner/repo).'];
         }
 
         $branch = $preferredBranch;
-        if (preg_match('#github\.com/[^/]+/[^/]+/tree/([^/#?]+)#i', $url, $bm)) {
+        if (preg_match('#github\.com/[^/]+/[^/]+/tree/([^/?]+)#i', $url, $bm)) {
             $branch = $bm[1];
         }
         if ($branch === '') {

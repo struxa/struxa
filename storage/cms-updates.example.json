@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.1.108",
-    "title": "Struxa 1.1.108",
-    "summary": "Catalog cards link to detail pages; submit form uses full content width beside member sidebar.",
+    "latest_version": "1.1.109",
+    "title": "Struxa 1.1.109",
+    "summary": "Fix catalog GitHub URL validation regex that rejected valid public repository links.",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "patch"
