@@ -241,6 +241,63 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             return $response->withHeader('Location', $back)->withStatus(302);
         })->setName('admin.themes.update');
 
+        $group->post('/themes/reinstall-catalog', function (Request $request, Response $response) use (
+            $themes,
+            $catalogLoader,
+            $remoteInstaller,
+            $themeUpdateChecker,
+        ): Response {
+            $parser = RouteContext::fromRequest($request)->getRouteParser();
+            $back = $parser->urlFor('admin.themes.index');
+            $body = $request->getParsedBody();
+            $body = is_array($body) ? $body : [];
+            $slug = strtolower(trim((string) ($body['theme_slug'] ?? '')));
+            if ($slug === '' || !ThemeManifest::isValidSlug($slug)) {
+                Flash::set('error', 'Invalid theme.');
+
+                return $response->withHeader('Location', $back)->withStatus(302);
+            }
+
+            if ($themes->findBySlug($slug) === null) {
+                Flash::set('error', 'Theme not found on disk.');
+
+                return $response->withHeader('Location', $back)->withStatus(302);
+            }
+
+            $catalogBySlug = $themeUpdateChecker->catalogEntriesBySlug();
+            if (!isset($catalogBySlug[$slug]) || trim($catalogBySlug[$slug]->downloadUrl) === '') {
+                Flash::set('error', 'No catalog ZIP is configured for this theme. Regenerate the Struxa catalog on this server first.');
+
+                return $response->withHeader('Location', $back)->withStatus(302);
+            }
+
+            $loaded = $catalogLoader->load();
+            if (!$loaded['ok']) {
+                Flash::set('error', 'Theme catalog is unavailable: ' . $loaded['error']);
+
+                return $response->withHeader('Location', $back)->withStatus(302);
+            }
+
+            $err = $remoteInstaller->updateFromCatalogSlug($slug, $loaded['entries']);
+            if ($err !== null) {
+                Flash::set('error', $err);
+
+                return $response->withHeader('Location', $back)->withStatus(302);
+            }
+
+            $updated = $themes->findBySlug($slug);
+            if ($updated === null) {
+                Flash::set('error', 'Theme reinstall finished but the package could not be re-read from disk.');
+
+                return $response->withHeader('Location', $back)->withStatus(302);
+            }
+
+            Flash::set('success', 'Theme reinstalled from catalog (v' . $updated->version . ').');
+            Events::dispatch(new StorefrontCachesInvalidateEvent('theme_reinstalled_catalog'));
+
+            return $response->withHeader('Location', $back)->withStatus(302);
+        })->setName('admin.themes.reinstall_catalog');
+
         $group->post('/themes/activate', function (Request $request, Response $response) use ($themes, $settingsRepo, $pdo): Response {
             $body = $request->getParsedBody();
             $body = is_array($body) ? $body : [];

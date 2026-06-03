@@ -9,6 +9,7 @@
 
 {% block admin_hero_sub %}
   <p class="admin-hero-sub">Installed themes live in <code class="admin-inline-code">/themes/</code>. The active theme controls public layouts, CSS, and Twig overrides; the admin panel always uses core templates.</p>
+  <p class="admin-hero-sub admin-hero-sub--tight">On the server, run <code class="admin-inline-code">bash scripts/republish-bundled-theme.sh</code> then <strong>Struxa catalog → Regenerate catalog</strong> so the catalog ZIP and <strong>Reinstall from catalog</strong> match <code class="admin-inline-code">themes/struxa-theme/</code> on disk. Git is not required on the host.</p>
   {% if theme_update_count|default(0) > 0 %}
     <p class="admin-hero-sub admin-hero-sub--tight">{{ theme_update_count }} theme update(s) available from the catalog or GitHub.</p>
   {% endif %}
@@ -91,6 +92,17 @@
                 </form>
               {% elseif upd and upd.update_available and not upd.can_update %}
                 <p class="admin-plugin-compat-blocked-hint">Update detected but no download source is configured.</p>
+              {% endif %}
+              {% if upd and upd.catalog_has_package and upd.latest_version and not (upd.update_available and upd.can_update) %}
+                <form
+                  method="post"
+                  action="{{ url_for('admin.themes.reinstall_catalog') }}"
+                  class="admin-theme-reinstall-form"
+                  onsubmit="return confirm('Reinstall {{ t.slug|e('js') }} from the catalog ZIP (v{{ upd.latest_version|e('js') }})?\n\nThe themes/{{ t.slug|e('js') }}/ folder will be replaced.');"
+                >
+                  <input type="hidden" name="theme_slug" value="{{ t.slug|e('html_attr') }}" />
+                  <button type="submit" class="admin-btn-secondary">Reinstall from catalog (v{{ upd.latest_version|e }})</button>
+                </form>
               {% endif %}
               {% if active_theme_slug != t.slug %}
                 <form method="post" action="{{ url_for('admin.themes.activate') }}" class="admin-theme-activate-form">

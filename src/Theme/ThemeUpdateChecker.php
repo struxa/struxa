@@ -16,6 +16,7 @@ use App\Plugin\PluginUpdateChecker;
  *   latest_version: string|null,
  *   source: string|null,
  *   can_update: bool,
+ *   catalog_has_package: bool,
  *   error: string|null
  * }
  */
@@ -49,6 +50,7 @@ final class ThemeUpdateChecker
             'latest_version' => null,
             'source' => null,
             'can_update' => false,
+            'catalog_has_package' => false,
             'error' => null,
         ];
 
@@ -75,6 +77,7 @@ final class ThemeUpdateChecker
 
         $catalogLatest = '';
         $catalogCanUpdate = $catalogEntry !== null && trim($catalogEntry->downloadUrl) !== '';
+        $base['catalog_has_package'] = $catalogCanUpdate;
         if ($catalogEntry !== null) {
             $catalogLatest = $this->normalizeVersion($catalogEntry->version);
         }
