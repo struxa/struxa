@@ -283,6 +283,7 @@ final class ThemeRemoteInstaller
                 return 'Could not resolve themes directory.';
             }
 
+            $themeBackup = null;
             if ($replace) {
                 if (!is_dir($dest)) {
                     return 'Theme is not installed.';
@@ -291,8 +292,17 @@ final class ThemeRemoteInstaller
                 if ($destReal === false) {
                     return 'Could not resolve installed theme path.';
                 }
+                $themeBackup = $themesRootReal . DIRECTORY_SEPARATOR . '.theme-backup-' . $slug . '-' . bin2hex(random_bytes(6));
+                $backupErr = $this->copyDirectoryTree($destReal, $themeBackup);
+                if ($backupErr !== null) {
+                    SafeDirectoryRemoval::removeIfInside($themeBackup, $themesRootReal);
+
+                    return 'Could not back up the existing theme before update: ' . $backupErr;
+                }
                 $rm = SafeDirectoryRemoval::removeIfInside($destReal, $themesRootReal);
                 if ($rm !== null) {
+                    SafeDirectoryRemoval::removeIfInside($themeBackup, $themesRootReal);
+
                     return 'Could not remove the existing theme before update: ' . $rm;
                 }
             } else {
@@ -330,6 +340,10 @@ final class ThemeRemoteInstaller
             if (!@rename($themeRoot, $dest)) {
                 $err = $this->copyDirectoryTree($themeRoot, $dest);
                 if ($err !== null) {
+                    if ($replace && $themeBackup !== null) {
+                        $this->restoreThemeFromBackup($themeBackup, $dest, $themesRootReal);
+                    }
+
                     return $err;
                 }
                 // Best effort cleanup only. Do not fail a successful install copy if temp cleanup fails.
@@ -338,9 +352,18 @@ final class ThemeRemoteInstaller
 
             $installed = ThemeManifest::tryLoad($dest);
             if ($installed === null) {
-                SafeDirectoryRemoval::removeIfInside($dest, $this->themes->themesRoot());
+                SafeDirectoryRemoval::removeIfInside($dest, $themesRootReal);
+                if ($replace && $themeBackup !== null) {
+                    $this->restoreThemeFromBackup($themeBackup, $dest, $themesRootReal);
+
+                    return 'Installed theme failed final validation. The previous theme was restored.';
+                }
 
                 return 'Installed theme failed final validation.';
+            }
+
+            if ($themeBackup !== null) {
+                SafeDirectoryRemoval::removeIfInside($themeBackup, $themesRootReal);
             }
 
             $this->themes->clearDiscoverCache();
@@ -497,28 +520,85 @@ final class ThemeRemoteInstaller
         if ($destReal === false) {
             return 'Could not resolve installed theme path.';
         }
+
+        // Monorepo updates use the same path for bundled + installed copy. Deleting $dest would
+        // remove the copy source and leave an empty or invalid theme (Twig: page/show.twig missing).
+        if ($sourceReal === $destReal) {
+            if (ThemeManifest::tryLoad($destReal) === null) {
+                return 'Installed theme is missing or invalid (theme.json, views/, assets/).'
+                    . ' Re-sync themes/' . $slug . ' from the CMS package or GitHub, then retry.';
+            }
+            $this->themes->clearDiscoverCache();
+
+            return null;
+        }
+
+        $staging = $themesRootReal . DIRECTORY_SEPARATOR . '.theme-staging-' . $slug . '-' . bin2hex(random_bytes(6));
+        $stageErr = $this->copyDirectoryTree($sourceReal, $staging);
+        if ($stageErr !== null) {
+            SafeDirectoryRemoval::removeIfInside($staging, $themesRootReal);
+
+            return 'Could not stage theme files for update: ' . $stageErr;
+        }
+
+        $backup = $themesRootReal . DIRECTORY_SEPARATOR . '.theme-backup-' . $slug . '-' . bin2hex(random_bytes(6));
+        $backupErr = $this->copyDirectoryTree($destReal, $backup);
+        if ($backupErr !== null) {
+            SafeDirectoryRemoval::removeIfInside($staging, $themesRootReal);
+            SafeDirectoryRemoval::removeIfInside($backup, $themesRootReal);
+
+            return 'Could not back up the existing theme before update: ' . $backupErr;
+        }
+
         $rm = SafeDirectoryRemoval::removeIfInside($destReal, $themesRootReal);
         if ($rm !== null) {
+            SafeDirectoryRemoval::removeIfInside($staging, $themesRootReal);
+            SafeDirectoryRemoval::removeIfInside($backup, $themesRootReal);
+
             return 'Could not remove the existing theme before update: ' . $rm;
         }
         if (!@mkdir($dest, 0755, true) && !is_dir($dest)) {
+            SafeDirectoryRemoval::removeIfInside($staging, $themesRootReal);
+            $this->restoreThemeFromBackup($backup, $dest, $themesRootReal);
+            SafeDirectoryRemoval::removeIfInside($backup, $themesRootReal);
+
             return 'Could not create theme directory.';
         }
 
-        $err = $this->copyDirectoryTree($sourceReal, $dest);
+        $err = $this->copyDirectoryTree($staging, $dest);
+        SafeDirectoryRemoval::removeIfInside($staging, $themesRootReal);
         if ($err !== null) {
+            $this->restoreThemeFromBackup($backup, $dest, $themesRootReal);
+            SafeDirectoryRemoval::removeIfInside($backup, $themesRootReal);
+
             return $err;
         }
 
         if (ThemeManifest::tryLoad($dest) === null) {
             SafeDirectoryRemoval::removeIfInside($dest, $themesRootReal);
+            $this->restoreThemeFromBackup($backup, $dest, $themesRootReal);
+            SafeDirectoryRemoval::removeIfInside($backup, $themesRootReal);
 
-            return 'Installed theme failed final validation.';
+            return 'Installed theme failed final validation. The previous theme was restored.';
         }
 
+        SafeDirectoryRemoval::removeIfInside($backup, $themesRootReal);
         $this->themes->clearDiscoverCache();
 
         return null;
+    }
+
+    private function restoreThemeFromBackup(string $backupDir, string $destPath, string $themesRootReal): void
+    {
+        $backupReal = realpath($backupDir);
+        if ($backupReal === false || !is_dir($backupReal)) {
+            return;
+        }
+        if (!@mkdir($destPath, 0755, true) && !is_dir($destPath)) {
+            return;
+        }
+        $this->copyDirectoryTree($backupReal, $destPath);
+        SafeDirectoryRemoval::removeIfInside($backupReal, $themesRootReal);
     }
 
     private function copyDirectoryTree(string $source, string $dest): ?string
