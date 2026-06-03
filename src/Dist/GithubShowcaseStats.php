@@ -13,7 +13,13 @@ use App\Update\CmsUpdateChecker;
  */
 final class GithubShowcaseStats
 {
-    private const CACHE_KEY_PREFIX = 'github_showcase_stats_v5_';
+    private const CACHE_KEY_PREFIX = 'github_showcase_stats_v6_';
+
+    private const LOC_CACHE_KEY_PREFIX = 'github_showcase_loc_v1_';
+
+    private const LOC_CACHE_TTL = 86_400;
+
+    private const MAX_SCAN_FILES = 4000;
 
     private const CACHE_TTL = 3600;
 
@@ -89,8 +95,11 @@ final class GithubShowcaseStats
         /** @var mixed $cached */
         $cached = $this->cache->get($cacheKey);
         if (is_array($cached) && isset($cached['repo']) && is_string($cached['repo']) && $cached['repo'] === $repo) {
-            /** @var array{ok: bool, repo: string, latest_version: ?string, release_url: ?string, themes_count: int, plugins_count: int, lines_of_code: ?int, lines_of_code_label: ?string, stars: ?int, error: ?string} $cached */
-            return $cached;
+            $locLabel = $cached['lines_of_code_label'] ?? null;
+            if (is_string($locLabel) && trim($locLabel) !== '') {
+                /** @var array{ok: bool, repo: string, latest_version: ?string, release_url: ?string, themes_count: int, plugins_count: int, lines_of_code: ?int, lines_of_code_label: ?string, stars: ?int, error: ?string} $cached */
+                return $cached;
+            }
         }
 
         $stars = null;
@@ -175,6 +184,14 @@ final class GithubShowcaseStats
         }
         $accept = $githubApi ? 'application/vnd.github+json' : 'application/json';
         $ua = 'Struxa-GithubShowcase/1.0 (+https://struxapoint.com)';
+        $headers = [
+            'Accept: ' . $accept,
+            'User-Agent: ' . $ua,
+        ];
+        $token = trim((string) ($_ENV['GITHUB_TOKEN'] ?? getenv('GITHUB_TOKEN') ?: ''));
+        if ($githubApi && $token !== '') {
+            $headers[] = 'Authorization: Bearer ' . $token;
+        }
 
         if (function_exists('curl_init')) {
             $ch = curl_init($url);
@@ -187,10 +204,7 @@ final class GithubShowcaseStats
                 CURLOPT_MAXREDIRS => 3,
                 CURLOPT_CONNECTTIMEOUT => 8,
                 CURLOPT_TIMEOUT => 12,
-                CURLOPT_HTTPHEADER => [
-                    'Accept: ' . $accept,
-                    'User-Agent: ' . $ua,
-                ],
+                CURLOPT_HTTPHEADER => $headers,
             ]);
             $body = curl_exec($ch);
             $code = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
@@ -208,7 +222,7 @@ final class GithubShowcaseStats
             'http' => [
                 'method' => 'GET',
                 'timeout' => 12,
-                'header' => "Accept: {$accept}\r\nUser-Agent: {$ua}\r\n",
+                'header' => implode("\r\n", $headers) . "\r\n",
             ],
         ]);
         $body = @file_get_contents($url, false, $ctx);
@@ -228,7 +242,118 @@ final class GithubShowcaseStats
             return max(0, (int) $override);
         }
 
-        return $this->estimateLinesFromGitHubLanguages($repo);
+        return $this->estimateLinesFromGitHubLanguages($repo) ?? $this->estimateLinesFromProjectRoot();
+    }
+
+    private function estimateLinesFromProjectRoot(): ?int
+    {
+        $rootReal = realpath($this->projectRoot);
+        if ($rootReal === false) {
+            return null;
+        }
+
+        $cacheKey = self::LOC_CACHE_KEY_PREFIX . hash('sha256', $rootReal);
+        /** @var mixed $cached */
+        $cached = $this->cache->get($cacheKey);
+        if (is_int($cached) && $cached > 0) {
+            return $cached;
+        }
+
+        $lines = $this->countLinesInProjectTree($rootReal);
+        if ($lines > 0) {
+            $this->cache->set($cacheKey, $lines, self::LOC_CACHE_TTL);
+        }
+
+        return $lines > 0 ? $lines : null;
+    }
+
+    private function countLinesInProjectTree(string $rootReal): int
+    {
+        $scanRoots = [
+            'src',
+            'routes',
+            'templates',
+            'themes/struxa-theme',
+            'plugins/struxa-admin',
+            'database/migrations',
+            'public/css',
+            'public/js',
+            'bootstrap',
+            'bin',
+        ];
+        $extensions = ['php' => true, 'twig' => true, 'css' => true, 'js' => true, 'sql' => true];
+        $skipDirNames = ['vendor', 'node_modules', 'storage', 'cache', 'uploads', '.git', 'dist'];
+
+        $total = 0;
+        $files = 0;
+
+        foreach ($scanRoots as $rel) {
+            $path = $rootReal . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $rel);
+            if (!is_dir($path)) {
+                continue;
+            }
+
+            try {
+                $iterator = new \RecursiveIteratorIterator(
+                    new \RecursiveDirectoryIterator($path, \FilesystemIterator::SKIP_DOTS)
+                );
+            } catch (\UnexpectedValueException) {
+                continue;
+            }
+
+            foreach ($iterator as $item) {
+                if ($files >= self::MAX_SCAN_FILES) {
+                    break 2;
+                }
+                if (!$item instanceof \SplFileInfo || !$item->isFile()) {
+                    continue;
+                }
+
+                $pathname = $item->getPathname();
+                $skip = false;
+                foreach ($skipDirNames as $dirName) {
+                    if (str_contains($pathname, DIRECTORY_SEPARATOR . $dirName . DIRECTORY_SEPARATOR)) {
+                        $skip = true;
+                        break;
+                    }
+                }
+                if ($skip) {
+                    continue;
+                }
+
+                $ext = strtolower($item->getExtension());
+                if (!isset($extensions[$ext])) {
+                    continue;
+                }
+
+                ++$files;
+                $total += $this->countNonEmptyLinesInFile($pathname);
+            }
+        }
+
+        return $total;
+    }
+
+    private function countNonEmptyLinesInFile(string $path): int
+    {
+        if (!is_readable($path)) {
+            return 0;
+        }
+
+        $count = 0;
+        $handle = @fopen($path, 'rb');
+        if ($handle === false) {
+            return 0;
+        }
+
+        while (($line = fgets($handle)) !== false) {
+            if (trim($line) !== '') {
+                ++$count;
+            }
+        }
+        fclose($handle);
+
+        return $count;
     }
 
     private function estimateLinesFromGitHubLanguages(string $repo): ?int

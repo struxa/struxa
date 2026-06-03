@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.2.3",
-    "title": "Struxa 1.2.3",
-    "summary": "GitHub showcase on the homepage adds an estimated lines-of-code stat (from GitHub language bytes) alongside release, themes, and plugins.",
+    "latest_version": "1.2.4",
+    "title": "Struxa 1.2.4",
+    "summary": "Homepage lines-of-code stat falls back to counting local CMS source when GitHub language API is unavailable; stale showcase cache without LOC is refreshed.",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "minor"

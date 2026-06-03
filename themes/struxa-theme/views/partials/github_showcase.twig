@@ -53,7 +53,7 @@
             {% if _stats.lines_of_code_label|default('')|trim != '' %}
               <div class="st-github-showcase__metric">
                 <dt>Lines of code</dt>
-                <dd title="Estimated from GitHub language stats">{{ _stats.lines_of_code_label|e }}</dd>
+                <dd title="Estimated from Struxa CMS source">{{ _stats.lines_of_code_label|e }}</dd>
               </div>
             {% endif %}
             {% if _stats.stars|default(null) is not null and _stats.stars > 0 %}
