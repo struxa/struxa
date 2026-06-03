@@ -83,7 +83,36 @@ final class StruxaDistCatalogClient
      */
     public function loadShowcaseCounts(): array
     {
+        $fromIndex = $this->countsFromCatalogIndex();
         $summary = $this->readSummary();
+
+        if ($fromIndex !== null && $summary !== null) {
+            $summaryThemes = max(0, (int) ($summary['themes_count'] ?? 0));
+            $summaryPlugins = max(0, (int) ($summary['plugins_count'] ?? 0));
+            $countsDiffer = $fromIndex['themes'] !== $summaryThemes || $fromIndex['plugins'] !== $summaryPlugins;
+            $summaryAt = $this->parseGeneratedTimestamp(
+                isset($summary['generated_at']) && is_string($summary['generated_at']) ? $summary['generated_at'] : null
+            );
+            $indexAt = $this->parseGeneratedTimestamp($fromIndex['generated_at'] ?? null);
+            $indexNewer = $indexAt !== null && ($summaryAt === null || $indexAt > $summaryAt);
+
+            if (!$countsDiffer && !$indexNewer) {
+                return [
+                    'themes' => $summaryThemes,
+                    'plugins' => $summaryPlugins,
+                    'generated_at' => isset($summary['generated_at']) && is_string($summary['generated_at'])
+                        ? $summary['generated_at']
+                        : $fromIndex['generated_at'],
+                ];
+            }
+
+            return $fromIndex;
+        }
+
+        if ($fromIndex !== null) {
+            return $fromIndex;
+        }
+
         if ($summary !== null) {
             return [
                 'themes' => max(0, (int) ($summary['themes_count'] ?? 0)),
@@ -103,6 +132,77 @@ final class StruxaDistCatalogClient
                 ? $data['generated_at']
                 : null,
         ];
+    }
+
+    /**
+     * Cheap counts from repo.json index (v1 arrays or v2 totals) without loading plugin shards.
+     *
+     * @return array{themes: int, plugins: int, generated_at: ?string}|null
+     */
+    private function countsFromCatalogIndex(): ?array
+    {
+        $json = $this->readCatalogIndexJson();
+        if ($json === null) {
+            return null;
+        }
+        try {
+            /** @var mixed $data */
+            $data = json_decode($json, true, 512, JSON_THROW_ON_ERROR);
+        } catch (\JsonException) {
+            return null;
+        }
+        if (!is_array($data)) {
+            return null;
+        }
+
+        $generatedAt = isset($data['generated_at']) && is_string($data['generated_at'])
+            ? $data['generated_at']
+            : null;
+        $catalogVersion = (int) ($data['catalog_version'] ?? 1);
+
+        if ($catalogVersion >= 2 && isset($data['totals']) && is_array($data['totals'])) {
+            return [
+                'themes' => max(0, (int) ($data['totals']['themes'] ?? 0)),
+                'plugins' => max(0, (int) ($data['totals']['plugins'] ?? 0)),
+                'generated_at' => $generatedAt,
+            ];
+        }
+
+        $themes = is_array($data['themes'] ?? null) ? count($data['themes']) : 0;
+        $pluginsRaw = $data['plugins'] ?? null;
+        if (is_array($pluginsRaw) && !$this->isList($pluginsRaw)) {
+            return null;
+        }
+        $plugins = is_array($pluginsRaw) ? count($pluginsRaw) : 0;
+
+        return [
+            'themes' => $themes,
+            'plugins' => $plugins,
+            'generated_at' => $generatedAt,
+        ];
+    }
+
+    private function readCatalogIndexJson(): ?string
+    {
+        $json = $this->readPublishedCatalogFromDisk('repo.json');
+        if ($json === null || $json === '') {
+            $url = $this->resolveCatalogUrl();
+            if ($url !== '' && str_starts_with($url, 'https://')) {
+                $json = $this->httpGetLimited($url, 65_536);
+            }
+        }
+
+        return ($json !== null && $json !== '') ? $json : null;
+    }
+
+    private function parseGeneratedTimestamp(?string $raw): ?int
+    {
+        if ($raw === null || trim($raw) === '') {
+            return null;
+        }
+        $ts = strtotime(trim($raw));
+
+        return $ts !== false ? $ts : null;
     }
 
     /**

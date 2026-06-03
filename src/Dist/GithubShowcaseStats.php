@@ -13,7 +13,7 @@ use App\Update\CmsUpdateChecker;
  */
 final class GithubShowcaseStats
 {
-    private const CACHE_KEY_PREFIX = 'github_showcase_stats_v3_';
+    private const CACHE_KEY_PREFIX = 'github_showcase_stats_v4_';
 
     private const CACHE_TTL = 3600;
 
@@ -65,7 +65,7 @@ final class GithubShowcaseStats
             }
         }
 
-        $cacheKey = self::CACHE_KEY_PREFIX . hash('sha256', $repo . '|' . $catalogStamp . '|' . ($latest ?? ''));
+        $cacheKey = self::CACHE_KEY_PREFIX . hash('sha256', $repo . '|' . $catalogStamp . '|' . $themesCount . '|' . $pluginsCount . '|' . ($latest ?? ''));
 
         /** @var mixed $cached */
         $cached = $this->cache->get($cacheKey);
