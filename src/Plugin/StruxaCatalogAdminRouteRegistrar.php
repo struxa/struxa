@@ -350,7 +350,16 @@ final class StruxaCatalogAdminRouteRegistrar
 
                 if ($action === 'regenerate') {
                     $regen = $publisher->regenerateCatalog();
-                    Flash::set($regen['ok'] ? 'success' : 'error', $regen['ok'] ? 'Catalog repo.json regenerated from approved submissions.' : $regen['error']);
+                    if ($regen['ok']) {
+                        $msg = 'Catalog repo.json regenerated from approved submissions.';
+                        $synced = $regen['synced_bundled'] ?? [];
+                        if (is_array($synced) && $synced !== []) {
+                            $msg .= ' Refreshed bundled packages: ' . implode(', ', $synced) . '.';
+                        }
+                        Flash::set('success', $msg);
+                    } else {
+                        Flash::set('error', $regen['error'] ?? 'Regenerate failed.');
+                    }
 
                     return $response->withHeader('Location', $back)->withStatus(302);
                 }

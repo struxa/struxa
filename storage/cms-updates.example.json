@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.2.7",
-    "title": "Struxa 1.2.7",
-    "summary": "Fix storefront FOUC: load theme app.css blocking again, intrinsic hero SVG dimensions; forms CSS stays non-blocking.",
+    "latest_version": "1.2.8",
+    "title": "Struxa 1.2.8",
+    "summary": "Catalog regenerate syncs newer bundled themes/plugins from the CMS tree into struxa-dist ZIPs before writing repo.json (struxa-admin 1.0.24).",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "minor"

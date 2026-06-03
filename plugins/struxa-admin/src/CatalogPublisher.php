@@ -75,6 +75,8 @@ final class CatalogPublisher
             @mkdir($zipsDir, 0755, true);
         }
 
+        $synced = $this->syncBundledPackagesFromCore($zipsDir);
+
         $baseUrl = $this->settings->zipBaseUrl();
         $screenshotBase = $this->settings->screenshotPublicBaseUrl();
 
@@ -102,7 +104,82 @@ final class CatalogPublisher
             return ['ok' => false, 'error' => $written['error'] ?? 'Failed to write catalog.'];
         }
 
-        return ['ok' => true];
+        return ['ok' => true, 'synced_bundled' => $synced];
+    }
+
+    /**
+     * When the CMS ships themes/ or plugins/ in the project root (e.g. struxa-theme after a core update),
+     * refresh distribution ZIPs so repo.json reflects the bundled manifest version, not a stale zip.
+     *
+     * @return list<string> Human-readable lines for admin flash (slug + version).
+     */
+    private function syncBundledPackagesFromCore(string $zipsDir): array
+    {
+        $synced = [];
+        $root = $this->settings->projectRoot();
+
+        foreach ($this->submissions->listApproved() as $sub) {
+            if ($sub->kind === SubmissionKind::THEME) {
+                $dir = $root . '/themes/' . $sub->slug;
+                $manifest = ThemeManifest::tryLoadRelaxedPath($dir);
+                if ($manifest === null) {
+                    continue;
+                }
+                $bundledVersion = trim($manifest->version);
+                if ($bundledVersion === '') {
+                    continue;
+                }
+                $zipPath = $zipsDir . '/' . $sub->slug . '.zip';
+                $zipVersion = $this->manifestVersionFromZip($zipPath, SubmissionKind::THEME);
+                if ($zipVersion !== null && version_compare($bundledVersion, $zipVersion, '<=')) {
+                    continue;
+                }
+                $err = $this->buildDistZip($dir, $sub->slug, SubmissionKind::THEME);
+                if ($err === null) {
+                    $synced[] = $sub->slug . ' theme v' . $bundledVersion;
+                }
+            } else {
+                $dir = $root . '/plugins/' . $sub->slug;
+                $parser = new PluginManifestParser();
+                $jsonPath = $dir . '/plugin.json';
+                if (!is_file($jsonPath)) {
+                    continue;
+                }
+                $parsed = $parser->parseFile($jsonPath, $sub->slug);
+                if (!$parsed['ok'] || !isset($parsed['manifest']['version'])) {
+                    continue;
+                }
+                $bundledVersion = trim((string) $parsed['manifest']['version']);
+                if ($bundledVersion === '') {
+                    continue;
+                }
+                $zipPath = $zipsDir . '/' . $sub->slug . '.zip';
+                $zipVersion = $this->manifestVersionFromZip($zipPath, SubmissionKind::PLUGIN);
+                if ($zipVersion !== null && version_compare($bundledVersion, $zipVersion, '<=')) {
+                    continue;
+                }
+                $err = $this->buildDistZip($dir, $sub->slug, SubmissionKind::PLUGIN);
+                if ($err === null) {
+                    $synced[] = $sub->slug . ' plugin v' . $bundledVersion;
+                }
+            }
+        }
+
+        return $synced;
+    }
+
+    private function manifestVersionFromZip(string $zipPath, string $kind): ?string
+    {
+        if (!is_file($zipPath)) {
+            return null;
+        }
+        $manifest = $this->readManifestFromZip($zipPath, $kind);
+        if ($manifest === null) {
+            return null;
+        }
+        $version = trim((string) ($manifest['version'] ?? ''));
+
+        return $version !== '' ? $version : null;
     }
 
     private function syncPublishJsonFromApproved(): void
