@@ -9,6 +9,7 @@ use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\App;
 use Slim\Routing\RouteContext;
 use Slim\Views\Twig;
+use StruxaAdmin\CatalogBrowseList;
 use StruxaAdmin\CatalogBrowseService;
 use StruxaAdmin\CatalogDownloadStatsRepository;
 use StruxaAdmin\CatalogEngagementActor;
@@ -57,23 +58,55 @@ return static function (App $app, \App\Plugin\PluginBootContext $ctx): void {
     );
 
     $renderCatalog = static function (
+        Request $request,
         Response $response,
         string $template,
         string $title,
-        array $extra
+        array $extra,
+        string $kind,
+        string $listRoute,
     ) use ($twig, $view, $ns, $browse, $engagement): Response {
+        $query = $request->getQueryParams();
+        $sort = CatalogBrowseList::normalizeSort((string) ($query['sort'] ?? ''));
+        $page = max(1, (int) ($query['page'] ?? 1));
+
         $catalog = $browse->loadMergedCatalog();
         $payload = array_merge($view([
             'page_title' => $title,
             'catalog_ok' => $catalog['ok'],
             'catalog_error' => $catalog['ok'] ? null : $catalog['error'],
+            'catalog_sort' => $sort,
+            'catalog_list_route' => $listRoute,
         ]), $extra);
         if ($catalog['ok']) {
-            $payload['catalog_themes'] = $engagement->enrichList(SubmissionKind::THEME, $catalog['themes']);
-            $payload['catalog_plugins'] = $engagement->enrichList(SubmissionKind::PLUGIN, $catalog['plugins']);
+            $themes = $engagement->enrichList(SubmissionKind::THEME, $catalog['themes']);
+            $plugins = $engagement->enrichList(SubmissionKind::PLUGIN, $catalog['plugins']);
+            $lister = new CatalogBrowseList();
+            if ($kind === SubmissionKind::PLUGIN) {
+                $paged = $lister->apply($sort, $page, $plugins);
+                $payload['catalog_plugins'] = $paged['items'];
+                $payload['catalog_themes'] = $themes;
+            } else {
+                $paged = $lister->apply($sort, $page, $themes);
+                $payload['catalog_themes'] = $paged['items'];
+                $payload['catalog_plugins'] = $plugins;
+            }
+            $payload['catalog_pagination'] = [
+                'page' => $paged['page'],
+                'pages' => $paged['pages'],
+                'total' => $paged['total'],
+                'per_page' => $paged['per_page'],
+            ];
+            $payload['catalog_sort'] = $paged['sort'];
         } else {
             $payload['catalog_themes'] = [];
             $payload['catalog_plugins'] = [];
+            $payload['catalog_pagination'] = [
+                'page' => 1,
+                'pages' => 1,
+                'total' => 0,
+                'per_page' => CatalogBrowseList::PER_PAGE,
+            ];
         }
 
         return $twig->render($response, $ns . '/' . $template, $payload);
@@ -162,11 +195,27 @@ return static function (App $app, \App\Plugin\PluginBootContext $ctx): void {
     };
 
     $app->get('/plugins', function (Request $request, Response $response) use ($renderCatalog): Response {
-        return $renderCatalog($response, 'public/plugins.twig', 'Struxa plugins', ['catalog_nav' => 'plugins']);
+        return $renderCatalog(
+            $request,
+            $response,
+            'public/plugins.twig',
+            'Struxa plugins',
+            ['catalog_nav' => 'plugins'],
+            SubmissionKind::PLUGIN,
+            'public.struxa_catalog.plugins',
+        );
     })->setName('public.struxa_catalog.plugins');
 
     $app->get('/themes', function (Request $request, Response $response) use ($renderCatalog): Response {
-        return $renderCatalog($response, 'public/themes.twig', 'Struxa themes', ['catalog_nav' => 'themes']);
+        return $renderCatalog(
+            $request,
+            $response,
+            'public/themes.twig',
+            'Struxa themes',
+            ['catalog_nav' => 'themes'],
+            SubmissionKind::THEME,
+            'public.struxa_catalog.themes',
+        );
     })->setName('public.struxa_catalog.themes');
 
     $getPackageReviews = static function (

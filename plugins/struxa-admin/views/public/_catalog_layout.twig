@@ -54,6 +54,45 @@
     .st-catalog__lead { margin: 0 0 1.25rem; max-width: 52rem; line-height: 1.55; opacity: .88; }
     .st-catalog__nav { display: flex; flex-wrap: wrap; gap: .55rem; align-items: center; }
     .st-catalog__nav .st-btn.is-active { box-shadow: inset 0 0 0 2px currentColor; }
+    .st-catalog__toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: .75rem 1.25rem;
+      margin: 0 0 1.25rem;
+      padding: .75rem 1rem;
+      border: 1px solid rgba(0,0,0,.08);
+      border-radius: 12px;
+      background: rgba(255,255,255,.62);
+    }
+    .st-catalog__sort-form {
+      display: inline-flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: .55rem;
+      margin: 0;
+    }
+    .st-catalog__sort-label {
+      font-size: .88rem;
+      font-weight: 600;
+      opacity: .78;
+    }
+    .st-catalog__sort-select {
+      border: 1px solid rgba(0,0,0,.14);
+      border-radius: 8px;
+      padding: .4rem .65rem;
+      font: inherit;
+      font-size: .88rem;
+      background: rgba(255,255,255,.92);
+      cursor: pointer;
+    }
+    .st-catalog__result-count {
+      margin: 0;
+      font-size: .86rem;
+      opacity: .72;
+    }
+    .st-catalog__pagination--browse { margin-top: 1.75rem; }
     .st-catalog__back { margin: 0 0 1rem; font-size: .92rem; }
     .st-catalog__back a { color: inherit; opacity: .78; text-decoration: none; }
     .st-catalog__back a:hover { opacity: 1; text-decoration: underline; }

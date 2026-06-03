@@ -1,0 +1,21 @@
+{% set _sort = catalog_sort|default('latest') %}
+{% set _route = catalog_list_route|default('') %}
+{% set _page = catalog_pagination.page|default(1) %}
+{% set _total = catalog_pagination.total|default(0) %}
+
+<div class="st-catalog__toolbar">
+  <form class="st-catalog__sort-form" method="get" action="{{ url_for(_route) }}">
+    {% if _page > 1 %}
+      <input type="hidden" name="page" value="1">
+    {% endif %}
+    <label class="st-catalog__sort-label" for="catalog-sort">Sort by</label>
+    <select class="st-catalog__sort-select" name="sort" id="catalog-sort" onchange="this.form.submit()">
+      <option value="latest"{% if _sort == 'latest' %} selected{% endif %}>Latest</option>
+      <option value="oldest"{% if _sort == 'oldest' %} selected{% endif %}>Oldest</option>
+      <option value="rating"{% if _sort == 'rating' %} selected{% endif %}>Best rated</option>
+    </select>
+  </form>
+  {% if _total > 0 %}
+    <p class="st-catalog__result-count">{{ _total }} package{{ _total == 1 ? '' : 's' }}</p>
+  {% endif %}
+</div>

@@ -1,0 +1,19 @@
+{% set _pagination = catalog_pagination|default({}) %}
+{% set _pages = _pagination.pages|default(1) %}
+{% set _page = _pagination.page|default(1) %}
+{% set _total = _pagination.total|default(0) %}
+{% set _route = catalog_list_route|default('') %}
+{% set _sort = catalog_sort|default('latest') %}
+{% set _query = { sort: _sort } %}
+
+{% if _pages > 1 %}
+  <nav class="st-catalog__pagination st-catalog__pagination--browse" aria-label="Catalog pages">
+    {% if _page > 1 %}
+      <a class="st-catalog__page-btn" href="{{ url_for(_route, {}, _query|merge({ page: _page - 1 })) }}">Previous</a>
+    {% endif %}
+    <span class="st-catalog__page-info">Page {{ _page }} of {{ _pages }}{% if _total > 0 %} · {{ _total }} total{% endif %}</span>
+    {% if _page < _pages %}
+      <a class="st-catalog__page-btn" href="{{ url_for(_route, {}, _query|merge({ page: _page + 1 })) }}">Next</a>
+    {% endif %}
+  </nav>
+{% endif %}

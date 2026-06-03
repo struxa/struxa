@@ -3,16 +3,22 @@
 {% block catalog_body %}
   {% if not catalog_ok %}
     <div class="st-catalog__notice st-catalog__notice--error"><p>{{ catalog_error|e }}</p></div>
-  {% elseif catalog_plugins is empty %}
+  {% elseif catalog_plugins is empty and catalog_pagination.total|default(0) == 0 %}
     <p class="st-catalog__empty">No plugins in the catalog yet. Be the first to <a href="{{ url_for('public.struxa_catalog.plugins.submit_form') }}">submit one</a>.</p>
   {% else %}
-    <div class="st-catalog__grid">
-      {% for p in catalog_plugins %}
-        {% include '@plugin_struxa_admin/public/_catalog_card.twig' with {
-          item: p,
-          show_route: 'public.struxa_catalog.plugin_show'
-        } only %}
-      {% endfor %}
-    </div>
+    {% include '@plugin_struxa_admin/public/_catalog_list_toolbar.twig' %}
+    {% if catalog_plugins is empty %}
+      <p class="st-catalog__empty st-catalog__empty--inline">No plugins on this page.</p>
+    {% else %}
+      <div class="st-catalog__grid">
+        {% for p in catalog_plugins %}
+          {% include '@plugin_struxa_admin/public/_catalog_card.twig' with {
+            item: p,
+            show_route: 'public.struxa_catalog.plugin_show'
+          } only %}
+        {% endfor %}
+      </div>
+    {% endif %}
+    {% include '@plugin_struxa_admin/public/_catalog_list_pagination.twig' %}
   {% endif %}
 {% endblock %}

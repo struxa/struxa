@@ -32,7 +32,14 @@ final class CatalogBrowseService
         $plugins = isset($data['plugins']) && is_array($data['plugins']) ? $this->normalizeRows($data['plugins']) : [];
 
         $screenshotBase = $this->settings->screenshotPublicBaseUrl();
-        foreach ($this->submissions->listApproved() as $sub) {
+        $listedAtByKey = [];
+        $approved = $this->submissions->listApproved();
+        foreach ($approved as $sub) {
+            $listedAtByKey[$sub->kind . ':' . strtolower($sub->slug)] = $sub->publishedAt
+                ?? $sub->reviewedAt
+                ?? $sub->createdAt;
+        }
+        foreach ($approved as $sub) {
             $entry = [
                 'slug' => $sub->slug,
                 'name' => $sub->name,
@@ -41,6 +48,7 @@ final class CatalogBrowseService
                 'author' => $sub->author,
                 'download_url' => $this->settings->trackedDownloadUrl($sub->kind, $sub->slug),
                 'repository_url' => $sub->gitRepoUrl,
+                'listed_at' => $listedAtByKey[$sub->kind . ':' . strtolower($sub->slug)] ?? null,
             ];
             if ($screenshotBase !== '' && $sub->screenshotPath !== null) {
                 $entry['screenshot_url'] = rtrim($screenshotBase, '/')
@@ -52,6 +60,9 @@ final class CatalogBrowseService
                 $plugins = $this->upsert($plugins, $entry);
             }
         }
+
+        $themes = $this->attachListedAt(SubmissionKind::THEME, $themes, $listedAtByKey);
+        $plugins = $this->attachListedAt(SubmissionKind::PLUGIN, $plugins, $listedAtByKey);
 
         return ['ok' => true, 'themes' => $themes, 'plugins' => $plugins];
     }
@@ -111,7 +122,27 @@ final class CatalogBrowseService
                 'screenshot_url' => isset($row['screenshot_url']) ? trim((string) $row['screenshot_url']) : null,
             ];
         }
-        usort($out, static fn (array $a, array $b): int => strcasecmp($a['name'], $b['name']));
+
+        return $out;
+    }
+
+    /**
+     * @param list<array<string, mixed>> $list
+     * @param array<string, string> $listedAtByKey
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function attachListedAt(string $kind, array $list, array $listedAtByKey): array
+    {
+        $out = [];
+        foreach ($list as $row) {
+            $slug = strtolower(trim((string) ($row['slug'] ?? '')));
+            $key = $kind . ':' . $slug;
+            if (!isset($row['listed_at']) && isset($listedAtByKey[$key])) {
+                $row['listed_at'] = $listedAtByKey[$key];
+            }
+            $out[] = $row;
+        }
 
         return $out;
     }
@@ -137,7 +168,6 @@ final class CatalogBrowseService
         if (!$found) {
             $out[] = $entry;
         }
-        usort($out, static fn (array $a, array $b): int => strcasecmp($a['name'], $b['name']));
 
         return $out;
     }
