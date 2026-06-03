@@ -22,7 +22,7 @@
         {% if bundle is null %}
           <p class="st-newsletter__missing">Publish a form with slug <code>{{ _slug|e }}</code> in Admin → Forms.</p>
         {% else %}
-          <link rel="stylesheet" href="{{ asset('css/forms-public.css') }}" />
+          {% include 'partials/_async_core_stylesheet.twig' with { href: asset('css/forms-public.css') } only %}
           <div class="st-newsletter__form">
             {% include 'public/forms/_form_fields.twig' with {
               form: bundle.form,

@@ -5,12 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     {% set _accent = theme_settings.accent|default('')|trim %}
     {% if _accent == '' %}{% set _accent = '#ff6b2b' %}{% endif %}
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&amp;display=swap" />
+    <style>
+      :root{--st-bg:#f9f5f2;--st-surface:#fff;--st-text:#111827;--st-topbar:#632a13;--st-accent:#ff6b2b}
+      *,*::before,*::after{box-sizing:border-box}
+      body.theme-struxa{margin:0;background:var(--st-bg);color:var(--st-text);font-family:ui-sans-serif,system-ui,sans-serif;line-height:1.6}
+      img{max-width:100%;height:auto;display:block}
+      .st-shell{min-height:100vh;display:flex;flex-direction:column}
+      .st-main{flex:1}
+      .st-skip-link{position:absolute;left:-9999px}
+    </style>
+    {% set _fonts_url = 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap' %}
     {% include 'partials/_deferred_theme_css.twig' with {
-      font_url: '',
-      theme_stylesheets: ['css/app.css'],
+      font_url: _fonts_url,
+      theme_stylesheets: [],
+      theme_stylesheets_async: ['css/app.css'],
     } only %}
     <title>
       {%- if struxa_seo|default(false) -%}
@@ -43,7 +51,9 @@
     {% endif %}
     {% block head_extra %}{% endblock %}
     {% if request_path|default('') starts with '/forum' %}
-      <link rel="stylesheet" href="{{ theme_asset('css/forum-overrides.css') }}" />
+      {% set _forum_css = theme_asset('css/forum-overrides.css') %}
+      <link rel="preload" as="style" href="{{ _forum_css|e('html_attr') }}" onload="this.onload=null;this.rel='stylesheet'" />
+      <noscript><link rel="stylesheet" href="{{ _forum_css|e('html_attr') }}" /></noscript>
     {% endif %}
   </head>
   <body class="theme-struxa" style="--st-accent: {{ _accent|e('html_attr') }}">

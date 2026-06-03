@@ -1,14 +1,35 @@
 {# Theme default: Struxa Point wordmark. Site settings → logo overrides when set. #}
 {% set _logo_src = settings.logo_href|default('')|trim %}
-{% if _logo_src == '' %}
-  {% set _logo_src = theme_asset('images/struxapoint-logo.png') %}
+{% set _use_theme_logo = _logo_src == '' %}
+{% if _use_theme_logo %}
+  {% set _logo_png = theme_asset('images/struxapoint-logo.png') %}
+  {% set _logo_webp = theme_asset('images/struxapoint-logo.webp') %}
 {% endif %}
-<img
-  class="{{ logo_class|default('st-brand__logo')|e('html_attr') }}"
-  src="{{ _logo_src|e('html_attr') }}"
-  alt="{{ settings.site_name|default('Struxa Point')|e('html_attr') }}"
-  width="400"
-  height="85"
-  loading="{{ logo_loading|default('eager')|e('html_attr') }}"
-  decoding="async"
-/>
+{% if _use_theme_logo and _logo_webp|default('')|trim != '' %}
+  <picture>
+    <source type="image/webp" srcset="{{ _logo_webp|e('html_attr') }}" />
+    <img
+      class="{{ logo_class|default('st-brand__logo')|e('html_attr') }}"
+      src="{{ _logo_png|e('html_attr') }}"
+      alt="{{ settings.site_name|default('Struxa Point')|e('html_attr') }}"
+      width="400"
+      height="85"
+      sizes="(max-width: 480px) 280px, 310px"
+      loading="{{ logo_loading|default('eager')|e('html_attr') }}"
+      decoding="async"
+      fetchpriority="high"
+    />
+  </picture>
+{% else %}
+  <img
+    class="{{ logo_class|default('st-brand__logo')|e('html_attr') }}"
+    src="{{ (_use_theme_logo ? _logo_png : _logo_src)|e('html_attr') }}"
+    alt="{{ settings.site_name|default('Struxa Point')|e('html_attr') }}"
+    width="400"
+    height="85"
+    sizes="(max-width: 480px) 280px, 310px"
+    loading="{{ logo_loading|default('eager')|e('html_attr') }}"
+    decoding="async"
+    {% if logo_loading|default('eager') == 'eager' %}fetchpriority="high"{% endif %}
+  />
+{% endif %}

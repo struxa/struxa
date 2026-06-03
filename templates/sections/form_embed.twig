@@ -6,7 +6,7 @@
   {% if bundle is null %}
     <p class="struxa-form-missing">Form <code>{{ slug|e }}</code> was not found or is not published.</p>
   {% else %}
-    <link rel="stylesheet" href="{{ asset('css/forms-public.css') }}" />
+    {% include 'partials/_async_core_stylesheet.twig' with { href: asset('css/forms-public.css') } only %}
     <div class="struxa-form-embed">
       {% if section.title|default('') != '' %}
         <h2 class="struxa-form-heading">{{ section.title|e }}</h2>

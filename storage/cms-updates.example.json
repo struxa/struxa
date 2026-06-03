@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.2.4",
-    "title": "Struxa 1.2.4",
-    "summary": "Homepage lines-of-code stat falls back to counting local CMS source when GitHub language API is unavailable; stale showcase cache without LOC is refreshed.",
+    "latest_version": "1.2.5",
+    "title": "Struxa 1.2.5",
+    "summary": "Storefront PageSpeed: non-blocking theme and form CSS, async Google Fonts, long-cache versioned static assets, responsive WebP card images via /media-rs, and a smaller theme logo WebP.",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "minor"

@@ -42,15 +42,15 @@
               <a class="st-blog-news__card-link" href="{{ _url|e('html_attr') }}">
                 <div class="st-blog-news__media" aria-hidden="true">
                   {% if item.featured_url|default('')|trim != '' %}
-                    <img
-                      class="st-blog-news__img"
-                      src="{{ item.featured_url|e('html_attr') }}"
-                      alt=""
-                      width="640"
-                      height="360"
-                      loading="lazy"
-                      decoding="async"
-                    />
+                    {% include 'partials/_responsive_featured_img.twig' with {
+                      src: item.featured_url,
+                      media_id: item.featured_media_id|default(null),
+                      class: 'st-blog-news__img',
+                      sizes: '(max-width: 640px) 92vw, 305px',
+                      width: 640,
+                      height: 360,
+                      loading: 'lazy',
+                    } only %}
                   {% else %}
                     <div class="st-blog-news__placeholder">
                       <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">

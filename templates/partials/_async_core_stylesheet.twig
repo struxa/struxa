@@ -1,0 +1,6 @@
+{# Non-render-blocking core CSS under public/ (forms, etc.). #}
+{% set _href = href|default('')|trim %}
+{% if _href != '' %}
+  <link rel="preload" as="style" href="{{ _href|e('html_attr') }}" onload="this.onload=null;this.rel='stylesheet'" />
+  <noscript><link rel="stylesheet" href="{{ _href|e('html_attr') }}" /></noscript>
+{% endif %}

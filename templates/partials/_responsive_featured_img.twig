@@ -1,0 +1,35 @@
+{# Card/thumbnail image: WebP derivatives via media_resize_url when featured_media_id is set. #}
+{% set _url = src|default('')|trim %}
+{% if _url == '' %}{% else %}
+  {% set _mid = media_id|default(null) %}
+  {% set _class = class|default('')|trim %}
+  {% set _sizes = sizes|default('(max-width: 640px) 92vw, 305px')|trim %}
+  {% set _w = width|default(null) %}
+  {% set _h = height|default(null) %}
+  {% set _loading = loading|default('lazy')|trim %}
+  {% if _mid %}
+    {% set _src_default = media_resize_url(_mid, 480) %}
+    {% set _srcset = media_resize_url(_mid, 320) ~ ' 320w, ' ~ media_resize_url(_mid, 480) ~ ' 480w, ' ~ media_resize_url(_mid, 640) ~ ' 640w' %}
+    <img
+      {% if _class != '' %}class="{{ _class|e('html_attr') }}" {% endif %}
+      src="{{ _src_default|e('html_attr') }}"
+      srcset="{{ _srcset|e('html_attr') }}"
+      sizes="{{ _sizes|e('html_attr') }}"
+      alt="{{ alt|default('')|e('html_attr') }}"
+      {% if _w %}width="{{ _w }}" {% endif %}
+      {% if _h %}height="{{ _h }}" {% endif %}
+      loading="{{ _loading|e('html_attr') }}"
+      decoding="async"
+    />
+  {% else %}
+    <img
+      {% if _class != '' %}class="{{ _class|e('html_attr') }}" {% endif %}
+      src="{{ _url|e('html_attr') }}"
+      alt="{{ alt|default('')|e('html_attr') }}"
+      {% if _w %}width="{{ _w }}" {% endif %}
+      {% if _h %}height="{{ _h }}" {% endif %}
+      loading="{{ _loading|e('html_attr') }}"
+      decoding="async"
+    />
+  {% endif %}
+{% endif %}

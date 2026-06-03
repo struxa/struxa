@@ -1,7 +1,7 @@
 {% extends 'pages/plugin_public_theme_shell.twig' %}
 
 {% block plugin_public_body %}
-  <link rel="stylesheet" href="{{ asset('css/forms-public.css') }}" />
+  {% include 'partials/_async_core_stylesheet.twig' with { href: asset('css/forms-public.css') } only %}
   <main class="struxa-form-page">
     <div class="struxa-form-page-inner">
       <h1>{{ form.name|e }}</h1>
