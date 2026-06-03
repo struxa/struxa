@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.2.0",
-    "title": "Struxa 1.2.0",
-    "summary": "Catalog reviews and v2 sharded repo.json, redesigned plugin/theme detail pages and admin browse, and CMS updates that preserve the live StruxaPoint catalog (struxa-admin owned).",
+    "latest_version": "1.2.1",
+    "title": "Struxa 1.2.1",
+    "summary": "Homepage showcase and updates feed now prefer composer.json on main when it is ahead of stale GitHub Releases (shows 1.2.x instead of old release tags).",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "minor"

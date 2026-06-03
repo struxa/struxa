@@ -6,13 +6,14 @@ namespace App\Dist;
 
 use App\Cache\FileCache;
 use App\CmsVersion;
+use App\Update\CmsUpdateChecker;
 
 /**
- * Live GitHub release version + distribution catalog counts for the storefront GitHub showcase.
+ * CMS release version (updates feed) + distribution catalog counts + GitHub stars for the storefront showcase.
  */
 final class GithubShowcaseStats
 {
-    private const CACHE_KEY_PREFIX = 'github_showcase_stats_v2_';
+    private const CACHE_KEY_PREFIX = 'github_showcase_stats_v3_';
 
     private const CACHE_TTL = 3600;
 
@@ -47,7 +48,24 @@ final class GithubShowcaseStats
         $themesCount = $catalogCounts['themes'];
         $pluginsCount = $catalogCounts['plugins'];
         $catalogStamp = $catalogCounts['generated_at'] ?? '';
-        $cacheKey = self::CACHE_KEY_PREFIX . hash('sha256', $repo . '|' . $catalogStamp);
+
+        $updates = (new CmsUpdateChecker($this->cache))->check();
+        $latest = null;
+        $releaseUrl = 'https://struxapoint.com/releases';
+        if (($updates['ok'] ?? false) && isset($updates['latest_version']) && is_string($updates['latest_version'])) {
+            $ver = trim($updates['latest_version']);
+            if ($ver !== '' && self::isReasonableSemver($ver)) {
+                $latest = $ver;
+            }
+        }
+        if (isset($updates['release_url']) && is_string($updates['release_url'])) {
+            $url = trim($updates['release_url']);
+            if ($url !== '' && str_starts_with($url, 'https://')) {
+                $releaseUrl = $url;
+            }
+        }
+
+        $cacheKey = self::CACHE_KEY_PREFIX . hash('sha256', $repo . '|' . $catalogStamp . '|' . ($latest ?? ''));
 
         /** @var mixed $cached */
         $cached = $this->cache->get($cacheKey);
@@ -56,54 +74,21 @@ final class GithubShowcaseStats
             return $cached;
         }
 
-        $releaseUrl = 'https://github.com/' . $repo . '/releases/latest';
-        $latest = null;
         $stars = null;
         $error = null;
 
         $repoMeta = $this->fetchJson('https://api.github.com/repos/' . $repo, true);
-        if (is_array($repoMeta)) {
-            if (isset($repoMeta['stargazers_count']) && is_numeric($repoMeta['stargazers_count'])) {
-                $stars = (int) $repoMeta['stargazers_count'];
-            }
-        }
-
-        $release = $this->fetchJson('https://api.github.com/repos/' . $repo . '/releases/latest', true);
-        if (is_array($release) && isset($release['tag_name']) && is_string($release['tag_name'])) {
-            $latest = self::normalizeReleaseTag($release['tag_name']);
-            if (isset($release['html_url']) && is_string($release['html_url']) && str_starts_with($release['html_url'], 'https://')) {
-                $releaseUrl = $release['html_url'];
-            }
-        }
-
-        if ($latest === null || !self::isReasonableSemver($latest)) {
-            $ref = trim((string) ($_ENV['STRUXA_UPDATES_GITHUB_REF'] ?? getenv('STRUXA_UPDATES_GITHUB_REF') ?: 'main'));
-            if ($ref === '') {
-                $ref = 'main';
-            }
-            $composerRaw = $this->httpGet(
-                'https://raw.githubusercontent.com/' . $repo . '/' . rawurlencode($ref) . '/composer.json',
-                false,
-            );
-            if ($composerRaw !== null && $composerRaw !== '') {
-                try {
-                    /** @var mixed $composer */
-                    $composer = json_decode($composerRaw, true, 32, JSON_THROW_ON_ERROR);
-                    if (is_array($composer) && isset($composer['version']) && is_string($composer['version'])) {
-                        $ver = trim($composer['version']);
-                        if (self::isReasonableSemver($ver)) {
-                            $latest = $ver;
-                        }
-                    }
-                } catch (\JsonException) {
-                    // fall through
-                }
-            }
+        if (is_array($repoMeta) && isset($repoMeta['stargazers_count']) && is_numeric($repoMeta['stargazers_count'])) {
+            $stars = (int) $repoMeta['stargazers_count'];
         }
 
         if ($latest === null) {
             $latest = self::isReasonableSemver(CmsVersion::CURRENT) ? CmsVersion::CURRENT : null;
-            $error = 'Could not read latest release from GitHub.';
+            if ($latest === null && isset($updates['error']) && is_string($updates['error'])) {
+                $error = $updates['error'];
+            } elseif ($latest === null) {
+                $error = 'Could not read latest CMS version from the updates feed.';
+            }
         }
 
         $pack = [
@@ -205,19 +190,6 @@ final class GithubShowcaseStats
         $body = @file_get_contents($url, false, $ctx);
 
         return is_string($body) && $body !== '' ? $body : null;
-    }
-
-    private static function normalizeReleaseTag(string $tag): string
-    {
-        $tag = trim($tag);
-        if ($tag === '') {
-            return '';
-        }
-        if (preg_match('/^v\d/', $tag) === 1) {
-            return substr($tag, 1);
-        }
-
-        return $tag;
     }
 
     private static function isReasonableSemver(string $v): bool

@@ -132,6 +132,118 @@ function struxa_valid_semver(string $v): bool
     return preg_match('/^\d+\.\d+\.\d+([.-][0-9A-Za-z.-]+)?$/', $v) === 1;
 }
 
+function struxa_max_semver(string $a, string $b): string
+{
+    $a = trim($a);
+    $b = trim($b);
+    $aOk = $a !== '' && struxa_valid_semver($a);
+    $bOk = $b !== '' && struxa_valid_semver($b);
+    if ($aOk && $bOk) {
+        return version_compare($a, $b, '>=') ? $a : $b;
+    }
+    if ($aOk) {
+        return $a;
+    }
+    if ($bOk) {
+        return $b;
+    }
+
+    return '';
+}
+
+/**
+ * @return array{version: string, title: string, summary: string, release_url: string, download_url: string}|null
+ */
+function struxa_fetch_release_pack(string $repo, string $releasePage, string $severity, array $baseHeaders): ?array
+{
+    $apiLatest = 'https://api.github.com/repos/' . $repo . '/releases/latest';
+    [$raw, $code] = struxa_http_get($apiLatest, $baseHeaders);
+    if ($raw === '' || $code !== 200) {
+        return null;
+    }
+    try {
+        /** @var mixed $data */
+        $data = json_decode($raw, true, 512, JSON_THROW_ON_ERROR);
+    } catch (JsonException) {
+        return null;
+    }
+    if (!is_array($data) || !isset($data['tag_name']) || !is_string($data['tag_name'])) {
+        return null;
+    }
+    $ver = struxa_normalize_tag($data['tag_name']);
+    if ($ver === '' || !struxa_valid_semver($ver)) {
+        return null;
+    }
+    $name = isset($data['name']) && is_string($data['name']) ? trim($data['name']) : '';
+    $title = $name !== '' ? $name : ('Struxa ' . $ver);
+    $body = isset($data['body']) && is_string($data['body']) ? trim($data['body']) : '';
+    $summary = $body !== '' ? struxa_truncate($body, 400) : ('Struxa CMS ' . $ver . ' — see release notes.');
+    $ghUrl = isset($data['html_url']) && is_string($data['html_url']) ? trim($data['html_url']) : '';
+    $releaseUrl = ($ghUrl !== '' && str_starts_with($ghUrl, 'https://')) ? $ghUrl : $releasePage;
+    $zip = '';
+    if (isset($data['zipball_url']) && is_string($data['zipball_url'])) {
+        $z = trim($data['zipball_url']);
+        if ($z !== '' && str_starts_with($z, 'https://')) {
+            $zip = $z;
+        }
+    }
+    if ($zip === '') {
+        $tagRaw = trim((string) $data['tag_name']);
+        if ($tagRaw !== '') {
+            $zip = 'https://github.com/' . $repo . '/archive/refs/tags/' . rawurlencode($tagRaw) . '.zip';
+        }
+    }
+
+    return [
+        'version' => $ver,
+        'title' => $title,
+        'summary' => $summary,
+        'release_url' => $releaseUrl,
+        'download_url' => $zip,
+    ];
+}
+
+/**
+ * @return array{version: string, title: string, summary: string, release_url: string, download_url: string}|null
+ */
+function struxa_fetch_composer_pack(string $repo, string $branch, string $releasePage, string $severity, array $baseHeaders): ?array
+{
+    $headSha = struxa_github_ref_head_sha($repo, $branch, $baseHeaders);
+    $composerRef = $headSha !== '' ? $headSha : rawurlencode($branch);
+    $composerUrl = 'https://raw.githubusercontent.com/' . $repo . '/' . $composerRef . '/composer.json';
+    $composerHeaders = [
+        'User-Agent: Struxa-Updates-Generator/1 (+https://struxapoint.com)',
+        'Accept: application/json',
+    ];
+    [$cRaw, $cCode] = struxa_http_get($composerUrl, $composerHeaders);
+    if ($cRaw === '' || $cCode !== 200 || strlen($cRaw) > MAX_COMPOSER_BYTES) {
+        return null;
+    }
+    try {
+        /** @var mixed $composer */
+        $composer = json_decode($cRaw, true, 512, JSON_THROW_ON_ERROR);
+    } catch (JsonException) {
+        return null;
+    }
+    $ver = is_array($composer) && isset($composer['version']) && is_string($composer['version'])
+        ? trim($composer['version'])
+        : '';
+    if ($ver === '' || !struxa_valid_semver($ver)) {
+        return null;
+    }
+    $zip = $headSha !== ''
+        ? ('https://github.com/' . $repo . '/archive/' . $headSha . '.zip')
+        : ('https://github.com/' . $repo . '/archive/refs/heads/' . rawurlencode($branch) . '.zip');
+
+    return [
+        'version' => $ver,
+        'title' => 'Struxa ' . $ver,
+        'summary' => 'Latest source from GitHub branch ' . $branch . '. See repository for changes.',
+        'release_url' => $releasePage,
+        'download_url' => $zip,
+    ];
+}
+
 /**
  * Resolve branch (or tag) tip to a full commit SHA via GitHub API. Empty string on failure.
  */
@@ -191,86 +303,31 @@ function struxa_build_updates_payload(string $repo, string $branch, string $rele
         $baseHeaders[] = 'Authorization: Bearer ' . $token;
     }
 
-    $apiLatest = 'https://api.github.com/repos/' . $repo . '/releases/latest';
-    [$raw, $code] = struxa_http_get($apiLatest, $baseHeaders);
-
-    if ($raw !== '' && $code === 200) {
-        try {
-            /** @var mixed $data */
-            $data = json_decode($raw, true, 512, JSON_THROW_ON_ERROR);
-        } catch (JsonException) {
-            $data = null;
-        }
-        if (is_array($data) && isset($data['tag_name']) && is_string($data['tag_name'])) {
-            $ver = struxa_normalize_tag($data['tag_name']);
-            if ($ver !== '' && struxa_valid_semver($ver)) {
-                $name = isset($data['name']) && is_string($data['name']) ? trim($data['name']) : '';
-                $title = $name !== '' ? $name : ('Struxa ' . $ver);
-                $body = isset($data['body']) && is_string($data['body']) ? trim($data['body']) : '';
-                $summary = $body !== '' ? struxa_truncate($body, 400) : ('Struxa CMS ' . $ver . ' — see release notes.');
-                $ghUrl = isset($data['html_url']) && is_string($data['html_url']) ? trim($data['html_url']) : '';
-                $releaseUrl = ($ghUrl !== '' && str_starts_with($ghUrl, 'https://')) ? $ghUrl : $releasePage;
-                $zip = '';
-                if (isset($data['zipball_url']) && is_string($data['zipball_url'])) {
-                    $z = trim($data['zipball_url']);
-                    if ($z !== '' && str_starts_with($z, 'https://')) {
-                        $zip = $z;
-                    }
-                }
-                if ($zip === '') {
-                    $tagRaw = trim((string) $data['tag_name']);
-                    if ($tagRaw !== '') {
-                        $zip = 'https://github.com/' . $repo . '/archive/refs/tags/' . rawurlencode($tagRaw) . '.zip';
-                    }
-                }
-
-                $cms = [
-                    'latest_version' => $ver,
-                    'title' => $title,
-                    'summary' => $summary,
-                    'release_url' => $releaseUrl,
-                    'severity' => $severity,
-                    'download_url' => $zip,
-                ];
-
-                return ['schema_version' => 1, 'cms' => $cms];
-            }
-        }
-    }
-
-    $headSha = struxa_github_ref_head_sha($repo, $branch, $baseHeaders);
-    $composerRef = $headSha !== '' ? $headSha : rawurlencode($branch);
-    $composerUrl = 'https://raw.githubusercontent.com/' . $repo . '/' . $composerRef . '/composer.json';
-    $composerHeaders = [
-        'User-Agent: Struxa-Updates-Generator/1 (+https://struxapoint.com)',
-        'Accept: application/json',
-    ];
-    [$cRaw, $cCode] = struxa_http_get($composerUrl, $composerHeaders);
-    if ($cRaw === '' || $cCode !== 200 || strlen($cRaw) > MAX_COMPOSER_BYTES) {
+    $releasePack = struxa_fetch_release_pack($repo, $releasePage, $severity, $baseHeaders);
+    $composerPack = struxa_fetch_composer_pack($repo, $branch, $releasePage, $severity, $baseHeaders);
+    $releaseVer = $releasePack['version'] ?? '';
+    $composerVer = $composerPack['version'] ?? '';
+    $bestVer = struxa_max_semver($releaseVer, $composerVer);
+    if ($bestVer === '') {
         return ['error' => 'Could not load GitHub release or composer.json for ' . $repo . ' (branch ' . $branch . ').'];
     }
-    try {
-        /** @var mixed $composer */
-        $composer = json_decode($cRaw, true, 512, JSON_THROW_ON_ERROR);
-    } catch (JsonException) {
-        return ['error' => 'composer.json is not valid JSON.'];
+
+    if ($composerVer !== '' && version_compare($composerVer, $releaseVer !== '' ? $releaseVer : '0.0.0', '>')) {
+        $pack = $composerPack;
+        if ($releaseVer !== '') {
+            $pack['summary'] = 'Latest source on branch ' . $branch . ' is ahead of the newest GitHub Release (' . $releaseVer . ').';
+        }
+    } else {
+        $pack = $releasePack ?? $composerPack;
     }
-    $ver = is_array($composer) && isset($composer['version']) && is_string($composer['version'])
-        ? trim($composer['version'])
-        : '';
-    if ($ver === '' || !struxa_valid_semver($ver)) {
-        return ['error' => 'composer.json has no valid semver version field.'];
-    }
-    $zip = $headSha !== ''
-        ? ('https://github.com/' . $repo . '/archive/' . $headSha . '.zip')
-        : ('https://github.com/' . $repo . '/archive/refs/heads/' . rawurlencode($branch) . '.zip');
+
     $cms = [
-        'latest_version' => $ver,
-        'title' => 'Struxa ' . $ver,
-        'summary' => 'Latest source from GitHub branch ' . $branch . ' (no published Release yet). See repository for changes.',
-        'release_url' => $releasePage,
+        'latest_version' => $pack['version'],
+        'title' => $pack['title'],
+        'summary' => $pack['summary'],
+        'release_url' => $pack['release_url'],
         'severity' => $severity,
-        'download_url' => $zip,
+        'download_url' => $pack['download_url'],
     ];
 
     return ['schema_version' => 1, 'cms' => $cms];

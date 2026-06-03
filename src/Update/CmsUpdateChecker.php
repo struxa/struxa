@@ -277,6 +277,8 @@ final class CmsUpdateChecker
 
         $apiUrl = 'https://api.github.com/repos/' . $repo . '/releases/latest';
         $raw = $this->httpGetLimited($apiUrl, self::MAX_BYTES_GITHUB_API, true);
+        $releasePayload = null;
+        $releaseVer = '';
         if ($raw !== null && $raw !== '') {
             try {
                 /** @var mixed $payload */
@@ -296,64 +298,56 @@ final class CmsUpdateChecker
                 }
             }
             if (is_array($payload) && isset($payload['tag_name']) && is_string($payload['tag_name'])) {
-                $latest = self::normalizeReleaseTag($payload['tag_name']);
-                if ($latest !== '' && self::isReasonableSemver($latest)) {
-                    $out = $this->buildGithubSuccess($base, $cacheKey, $latest, $payload, $repo);
-
-                    return $out;
+                $releaseVer = self::normalizeReleaseTag($payload['tag_name']);
+                if ($releaseVer !== '' && self::isReasonableSemver($releaseVer)) {
+                    $releasePayload = $payload;
+                } else {
+                    $releaseVer = '';
                 }
             }
         }
 
-        $ref = self::githubRef();
-        $composerUrl = 'https://raw.githubusercontent.com/' . $repo . '/' . $ref . '/composer.json';
-        $cRaw = $this->httpGetLimited($composerUrl, self::MAX_BYTES, false);
-        if ($cRaw === null || $cRaw === '') {
+        $composerPack = $this->fetchComposerVersionOnGithub($repo);
+        $composerVer = $composerPack['version'] ?? '';
+        $bestVer = self::maxSemver($releaseVer, $composerVer);
+        if ($bestVer === null) {
             $out = array_merge($base, [
-                'error' => 'Could not read latest GitHub Release or composer.json on branch ' . $ref . '.',
+                'error' => 'Could not read latest GitHub Release or composer.json on branch ' . self::githubRef() . '.',
             ]);
             $this->internalCache->set($cacheKey, $out, self::CACHE_TTL);
 
             return $out;
         }
 
-        try {
-            /** @var mixed $composer */
-            $composer = json_decode($cRaw, true, 512, JSON_THROW_ON_ERROR);
-        } catch (\JsonException) {
+        if ($composerVer !== '' && version_compare($composerVer, $releaseVer !== '' ? $releaseVer : '0.0.0', '>')) {
+            $ref = self::githubRef();
+            $current = $this->effectiveCurrentVersion();
+            $available = version_compare($composerVer, $current, '>');
+            $zipUrl = $composerPack['download_url'] ?? ('https://github.com/' . $repo . '/archive/refs/heads/' . rawurlencode($ref) . '.zip');
             $out = array_merge($base, [
-                'error' => 'composer.json on GitHub is not valid JSON.',
+                'ok' => true,
+                'update_available' => $available,
+                'current_version' => $current,
+                'latest_version' => $composerVer,
+                'title' => 'Struxa ' . $composerVer,
+                'summary' => $releaseVer !== ''
+                    ? 'Latest source on branch ' . $ref . ' is ahead of the newest GitHub Release (' . $releaseVer . ').'
+                    : 'No published GitHub Release yet; version is taken from composer.json on branch ' . $ref . '.',
+                'release_url' => 'https://struxapoint.com/releases',
+                'download_url' => $zipUrl,
+                'severity' => 'minor',
             ]);
             $this->internalCache->set($cacheKey, $out, self::CACHE_TTL);
 
             return $out;
         }
 
-        $ver = is_array($composer) && isset($composer['version']) && is_string($composer['version'])
-            ? trim($composer['version'])
-            : '';
-        if ($ver === '' || !self::isReasonableSemver($ver)) {
-            $out = array_merge($base, [
-                'error' => 'composer.json on GitHub did not include a valid version.',
-            ]);
-            $this->internalCache->set($cacheKey, $out, self::CACHE_TTL);
-
-            return $out;
+        if ($releasePayload !== null && $releaseVer !== '') {
+            return $this->buildGithubSuccess($base, $cacheKey, $releaseVer, $releasePayload, $repo);
         }
 
-        $current = $this->effectiveCurrentVersion();
-        $available = version_compare($ver, $current, '>');
-        $zipUrl = 'https://github.com/' . $repo . '/archive/refs/heads/' . rawurlencode($ref) . '.zip';
         $out = array_merge($base, [
-            'ok' => true,
-            'update_available' => $available,
-            'current_version' => $current,
-            'latest_version' => $ver,
-            'title' => 'Struxa ' . $ver,
-            'summary' => 'No published GitHub Release yet; version is taken from composer.json on branch ' . $ref . '.',
-            'release_url' => 'https://github.com/' . $repo,
-            'download_url' => $zipUrl,
-            'severity' => 'minor',
+            'error' => 'Could not resolve latest CMS version from GitHub.',
         ]);
         $this->internalCache->set($cacheKey, $out, self::CACHE_TTL);
 
@@ -532,6 +526,81 @@ final class CmsUpdateChecker
         }
 
         return $raw;
+    }
+
+    /**
+     * @return array{version: string, download_url: string}
+     */
+    private function fetchComposerVersionOnGithub(string $repo): array
+    {
+        $ref = self::githubRef();
+        $headSha = $this->githubRefHeadSha($repo, $ref);
+        $composerRef = $headSha !== '' ? $headSha : rawurlencode($ref);
+        $composerUrl = 'https://raw.githubusercontent.com/' . $repo . '/' . $composerRef . '/composer.json';
+        $cRaw = $this->httpGetLimited($composerUrl, self::MAX_BYTES, false);
+        if ($cRaw === null || $cRaw === '') {
+            return ['version' => '', 'download_url' => ''];
+        }
+        try {
+            /** @var mixed $composer */
+            $composer = json_decode($cRaw, true, 512, JSON_THROW_ON_ERROR);
+        } catch (\JsonException) {
+            return ['version' => '', 'download_url' => ''];
+        }
+        $ver = is_array($composer) && isset($composer['version']) && is_string($composer['version'])
+            ? trim($composer['version'])
+            : '';
+        if ($ver === '' || !self::isReasonableSemver($ver)) {
+            return ['version' => '', 'download_url' => ''];
+        }
+        $zipUrl = $headSha !== ''
+            ? ('https://github.com/' . $repo . '/archive/' . $headSha . '.zip')
+            : ('https://github.com/' . $repo . '/archive/refs/heads/' . rawurlencode($ref) . '.zip');
+
+        return ['version' => $ver, 'download_url' => $zipUrl];
+    }
+
+    private function githubRefHeadSha(string $repo, string $ref): string
+    {
+        $raw = $this->httpGetLimited(
+            'https://api.github.com/repos/' . $repo . '/commits/' . rawurlencode($ref),
+            self::MAX_BYTES_GITHUB_API,
+            true,
+        );
+        if ($raw === null || $raw === '') {
+            return '';
+        }
+        try {
+            /** @var mixed $data */
+            $data = json_decode($raw, true, 512, JSON_THROW_ON_ERROR);
+        } catch (\JsonException) {
+            return '';
+        }
+        if (!is_array($data) || !isset($data['sha']) || !is_string($data['sha'])) {
+            return '';
+        }
+        $sha = strtolower(trim($data['sha']));
+
+        return preg_match('/^[a-f0-9]{40}$/', $sha) === 1 ? $sha : '';
+    }
+
+    private static function maxSemver(string $a, string $b): ?string
+    {
+        $a = trim($a);
+        $b = trim($b);
+        $aOk = $a !== '' && self::isReasonableSemver($a);
+        $bOk = $b !== '' && self::isReasonableSemver($b);
+        if ($aOk && $bOk) {
+            return version_compare($a, $b, '>=') ? $a : $b;
+        }
+        if ($aOk) {
+            return $a;
+        }
+        if ($bOk) {
+            return $b;
+        }
+
+        return null;
     }
 
     private static function normalizeReleaseTag(string $tag): string
