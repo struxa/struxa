@@ -199,9 +199,13 @@
       transition: color .12s ease, transform .12s ease;
     }
     .st-catalog__rate-label:hover .st-catalog__rate-star,
-    .st-catalog__rate-label:hover ~ .st-catalog__rate-label .st-catalog__rate-star,
-    .st-catalog__rate-input:checked ~ .st-catalog__rate-star,
-    .st-catalog__rate-input:focus-visible ~ .st-catalog__rate-star { color: #e69500; }
+    .st-catalog__rate-label:has(~ .st-catalog__rate-label:hover) .st-catalog__rate-star,
+    .st-catalog__rate-label:has(.st-catalog__rate-input:checked) .st-catalog__rate-star,
+    .st-catalog__rate-label:has(~ .st-catalog__rate-label .st-catalog__rate-input:checked) .st-catalog__rate-star,
+    .st-catalog__rate-label:has(.st-catalog__rate-input:focus-visible) .st-catalog__rate-star,
+    .st-catalog__rate-label:has(~ .st-catalog__rate-label .st-catalog__rate-input:focus-visible) .st-catalog__rate-star {
+      color: #e69500;
+    }
     .st-catalog__rate-label:hover .st-catalog__rate-star { transform: scale(1.06); }
     .st-catalog__comment-form { margin-bottom: 1.25rem; max-width: 40rem; }
     .st-catalog__label { display: block; margin-bottom: .35rem; font-size: .88rem; font-weight: 600; }
