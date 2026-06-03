@@ -24,7 +24,7 @@
         {% if _lead != '' %}
           <p class="st-github-showcase__lead">{{ _lead|e }}</p>
         {% endif %}
-        {% if _stats.latest_version|default('')|trim != '' or _stats.themes_count|default(0) > 0 or _stats.plugins_count|default(0) > 0 %}
+        {% if _stats.latest_version|default('')|trim != '' or _stats.themes_count|default(0) > 0 or _stats.plugins_count|default(0) > 0 or _stats.lines_of_code_label|default('')|trim != '' %}
           <dl class="st-github-showcase__metrics" aria-label="Project stats">
             {% if _stats.latest_version|default('')|trim != '' %}
               <div class="st-github-showcase__metric">
@@ -48,6 +48,12 @@
               <div class="st-github-showcase__metric">
                 <dt>Plugins</dt>
                 <dd>{{ _stats.plugins_count|e }}</dd>
+              </div>
+            {% endif %}
+            {% if _stats.lines_of_code_label|default('')|trim != '' %}
+              <div class="st-github-showcase__metric">
+                <dt>Lines of code</dt>
+                <dd title="Estimated from GitHub language stats">{{ _stats.lines_of_code_label|e }}</dd>
               </div>
             {% endif %}
             {% if _stats.stars|default(null) is not null and _stats.stars > 0 %}
@@ -88,6 +94,9 @@
             {% endif %}
             {% if _stats.plugins_count|default(0) > 0 %}
               <li>{{ _stats.plugins_count|e }} plugins</li>
+            {% endif %}
+            {% if _stats.lines_of_code_label|default('')|trim != '' %}
+              <li>{{ _stats.lines_of_code_label|e }} lines</li>
             {% endif %}
           </ul>
         </a>

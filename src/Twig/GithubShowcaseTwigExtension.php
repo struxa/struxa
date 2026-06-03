@@ -32,6 +32,8 @@ final class GithubShowcaseTwigExtension extends AbstractExtension
      *   release_url: ?string,
      *   themes_count: int,
      *   plugins_count: int,
+     *   lines_of_code: ?int,
+     *   lines_of_code_label: ?string,
      *   stars: ?int,
      *   error: ?string
      * }

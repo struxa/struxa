@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.2.2",
-    "title": "Struxa 1.2.2",
-    "summary": "Homepage catalog counts now reconcile repo-summary.json with repo.json so stale summaries cannot under-report themes and plugins.",
+    "latest_version": "1.2.3",
+    "title": "Struxa 1.2.3",
+    "summary": "GitHub showcase on the homepage adds an estimated lines-of-code stat (from GitHub language bytes) alongside release, themes, and plugins.",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "minor"

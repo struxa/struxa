@@ -13,11 +13,28 @@ use App\Update\CmsUpdateChecker;
  */
 final class GithubShowcaseStats
 {
-    private const CACHE_KEY_PREFIX = 'github_showcase_stats_v4_';
+    private const CACHE_KEY_PREFIX = 'github_showcase_stats_v5_';
 
     private const CACHE_TTL = 3600;
 
     private const MAX_BYTES = 131_072;
+
+    /** Rough bytes-per-line by GitHub language name for LOC estimation. */
+    private const LANGUAGE_BYTES_PER_LINE = [
+        'PHP' => 45,
+        'Twig' => 38,
+        'JavaScript' => 42,
+        'TypeScript' => 45,
+        'CSS' => 55,
+        'HTML' => 50,
+        'Shell' => 40,
+        'Dockerfile' => 35,
+        'SQL' => 42,
+        'JSON' => 30,
+        'Markdown' => 50,
+    ];
+
+    private const DEFAULT_BYTES_PER_LINE = 45;
 
     public function __construct(
         private readonly string $projectRoot,
@@ -33,6 +50,8 @@ final class GithubShowcaseStats
      *   release_url: ?string,
      *   themes_count: int,
      *   plugins_count: int,
+     *   lines_of_code: ?int,
+     *   lines_of_code_label: ?string,
      *   stars: ?int,
      *   error: ?string
      * }
@@ -70,7 +89,7 @@ final class GithubShowcaseStats
         /** @var mixed $cached */
         $cached = $this->cache->get($cacheKey);
         if (is_array($cached) && isset($cached['repo']) && is_string($cached['repo']) && $cached['repo'] === $repo) {
-            /** @var array{ok: bool, repo: string, latest_version: ?string, release_url: ?string, themes_count: int, plugins_count: int, stars: ?int, error: ?string} $cached */
+            /** @var array{ok: bool, repo: string, latest_version: ?string, release_url: ?string, themes_count: int, plugins_count: int, lines_of_code: ?int, lines_of_code_label: ?string, stars: ?int, error: ?string} $cached */
             return $cached;
         }
 
@@ -81,6 +100,9 @@ final class GithubShowcaseStats
         if (is_array($repoMeta) && isset($repoMeta['stargazers_count']) && is_numeric($repoMeta['stargazers_count'])) {
             $stars = (int) $repoMeta['stargazers_count'];
         }
+
+        $linesOfCode = $this->resolveLinesOfCode($repo);
+        $linesLabel = self::formatLinesOfCode($linesOfCode);
 
         if ($latest === null) {
             $latest = self::isReasonableSemver(CmsVersion::CURRENT) ? CmsVersion::CURRENT : null;
@@ -98,6 +120,8 @@ final class GithubShowcaseStats
             'release_url' => $releaseUrl,
             'themes_count' => $themesCount,
             'plugins_count' => $pluginsCount,
+            'lines_of_code' => $linesOfCode,
+            'lines_of_code_label' => $linesLabel,
             'stars' => $stars,
             'error' => $error,
         ];
@@ -197,8 +221,61 @@ final class GithubShowcaseStats
         return preg_match('/^\d+\.\d+\.\d+([.-][0-9A-Za-z.-]+)?$/', $v) === 1;
     }
 
+    private function resolveLinesOfCode(string $repo): ?int
+    {
+        $override = trim((string) ($_ENV['STRUXA_SHOWCASE_LINES_OF_CODE'] ?? getenv('STRUXA_SHOWCASE_LINES_OF_CODE') ?: ''));
+        if ($override !== '' && preg_match('/^\d+$/', $override) === 1) {
+            return max(0, (int) $override);
+        }
+
+        return $this->estimateLinesFromGitHubLanguages($repo);
+    }
+
+    private function estimateLinesFromGitHubLanguages(string $repo): ?int
+    {
+        $languages = $this->fetchJson('https://api.github.com/repos/' . $repo . '/languages', true);
+        if ($languages === null || $languages === []) {
+            return null;
+        }
+
+        $totalLines = 0;
+        foreach ($languages as $language => $bytes) {
+            if (!is_string($language) || !is_numeric($bytes)) {
+                continue;
+            }
+            $byteCount = (int) $bytes;
+            if ($byteCount < 1) {
+                continue;
+            }
+            $divisor = self::LANGUAGE_BYTES_PER_LINE[$language] ?? self::DEFAULT_BYTES_PER_LINE;
+            $totalLines += (int) round($byteCount / $divisor);
+        }
+
+        return $totalLines > 0 ? $totalLines : null;
+    }
+
+    public static function formatLinesOfCode(?int $lines): ?string
+    {
+        if ($lines === null || $lines < 1) {
+            return null;
+        }
+        if ($lines >= 1_000_000) {
+            $millions = $lines / 1_000_000;
+
+            return ($millions >= 10.0 ? (string) (int) round($millions) : rtrim(rtrim(number_format($millions, 1, '.', ''), '0'), '.')) . 'M+';
+        }
+        if ($lines >= 10_000) {
+            return (string) (int) round($lines / 1000) . 'k+';
+        }
+        if ($lines >= 1000) {
+            return rtrim(rtrim(number_format($lines / 1000, 1, '.', ''), '0'), '.') . 'k+';
+        }
+
+        return number_format($lines) . '+';
+    }
+
     /**
-     * @return array{ok: bool, repo: string, latest_version: ?string, release_url: ?string, themes_count: int, plugins_count: int, stars: ?int, error: ?string}
+     * @return array{ok: bool, repo: string, latest_version: ?string, release_url: ?string, themes_count: int, plugins_count: int, lines_of_code: ?int, lines_of_code_label: ?string, stars: ?int, error: ?string}
      */
     private function emptyPack(string $repo, string $error): array
     {
@@ -211,6 +288,8 @@ final class GithubShowcaseStats
             'release_url' => null,
             'themes_count' => $counts['themes'],
             'plugins_count' => $counts['plugins'],
+            'lines_of_code' => null,
+            'lines_of_code_label' => null,
             'stars' => null,
             'error' => $error,
         ];
