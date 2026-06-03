@@ -157,6 +157,11 @@ final class ThemeRemoteInstaller
             return 'Invalid GitHub repository.';
         }
 
+        if (strtolower($owner) === 'struxa' && strtolower($repo) === 'struxa-theme') {
+            $owner = 'struxa';
+            $repo = 'struxa';
+        }
+
         $urls = [
             sprintf(
                 'https://codeload.github.com/%s/%s/zip/refs/heads/%s',
@@ -235,7 +240,8 @@ final class ThemeRemoteInstaller
                 return 'Theme archive extraction failed security checks.';
             }
 
-            $themeRoot = $this->locateRelaxedThemeRoot($extractDir);
+            $preferSlug = $expectedCatalogSlug ?? null;
+            $themeRoot = $this->locateRelaxedThemeRoot($extractDir, $preferSlug);
             if ($themeRoot === null) {
                 return 'No valid theme (theme.json + views/ + assets/) was found in the archive.';
             }
@@ -377,7 +383,7 @@ final class ThemeRemoteInstaller
         return true;
     }
 
-    private function locateRelaxedThemeRoot(string $extractDir): ?string
+    private function locateRelaxedThemeRoot(string $extractDir, ?string $preferredSlug = null): ?string
     {
         $extractReal = realpath($extractDir);
         if ($extractReal === false) {
@@ -392,6 +398,34 @@ final class ThemeRemoteInstaller
             $p = $extractReal . DIRECTORY_SEPARATOR . $n;
             if (is_dir($p)) {
                 $candidates[] = $p;
+            }
+        }
+
+        if ($preferredSlug !== null && $preferredSlug !== '') {
+            foreach ($candidates as $dir) {
+                $nested = $dir . DIRECTORY_SEPARATOR . 'themes' . DIRECTORY_SEPARATOR . $preferredSlug;
+                if (ThemeManifest::tryLoadRelaxedPath($nested) !== null) {
+                    $r = realpath($nested);
+
+                    return $r !== false ? $r : null;
+                }
+            }
+        }
+
+        foreach ($candidates as $dir) {
+            $themesDir = $dir . DIRECTORY_SEPARATOR . 'themes';
+            if (is_dir($themesDir)) {
+                foreach (scandir($themesDir) ?: [] as $n) {
+                    if ($n === '.' || $n === '..') {
+                        continue;
+                    }
+                    $nested = $themesDir . DIRECTORY_SEPARATOR . $n;
+                    if (is_dir($nested) && ThemeManifest::tryLoadRelaxedPath($nested) !== null) {
+                        $r = realpath($nested);
+
+                        return $r !== false ? $r : null;
+                    }
+                }
             }
         }
 

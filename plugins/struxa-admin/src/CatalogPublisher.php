@@ -441,7 +441,7 @@ final class CatalogPublisher
         }
         $repo = $repositoryUrl ?? ($manifest['repository_url'] ?? null);
         if (is_string($repo) && $repo !== '') {
-            $entry['repository_url'] = $repo;
+            $entry['repository_url'] = self::normalizeThemeRepositoryUrl($repo, $slug);
         }
         $shot = $screenshotUrlOverride;
         if ($shot === null && $screenshotBase !== '') {
@@ -455,6 +455,19 @@ final class CatalogPublisher
         }
 
         return $entry;
+    }
+
+    /**
+     * Struxa Vision is developed in the CMS monorepo; the standalone struxa-theme GitHub repo is not kept in sync.
+     */
+    private static function normalizeThemeRepositoryUrl(string $url, string $slug): string
+    {
+        $url = trim($url);
+        if (preg_match('#github\.com/struxa/struxa-theme#i', $url) === 1 && $slug === 'struxa-theme') {
+            return 'https://github.com/struxa/struxa';
+        }
+
+        return $url;
     }
 
     private function screenshotUrl(CatalogSubmission $sub, string $screenshotBase): ?string

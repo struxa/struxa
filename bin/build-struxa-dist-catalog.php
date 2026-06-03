@@ -86,7 +86,7 @@ if (is_dir($themesDir)) {
             fwrite(STDERR, "Skip theme {$dir}: missing {$zipPath}\n");
             continue;
         }
-        $themes[] = [
+        $entry = [
             'slug' => $slug,
             'name' => trim((string) ($data['name'] ?? $slug)),
             'version' => trim((string) ($data['version'] ?? '1.0.0')),
@@ -94,6 +94,14 @@ if (is_dir($themesDir)) {
             'author' => trim((string) ($data['author'] ?? '')),
             'download_url' => $downloadBase . '/theme/' . rawurlencode($slug),
         ];
+        $repo = isset($data['repository_url']) && is_string($data['repository_url']) ? trim($data['repository_url']) : '';
+        if ($repo !== '') {
+            if (preg_match('#github\.com/struxa/struxa-theme#i', $repo) === 1 && $slug === 'struxa-theme') {
+                $repo = 'https://github.com/struxa/struxa';
+            }
+            $entry['repository_url'] = $repo;
+        }
+        $themes[] = $entry;
     }
 }
 

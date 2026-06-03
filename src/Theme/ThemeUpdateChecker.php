@@ -60,9 +60,14 @@ final class ThemeUpdateChecker
             : null;
 
         if ($github !== null) {
-            $remote = $this->fetchGithubThemeVersion($github['owner'], $github['repo'], PluginUpdateChecker::resolveGithubRef());
+            $remote = $this->fetchGithubThemeVersion(
+                $github['owner'],
+                $github['repo'],
+                PluginUpdateChecker::resolveGithubRef(),
+                $theme->slug,
+            );
             if ($remote === null) {
-                $githubError = 'Could not read theme.json from GitHub.';
+                $githubError = 'Could not read theme.json from GitHub (check repository_url points at the CMS monorepo).';
             } else {
                 $githubLatest = $this->normalizeVersion($remote);
             }
@@ -190,24 +195,57 @@ final class ThemeUpdateChecker
         );
     }
 
-    private function fetchGithubThemeVersion(string $owner, string $repo, string $ref): ?string
+    /**
+     * Struxa Vision ships in the CMS monorepo (themes/{slug}/). The legacy struxa/struxa-theme repo is not updated.
+     */
+    private function fetchGithubThemeVersion(string $owner, string $repo, string $ref, string $themeSlug): ?string
     {
-        $key = self::CACHE_KEY_GITHUB_PREFIX . hash('sha256', strtolower($owner . '/' . $repo . '@' . $ref));
+        $owner = trim($owner);
+        $repo = trim($repo);
+        $themeSlug = strtolower(trim($themeSlug));
+        if ($owner === '' || $repo === '' || $themeSlug === '') {
+            return null;
+        }
+
+        if (strtolower($owner) === 'struxa' && strtolower($repo) === 'struxa-theme') {
+            $owner = 'struxa';
+            $repo = 'struxa';
+        }
+
+        $paths = ['theme.json'];
+        if (strtolower($owner) === 'struxa' && strtolower($repo) === 'struxa') {
+            array_unshift($paths, 'themes/' . $themeSlug . '/theme.json');
+        }
+
+        foreach ($paths as $manifestPath) {
+            $version = $this->fetchGithubThemeJsonAtPath($owner, $repo, $ref, $manifestPath);
+            if ($version !== null && $version !== '') {
+                return $version;
+            }
+        }
+
+        return null;
+    }
+
+    private function fetchGithubThemeJsonAtPath(string $owner, string $repo, string $ref, string $manifestPath): ?string
+    {
+        $key = self::CACHE_KEY_GITHUB_PREFIX . hash('sha256', strtolower($owner . '/' . $repo . '@' . $ref . '@' . $manifestPath));
         $cached = $this->cache->get($key);
         if (is_string($cached) && $cached !== '') {
             return $cached;
         }
 
         $url = sprintf(
-            'https://raw.githubusercontent.com/%s/%s/%s/theme.json',
+            'https://raw.githubusercontent.com/%s/%s/%s/%s',
             rawurlencode($owner),
             rawurlencode($repo),
             rawurlencode($ref),
+            ltrim($manifestPath, '/'),
         );
         $raw = $this->httpGetLimited($url);
         $version = $raw !== null && $raw !== '' ? $this->versionFromThemeJsonRaw($raw) : null;
         if ($version === null) {
-            $version = $this->fetchGithubThemeVersionViaApi($owner, $repo, $ref);
+            $version = $this->fetchGithubThemeVersionViaApi($owner, $repo, $ref, $manifestPath);
         }
         if ($version === null || $version === '') {
             return null;
@@ -218,12 +256,13 @@ final class ThemeUpdateChecker
         return $version;
     }
 
-    private function fetchGithubThemeVersionViaApi(string $owner, string $repo, string $ref): ?string
+    private function fetchGithubThemeVersionViaApi(string $owner, string $repo, string $ref, string $manifestPath): ?string
     {
         $url = sprintf(
-            'https://api.github.com/repos/%s/%s/contents/theme.json?ref=%s',
+            'https://api.github.com/repos/%s/%s/contents/%s?ref=%s',
             rawurlencode($owner),
             rawurlencode($repo),
+            rawurlencode(ltrim($manifestPath, '/')),
             rawurlencode($ref),
         );
         $raw = $this->httpGetLimited($url, 'application/vnd.github+json');
