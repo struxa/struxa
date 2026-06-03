@@ -10,7 +10,7 @@
 {% block admin_hero_sub %}
   <p class="admin-hero-sub admin-hero-sub--tight">
     <a class="admin-link" href="{{ url_for('admin.extensions.plugins.index') }}">← Installed plugins</a>
-    · Install from the Struxa distribution catalog (same registry as themes).
+    · Install from the Struxa distribution registry (same catalog as themes).
     {% if struxa_admin_active|default(false) and struxa_catalog_submissions_url|default(null) %}
       · <a class="admin-link" href="{{ struxa_catalog_submissions_url }}">Catalog submissions</a>
     {% endif %}
@@ -18,66 +18,144 @@
 {% endblock %}
 
 {% block admin_content %}
-  {% include 'admin/partials/_package_zip_upload.twig' with {
-    title: 'Install from ZIP',
-    description: 'Upload a plugin package manually. ZIP must contain plugin.json at the root or in one top-level folder. Directory name must match the slug in plugin.json.',
-    upload_action: url_for('admin.extensions.plugins.install_upload'),
-    file_label: 'Plugin ZIP',
-    field_id: 'plugin_package_zip',
-    max_mb: 45,
-  } %}
+  <div class="admin-catalog-browse">
+    {% if not catalog_ok %}
+      <div class="admin-card admin-settings-card admin-catalog-browse-alert" role="alert">
+        <h2 class="admin-settings-card-title">Catalog unavailable</h2>
+        <p class="admin-settings-card-desc">{{ catalog_error|e }}</p>
+        <p class="admin-hint admin-catalog-browse-source-hint">
+          Default: <code class="admin-inline-code">https://struxapoint.com/struxa-dist/repo.json</code>
+          · Local fallback: <code class="admin-inline-code">storage/dist-catalog.json</code>
+        </p>
+      </div>
+    {% endif %}
 
-  {% if not catalog_ok %}
-    <div class="admin-card admin-settings-card" style="margin-bottom:1.25rem;border-color:rgba(251,191,36,0.35)">
-      <h2 class="admin-settings-card-title">Catalog unavailable</h2>
-      <p class="admin-settings-card-desc" style="margin-bottom:0">{{ catalog_error|e }}</p>
-    </div>
-    <p class="admin-hint">Default catalog: <code class="admin-inline-code">https://struxapoint.com/struxa-dist/repo.json</code> (plugin ZIPs under <code class="admin-inline-code">/struxa-dist/zips/</code>). Local fallback: <code class="admin-inline-code">storage/dist-catalog.json</code>.</p>
-  {% elseif catalog_plugins is empty %}
-    <div class="admin-card admin-settings-card" style="margin-bottom:1.25rem">
-      <h2 class="admin-settings-card-title">No plugins in the catalog yet</h2>
-      <p class="admin-settings-card-desc">
-        Browse only lists packages published in <code class="admin-inline-code">struxa-dist/repo.json</code>
-        (with a matching ZIP under <code class="admin-inline-code">struxa-dist/zips/</code>).
-      </p>
-      {% if struxa_admin_on_disk|default(false) and not struxa_admin_active|default(false) %}
-        <p class="admin-hint"><strong>Struxa Catalog Admin</strong> is on disk but not activated — open <a class="admin-link" href="{{ url_for('admin.extensions.plugins.index') }}">Installed plugins</a> and activate <code class="admin-inline-code">struxa-admin</code>.</p>
-      {% elseif not struxa_admin_on_disk|default(false) %}
-        <p class="admin-hint">Install <strong>Struxa Catalog Admin</strong> from the card below (after your host publishes <code class="admin-inline-code">repo.json</code>), or clone <a class="admin-link" href="https://github.com/struxa/admin" rel="noopener">github.com/struxa/admin</a> into <code class="admin-inline-code">plugins/struxa-admin/</code>.</p>
-      {% endif %}
-    </div>
-  {% else %}
-    <p class="admin-hint" style="margin:0 0 1.25rem">Catalog and plugin ZIPs are served from <strong>struxapoint.com</strong> (<code class="admin-inline-code">/struxa-dist/repo.json</code> and <code class="admin-inline-code">/struxa-dist/zips/*.zip</code>). Same registry as themes.</p>
-    <div class="admin-theme-grid admin-theme-grid--browse">
-      {% for p in catalog_plugins %}
-        <article class="admin-card admin-theme-card admin-theme-card--browse">
-          <div class="admin-theme-card-body">
-            <h2 class="admin-card-title" style="margin-top:0">{{ p.name|e }}</h2>
-            <p class="admin-hint" style="margin:0 0 0.5rem">
-              <code class="admin-inline-code">{{ p.slug|e }}</code>
-              {% if p.version %}· v{{ p.version|e }}{% endif %}
-              {% if p.author %}· {{ p.author|e }}{% endif %}
-            </p>
-            {% if p.requiresCmsVersion %}
-              <p class="admin-hint">Requires CMS {{ p.requiresCmsVersion|e }}+</p>
-            {% endif %}
-            {% if p.description %}
-              <p class="admin-theme-desc">{{ p.description|e }}</p>
-            {% endif %}
-            <div class="admin-theme-card-actions">
-              {% if installed_plugin_slugs[p.slug] is defined %}
-                <span class="admin-badge admin-badge--ok">Installed</span>
-                <a class="admin-link" href="{{ url_for('admin.extensions.plugins.index') }}">Open plugins list</a>
-              {% else %}
-                <form method="post" action="{{ url_for('admin.extensions.plugins.install_from_catalog') }}" onsubmit="return confirm('Install plugin {{ p.slug|e('js') }} from the catalog?');">
-                  <input type="hidden" name="plugin_slug" value="{{ p.slug|e('html_attr') }}" />
-                  <button type="submit" class="admin-btn-primary">Install</button>
-                </form>
-              {% endif %}
+    <div class="admin-catalog-browse-layout">
+      <div class="admin-catalog-browse-main">
+        {% if catalog_ok and catalog_plugins is not empty %}
+          <div class="admin-catalog-browse-toolbar">
+            <div class="admin-catalog-browse-toolbar-copy">
+              <p class="admin-plugin-toolbar-title">Available packages</p>
+              <p class="admin-hint admin-plugin-toolbar-lead">
+                {{ catalog_plugin_count|default(catalog_plugins|length) }} in catalog
+                {% if catalog_installed_count|default(0) > 0 %}
+                  · {{ catalog_installed_count }} already installed
+                {% endif %}
+              </p>
             </div>
           </div>
-        </article>
-      {% endfor %}
+
+          <div class="admin-plugin-grid admin-plugin-grid--catalog">
+            {% for p in catalog_plugins %}
+              {% set is_installed = installed_plugin_slugs[p.slug] is defined %}
+              <article class="admin-card admin-plugin-card admin-plugin-card--catalog{% if is_installed %} admin-plugin-card--active{% endif %}">
+                <header class="admin-plugin-card-head">
+                  <div class="admin-plugin-card-icon" aria-hidden="true">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M12 22v-5"/><path d="M9 8V2"/><path d="M15 8V2"/><path d="M18 8v5a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V8Z"/>
+                    </svg>
+                  </div>
+                  <div class="admin-plugin-card-head-text">
+                    <h2 class="admin-plugin-card-title">{{ p.name|e }}</h2>
+                    <p class="admin-plugin-card-meta">
+                      <code class="admin-inline-code">{{ p.slug|e }}</code>
+                      {% if p.version %}
+                        <span class="admin-plugin-card-meta-sep">·</span>v{{ p.version|e }}
+                      {% endif %}
+                      {% if p.author %}
+                        <span class="admin-plugin-card-meta-sep">·</span>{{ p.author|e }}
+                      {% endif %}
+                    </p>
+                  </div>
+                  <div class="admin-plugin-card-badges">
+                    {% if is_installed %}
+                      <span class="admin-badge admin-badge--ok">Installed</span>
+                    {% else %}
+                      <span class="admin-badge admin-badge--muted">Catalog</span>
+                    {% endif %}
+                  </div>
+                </header>
+
+                <div class="admin-plugin-card-body">
+                  {% if p.description %}
+                    {% set desc = p.description|e %}
+                    <p class="admin-plugin-card-desc">{{ desc|length > 220 ? desc|slice(0, 217) ~ '…' : desc }}</p>
+                  {% endif %}
+                  {% if p.requiresCmsVersion %}
+                    <div class="admin-plugin-card-pills">
+                      <span class="admin-pill">Struxa {{ p.requiresCmsVersion|e }}+</span>
+                    </div>
+                  {% endif %}
+                </div>
+
+                <div class="admin-plugin-card-actions">
+                  {% if is_installed %}
+                    <a class="admin-btn-primary admin-btn-primary--sm" href="{{ url_for('admin.extensions.plugins.index') }}">Manage plugin</a>
+                  {% else %}
+                    <form method="post" action="{{ url_for('admin.extensions.plugins.install_from_catalog') }}" onsubmit="return confirm('Install {{ p.name|e('js') }} ({{ p.slug|e('js') }}) from the catalog?');">
+                      <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+                      <input type="hidden" name="plugin_slug" value="{{ p.slug|e('html_attr') }}" />
+                      <button type="submit" class="admin-btn-primary">Install</button>
+                    </form>
+                  {% endif %}
+                </div>
+              </article>
+            {% endfor %}
+          </div>
+        {% elseif catalog_ok %}
+          {{ ui.empty_state(
+            'No plugins in the catalog yet',
+            'Publish packages to struxa-dist/repo.json with matching ZIPs under struxa-dist/zips/, or upload a ZIP manually.',
+            url_for('admin.extensions.plugins.index'),
+            'Back to installed plugins',
+            '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>'
+          ) }}
+          {% if struxa_admin_on_disk|default(false) and not struxa_admin_active|default(false) %}
+            <p class="admin-hint admin-catalog-browse-footnote">
+              <strong>Struxa Catalog Admin</strong> is on disk but not activated —
+              <a class="admin-link" href="{{ url_for('admin.extensions.plugins.index') }}">activate struxa-admin</a> to manage submissions.
+            </p>
+          {% elseif not struxa_admin_on_disk|default(false) %}
+            <p class="admin-hint admin-catalog-browse-footnote">
+              Install <strong>Struxa Catalog Admin</strong> from the catalog when available, or clone
+              <a class="admin-link" href="https://github.com/struxa/struxa" rel="noopener">github.com/struxa/struxa</a>
+              into <code class="admin-inline-code">plugins/struxa-admin/</code>.
+            </p>
+          {% endif %}
+        {% endif %}
+      </div>
+
+      <aside class="admin-catalog-browse-aside">
+        {% include 'admin/partials/_package_zip_upload.twig' with {
+          title: 'Install from ZIP',
+          description: 'Upload a plugin package manually. ZIP must contain plugin.json at the root or in one top-level folder. Directory name must match the slug in plugin.json.',
+          upload_action: url_for('admin.extensions.plugins.install_upload'),
+          file_label: 'Plugin ZIP',
+          field_id: 'plugin_package_zip',
+          max_mb: 45,
+        } %}
+
+        <section class="admin-card admin-settings-card admin-catalog-browse-info">
+          <h2 class="admin-settings-card-title">Catalog source</h2>
+          <p class="admin-settings-card-desc">
+            Plugin ZIPs are listed from the Struxa distribution registry. After install, activate the plugin from Installed plugins to run migrations and load routes.
+          </p>
+          <dl class="admin-catalog-kv admin-catalog-kv--compact">
+            <div class="admin-catalog-kv-row">
+              <dt>Index</dt>
+              <dd><code class="admin-inline-code">/struxa-dist/repo.json</code></dd>
+            </div>
+            <div class="admin-catalog-kv-row">
+              <dt>Packages</dt>
+              <dd><code class="admin-inline-code">/struxa-dist/zips/*.zip</code></dd>
+            </div>
+            <div class="admin-catalog-kv-row">
+              <dt>Override</dt>
+              <dd><code class="admin-inline-code">STRUXA_DIST_CATALOG_URL</code></dd>
+            </div>
+          </dl>
+        </section>
+      </aside>
     </div>
-  {% endif %}
+  </div>
 {% endblock %}

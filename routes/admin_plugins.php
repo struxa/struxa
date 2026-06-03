@@ -204,11 +204,21 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 && $struxaAdminRow !== null
                 && $struxaAdminRow->isActive;
 
+            $catalogPlugins = $loaded['ok'] ? $loaded['entries'] : [];
+            $catalogInstalledCount = 0;
+            foreach ($catalogPlugins as $entry) {
+                if (isset($installed[$entry->slug])) {
+                    ++$catalogInstalledCount;
+                }
+            }
+
             return $twig->render($response, 'admin/plugins/browse.twig', $withCmsUser($request, array_merge($adminContext(), [
                 'admin_nav' => 'extensions_plugins',
                 'catalog_ok' => $loaded['ok'],
                 'catalog_error' => $loaded['ok'] ? null : $loaded['error'],
-                'catalog_plugins' => $loaded['ok'] ? $loaded['entries'] : [],
+                'catalog_plugins' => $catalogPlugins,
+                'catalog_plugin_count' => count($catalogPlugins),
+                'catalog_installed_count' => $catalogInstalledCount,
                 'installed_plugin_slugs' => $installed,
                 'struxa_admin_on_disk' => $struxaAdminOnDisk,
                 'struxa_admin_active' => $struxaAdminActive,

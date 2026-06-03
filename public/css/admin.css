@@ -2574,6 +2574,83 @@ a.admin-page-row:hover .admin-page-row-go {
   margin: 0;
 }
 
+/* Plugin / theme catalog browse (Extensions → Browse) */
+.admin-catalog-browse {
+  width: 100%;
+}
+
+.admin-catalog-browse-alert {
+  margin-bottom: 1.25rem;
+  border-color: rgba(251, 191, 36, 0.35);
+}
+
+.admin-catalog-browse-source-hint {
+  margin: 0.75rem 0 0;
+}
+
+.admin-catalog-browse-layout {
+  display: grid;
+  gap: 1.35rem;
+  align-items: start;
+}
+
+@media (min-width: 1080px) {
+  .admin-catalog-browse-layout {
+    grid-template-columns: minmax(0, 1fr) minmax(280px, 340px);
+  }
+}
+
+.admin-catalog-browse-main {
+  min-width: 0;
+}
+
+.admin-catalog-browse-aside {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-width: 0;
+}
+
+@media (min-width: 1080px) {
+  .admin-catalog-browse-aside {
+    position: sticky;
+    top: 1rem;
+  }
+}
+
+.admin-catalog-browse-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.75rem 1rem;
+  margin-bottom: 1.15rem;
+}
+
+.admin-catalog-browse-footnote {
+  margin: 1rem 0 0;
+  max-width: 42rem;
+}
+
+.admin-catalog-browse-info .admin-settings-card-desc {
+  margin-bottom: 0.85rem;
+}
+
+.admin-plugin-grid--catalog {
+  margin-top: 0;
+}
+
+.admin-plugin-card--catalog .admin-plugin-card-body {
+  padding-bottom: 0.65rem;
+}
+
+.admin-plugin-card--catalog .admin-plugin-card-desc {
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
 @media (max-width: 640px) {
   .admin-plugin-card-metrics {
     grid-template-columns: 1fr;

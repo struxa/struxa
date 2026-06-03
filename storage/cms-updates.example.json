@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.1.116",
-    "title": "Struxa 1.1.116",
-    "summary": "Catalog reviews: hide the vote form after submitting and show “You have already voted” with your rating.",
+    "latest_version": "1.1.117",
+    "title": "Struxa 1.1.117",
+    "summary": "Redesigned Admin → Extensions → Browse plugin catalog with card grid, sidebar ZIP upload, and catalog source panel.",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "patch"
