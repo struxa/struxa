@@ -1,7 +1,7 @@
 {
     "name": "struxa/cms",
     "description": "Struxa — Slim/Twig content CMS",
-    "version": "1.1.105",
+    "version": "1.1.106",
     "require": {
         "php": ">=8.2",
         "slim/slim": "^4.12",

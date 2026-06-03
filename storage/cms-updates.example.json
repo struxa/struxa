@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.1.105",
-    "title": "Struxa 1.1.105",
-    "summary": "Catalog browse detail pages with ratings and comments; submitter sidebar and tracked download stats for approved packages.",
+    "latest_version": "1.1.106",
+    "title": "Struxa 1.1.106",
+    "summary": "Fix catalog plugin/theme updates when repo.json uses tracked download URLs instead of static struxa-dist ZIP paths.",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "patch"
