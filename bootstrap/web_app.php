@@ -784,6 +784,12 @@ $pluginBootContexts = $pluginManager->createActiveBootContexts(
     $pluginScope,
 );
 $pluginManager->bootActivePluginLifecycle($pluginBootContexts, $eventDispatcher);
+if (class_exists(\App\Plugin\StruxaCatalogAdminRouteRegistrar::class)) {
+    \App\Plugin\StruxaCatalogAdminRouteRegistrar::ensureAdminNavItems(
+        $app,
+        new \App\Plugin\PluginScanner($root),
+    );
+}
 
 $scheduleRunToken = trim((string) ($_ENV['CMS_SCHEDULE_RUN_TOKEN'] ?? ''));
 if ($scheduleRunToken !== '') {

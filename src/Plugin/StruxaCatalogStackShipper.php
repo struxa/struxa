@@ -75,19 +75,20 @@ final class StruxaCatalogStackShipper
         $version = trim($discovered->manifest->version);
         $settings = new CatalogSettings($this->pdo, $this->projectRoot);
 
+        $regen = $this->regenerateCatalog($settings);
+        if (!$regen['ok']) {
+            return ['ok' => false, 'error' => $regen['error'] ?? 'Catalog regenerate failed.'];
+        }
+        if (isset($regen['message']) && is_string($regen['message'])) {
+            $messages[] = $regen['message'];
+        }
+
+        // Publish last: regenerate can overwrite struxa-admin with an old approved submission row.
         $pub = $this->publishAdminToCatalog($settings, $discovered);
         if (!$pub['ok']) {
             return ['ok' => false, 'error' => $pub['error'] ?? 'Failed to publish struxa-admin to the catalog.'];
         }
         $messages[] = $pub['message'] ?? 'Published struxa-admin to repo.json and struxa-admin.zip.';
-
-        $regen = $this->regenerateCatalog($settings);
-        if (!$regen['ok']) {
-            return ['ok' => false, 'error' => $regen['error'] ?? 'Catalog regenerate failed after publish.'];
-        }
-        if (isset($regen['message']) && is_string($regen['message'])) {
-            $messages[] = $regen['message'];
-        }
 
         try {
             $this->migrations->runPending(self::SLUG, $discovered->rootPath . '/migrations');

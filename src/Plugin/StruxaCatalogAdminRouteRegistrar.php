@@ -136,6 +136,34 @@ final class StruxaCatalogAdminRouteRegistrar
         }
     }
 
+    /**
+     * Sidebar links come from plugin boot; if boot fails, still show catalog admin when core routes exist.
+     */
+    public static function ensureAdminNavItems(App $app, PluginScanner $scanner): void
+    {
+        if (!self::namedRouteExists($app, self::ROUTE_SUBMISSIONS)) {
+            return;
+        }
+
+        $discovered = $scanner->findBySlug('struxa-admin');
+        if ($discovered === null) {
+            return;
+        }
+
+        $registry = PluginAdminNavRegistry::instance();
+        foreach ($registry->all() as $item) {
+            $route = $item['route_name'] ?? '';
+            if ($route === self::ROUTE_SUBMISSIONS || $route === 'admin.struxa_catalog.settings') {
+                return;
+            }
+        }
+
+        $nested = $discovered->manifest->nestedAdminNav;
+        $parent = $nested ? 'struxa-admin' : null;
+        $registry->register('struxa-admin', 'Catalog submissions', self::ROUTE_SUBMISSIONS, [], $parent, $nested);
+        $registry->register('struxa-admin', 'Catalog settings', 'admin.struxa_catalog.settings', [], $parent, $nested);
+    }
+
     public static function register(App $app, PluginBootContext $ctx, Auth $auth): void
     {
         if (self::namedRouteExists($app, self::ROUTE_SUBMISSIONS)) {
