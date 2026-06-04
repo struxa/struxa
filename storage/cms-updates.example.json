@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.2.21",
-    "title": "Struxa 1.2.21",
-    "summary": "Fix Site health crash: Knowledge Base plugin link uses plugin.knowledge_base_plugin.index; skip missing action routes.",
+    "latest_version": "1.2.22",
+    "title": "Struxa 1.2.22",
+    "summary": "Idempotent plugin migrations: tolerate duplicate DDL; struxa-admin submitter columns safe to re-run.",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "minor"
