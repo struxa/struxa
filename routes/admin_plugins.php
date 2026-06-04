@@ -15,8 +15,10 @@ use App\Filesystem\SafeDirectoryRemoval;
 use App\Plugin\PluginCatalogLoader;
 use App\Plugin\PluginManager;
 use App\Plugin\PluginMigrationRunner;
+use App\Plugin\PluginManifestParser;
 use App\Plugin\StruxaCatalogStackShipper;
 use App\Security\CsrfToken;
+use App\Settings;
 use App\Plugin\PluginPerformanceRegistry;
 use App\Plugin\PluginRemoteInstaller;
 use App\Plugin\PluginRepository;
@@ -179,9 +181,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                     ->urlFor('admin.extensions.plugins.ship_struxa_catalog_stack'),
                 'struxa_catalog_admin_disk_version' => StruxaCatalogStackShipper::diskVersion($root),
                 'struxa_catalog_admin_repo_version' => StruxaCatalogStackShipper::repoVersion(
-                    class_exists(\StruxaAdmin\CatalogSettings::class)
-                        ? (new \StruxaAdmin\CatalogSettings($pdo, $root))->distRoot()
-                        : rtrim($root, '/\\') . '/public/struxa-dist'
+                    StruxaCatalogStackShipper::resolveDistRoot($root)
                 ),
                 'struxa_catalog_show_repair' => $scanner->findBySlug('struxa-admin') !== null
                     && $namedRouteUrl($request, 'admin.struxa_catalog.submissions') === null,

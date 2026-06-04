@@ -39,7 +39,7 @@
     </div>
   </div>
 
-  {% if struxa_catalog_ship_stack_url|default(null) and struxa_catalog_admin_disk_version|default('') != '' %}
+  {% if struxa_catalog_ship_stack_url|default(null) %}
     <div class="admin-plugin-notice admin-plugin-notice--info" role="status">
       <strong>Struxa Catalog Admin</strong> on disk: <code class="admin-inline-code">v{{ struxa_catalog_admin_disk_version|e }}</code>
       · live <code class="admin-inline-code">repo.json</code>:
