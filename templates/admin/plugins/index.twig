@@ -39,6 +39,26 @@
     </div>
   </div>
 
+  {% if struxa_catalog_ship_stack_url|default(null) and struxa_catalog_admin_disk_version|default('') != '' %}
+    <div class="admin-plugin-notice admin-plugin-notice--info" role="status">
+      <strong>Struxa Catalog Admin</strong> on disk: <code class="admin-inline-code">v{{ struxa_catalog_admin_disk_version|e }}</code>
+      · live <code class="admin-inline-code">repo.json</code>:
+      <code class="admin-inline-code">v{{ struxa_catalog_admin_repo_version|default('—')|e }}</code>.
+      <p class="admin-hint" style="margin:0.5rem 0 0">One click upgrades the plugin from GitHub, publishes <code class="admin-inline-code">struxa-admin.zip</code>, refreshes <code class="admin-inline-code">repo.json</code>, runs migrations, and activates — no FTP.</p>
+      <div style="margin-top:0.75rem">
+        <form
+          method="post"
+          action="{{ struxa_catalog_ship_stack_url|e('html_attr') }}"
+          class="admin-inline-form"
+          onsubmit="return confirm('Upgrade Struxa Catalog Admin from GitHub, publish to the live catalog, and run migrations?');"
+        >
+          <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+          <button type="submit" class="admin-btn-primary admin-btn-primary--sm">Upgrade catalog &amp; publish</button>
+        </form>
+      </div>
+    </div>
+  {% endif %}
+
   {% if struxa_catalog_show_repair|default(false) %}
     <div class="admin-plugin-notice admin-plugin-notice--info" role="status">
       <strong>Struxa Catalog Admin</strong> needs a one-click repair so catalog admin URLs register (no phpMyAdmin or SQL required).

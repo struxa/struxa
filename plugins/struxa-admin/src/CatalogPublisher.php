@@ -97,6 +97,7 @@ final class CatalogPublisher
         $this->syncPublishJsonFromApproved();
 
         $themes = $this->upsertBundledStruxaVisionTheme($themes, $zipsDir, $baseUrl, $screenshotBase);
+        $plugins = $this->upsertBundledStruxaAdminPlugin($plugins, $zipsDir, $baseUrl, $screenshotBase);
 
         usort($themes, static fn (array $a, array $b): int => strcmp($a['slug'], $b['slug']));
         usort($plugins, static fn (array $a, array $b): int => strcmp($a['slug'], $b['slug']));
@@ -161,6 +162,64 @@ final class CatalogPublisher
                 break;
             }
         }
+
+        return ['ok' => true, 'version' => $version, 'dist_root' => $distRoot];
+    }
+
+    /**
+     * Rebuild plugins/struxa-admin.zip from disk and upsert repo.json (no GitHub).
+     * Preserves existing theme rows and other plugin rows.
+     *
+     * @return array{ok: true, version: string, dist_root: string}|array{ok: false, error: string}
+     */
+    public function publishBundledStruxaAdminToCatalog(): array
+    {
+        $slug = 'struxa-admin';
+        $dir = $this->settings->projectRoot() . '/plugins/' . $slug;
+        $parser = new PluginManifestParser();
+        $jsonPath = $dir . '/plugin.json';
+        if (!is_file($jsonPath)) {
+            return ['ok' => false, 'error' => 'plugins/struxa-admin is missing or has no plugin.json.'];
+        }
+        $parsed = $parser->parseFile($jsonPath, $slug);
+        if (!$parsed['ok']) {
+            return ['ok' => false, 'error' => 'Invalid plugin.json for struxa-admin.'];
+        }
+
+        $distRoot = $this->settings->distRoot();
+        $zipsDir = $distRoot . '/zips';
+        if (!is_dir($zipsDir) && !@mkdir($zipsDir, 0755, true)) {
+            return ['ok' => false, 'error' => 'Could not create zips directory under ' . $distRoot];
+        }
+
+        $zipErr = $this->buildDistZip($dir, $slug, SubmissionKind::PLUGIN);
+        if ($zipErr !== null) {
+            return ['ok' => false, 'error' => $zipErr];
+        }
+
+        $loaded = $this->loadExistingCatalogFromDisk($distRoot, '');
+        if ($loaded['sharded_plugins']) {
+            return [
+                'ok' => false,
+                'error' => 'Catalog uses sharded plugins. Use “Regenerate repo.json from approved” after upgrading catalog admin code.',
+            ];
+        }
+
+        $baseUrl = $this->settings->zipBaseUrl();
+        $screenshotBase = $this->settings->screenshotPublicBaseUrl();
+        $plugins = $this->upsertBundledStruxaAdminPlugin($loaded['plugins'], $zipsDir, $baseUrl, $screenshotBase);
+
+        usort($loaded['themes'], static fn (array $a, array $b): int => strcmp((string) ($a['slug'] ?? ''), (string) ($b['slug'] ?? '')));
+        usort($plugins, static fn (array $a, array $b): int => strcmp((string) ($a['slug'] ?? ''), (string) ($b['slug'] ?? '')));
+
+        $written = (new StruxaDistCatalogWriter())->write($distRoot, $loaded['themes'], $plugins);
+        if (!$written['ok']) {
+            return ['ok' => false, 'error' => $written['error'] ?? 'Failed to write catalog.'];
+        }
+
+        $this->ensureBundledAdminInPublishJson();
+
+        $version = trim((string) ($parsed['manifest']['version'] ?? ''));
 
         return ['ok' => true, 'version' => $version, 'dist_root' => $distRoot];
     }
@@ -640,6 +699,61 @@ final class CatalogPublisher
         }
 
         return $this->upsertEntry($themes, $entry);
+    }
+
+    /**
+     * Bundled catalog admin on disk always wins over stale submission metadata in repo.json.
+     *
+     * @param list<array<string, mixed>> $plugins
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function upsertBundledStruxaAdminPlugin(
+        array $plugins,
+        string $zipsDir,
+        string $baseUrl,
+        string $screenshotBase,
+    ): array {
+        $slug = 'struxa-admin';
+        $dir = $this->settings->projectRoot() . '/plugins/' . $slug;
+        $jsonPath = $dir . '/plugin.json';
+        if (!is_file($jsonPath)) {
+            return $plugins;
+        }
+
+        $entry = $this->entryForZip($slug, SubmissionKind::PLUGIN, $zipsDir, $baseUrl, $screenshotBase);
+        if ($entry === null) {
+            $parser = new PluginManifestParser();
+            $parsed = $parser->parseFile($jsonPath, $slug);
+            if (!$parsed['ok']) {
+                return $plugins;
+            }
+            $manifest = $parsed['manifest'];
+            $entry = $this->catalogEntryFromManifest(
+                $slug,
+                $manifest,
+                SubmissionKind::PLUGIN,
+                $baseUrl,
+                'https://github.com/struxa/struxa-admin',
+                $screenshotBase,
+            );
+        }
+
+        return $this->upsertEntry($plugins, $entry);
+    }
+
+    private function ensureBundledAdminInPublishJson(): void
+    {
+        $publishPath = $this->settings->distRoot() . '/publish.json';
+        $publish = $this->readPublishJson($publishPath);
+        if (!in_array('struxa-admin', $publish['plugins'], true)) {
+            $publish['plugins'][] = 'struxa-admin';
+        }
+        $publish['include_plugins'] = true;
+        if (!in_array('struxa-theme', $publish['themes'], true)) {
+            $publish['themes'][] = 'struxa-theme';
+        }
+        $this->writePublishJson($publishPath, $publish);
     }
 
     /**

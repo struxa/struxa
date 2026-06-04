@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace App\Plugin;
 
 use App\Access\PermissionSlug;
-use App\Event\EventDispatcher;
+use App\Event\Events;
+use App\Event\StorefrontCachesInvalidateEvent;
 use App\Flash;
+use App\Security\CsrfToken;
 use App\Http\Middleware\RequireCmsStaff;
 use App\Http\Middleware\RequirePermission;
 use PHPAuth\Auth;
@@ -150,6 +152,9 @@ final class StruxaCatalogAdminRouteRegistrar
         $github = new GitHubRepoClient($settings->githubToken());
         $publisher = new CatalogPublisher($settings, $submissions, $github);
         $submissionEditor = new CatalogSubmissionEditor($submissions, $github, $publisher);
+        $scanner = new PluginScanner($root);
+        $pluginRepo = new PluginRepository($pdo);
+        $migrationRunner = new PluginMigrationRunner($pdo);
 
         $authMw = new RequireCmsStaff($auth, $pdo);
         $permMw = new RequirePermission($pdo, [PermissionSlug::MANAGE_PLUGINS]);
@@ -183,7 +188,11 @@ final class StruxaCatalogAdminRouteRegistrar
             $permMw,
             $authMw,
             $pdo,
-            $submissionEditor
+            $submissionEditor,
+            $scanner,
+            $pluginRepo,
+            $migrationRunner,
+            $root
         ): void {
             $group->get('/extensions/struxa-catalog/submissions', function (Request $request, Response $response) use (
                 $twig,
@@ -195,6 +204,9 @@ final class StruxaCatalogAdminRouteRegistrar
                 $q = $request->getQueryParams();
                 $status = isset($q['status']) ? trim((string) $q['status']) : SubmissionStatus::PENDING;
                 $kind = isset($q['kind']) ? trim((string) $q['kind']) : '';
+                $distRoot = $settings->distRoot();
+                $diskVer = StruxaCatalogStackShipper::diskVersion($settings->projectRoot());
+                $repoVer = StruxaCatalogStackShipper::repoVersion($distRoot);
 
                 return $twig->render($response, $ns . '/admin/submissions.twig', $adminView($request, [
                     'submission_rows' => $submissions->listByStatus(
@@ -208,9 +220,49 @@ final class StruxaCatalogAdminRouteRegistrar
                     'approved_count' => $submissions->countByStatus(SubmissionStatus::APPROVED),
                     'rejected_count' => $submissions->countByStatus(SubmissionStatus::REJECTED),
                     'submission_total' => $submissions->countAll(),
-                    'dist_root' => $settings->distRoot(),
+                    'dist_root' => $distRoot,
+                    'catalog_admin_disk_version' => $diskVer,
+                    'catalog_admin_repo_version' => $repoVer,
+                    'catalog_repo_public_url' => rtrim($settings->catalogPublicBaseUrl(), '/') . '/struxa-dist/repo.json',
                 ]));
             })->setName(self::ROUTE_SUBMISSIONS);
+
+            $group->post('/extensions/struxa-catalog/ship-stack', function (Request $request, Response $response) use (
+                $root,
+                $pdo,
+                $scanner,
+                $pluginRepo,
+                $migrationRunner,
+                $cmsUid
+            ): Response {
+                $parser = RouteContext::fromRequest($request)->getRouteParser();
+                $back = $parser->urlFor(self::ROUTE_SUBMISSIONS, [], ['status' => 'approved', 'kind' => '']);
+                $body = $request->getParsedBody();
+                $body = is_array($body) ? $body : [];
+                $token = isset($body['_csrf_token']) && is_string($body['_csrf_token']) ? $body['_csrf_token'] : '';
+                if (!CsrfToken::validate($token)) {
+                    Flash::set('error', 'Invalid security token. Please try again.');
+
+                    return $response->withHeader('Location', $back)->withStatus(302);
+                }
+
+                $shipper = new StruxaCatalogStackShipper($root, $pdo, $scanner, $pluginRepo, $migrationRunner);
+                $result = $shipper->ship();
+                if (!$result['ok']) {
+                    Flash::set('error', $result['error']);
+
+                    return $response->withHeader('Location', $back)->withStatus(302);
+                }
+
+                $msg = implode(' ', $result['messages']);
+                if (!empty($result['reload_recommended'])) {
+                    $msg .= ' Reload this page (and Plugins) so the upgraded catalog admin code is active.';
+                }
+                Flash::set('success', $msg);
+                Events::dispatch(new StorefrontCachesInvalidateEvent('catalog_stack_ship'));
+
+                return $response->withHeader('Location', $back)->withStatus(302);
+            })->setName('admin.struxa_catalog.ship_stack');
 
             $group->get('/extensions/struxa-catalog/submissions/{id:[0-9]+}', function (
                 Request $request,

@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.2.23",
-    "title": "Struxa 1.2.23",
-    "summary": "Admin settings/mobile full-width forms; admin checkboxes styled as toggle switches.",
+    "latest_version": "1.2.24",
+    "title": "Struxa 1.2.24",
+    "summary": "Catalog submissions: Upgrade catalog & publish button (GitHub, ZIP, repo.json, migrations).",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "minor"

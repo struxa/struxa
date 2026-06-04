@@ -15,6 +15,8 @@ use App\Filesystem\SafeDirectoryRemoval;
 use App\Plugin\PluginCatalogLoader;
 use App\Plugin\PluginManager;
 use App\Plugin\PluginMigrationRunner;
+use App\Plugin\StruxaCatalogStackShipper;
+use App\Security\CsrfToken;
 use App\Plugin\PluginPerformanceRegistry;
 use App\Plugin\PluginRemoteInstaller;
 use App\Plugin\PluginRepository;
@@ -102,7 +104,8 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             $scanner,
             $pluginPerformance,
             $pluginUpdateChecker,
-            $namedRouteUrl
+            $namedRouteUrl,
+            $root
         ): Response {
             $discovered = $manager->syncDiscoveredToDatabase();
             $catalogBySlug = $pluginUpdateChecker->catalogEntriesBySlug();
@@ -170,6 +173,15 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 'plugin_summary' => $summary,
                 'plugin_orphans' => $orphans,
                 'struxa_catalog_submissions_url' => $namedRouteUrl($request, 'admin.struxa_catalog.submissions'),
+                'struxa_catalog_ship_stack_url' => RouteContext::fromRequest($request)
+                    ->getRouteParser()
+                    ->urlFor('admin.extensions.plugins.ship_struxa_catalog_stack'),
+                'struxa_catalog_admin_disk_version' => StruxaCatalogStackShipper::diskVersion($root),
+                'struxa_catalog_admin_repo_version' => StruxaCatalogStackShipper::repoVersion(
+                    class_exists(\StruxaAdmin\CatalogSettings::class)
+                        ? (new \StruxaAdmin\CatalogSettings($pdo, $root))->distRoot()
+                        : rtrim($root, '/\\') . '/public/struxa-dist'
+                ),
                 'struxa_catalog_show_repair' => $scanner->findBySlug('struxa-admin') !== null
                     && $namedRouteUrl($request, 'admin.struxa_catalog.submissions') === null,
                 'plugin_perf_thresholds' => [
@@ -625,5 +637,49 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
 
             return $response->withHeader('Location', $back)->withStatus(302);
         })->setName('admin.extensions.plugins.repair_struxa_catalog');
+
+        $group->post('/extensions/plugins/ship-struxa-catalog-stack', function (Request $request, Response $response) use (
+            $root,
+            $pdo,
+            $scanner,
+            $repo,
+            $migrationRunner,
+            $activity,
+            $cmsUid,
+            $namedRouteUrl
+        ): Response {
+            $parser = RouteContext::fromRequest($request)->getRouteParser();
+            $back = $namedRouteUrl($request, 'admin.struxa_catalog.submissions')
+                ?? $parser->urlFor('admin.extensions.plugins.index');
+            $body = $request->getParsedBody();
+            $body = is_array($body) ? $body : [];
+            $token = isset($body['_csrf_token']) && is_string($body['_csrf_token']) ? $body['_csrf_token'] : '';
+            if (!CsrfToken::validate($token)) {
+                Flash::set('error', 'Invalid security token. Please try again.');
+
+                return $response->withHeader('Location', $back)->withStatus(302);
+            }
+
+            $shipper = new StruxaCatalogStackShipper($root, $pdo, $scanner, $repo, $migrationRunner);
+            $result = $shipper->ship();
+            if (!$result['ok']) {
+                Flash::set('error', $result['error']);
+
+                return $response->withHeader('Location', $back)->withStatus(302);
+            }
+
+            $msg = implode(' ', $result['messages']);
+            if (!empty($result['reload_recommended'])) {
+                $msg .= ' Reload Extensions → Plugins and Catalog submissions.';
+            }
+            Flash::set('success', $msg);
+            $activity->log($cmsUid($request), 'plugin.catalog_stack_ship', 'plugin', null, [
+                'slug' => 'struxa-admin',
+                'version' => $result['version'] ?? '',
+            ]);
+            Events::dispatch(new StorefrontCachesInvalidateEvent('catalog_stack_ship'));
+
+            return $response->withHeader('Location', $back)->withStatus(302);
+        })->setName('admin.extensions.plugins.ship_struxa_catalog_stack');
     })->add($permPlugins)->add($middleware);
 };

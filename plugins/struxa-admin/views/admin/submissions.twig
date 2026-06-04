@@ -25,12 +25,35 @@
         Dist folder: <code class="admin-inline-code">{{ dist_root|e }}</code>
       </p>
     </div>
-    <div class="admin-toolbar-actions" style="display:flex;gap:0.5rem;flex-wrap:wrap">
-      <a class="admin-btn-primary" href="{{ url_for('admin.struxa_catalog.settings') }}">Catalog settings</a>
+    <div class="admin-toolbar-actions" style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center">
+      <form
+        method="post"
+        action="{{ url_for('admin.extensions.plugins.ship_struxa_catalog_stack') }}"
+        class="admin-inline-form"
+        onsubmit="return confirm('Upgrade Struxa Catalog Admin from GitHub, publish struxa-admin.zip + repo.json, regenerate the catalog, and run migrations?\n\nThis may take a minute. Reload the page when finished.');"
+      >
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+        <button type="submit" class="admin-btn-primary">Upgrade catalog &amp; publish</button>
+      </form>
+      <a class="admin-btn-ghost" href="{{ url_for('admin.struxa_catalog.settings') }}">Catalog settings</a>
       <a class="admin-btn-ghost" href="{{ url_for('admin.extensions.plugins.browse') }}">Browse catalog</a>
       <a class="admin-btn-ghost" href="{{ url_for('public.struxa_catalog.plugins') }}" target="_blank" rel="noopener">Public plugins</a>
       <a class="admin-btn-ghost" href="{{ url_for('public.struxa_catalog.themes') }}" target="_blank" rel="noopener">Public themes</a>
     </div>
+  </div>
+
+  <div class="admin-catalog-workflow admin-catalog-workflow--ship" role="note">
+    <strong>Catalog admin on this server</strong>
+    <p style="margin:0.35rem 0 0">
+      On disk: <code class="admin-inline-code">v{{ catalog_admin_disk_version|default('—')|e }}</code>
+      · Live <a class="admin-link" href="{{ catalog_repo_public_url|e('html_attr') }}" target="_blank" rel="noopener">repo.json</a>:
+      <code class="admin-inline-code">v{{ catalog_admin_repo_version|default('—')|e }}</code>.
+      {% if catalog_admin_disk_version|default('') != '' and catalog_admin_repo_version|default('') != '' and catalog_admin_disk_version != catalog_admin_repo_version %}
+        Versions differ — use <strong>Upgrade catalog &amp; publish</strong> to sync without FTP.
+      {% elseif catalog_admin_repo_version|default('') == '' or catalog_admin_repo_version == '1.0.7' or (catalog_admin_disk_version|default('') != '' and catalog_admin_disk_version == catalog_admin_repo_version and catalog_admin_disk_version == '1.0.7') %}
+        Stale catalog index is common after CMS-only deploys — one click fixes plugin files, ZIP, and <code class="admin-inline-code">repo.json</code>.
+      {% endif %}
+    </p>
   </div>
 
   <div class="admin-settings-intro admin-settings-intro--catalog">
