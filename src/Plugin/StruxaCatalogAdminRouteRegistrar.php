@@ -39,6 +39,12 @@ final class StruxaCatalogAdminRouteRegistrar
 
     private static ?string $lastRegisterError = null;
 
+    /** CMS install root (parent of {@code src/}). Avoids nested Slim route closures losing {@code $root}. */
+    private static function cmsProjectRoot(): string
+    {
+        return dirname(__DIR__, 2);
+    }
+
     public static function lastRegisterError(): ?string
     {
         return self::$lastRegisterError;
@@ -416,11 +422,10 @@ final class StruxaCatalogAdminRouteRegistrar
                 $twig,
                 $adminView,
                 $settings,
-                $root,
                 $ns
             ): Response {
                 $bundledThemeVersion = null;
-                $themeDir = $root . '/themes/struxa-theme';
+                $themeDir = self::cmsProjectRoot() . '/themes/struxa-theme';
                 $manifest = \App\Theme\ThemeManifest::tryLoadRelaxedPath($themeDir);
                 if ($manifest !== null) {
                     $bundledThemeVersion = $manifest->version;
