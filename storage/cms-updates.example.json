@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.2.26",
-    "title": "Struxa 1.2.26",
-    "summary": "Fix diskVersion() TypeError: PluginManifest is an object, not an array.",
+    "latest_version": "1.2.27",
+    "title": "Struxa 1.2.27",
+    "summary": "Fix Plugins page: resolveDistRoot without PDO in route closure.",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "minor"

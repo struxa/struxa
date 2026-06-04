@@ -349,6 +349,30 @@ final class StruxaCatalogStackShipper
         return $out;
     }
 
+    /**
+     * struxa-dist path without constructing CatalogSettings (avoids PDO in route closures).
+     */
+    public static function resolveDistRoot(string $projectRoot): string
+    {
+        if (class_exists(CatalogSettings::class)) {
+            $custom = trim((string) (\App\Settings::get(CatalogSettings::KEY_DIST_ROOT, '') ?? ''));
+            if ($custom !== '') {
+                return rtrim($custom, '/\\');
+            }
+        }
+
+        foreach ([
+            $projectRoot . '/public/struxa-dist',
+            $projectRoot . '/struxa-dist',
+        ] as $path) {
+            if (is_dir($path)) {
+                return $path;
+            }
+        }
+
+        return rtrim($projectRoot, '/\\') . '/struxa-dist';
+    }
+
     public static function diskVersion(string $projectRoot): ?string
     {
         $path = $projectRoot . '/plugins/' . self::SLUG . '/plugin.json';

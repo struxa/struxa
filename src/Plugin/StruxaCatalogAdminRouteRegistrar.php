@@ -205,8 +205,8 @@ final class StruxaCatalogAdminRouteRegistrar
                 $status = isset($q['status']) ? trim((string) $q['status']) : SubmissionStatus::PENDING;
                 $kind = isset($q['kind']) ? trim((string) $q['kind']) : '';
                 $distRoot = $settings->distRoot();
-                $diskVer = StruxaCatalogStackShipper::diskVersion($settings->projectRoot());
-                $repoVer = StruxaCatalogStackShipper::repoVersion($distRoot);
+                $diskVer = StruxaCatalogStackShipper::diskVersion($root);
+                $repoVer = StruxaCatalogStackShipper::repoVersion(StruxaCatalogStackShipper::resolveDistRoot($root));
 
                 return $twig->render($response, $ns . '/admin/submissions.twig', $adminView($request, [
                     'submission_rows' => $submissions->listByStatus(
