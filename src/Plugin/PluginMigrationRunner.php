@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Plugin;
 
+use App\Database\SqlMigrationStatement;
 use PDO;
+use PDOException;
 
 /**
  * Runs *.sql from a plugin's migrations/ folder; tracked in cms_plugin_migrations.
@@ -80,10 +82,24 @@ final class PluginMigrationRunner
             if ($stmtSql === '') {
                 continue;
             }
+            $this->executeStatement($stmtSql);
+        }
+    }
+
+    private function executeStatement(string $stmtSql): void
+    {
+        try {
             $result = $this->pdo->query($stmtSql);
             if ($result instanceof \PDOStatement) {
                 $this->drainStatement($result);
             }
+        } catch (PDOException $e) {
+            if (SqlMigrationStatement::isBenignDuplicateSchemaError($e)) {
+                error_log('[plugin-migration] Skipped already-applied DDL: ' . $e->getMessage());
+
+                return;
+            }
+            throw $e;
         }
     }
 

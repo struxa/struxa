@@ -69,7 +69,7 @@ Plugins cannot modify core files — only files under `plugins/{slug}/` are load
 ## Lifecycle
 
 1. **Discovery** — `PluginScanner` reads valid `plugin.json` files.
-2. **Activation** — Rows in **`cms_plugins`** mark which slugs are active. Pending `migrations/*.sql` files are applied and recorded in **`cms_plugin_migrations`**.
+2. **Activation** — Rows in **`cms_plugins`** mark which slugs are active. Pending `migrations/*.sql` files are applied and recorded in **`cms_plugin_migrations`**. Use idempotent DDL (`CREATE TABLE IF NOT EXISTS`, `information_schema` checks before `ALTER TABLE … ADD COLUMN`) so re-activate after a partial apply does not fail. The core **`PluginMigrationRunner`** also ignores benign MySQL duplicate-schema errors (1050/1060/1061) when the object already exists.
 3. **Boot** — For each active plugin, autoload is registered, Twig paths added, routes loaded, then `main_class` (if present) is instantiated; if it implements `PluginServiceProviderInterface`, `boot()` runs (nav items, event listeners, **filters**, reserved URL segments).
 4. **Remove (delete from disk)** — If the plugin root contains **`uninstall.sql`**, it is executed (typically `DROP TABLE` for that plugin’s tables), then **`cms_plugin_migrations`** rows for that slug are deleted so a future reinstall can run migrations again.
 
