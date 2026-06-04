@@ -340,14 +340,17 @@
           </a>
         {% endif %}
         {% for nav_item in plugin_admin_nav_items|default([]) %}
+          {% if nav_item.route_name|default('') not in ['admin.struxa_catalog.submissions', 'admin.struxa_catalog.settings'] %}
           {% set plugin_item_path_raw = url_for(nav_item.route_name, nav_item.route_params|default({}))|split('?')|first %}
           {% set plugin_item_path = plugin_item_path_raw == '' or plugin_item_path_raw == '/' ? '/' : plugin_item_path_raw|trim('/', 'right') %}
           <a href="{{ url_for(nav_item.route_name, nav_item.route_params|default({})) }}" class="{{ request_path == plugin_item_path or (plugin_item_path != '/' and request_path starts with (plugin_item_path ~ '/')) ? 'is-active' : '' }}">
             <svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="12" cy="12" r="3"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2"/></svg>
             {{ nav_item.label|e }}
           </a>
+          {% endif %}
         {% endfor %}
         {% for group in plugin_admin_nav_groups|default([]) %}
+          {% if group.parent_slug|default('') != 'struxa-admin' %}
           {% set group_open = false %}
           {% for child in group.items %}
             {% set plugin_item_path_raw = url_for(child.route_name, child.route_params|default({}))|split('?')|first %}
