@@ -5978,7 +5978,11 @@ body.admin-media-lightbox-open {
   font-size: 0.8125rem;
   line-height: 1.6;
   color: var(--admin-muted);
-  max-width: 40rem;
+  max-width: 52rem;
+}
+
+.admin-body--content-full .admin-settings-intro-text {
+  max-width: none;
 }
 
 .admin-settings-intro-strong {
@@ -6144,6 +6148,284 @@ body.admin-media-lightbox-open {
   margin: 0;
   flex: 1 1 12rem;
   min-width: 0;
+}
+
+/* Full-width main column for settings-style pages (sidebar open or closed) */
+.admin-body--content-full .admin-main-inner {
+  max-width: none;
+}
+
+/* Settings: sticky category nav + full-width form column */
+.admin-settings-layout {
+  display: grid;
+  gap: 1.25rem 1.75rem;
+  align-items: start;
+}
+
+@media (min-width: 1100px) {
+  .admin-settings-layout {
+    grid-template-columns: minmax(11.5rem, 13.5rem) minmax(0, 1fr);
+  }
+}
+
+.admin-settings-sidebar {
+  display: none;
+}
+
+@media (min-width: 1100px) {
+  .admin-settings-sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    position: sticky;
+    top: 5.25rem;
+    padding: 0.85rem 0.75rem;
+    border-radius: var(--admin-radius);
+    border: 1px solid var(--admin-border);
+    background: linear-gradient(165deg, rgba(255, 255, 255, 0.03) 0%, rgba(12, 18, 28, 0.75) 100%);
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04) inset;
+  }
+}
+
+.admin-settings-sidebar-label {
+  margin: 0 0 0.35rem 0.35rem;
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--admin-dim);
+}
+
+.admin-settings-sidebar-link {
+  display: block;
+  padding: 0.4rem 0.55rem;
+  border-radius: var(--admin-radius-sm);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-decoration: none;
+  color: var(--admin-muted);
+  border: 1px solid transparent;
+  transition:
+    color 0.15s ease,
+    background 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.admin-settings-sidebar-link:hover {
+  color: var(--admin-text);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.admin-settings-sidebar-link:focus-visible {
+  outline: 2px solid rgba(168, 85, 247, 0.65);
+  outline-offset: 2px;
+}
+
+.admin-settings-layout-main {
+  min-width: 0;
+}
+
+/* —— Catalog settings —— */
+.admin-catalog-settings-page .admin-settings-toc {
+  margin-bottom: 1.1rem;
+}
+
+.admin-catalog-actions {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 900px) {
+  .admin-catalog-actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.admin-catalog-action-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  padding: 1.25rem 1.3rem;
+  min-height: 100%;
+}
+
+.admin-catalog-action-card--primary {
+  border-color: rgba(168, 85, 247, 0.28);
+  background:
+    linear-gradient(135deg, rgba(168, 85, 247, 0.08) 0%, transparent 48%),
+    linear-gradient(165deg, rgba(255, 255, 255, 0.035) 0%, rgba(18, 22, 31, 0.72) 55%);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.04) inset,
+    inset 3px 0 0 rgba(168, 85, 247, 0.45);
+}
+
+.admin-catalog-action-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.admin-catalog-action-icon {
+  flex-shrink: 0;
+  width: 2.35rem;
+  height: 2.35rem;
+  border-radius: var(--admin-radius-sm);
+  display: grid;
+  place-items: center;
+  color: #e9d5ff;
+  background: linear-gradient(145deg, rgba(168, 85, 247, 0.3), rgba(99, 102, 241, 0.18));
+  border: 1px solid rgba(168, 85, 247, 0.3);
+}
+
+.admin-catalog-action-title {
+  margin: 0 0 0.25rem;
+  font-size: 0.9375rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--admin-text);
+}
+
+.admin-catalog-action-desc {
+  margin: 0;
+  font-size: 0.8125rem;
+  line-height: 1.55;
+  color: var(--admin-dim);
+}
+
+.admin-catalog-action-meta {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--admin-muted);
+}
+
+.admin-catalog-action-foot {
+  margin-top: auto;
+  padding-top: 0.35rem;
+}
+
+.admin-catalog-action-foot .admin-hint {
+  margin: 0.5rem 0 0;
+}
+
+.admin-catalog-workflow {
+  margin: 0 0 1rem;
+  padding: 0.85rem 1rem;
+  border-radius: var(--admin-radius);
+  border: 1px dashed rgba(168, 85, 247, 0.25);
+  background: rgba(168, 85, 247, 0.06);
+  font-size: 0.8125rem;
+  line-height: 1.55;
+  color: var(--admin-muted);
+}
+
+.admin-catalog-workflow strong {
+  color: var(--admin-text);
+}
+
+.admin-catalog-workflow ol {
+  margin: 0.5rem 0 0;
+  padding-left: 1.15rem;
+}
+
+.admin-catalog-workflow li + li {
+  margin-top: 0.25rem;
+}
+
+/* —— Trash —— */
+.admin-trash-page .admin-settings-intro-icon {
+  color: #fecaca;
+  background: linear-gradient(145deg, rgba(248, 113, 113, 0.28), rgba(168, 85, 247, 0.12));
+  border-color: rgba(248, 113, 113, 0.35);
+}
+
+.admin-trash-metrics {
+  margin-bottom: 1.15rem;
+}
+
+.admin-trash-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.admin-trash-card {
+  display: grid;
+  gap: 0.75rem 1rem;
+  padding: 1rem 1.15rem;
+  border-radius: var(--admin-radius);
+  border: 1px solid var(--admin-border);
+  background: linear-gradient(165deg, rgba(255, 255, 255, 0.03) 0%, rgba(18, 22, 31, 0.65) 55%);
+  transition: border-color 0.2s ease;
+}
+
+.admin-trash-card:hover {
+  border-color: rgba(168, 85, 247, 0.22);
+}
+
+@media (min-width: 720px) {
+  .admin-trash-card {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    align-items: center;
+  }
+}
+
+.admin-trash-card-main {
+  min-width: 0;
+}
+
+.admin-trash-card-title {
+  margin: 0;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--admin-text);
+  word-break: break-word;
+}
+
+.admin-trash-card-sub {
+  margin: 0.2rem 0 0;
+  font-size: 0.8125rem;
+  color: var(--admin-dim);
+  line-height: 1.45;
+}
+
+.admin-trash-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+}
+
+.admin-trash-card-date {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--admin-dim);
+  white-space: nowrap;
+}
+
+.admin-trash-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  justify-content: flex-end;
+}
+
+.admin-badge--trash-page {
+  background: rgba(59, 130, 246, 0.15);
+  border-color: rgba(59, 130, 246, 0.35);
+  color: #93c5fd;
+}
+
+.admin-badge--trash-entry {
+  background: rgba(168, 85, 247, 0.12);
+  border-color: rgba(168, 85, 247, 0.35);
+  color: #d8b4fe;
+}
+
+.admin-badge--trash-media {
+  background: rgba(45, 212, 191, 0.12);
+  border-color: rgba(45, 212, 191, 0.35);
+  color: #5eead4;
 }
 
 /* —— Dashboard metrics —— */

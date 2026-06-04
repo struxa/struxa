@@ -2,6 +2,7 @@
 {% import 'admin/_ui_macros.twig' as ui %}
 
 {% block admin_title %}Trash{% endblock %}
+{% block admin_body_class %}admin-body--dash-ref admin-body--content-full{% endblock %}
 
 {% block admin_hero_title %}
   <h1 class="admin-hero-title">Trash</h1>
@@ -16,65 +17,107 @@
   </p>
 {% endblock %}
 
+{% block admin_hero_actions %}
+  <a class="admin-btn-ghost" href="{{ url_for('admin.pages.index') }}">Pages</a>
+  <a class="admin-btn-ghost" href="{{ url_for('admin.media.index') }}">Media</a>
+{% endblock %}
+
 {% block admin_content %}
-  {% if trash_items is empty %}
-    {{ ui.empty_state(
-      'Trash is empty',
-      'When you delete a page, entry, or media file, it lands here first so you can undo mistakes.',
-      url_for('admin.pages.index'),
-      'Back to pages',
-      '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>'
-    ) }}
-  {% else %}
-    <div class="admin-table-wrap">
-      <table class="admin-table">
-        <thead>
-          <tr>
-            <th scope="col">Item</th>
-            <th scope="col">Type</th>
-            <th scope="col">Deleted</th>
-            <th scope="col" class="admin-table-col-actions"><span class="admin-table-muted">Actions</span></th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for item in trash_items %}
-            <tr>
-              <td>
-                <strong>{{ item.title|e }}</strong>
-                {% if item.subtitle|default('') != '' %}
-                  <div class="admin-table-muted admin-trash-sub">{{ item.subtitle|e }}</div>
-                {% endif %}
-              </td>
-              <td>
-                {% if item.kind == 'page' %}
-                  Page
-                {% elseif item.kind == 'content_entry' %}
-                  Entry
-                {% else %}
-                  Media
-                {% endif %}
-              </td>
-              <td class="admin-table-muted">{{ item.deleted_at|slice(0, 16)|replace({'T': ' '}) }}</td>
-              <td class="admin-table-actions">
-                <form class="admin-inline-form" method="post" action="{{ url_for('admin.trash.restore') }}">
+  <div class="admin-settings-page admin-trash-page">
+    <div class="admin-settings-intro admin-settings-intro--trash">
+      <div class="admin-settings-intro-icon" aria-hidden="true">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="3 6 5 6 21 6" />
+          <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+          <path d="M10 11v6M14 11v6" />
+          <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+        </svg>
+      </div>
+      <div class="admin-settings-intro-body">
+        <p class="admin-settings-intro-title">Soft-deleted content</p>
+        <p class="admin-settings-intro-text">
+          Nothing is gone until you choose <strong class="admin-settings-intro-strong">Delete forever</strong>.
+          Restore brings the item back to its list; purge cannot be undone.
+        </p>
+      </div>
+    </div>
+
+    {% if trash_items is empty %}
+      {{ ui.empty_state(
+        'Trash is empty',
+        'When you delete a page, entry, or media file, it lands here first so you can undo mistakes.',
+        url_for('admin.pages.index'),
+        'Back to pages',
+        '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>'
+      ) }}
+    {% else %}
+      {% set trash_pages = trash_items|filter(i => i.kind == 'page')|length %}
+      {% set trash_entries = trash_items|filter(i => i.kind == 'content_entry')|length %}
+      {% set trash_media = trash_items|filter(i => i.kind == 'media')|length %}
+
+      <div class="admin-metrics admin-trash-metrics" aria-label="Trash summary">
+        <article class="admin-metric">
+          <p class="admin-metric-label">Total</p>
+          <p class="admin-metric-value">{{ trash_count|default(trash_items|length) }}</p>
+          <p class="admin-metric-meta">In trash now</p>
+        </article>
+        <article class="admin-metric">
+          <p class="admin-metric-label">Pages</p>
+          <p class="admin-metric-value">{{ trash_pages }}</p>
+          <p class="admin-metric-meta">Restorable layouts</p>
+        </article>
+        <article class="admin-metric">
+          <p class="admin-metric-label">Entries</p>
+          <p class="admin-metric-value">{{ trash_entries }}</p>
+          <p class="admin-metric-meta">Content-type rows</p>
+        </article>
+        <article class="admin-metric">
+          <p class="admin-metric-label">Media</p>
+          <p class="admin-metric-value">{{ trash_media }}</p>
+          <p class="admin-metric-meta">Library files</p>
+        </article>
+      </div>
+
+      <div class="admin-trash-list" role="list">
+        {% for item in trash_items %}
+          <article class="admin-trash-card" role="listitem">
+            <div class="admin-trash-card-main">
+              <h2 class="admin-trash-card-title">{{ item.title|e }}</h2>
+              {% if item.subtitle|default('') != '' %}
+                <p class="admin-trash-card-sub">{{ item.subtitle|e }}</p>
+              {% endif %}
+            </div>
+            <div class="admin-trash-card-meta">
+              {% if item.kind == 'page' %}
+                <span class="admin-badge admin-badge--trash-page">Page</span>
+              {% elseif item.kind == 'content_entry' %}
+                <span class="admin-badge admin-badge--trash-entry">Entry</span>
+              {% else %}
+                <span class="admin-badge admin-badge--trash-media">Media</span>
+              {% endif %}
+              <p class="admin-trash-card-date">
+                <time datetime="{{ item.deleted_at|default('')|e('html_attr') }}">{{ item.deleted_at|slice(0, 16)|replace({'T': ' '}) }}</time>
+              </p>
+            </div>
+            <div class="admin-trash-card-actions">
+              <form class="admin-inline-form" method="post" action="{{ url_for('admin.trash.restore') }}">
+                <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+                <input type="hidden" name="kind" value="{{ item.kind|e('html_attr') }}" />
+                <input type="hidden" name="id" value="{{ item.id }}" />
+                <button type="submit" class="admin-btn-primary admin-btn-primary--sm">Restore</button>
+              </form>
+              {% if cms_can('delete_content') %}
+                <form class="admin-inline-form" method="post" action="{{ url_for('admin.trash.purge') }}" onsubmit="return confirm('Permanently delete this item? This cannot be undone.');">
                   <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
                   <input type="hidden" name="kind" value="{{ item.kind|e('html_attr') }}" />
                   <input type="hidden" name="id" value="{{ item.id }}" />
-                  <button type="submit" class="admin-btn-ghost admin-btn-ghost--sm">Restore</button>
+                  <button type="submit" class="admin-btn-ghost admin-btn-ghost--sm admin-actions-danger">Delete forever</button>
                 </form>
-                {% if cms_can('delete_content') %}
-                  <form class="admin-inline-form" method="post" action="{{ url_for('admin.trash.purge') }}" onsubmit="return confirm('Permanently delete this item? This cannot be undone.');">
-                    <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
-                    <input type="hidden" name="kind" value="{{ item.kind|e('html_attr') }}" />
-                    <input type="hidden" name="id" value="{{ item.id }}" />
-                    <button type="submit" class="admin-btn-ghost admin-btn-ghost--sm admin-actions-danger">Delete forever</button>
-                  </form>
-                {% endif %}
-              </td>
-            </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-  {% endif %}
+              {% endif %}
+            </div>
+          </article>
+        {% endfor %}
+      </div>
+    {% endif %}
+  </div>
 {% endblock %}

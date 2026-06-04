@@ -1,6 +1,7 @@
 {% extends 'admin/base.twig' %}
 
 {% block admin_title %}Site settings{% endblock %}
+{% block admin_body_class %}admin-body--dash-ref admin-body--content-full{% endblock %}
 
 {% block admin_hero_title %}
   <h1 class="admin-hero-title">Site settings</h1>
@@ -37,6 +38,7 @@
     <nav class="admin-settings-toc" aria-label="Jump to section">
       <a class="admin-settings-toc-link" href="#settings-general">General</a>
       <a class="admin-settings-toc-link" href="#settings-registration">Registration</a>
+      <a class="admin-settings-toc-link" href="#settings-google-sso">Google sign-in</a>
       <a class="admin-settings-toc-link" href="#settings-homepage">Homepage</a>
       <a class="admin-settings-toc-link" href="#settings-seo">SEO defaults</a>
       <a class="admin-settings-toc-link" href="#settings-branding">Branding</a>
@@ -45,6 +47,26 @@
       <a class="admin-settings-toc-link" href="#settings-og">Social images</a>
     </nav>
 
+    <div class="admin-settings-layout">
+      <nav class="admin-settings-sidebar" aria-label="Settings categories">
+        <p class="admin-settings-sidebar-label">Site identity</p>
+        <a class="admin-settings-sidebar-link" href="#settings-general">General</a>
+        <a class="admin-settings-sidebar-link" href="#settings-registration">Registration</a>
+        <p class="admin-settings-sidebar-label">Sign-in</p>
+        <a class="admin-settings-sidebar-link" href="#settings-google-sso">Google sign-in</a>
+        <p class="admin-settings-sidebar-label">Public site</p>
+        <a class="admin-settings-sidebar-link" href="#settings-homepage">Homepage</a>
+        <a class="admin-settings-sidebar-link" href="#settings-seo">SEO defaults</a>
+        <p class="admin-settings-sidebar-label">Brand &amp; social</p>
+        <a class="admin-settings-sidebar-link" href="#settings-branding">Branding</a>
+        <a class="admin-settings-sidebar-link" href="#settings-social">Social links</a>
+        <a class="admin-settings-sidebar-link" href="#settings-og">Social images</a>
+        <p class="admin-settings-sidebar-label">Advanced</p>
+        <a class="admin-settings-sidebar-link" href="#settings-suffix">Title &amp; robots</a>
+        <a class="admin-settings-sidebar-link" href="{{ url_for('admin.seo.overview') }}">SEO tools</a>
+      </nav>
+
+      <div class="admin-settings-layout-main">
     <form class="admin-form admin-settings-form" method="post" action="{{ url_for('admin.settings.save') }}">
       <div class="admin-settings-stack">
         <div class="admin-settings-row2">
@@ -322,5 +344,7 @@
         </div>
       </div>
     </form>
+      </div>
+    </div>
   </div>
 {% endblock %}

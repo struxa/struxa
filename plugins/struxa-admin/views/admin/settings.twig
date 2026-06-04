@@ -1,77 +1,151 @@
 {% extends 'admin/base.twig' %}
 
 {% block admin_title %}Catalog settings{% endblock %}
-{% block admin_hero_title %}<h1 class="admin-hero-title">Distribution catalog settings</h1>{% endblock %}
+{% block admin_body_class %}admin-body--dash-ref admin-body--content-full{% endblock %}
+
+{% block admin_hero_title %}
+  <h1 class="admin-hero-title">Distribution catalog settings</h1>
+{% endblock %}
+
 {% block admin_hero_sub %}
-  <p class="admin-hero-sub"><a class="admin-link" href="{{ url_for('admin.struxa_catalog.submissions') }}">← Submissions</a></p>
+  <p class="admin-hero-sub admin-hero-sub--tight">Publish themes and plugins to <code class="admin-inline-code">struxa-dist</code>, regenerate <code class="admin-inline-code">repo.json</code>, and configure paths.</p>
+{% endblock %}
+
+{% block admin_hero_actions %}
+  <a class="admin-btn-ghost" href="{{ url_for('admin.struxa_catalog.submissions') }}">Submissions</a>
+  <a class="admin-btn-primary" href="{{ url_for('admin.themes.index') }}">Themes</a>
 {% endblock %}
 
 {% block admin_content %}
-  <div class="admin-card" style="margin-bottom:1rem">
-    <h2 class="admin-card-title" style="margin-top:0">Bundled Struxa Vision theme</h2>
-    <p class="admin-hint">
-      After a CMS update or FTP deploy, publish <code class="admin-inline-code">themes/struxa-theme/</code> to the live catalog in one step.
-      This rebuilds <code class="admin-inline-code">struxa-theme.zip</code> and updates <code class="admin-inline-code">repo.json</code> — no SSH scripts required.
-    </p>
-    {% if bundled_theme_version %}
-      <p class="admin-hint" style="margin-top:0.5rem">On disk now: <strong>v{{ bundled_theme_version|e }}</strong> · Catalog index: <a class="admin-link" href="{{ catalog_repo_url|e('html_attr') }}" target="_blank" rel="noopener">repo.json</a></p>
-    {% else %}
-      <p class="admin-plugin-compat-blocked-hint">themes/struxa-theme/ is missing or invalid on this server.</p>
-    {% endif %}
-    <form class="admin-inline-form" method="post" action="{{ url_for('admin.struxa_catalog.settings.save') }}" style="margin-top:0.75rem">
-      <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
-      <input type="hidden" name="action" value="publish_bundled_theme" />
-      <button type="submit" class="admin-btn-primary admin-btn-primary--sm"{% if not bundled_theme_version %} disabled{% endif %}>
-        Publish bundled theme to catalog{% if bundled_theme_version %} (v{{ bundled_theme_version|e }}){% endif %}
-      </button>
-    </form>
-    <p class="admin-hint" style="margin-top:0.75rem">Then open <a class="admin-link" href="{{ url_for('admin.themes.index') }}">Themes</a> and use <strong>Reinstall from catalog</strong> on the struxa-theme card.</p>
-  </div>
+  <div class="admin-settings-page admin-catalog-settings-page">
+    <div class="admin-settings-intro admin-settings-intro--catalog">
+      <div class="admin-settings-intro-icon" aria-hidden="true">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+          <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+          <line x1="12" y1="22.08" x2="12" y2="12" />
+        </svg>
+      </div>
+      <div class="admin-settings-intro-body">
+        <p class="admin-settings-intro-title">Struxa distribution catalog</p>
+        <p class="admin-settings-intro-text">
+          After a CMS update or FTP deploy, use <strong class="admin-settings-intro-strong">Publish bundled theme</strong> so live
+          <code class="admin-inline-code">repo.json</code> matches <code class="admin-inline-code">themes/struxa-theme/</code> on disk — no SSH required.
+        </p>
+      </div>
+      {% if bundled_theme_version %}
+        <span class="admin-pill admin-pill--ok">Bundled v{{ bundled_theme_version|e }}</span>
+      {% endif %}
+    </div>
 
-  <div class="admin-card" style="margin-bottom:1rem">
-    <h2 class="admin-card-title" style="margin-top:0">Full catalog (submissions)</h2>
-    <p class="admin-hint"><strong>Approved submissions</strong> drive plugin rows and any extra themes. Regenerate merges those with the bundled Struxa theme above.</p>
-    <form class="admin-inline-form" method="post" action="{{ url_for('admin.struxa_catalog.settings.save') }}" style="margin-top:0.75rem">
+    <nav class="admin-settings-toc" aria-label="Catalog sections">
+      <a class="admin-settings-toc-link" href="#catalog-theme">Bundled theme</a>
+      <a class="admin-settings-toc-link" href="#catalog-submissions">Submissions catalog</a>
+      <a class="admin-settings-toc-link" href="#catalog-paths">Paths &amp; URLs</a>
+      <a class="admin-settings-toc-link" href="{{ catalog_repo_url|e('html_attr') }}" target="_blank" rel="noopener">repo.json</a>
+    </nav>
+
+    <div class="admin-catalog-workflow" role="note">
+      <strong>Typical recovery after deploy</strong>
+      <ol>
+        <li><strong>Publish bundled theme</strong> — rebuilds ZIP and updates catalog index.</li>
+        <li>Open <a class="admin-link" href="{{ url_for('admin.themes.index') }}">Themes</a> → <strong>Reinstall from catalog</strong> on the struxa-theme card.</li>
+        <li>Use <strong>Regenerate from approved</strong> when plugin submissions changed (optional).</li>
+      </ol>
+    </div>
+
+    <div class="admin-catalog-actions">
+      <section id="catalog-theme" class="admin-card admin-settings-card admin-catalog-action-card admin-catalog-action-card--primary admin-settings-section" tabindex="-1">
+        <div class="admin-catalog-action-head">
+          <div class="admin-catalog-action-icon" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M12 2 2 7l10 5 10-5-10-5Z"/><path d="m2 17 10 5 10-5M2 12l10 5 10-5"/></svg>
+          </div>
+          <div>
+            <h2 class="admin-catalog-action-title">Bundled Struxa Vision theme</h2>
+            <p class="admin-catalog-action-desc">
+              Publishes <code class="admin-inline-code">themes/struxa-theme/</code> to the live catalog: rebuilds
+              <code class="admin-inline-code">struxa-theme.zip</code> and updates <code class="admin-inline-code">repo.json</code>.
+            </p>
+          </div>
+        </div>
+        {% if bundled_theme_version %}
+          <p class="admin-catalog-action-meta">On disk: <strong>v{{ bundled_theme_version|e }}</strong> · <a class="admin-link" href="{{ catalog_repo_url|e('html_attr') }}" target="_blank" rel="noopener">View repo.json</a></p>
+        {% else %}
+          <p class="admin-plugin-compat-blocked-hint">themes/struxa-theme/ is missing or invalid on this server.</p>
+        {% endif %}
+        <div class="admin-catalog-action-foot">
+          <form class="admin-inline-form" method="post" action="{{ url_for('admin.struxa_catalog.settings.save') }}">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+            <input type="hidden" name="action" value="publish_bundled_theme" />
+            <button type="submit" class="admin-btn-primary"{% if not bundled_theme_version %} disabled{% endif %}>
+              Publish bundled theme to catalog{% if bundled_theme_version %} (v{{ bundled_theme_version|e }}){% endif %}
+            </button>
+          </form>
+          <p class="admin-hint">Then use <strong>Reinstall from catalog</strong> under Themes.</p>
+        </div>
+      </section>
+
+      <section id="catalog-submissions" class="admin-card admin-settings-card admin-catalog-action-card admin-settings-section" tabindex="-1">
+        <div class="admin-catalog-action-head">
+          <div class="admin-catalog-action-icon" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>
+          </div>
+          <div>
+            <h2 class="admin-catalog-action-title">Full catalog (submissions)</h2>
+            <p class="admin-catalog-action-desc">
+              <strong>Approved submissions</strong> drive plugin rows and extra themes. Regenerate merges those with the bundled theme above.
+            </p>
+          </div>
+        </div>
+        <div class="admin-catalog-action-foot">
+          <form class="admin-inline-form" method="post" action="{{ url_for('admin.struxa_catalog.settings.save') }}">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+            <input type="hidden" name="action" value="regenerate" />
+            <button type="submit" class="admin-btn-secondary">Regenerate repo.json from approved</button>
+          </form>
+          <form class="admin-form" method="post" action="{{ url_for('admin.struxa_catalog.settings.save') }}" style="margin-top:1rem">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+            <input type="hidden" name="action" value="import_repo" />
+            <p class="admin-hint">Seed the submissions database from existing <code class="admin-inline-code">repo.json</code> on disk.</p>
+            <label class="admin-checkbox-label" style="margin-top:0.5rem">
+              <input type="checkbox" name="update_existing" value="1" />
+              Update existing rows from repo.json
+            </label>
+            <div class="admin-form-actions" style="margin-top:0.65rem">
+              <button type="submit" class="admin-btn-ghost">Import from repo.json</button>
+            </div>
+          </form>
+        </div>
+      </section>
+    </div>
+
+    <form id="catalog-paths" class="admin-form admin-card admin-settings-card admin-settings-section" method="post" action="{{ url_for('admin.struxa_catalog.settings.save') }}" style="margin-top:1rem">
       <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
-      <input type="hidden" name="action" value="regenerate" />
-      <button type="submit" class="admin-btn-secondary admin-btn-primary--sm">Regenerate repo.json from approved</button>
-    </form>
-    <form class="admin-form admin-inline-form" method="post" action="{{ url_for('admin.struxa_catalog.settings.save') }}" style="margin-top:1rem">
-      <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
-      <input type="hidden" name="action" value="import_repo" />
-      <p class="admin-hint" style="margin:0 0 0.5rem">Seed the submissions database from the existing <code class="admin-inline-code">repo.json</code> on disk. Skips slugs that already exist unless you check update.</p>
-      <label class="admin-checkbox-label">
-        <input type="checkbox" name="update_existing" value="1" />
-        Update existing rows from repo.json
-      </label>
-      <div class="admin-form-actions" style="margin-top:0.75rem">
-        <button type="submit" class="admin-btn-ghost">Import from repo.json</button>
+      <input type="hidden" name="action" value="save" />
+      <h2 class="admin-settings-card-title">Paths &amp; URLs</h2>
+      <p class="admin-settings-card-desc">Where ZIPs are written on disk and how download URLs are built for the public catalog.</p>
+      <div class="admin-form-grid">
+        <div class="admin-field admin-field--full">
+          <label class="admin-label" for="dist_root">struxa-dist folder (absolute path)</label>
+          <input class="admin-input" id="dist_root" name="dist_root" value="{{ dist_root|e('html_attr') }}" />
+        </div>
+        <div class="admin-field admin-field--full">
+          <label class="admin-label" for="zip_base_url">ZIP base URL</label>
+          <input class="admin-input" id="zip_base_url" name="zip_base_url" value="{{ zip_base_url|e('html_attr') }}" />
+        </div>
+        <div class="admin-field admin-field--full">
+          <label class="admin-label" for="screenshot_base_url">Public site URL (for screenshot links)</label>
+          <input class="admin-input" id="screenshot_base_url" name="screenshot_base_url" value="{{ screenshot_base_url|e('html_attr') }}" />
+        </div>
+        <div class="admin-field admin-field--full">
+          <label class="admin-label" for="github_token">GitHub token (optional)</label>
+          <input class="admin-input" id="github_token" name="github_token" type="password" autocomplete="off" placeholder="{{ has_github_token ? '••••••••' : '' }}" />
+          <p class="admin-hint">Higher API rate limits when fetching submission metadata from GitHub.</p>
+        </div>
+      </div>
+      <div class="admin-form-actions">
+        <button type="submit" class="admin-btn-primary">Save paths</button>
       </div>
     </form>
   </div>
-
-  <form class="admin-form admin-card" method="post" action="{{ url_for('admin.struxa_catalog.settings.save') }}">
-    <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
-    <input type="hidden" name="action" value="save" />
-    <h2 class="admin-card-title" style="margin-top:0">Paths &amp; URLs</h2>
-    <div class="admin-field">
-      <label class="admin-label" for="dist_root">struxa-dist folder (absolute path)</label>
-      <input class="admin-input" id="dist_root" name="dist_root" value="{{ dist_root|e('html_attr') }}" />
-    </div>
-    <div class="admin-field">
-      <label class="admin-label" for="zip_base_url">ZIP base URL</label>
-      <input class="admin-input" id="zip_base_url" name="zip_base_url" value="{{ zip_base_url|e('html_attr') }}" />
-    </div>
-    <div class="admin-field">
-      <label class="admin-label" for="screenshot_base_url">Public site URL (for screenshot links)</label>
-      <input class="admin-input" id="screenshot_base_url" name="screenshot_base_url" value="{{ screenshot_base_url|e('html_attr') }}" />
-    </div>
-    <div class="admin-field">
-      <label class="admin-label" for="github_token">GitHub token (optional, higher API rate limits)</label>
-      <input class="admin-input" id="github_token" name="github_token" type="password" autocomplete="off" placeholder="{{ has_github_token ? '••••••••' : '' }}" />
-    </div>
-    <div class="admin-form-actions">
-      <button type="submit" class="admin-btn-primary">Save</button>
-    </div>
-  </form>
 {% endblock %}
