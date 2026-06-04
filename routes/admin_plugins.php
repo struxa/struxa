@@ -175,7 +175,9 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             $pluginPerformance,
             $pluginUpdateChecker,
             $namedRouteUrl,
-            $root
+            $root,
+            $struxaCatalogAdminDiskVersion,
+            $struxaCatalogAdminRepoVersion
         ): Response {
             $discovered = $manager->syncDiscoveredToDatabase();
             $catalogBySlug = $pluginUpdateChecker->catalogEntriesBySlug();
