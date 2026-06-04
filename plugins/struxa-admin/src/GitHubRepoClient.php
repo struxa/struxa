@@ -281,14 +281,54 @@ final class GitHubRepoClient
     private function pathExists(string $owner, string $repo, string $branch, string $path): bool
     {
         $data = $this->apiGet(
-            '/repos/' . rawurlencode($owner) . '/' . rawurlencode($repo) . '/contents/' . implode('/', array_map('rawurlencode', explode('/', $path)))
+            '/repos/' . rawurlencode($owner) . '/' . rawurlencode($repo) . '/contents/' . implode('/', array_map('rawurlencode', explode('/', trim($path, '/'))))
             . '?ref=' . rawurlencode($branch)
         );
-        if (is_array($data) && isset($data['type'])) {
+        if (is_array($data)) {
+            // Single file or symlink object.
+            if (isset($data['type'])) {
+                return true;
+            }
+            // Directory listing: GitHub returns a list of children, not { type: "dir" }.
+            if ($data !== [] && array_is_list($data)) {
+                return true;
+            }
+        }
+
+        return $this->pathExistsViaRawProbes($owner, $repo, $branch, $path);
+    }
+
+    /**
+     * When the GitHub API is unavailable (rate limit), probe raw files that imply views/ or assets/ exist.
+     */
+    private function pathExistsViaRawProbes(string $owner, string $repo, string $branch, string $path): bool
+    {
+        $path = trim($path, '/');
+        if ($path === '') {
+            return false;
+        }
+
+        if ($this->fetchRawFile($owner, $repo, $branch, $path) !== null) {
             return true;
         }
 
-        return $this->rawPathExists($owner, $repo, $branch, $path);
+        $dir = basename($path);
+        $parent = dirname($path);
+        $prefix = $parent === '.' || $parent === '' ? $dir : $path;
+
+        $probes = match ($dir) {
+            'views' => ['layouts/base.twig', 'layouts/theme.twig', 'content', 'page', 'pages', 'partials'],
+            'assets' => ['screenshot.png', 'css/style.css', 'css/main.css', 'js/main.js', 'style.css', 'data/airports.json'],
+            default => [],
+        };
+
+        foreach ($probes as $rel) {
+            if ($this->fetchRawFile($owner, $repo, $branch, $prefix . '/' . $rel) !== null) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public function fetchRawFile(string $owner, string $repo, string $branch, string $path): ?string
