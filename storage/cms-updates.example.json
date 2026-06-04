@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.2.42",
-    "title": "Struxa 1.2.42",
-    "summary": "Fix admin sidebar Twig syntax (missing endif); show Struxa Catalog Admin as nested group under Extensions.",
+    "latest_version": "1.2.43",
+    "title": "Struxa 1.2.43",
+    "summary": "Theme submit highlights correct pill; struxa-admin 1.0.32 GitHub views/ validation for directory listings.",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "minor"

@@ -21,8 +21,9 @@
         <nav class="st-catalog__nav" aria-label="Catalog sections">
           <a class="st-btn st-btn--ghost{% if catalog_nav|default('') == 'plugins' %} is-active{% endif %}" href="{{ url_for('public.struxa_catalog.plugins') }}">Plugins</a>
           <a class="st-btn st-btn--ghost{% if catalog_nav|default('') == 'themes' %} is-active{% endif %}" href="{{ url_for('public.struxa_catalog.themes') }}">Themes</a>
-          <a class="st-btn st-btn--primary" href="{{ url_for('public.struxa_catalog.plugins.submit_form') }}">Submit a plugin</a>
-          <a class="st-btn st-btn--outline" href="{{ url_for('public.struxa_catalog.themes.submit_form') }}">Submit a theme</a>
+          {% set catalog_submit_nav = catalog_sidebar_nav|default('') %}
+          <a class="st-btn {% if catalog_submit_nav == 'plugin' %}st-btn--primary is-active{% else %}st-btn--outline{% endif %}" href="{{ url_for('public.struxa_catalog.plugins.submit_form') }}">Submit a plugin</a>
+          <a class="st-btn {% if catalog_submit_nav == 'theme' %}st-btn--primary is-active{% else %}st-btn--outline{% endif %}" href="{{ url_for('public.struxa_catalog.themes.submit_form') }}">Submit a theme</a>
         </nav>
         {% endif %}
       </header>
