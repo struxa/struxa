@@ -33,6 +33,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
     };
 
     $app->group('/admin', function (\Slim\Routing\RouteCollectorProxy $group) use (
+        $app,
         $twig,
         $adminContext,
         $withCmsUser,
@@ -41,6 +42,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
         $pdo,
     ): void {
         $group->get('/tools/site-health', function (Request $request, Response $response) use (
+            $app,
             $twig,
             $adminContext,
             $withCmsUser,
@@ -55,7 +57,10 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 'server_software' => trim((string) ($request->getServerParams()['SERVER_SOFTWARE'] ?? '')),
             ]);
 
-            $stack = (new SiteHealthStackCollector($pdo, $root))->collect();
+            $stack = SiteHealthStackCollector::withoutMissingActionRoutes(
+                $app,
+                (new SiteHealthStackCollector($pdo, $root))->collect(),
+            );
 
             return $twig->render($response, 'admin/tools/site_health.twig', $withCmsUser($request, array_merge($adminContext(), [
                 'admin_nav' => 'site_health',

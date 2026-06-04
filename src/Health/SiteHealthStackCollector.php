@@ -13,7 +13,9 @@ use App\Theme\ThemeManager;
 use App\Theme\ThemeUpdateChecker;
 use App\Update\CmsUpdateChecker;
 use App\Cache\CacheManager;
+use App\Plugin\StruxaCatalogAdminRouteRegistrar;
 use PDO;
+use Slim\App;
 use Throwable;
 
 /**
@@ -56,6 +58,35 @@ final class SiteHealthStackCollector
             'theme' => $this->themeRow(),
             'plugins' => $this->pluginRows(),
         ];
+    }
+
+    /**
+     * Drop action_route when the named route is not registered (inactive plugin, failed boot).
+     *
+     * @param array{cms: StackRow, theme: StackRow|null, plugins: list<StackRow>} $stack
+     * @return array{cms: StackRow, theme: StackRow|null, plugins: list<StackRow>}
+     */
+    public static function withoutMissingActionRoutes(App $app, array $stack): array
+    {
+        $sanitize = static function (array $row) use ($app): array {
+            $route = $row['action_route'] ?? null;
+            if (!is_string($route) || $route === '') {
+                return $row;
+            }
+            if (!StruxaCatalogAdminRouteRegistrar::namedRouteExists($app, $route)) {
+                $row['action_route'] = null;
+            }
+
+            return $row;
+        };
+
+        $stack['cms'] = $sanitize($stack['cms']);
+        if ($stack['theme'] !== null) {
+            $stack['theme'] = $sanitize($stack['theme']);
+        }
+        $stack['plugins'] = array_map($sanitize, $stack['plugins']);
+
+        return $stack;
     }
 
     /**
@@ -380,7 +411,7 @@ final class SiteHealthStackCollector
     private function pluginContentSyncRoute(string $slug): ?string
     {
         return match ($slug) {
-            'knowledge-base-plugin' => 'admin.plugin.knowledge_base_plugin.dashboard',
+            'knowledge-base-plugin' => 'plugin.knowledge_base_plugin.index',
             default => null,
         };
     }
