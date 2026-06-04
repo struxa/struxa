@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.2.50",
-    "title": "Struxa 1.2.50",
-    "summary": "Catalog admin shows web PHP zip diagnostics (CLI vs FPM mismatch); clearer approval errors when GitHub extract needs ZipArchive.",
+    "latest_version": "1.2.51",
+    "title": "Struxa 1.2.51",
+    "summary": "Fix catalog approval crash: import global ZipArchive in CatalogPublisher (was resolved as StruxaAdmin\\ZipArchive).",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "minor"

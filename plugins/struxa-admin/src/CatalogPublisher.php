@@ -9,6 +9,7 @@ use App\Plugin\PluginManifestParser;
 use App\Theme\ThemeManifest;
 use App\Dist\StruxaDistCatalogWriter;
 use App\Dist\ZipExtension;
+use ZipArchive;
 
 /**
  * Builds ZIPs from GitHub and regenerates struxa-dist/repo.json + publish.json.
