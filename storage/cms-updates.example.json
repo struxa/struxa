@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.2.28",
-    "title": "Struxa 1.2.28",
-    "summary": "Plugins page: inline catalog version helpers (no CatalogSettings in route); survives partial deploy.",
+    "latest_version": "1.2.29",
+    "title": "Struxa 1.2.29",
+    "summary": "Fix catalog stack shipper: use Plugin\\PluginCatalogLoader (not Dist) so Upgrade catalog & publish works when GitHub fallback runs.",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "minor"

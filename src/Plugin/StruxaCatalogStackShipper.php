@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Plugin;
 
 use App\Dist\PackageZipBuilder;
-use App\Dist\PluginCatalogLoader;
 use App\Dist\StruxaDistCatalogWriter;
 use PDO;
 use StruxaAdmin\CatalogPublisher;
@@ -224,6 +223,10 @@ final class StruxaCatalogStackShipper
 
     private function tryCatalogZipUpdate(PluginRemoteInstaller $installer): ?string
     {
+        if (!class_exists(PluginCatalogLoader::class)) {
+            return 'Plugin catalog loader is not available on this server (deploy the latest CMS).';
+        }
+
         $loader = new PluginCatalogLoader($this->projectRoot);
         $loaded = $loader->load();
         if (!$loaded['ok']) {
