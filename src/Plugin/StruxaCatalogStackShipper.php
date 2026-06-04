@@ -358,7 +358,15 @@ final class StruxaCatalogStackShipper
         $parser = new PluginManifestParser();
         $parsed = $parser->parseFile($path, self::SLUG);
 
-        return $parsed['ok'] ? trim((string) ($parsed['manifest']['version'] ?? '')) : null;
+        if (!$parsed['ok']) {
+            return null;
+        }
+        $manifest = $parsed['manifest'];
+        if (!$manifest instanceof PluginManifest) {
+            return null;
+        }
+
+        return trim($manifest->version) !== '' ? trim($manifest->version) : null;
     }
 
     public static function repoVersion(string $distRoot): ?string

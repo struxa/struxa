@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.2.25",
-    "title": "Struxa 1.2.25",
-    "summary": "Fix Plugins page crash: pass project root into catalog version helpers.",
+    "latest_version": "1.2.26",
+    "title": "Struxa 1.2.26",
+    "summary": "Fix diskVersion() TypeError: PluginManifest is an object, not an array.",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "minor"
