@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.2.39",
-    "title": "Struxa 1.2.39",
-    "summary": "Fix fatal bootstrap TypeError: StruxaCatalogAdminRouteRegistrar EventDispatcher import restores admin.",
+    "latest_version": "1.2.40",
+    "title": "Struxa 1.2.40",
+    "summary": "Fix catalog submissions TypeError ($root in route closure); nest Struxa Catalog Admin in Extensions sidebar.",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "minor"

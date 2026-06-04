@@ -164,12 +164,12 @@ final class StruxaCatalogAdminRouteRegistrar
             }
         }
 
-        // Flat under Extensions (not nested details) — nested groups are easy to miss in the sidebar.
+        // Nested under Struxa Catalog Admin (matches plugin boot when nested_admin_nav is true).
         if (!$hasSubmissions) {
-            $registry->register('struxa-admin', 'Catalog submissions', self::ROUTE_SUBMISSIONS);
+            $registry->register('struxa-admin', 'Catalog submissions', self::ROUTE_SUBMISSIONS, [], 'struxa-admin', true);
         }
         if (!$hasSettings) {
-            $registry->register('struxa-admin', 'Catalog settings', 'admin.struxa_catalog.settings');
+            $registry->register('struxa-admin', 'Catalog settings', 'admin.struxa_catalog.settings', [], 'struxa-admin', true);
         }
     }
 
@@ -236,7 +236,8 @@ final class StruxaCatalogAdminRouteRegistrar
                 $adminView,
                 $submissions,
                 $settings,
-                $ns
+                $ns,
+                $root
             ): Response {
                 $q = $request->getQueryParams();
                 $status = isset($q['status']) ? trim((string) $q['status']) : SubmissionStatus::PENDING;
