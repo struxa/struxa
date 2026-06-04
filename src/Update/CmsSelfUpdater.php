@@ -6,6 +6,8 @@ namespace App\Update;
 
 use App\CmsVersion;
 use App\Filesystem\SafeDirectoryRemoval;
+use App\Plugin\PluginRemoteInstaller;
+use App\Plugin\PluginScanner;
 use App\Theme\ThemeRemoteInstaller;
 use ZipArchive;
 
@@ -119,6 +121,24 @@ final class CmsSelfUpdater
                     'status' => 'ok',
                 ],
             ];
+
+            $adminSync = $this->syncBundledStruxaAdminFromGithub($projectRoot);
+            if ($adminSync['synced']) {
+                $steps[] = [
+                    'id' => 'struxa_admin',
+                    'label' => 'Struxa Catalog Admin synced from GitHub (plugins/struxa-admin)',
+                    'status' => 'ok',
+                    'detail' => $adminSync['detail'] ?? '',
+                ];
+            } elseif (($adminSync['warn'] ?? '') !== '') {
+                $warnings[] = $adminSync['warn'];
+                $steps[] = [
+                    'id' => 'struxa_admin',
+                    'label' => 'Struxa Catalog Admin (GitHub sync)',
+                    'status' => 'warn',
+                    'detail' => $adminSync['warn'],
+                ];
+            }
 
             $composer = $this->runComposerInstall($projectRoot);
             $composerOut = trim($composer['output']);
@@ -877,5 +897,54 @@ final class CmsSelfUpdater
         $resolved = trim($out[0]);
 
         return ($resolved !== '' && is_executable($resolved)) ? $resolved : null;
+    }
+
+    /**
+     * GitHub CMS archives omit other plugins via .gitattributes but historically omitted all of /plugins/.
+     * Pull bundled catalog admin from the monorepo after core merge so self-update refreshes disk + fixes catalog.
+     *
+     * @return array{synced: bool, warn?: string, detail?: string}
+     */
+    private function syncBundledStruxaAdminFromGithub(string $projectRoot): array
+    {
+        $slug = 'struxa-admin';
+        $pluginDir = $projectRoot . '/plugins/' . $slug;
+        if (!is_dir($pluginDir)) {
+            return ['synced' => false];
+        }
+
+        $scanner = new PluginScanner($projectRoot);
+        if ($scanner->findBySlug($slug) === null) {
+            return ['synced' => false];
+        }
+
+        $installer = new PluginRemoteInstaller(
+            $projectRoot . '/plugins',
+            $scanner,
+            $projectRoot,
+        );
+        $err = $installer->updateFromGithubMonorepoPlugin(
+            $slug,
+            'struxa',
+            'struxa',
+            'plugins/' . $slug,
+            'main',
+        );
+        if ($err !== null) {
+            return [
+                'synced' => false,
+                'warn' => 'Struxa Catalog Admin could not be refreshed from GitHub: ' . $err
+                    . ' Use Admin → Plugins → Upgrade catalog & publish.',
+            ];
+        }
+
+        $scanner->clearDiscoverCache();
+        $discovered = $scanner->findBySlug($slug);
+        $ver = $discovered !== null ? trim($discovered->manifest->version) : '';
+
+        return [
+            'synced' => true,
+            'detail' => $ver !== '' ? 'v' . $ver : '',
+        ];
     }
 }

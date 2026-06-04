@@ -1,5 +1,9 @@
-# Git archives / GitHub ZIP: omit local extensions (core repo ships CMS + bundled Struxa Vision theme)
-/plugins/ export-ignore
+# Git archives / GitHub ZIP: omit third-party plugins (sites install from catalog).
+# Bundled struxa-admin is NOT listed — it ships in the CMS ZIP for self-update (see CmsSelfUpdater).
+/plugins/forum-plugin export-ignore
+/plugins/forum-spin-import-plugin export-ignore
+/plugins/knowledge-base-plugin export-ignore
+/plugins/README.txt export-ignore
 # Do not export-ignore /themes/* — Git ignores negation patterns (!) in attributes, which
 # stripped themes/struxa-theme from GitHub archives and broke scripts/sync-struxa-theme-from-github.sh.
 
