@@ -93,7 +93,14 @@
       font-size: .86rem;
       opacity: .72;
     }
-    .st-catalog__pagination--browse { margin-top: 1.75rem; }
+    .st-catalog__pagination--browse {
+      margin-top: 1.75rem;
+      padding: .85rem 1rem;
+      border: 1px solid rgba(0,0,0,.08);
+      border-radius: 14px;
+      background: linear-gradient(180deg, rgba(255,255,255,.88), rgba(255,255,255,.62));
+      box-shadow: 0 6px 20px rgba(0,0,0,.04);
+    }
     .st-catalog__back { margin: 0 0 1rem; font-size: .92rem; }
     .st-catalog__back a { color: inherit; opacity: .78; text-decoration: none; }
     .st-catalog__back a:hover { opacity: 1; text-decoration: underline; }
@@ -192,6 +199,7 @@
     .st-catalog__pill--muted { opacity: .72; font-weight: 500; }
     .st-catalog__pill--rating { background: rgba(255, 160, 40, .14); }
     .st-catalog__pill--reviews { background: rgba(60, 120, 255, .12); }
+    .st-catalog__pill--comments { background: rgba(120, 80, 200, .1); }
     .st-catalog__pill--downloads { background: rgba(40, 160, 90, .12); }
     .st-catalog__pill--toggle {
       border: 0;
@@ -511,20 +519,106 @@
       display: flex;
       flex-wrap: wrap;
       align-items: center;
-      gap: .65rem;
+      justify-content: center;
+      gap: .5rem .65rem;
       margin-top: 1.15rem;
     }
+    .st-catalog__page-list {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: .35rem;
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+    .st-catalog__page-item { display: flex; }
+    .st-catalog__page-num,
+    .st-catalog__page-ellipsis {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 2.15rem;
+      height: 2.15rem;
+      padding: 0 .45rem;
+      border-radius: 10px;
+      font-size: .86rem;
+      font-weight: 600;
+      line-height: 1;
+      text-decoration: none;
+      color: inherit;
+    }
+    .st-catalog__page-num {
+      border: 1px solid rgba(0,0,0,.1);
+      background: rgba(255,255,255,.75);
+      transition: border-color .15s ease, background .15s ease, transform .15s ease, box-shadow .15s ease;
+    }
+    a.st-catalog__page-num:hover {
+      border-color: rgba(230, 120, 30, .45);
+      background: rgba(255,255,255,.95);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0,0,0,.06);
+    }
+    .st-catalog__page-num.is-current {
+      border-color: rgba(230, 120, 30, .55);
+      background: linear-gradient(145deg, rgba(255, 175, 90, .22), rgba(230, 120, 30, .14));
+      box-shadow: inset 0 0 0 1px rgba(230, 120, 30, .18);
+      cursor: default;
+    }
+    .st-catalog__page-ellipsis {
+      min-width: 1.5rem;
+      opacity: .55;
+      font-weight: 500;
+      letter-spacing: .08em;
+    }
     .st-catalog__page-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: .35rem;
       border: 1px solid rgba(0,0,0,.12);
-      border-radius: 8px;
+      border-radius: 10px;
       background: rgba(255,255,255,.85);
-      padding: .35rem .65rem;
+      padding: .45rem .75rem;
       font: inherit;
       font-size: .86rem;
+      font-weight: 600;
+      text-decoration: none;
+      color: inherit;
       cursor: pointer;
+      transition: border-color .15s ease, background .15s ease, transform .15s ease;
     }
-    .st-catalog__page-btn:hover { border-color: rgba(0,0,0,.22); }
-    .st-catalog__page-info { font-size: .84rem; opacity: .75; }
+    a.st-catalog__page-btn:hover {
+      border-color: rgba(0,0,0,.22);
+      background: rgba(255,255,255,.98);
+      transform: translateY(-1px);
+    }
+    .st-catalog__page-btn.is-disabled {
+      opacity: .42;
+      cursor: default;
+      pointer-events: none;
+    }
+    .st-catalog__page-btn-icon { font-size: 1em; line-height: 1; opacity: .75; }
+    .st-catalog__page-summary {
+      flex: 1 1 100%;
+      margin: .35rem 0 0;
+      text-align: center;
+      font-size: .82rem;
+      opacity: .72;
+    }
+    .st-catalog__page-summary strong { font-weight: 650; opacity: 1; }
+    .st-catalog__page-summary-sep { margin: 0 .35rem; opacity: .5; }
+    @media (min-width: 640px) {
+      .st-catalog__pagination--browse { justify-content: space-between; }
+      .st-catalog__page-summary {
+        flex: 0 1 auto;
+        margin: 0;
+        text-align: right;
+        order: 3;
+      }
+      .st-catalog__page-btn--prev { order: 1; }
+      .st-catalog__page-list { order: 2; }
+      .st-catalog__page-btn--next { order: 4; }
+    }
     .st-catalog__comment-form { margin-bottom: 1.25rem; max-width: 40rem; }
     .st-catalog__label { display: block; margin-bottom: .35rem; font-size: .88rem; font-weight: 600; }
     .st-catalog__textarea, .st-catalog__input {

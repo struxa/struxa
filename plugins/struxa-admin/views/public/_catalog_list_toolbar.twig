@@ -10,9 +10,22 @@
     {% endif %}
     <label class="st-catalog__sort-label" for="catalog-sort">Sort by</label>
     <select class="st-catalog__sort-select" name="sort" id="catalog-sort" onchange="this.form.submit()">
-      <option value="latest"{% if _sort == 'latest' %} selected{% endif %}>Latest</option>
-      <option value="oldest"{% if _sort == 'oldest' %} selected{% endif %}>Oldest</option>
-      <option value="rating"{% if _sort == 'rating' %} selected{% endif %}>Best rated</option>
+      <optgroup label="Date listed">
+        <option value="latest"{% if _sort == 'latest' %} selected{% endif %}>Latest first</option>
+        <option value="oldest"{% if _sort == 'oldest' %} selected{% endif %}>Oldest first</option>
+      </optgroup>
+      <optgroup label="Rating">
+        <option value="rating"{% if _sort == 'rating' %} selected{% endif %}>Highest rated</option>
+        <option value="rating_asc"{% if _sort == 'rating_asc' %} selected{% endif %}>Lowest rated</option>
+      </optgroup>
+      <optgroup label="Downloads">
+        <option value="downloads"{% if _sort == 'downloads' %} selected{% endif %}>Most downloaded</option>
+        <option value="downloads_asc"{% if _sort == 'downloads_asc' %} selected{% endif %}>Least downloaded</option>
+      </optgroup>
+      <optgroup label="Comments">
+        <option value="comments"{% if _sort == 'comments' %} selected{% endif %}>Most commented</option>
+        <option value="comments_asc"{% if _sort == 'comments_asc' %} selected{% endif %}>Least commented</option>
+      </optgroup>
     </select>
   </form>
   {% if _total > 0 %}

@@ -5,15 +5,51 @@
 {% set _route = catalog_list_route|default('') %}
 {% set _sort = catalog_sort|default('latest') %}
 {% set _query = { sort: _sort } %}
+{% set _links = catalog_page_links|default([]) %}
 
 {% if _pages > 1 %}
   <nav class="st-catalog__pagination st-catalog__pagination--browse" aria-label="Catalog pages">
     {% if _page > 1 %}
-      <a class="st-catalog__page-btn" href="{{ url_for(_route, {}, _query|merge({ page: _page - 1 })) }}">Previous</a>
+      <a class="st-catalog__page-btn st-catalog__page-btn--prev" href="{{ url_for(_route, {}, _query|merge({ page: _page - 1 })) }}">
+        <span class="st-catalog__page-btn-icon" aria-hidden="true">←</span>
+        <span>Prev</span>
+      </a>
+    {% else %}
+      <span class="st-catalog__page-btn st-catalog__page-btn--prev is-disabled" aria-disabled="true">
+        <span class="st-catalog__page-btn-icon" aria-hidden="true">←</span>
+        <span>Prev</span>
+      </span>
     {% endif %}
-    <span class="st-catalog__page-info">Page {{ _page }} of {{ _pages }}{% if _total > 0 %} · {{ _total }} total{% endif %}</span>
+
+    <ol class="st-catalog__page-list">
+      {% for n in _links %}
+        <li class="st-catalog__page-item">
+          {% if n is null %}
+            <span class="st-catalog__page-ellipsis" aria-hidden="true">…</span>
+          {% elseif n == _page %}
+            <span class="st-catalog__page-num is-current" aria-current="page">{{ n }}</span>
+          {% else %}
+            <a class="st-catalog__page-num" href="{{ url_for(_route, {}, _query|merge({ page: n })) }}">{{ n }}</a>
+          {% endif %}
+        </li>
+      {% endfor %}
+    </ol>
+
     {% if _page < _pages %}
-      <a class="st-catalog__page-btn" href="{{ url_for(_route, {}, _query|merge({ page: _page + 1 })) }}">Next</a>
+      <a class="st-catalog__page-btn st-catalog__page-btn--next" href="{{ url_for(_route, {}, _query|merge({ page: _page + 1 })) }}">
+        <span>Next</span>
+        <span class="st-catalog__page-btn-icon" aria-hidden="true">→</span>
+      </a>
+    {% else %}
+      <span class="st-catalog__page-btn st-catalog__page-btn--next is-disabled" aria-disabled="true">
+        <span>Next</span>
+        <span class="st-catalog__page-btn-icon" aria-hidden="true">→</span>
+      </span>
     {% endif %}
+
+    <p class="st-catalog__page-summary">
+      Page <strong>{{ _page }}</strong> of <strong>{{ _pages }}</strong>
+      {% if _total > 0 %}<span class="st-catalog__page-summary-sep" aria-hidden="true">·</span>{{ _total }} total{% endif %}
+    </p>
   </nav>
 {% endif %}

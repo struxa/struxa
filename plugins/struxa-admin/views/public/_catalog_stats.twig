@@ -1,5 +1,6 @@
 {% set avg = item.rating_average|default(null) %}
 {% set rc = item.review_count|default(0) %}
+{% set cc = item.comment_count|default(0) %}
 {% set dc = item.download_count|default(0) %}
 {% set interactive = catalog_stats_interactive|default(false) %}
 {% set detail = catalog_stats_detail|default(false) %}
@@ -52,6 +53,10 @@
         {{ rc }} review{{ rc == 1 ? '' : 's' }}
       </span>
     {% endif %}
+    <span class="st-catalog__pill st-catalog__pill--comments">
+      <span class="st-catalog__pill-icon" aria-hidden="true">💬</span>
+      {{ cc }} comment{{ cc == 1 ? '' : 's' }}
+    </span>
     <span class="st-catalog__pill st-catalog__pill--downloads">
       <span class="st-catalog__pill-icon" aria-hidden="true">↓</span>
       {{ dc }} download{{ dc == 1 ? '' : 's' }}

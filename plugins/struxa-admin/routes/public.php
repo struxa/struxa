@@ -11,6 +11,7 @@ use Slim\Routing\RouteContext;
 use Slim\Views\Twig;
 use StruxaAdmin\CatalogBrowseList;
 use StruxaAdmin\CatalogBrowseService;
+use StruxaAdmin\CatalogCommentRepository;
 use StruxaAdmin\CatalogDownloadStatsRepository;
 use StruxaAdmin\CatalogEngagementActor;
 use StruxaAdmin\CatalogEntryEngagement;
@@ -97,6 +98,7 @@ return static function (App $app, \App\Plugin\PluginBootContext $ctx): void {
                 'total' => $paged['total'],
                 'per_page' => $paged['per_page'],
             ];
+            $payload['catalog_page_links'] = CatalogBrowseList::pageLinks($paged['page'], $paged['pages']);
             $payload['catalog_sort'] = $paged['sort'];
         } else {
             $payload['catalog_themes'] = [];
@@ -107,6 +109,7 @@ return static function (App $app, \App\Plugin\PluginBootContext $ctx): void {
                 'total' => 0,
                 'per_page' => CatalogBrowseList::PER_PAGE,
             ];
+            $payload['catalog_page_links'] = [];
         }
 
         return $twig->render($response, $ns . '/' . $template, $payload);

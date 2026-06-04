@@ -1,7 +1,7 @@
 {
   "name": "Struxa Catalog Admin",
   "slug": "struxa-admin",
-    "version": "1.0.38",
+    "version": "1.0.39",
   "author": "Struxa",
   "description": "Community plugin and theme submissions, admin review, and struxa-dist catalog publishing for struxapoint.com.",
   "requires_cms_version": "1.1.102",
