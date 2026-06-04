@@ -25,7 +25,7 @@
   {% set can_edit_entries = cms_can('edit_content') or cms_can('review_content') %}
   {% set can_publish_entries = cms_can('publish_content') %}
   {% set can_trash_entries = cms_can('delete_content') %}
-  {% set can_bulk = can_edit_entries and entry_rows is not empty %}
+  {% set can_bulk = entry_rows is not empty and (can_edit_entries or can_publish_entries or can_trash_entries) %}
   {% set entry_page = page|default(1) %}
   {% set entry_per_page = per_page|default(25) %}
   {% set entry_total_pages = total_pages|default(1) %}
@@ -98,17 +98,17 @@
       <div class="admin-entry-bulk-bar admin-toolbar admin-toolbar--spread" id="admin-entry-bulk-bar">
         <div class="admin-entry-bulk-start">
           <label class="admin-entry-bulk-select-all">
-            <input type="checkbox" id="admin-entry-select-all" autocomplete="off" aria-label="Select all entries on this page" />
+            <input type="checkbox" id="admin-entry-select-all" class="admin-cb" autocomplete="off" aria-label="Select all entries on this page" />
             <span>Select all on page</span>
           </label>
           <span class="admin-entry-bulk-count" id="admin-entry-bulk-count" hidden></span>
         </div>
         <div class="admin-entry-bulk-actions">
           {% if can_publish_entries %}
-            <button type="submit" form="admin-entry-bulk-form" name="bulk_action" value="publish" class="admin-btn-primary admin-entry-bulk-publish" id="admin-entry-bulk-publish" disabled>Publish</button>
+            <button type="submit" form="admin-entry-bulk-form" name="bulk_action" value="publish" class="admin-btn-primary admin-entry-bulk-publish" id="admin-entry-bulk-publish" disabled title="Select entries below">Publish selected</button>
           {% endif %}
           {% if can_trash_entries %}
-            <button type="submit" form="admin-entry-bulk-form" name="bulk_action" value="trash" class="admin-btn-danger admin-entry-bulk-trash" id="admin-entry-bulk-trash" disabled>Move to trash</button>
+            <button type="submit" form="admin-entry-bulk-form" name="bulk_action" value="trash" class="admin-btn-danger admin-entry-bulk-trash" id="admin-entry-bulk-trash" disabled title="Select entries below">Move to trash</button>
           {% endif %}
         </div>
         {% if taxonomies is defined and taxonomies is not empty %}
@@ -186,10 +186,10 @@
               <label class="admin-entry-select" aria-label="Select {{ e.title|e('html_attr') }}">
                 <input
                   type="checkbox"
-                  class="admin-entry-row-cb"
-                  name="ids[]"
+                  class="admin-cb admin-entry-row-cb"
                   value="{{ e.id }}"
                   data-entry-id="{{ e.id }}"
+                  autocomplete="off"
                 />
               </label>
             {% endif %}

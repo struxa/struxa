@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.2.51",
-    "title": "Struxa 1.2.51",
-    "summary": "Fix catalog approval crash: import global ZipArchive in CatalogPublisher (was resolved as StruxaAdmin\\ZipArchive).",
+    "latest_version": "1.2.52",
+    "title": "Struxa 1.2.52",
+    "summary": "Fix content entry bulk select (row checkboxes were toggle-styled); styled checkboxes; Publish and Move to trash enable when entries are selected.",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "minor"
