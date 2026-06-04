@@ -175,7 +175,8 @@ final class TwigCmsGlobals implements MiddlewareInterface
         $partition = PluginAdminNavGrouper::partition($pluginNav, new PluginScanner($projectRoot));
         $env->addGlobal('plugin_admin_nav_items', $partition['flat']);
         $env->addGlobal('plugin_admin_nav_groups', $partition['groups']);
-        $env->addGlobal('cms_public_page_cache_on', CacheConfig::publicCacheEnabled());
+        $env->addGlobal('struxa_catalog_nav', self::struxaCatalogNav($projectRoot, $this->routeParser));
+        $env->addGlobal('cms_public_page_cache_on', CacheConfig::publicPageCacheEnabled());
         $env->addGlobal('cms_version', CmsVersion::CURRENT);
 
         $commerceSettings = new CommerceSettings($this->pdo);
@@ -341,5 +342,43 @@ final class TwigCmsGlobals implements MiddlewareInterface
         }
 
         return false;
+    }
+
+    /**
+     * Sidebar URLs for Struxa Catalog Admin (plugin on disk + named routes or path fallback from Plugins URL).
+     *
+     * @return array{show: bool, submissions_url: ?string, settings_url: ?string, routes_registered: bool}
+     */
+    private static function struxaCatalogNav(string $projectRoot, ?RouteParserInterface $parser): array
+    {
+        $scanner = new PluginScanner($projectRoot);
+        if ($scanner->findBySlug('struxa-admin') === null) {
+            return ['show' => false, 'submissions_url' => null, 'settings_url' => null, 'routes_registered' => false];
+        }
+
+        $submissions = NamedRouteUrl::tryFor($parser, 'admin.struxa_catalog.submissions');
+        $settings = NamedRouteUrl::tryFor($parser, 'admin.struxa_catalog.settings');
+        $routesRegistered = $submissions !== null && $settings !== null;
+
+        if (!$routesRegistered) {
+            $pluginsIndex = NamedRouteUrl::tryFor($parser, 'admin.extensions.plugins.index');
+            if ($pluginsIndex !== null) {
+                if ($submissions === null) {
+                    $submissions = preg_replace('#/extensions/plugins/?$#', '/extensions/struxa-catalog/submissions', $pluginsIndex);
+                }
+                if ($settings === null) {
+                    $settings = preg_replace('#/extensions/plugins/?$#', '/extensions/struxa-catalog/settings', $pluginsIndex);
+                }
+            }
+        }
+
+        $show = is_string($submissions) && $submissions !== '' && is_string($settings) && $settings !== '';
+
+        return [
+            'show' => $show,
+            'submissions_url' => $submissions,
+            'settings_url' => $settings,
+            'routes_registered' => $routesRegistered,
+        ];
     }
 }

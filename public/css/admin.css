@@ -6893,6 +6893,15 @@ body.admin-media-lightbox-open {
   padding-left: 0.55rem;
 }
 
+.admin-nav-catalog-label {
+  display: block;
+  margin: 0.35rem 0.5rem 0.1rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #94a3b8;
+}
+
 /* —— Toasts (bottom-right, glass stack) —— */
 @keyframes admin-toast-in {
   from {

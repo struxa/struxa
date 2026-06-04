@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.2.34",
-    "title": "Struxa 1.2.34",
-    "summary": "Fix Twig syntax error in admin sidebar (mismatched endif in Extensions nav).",
+    "latest_version": "1.2.35",
+    "title": "Struxa 1.2.35",
+    "summary": "Always show Struxa Catalog Admin sidebar links when struxa-admin is on disk (URL fallback if routes not registered yet).",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "minor"
