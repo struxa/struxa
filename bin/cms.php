@@ -61,6 +61,12 @@ switch ($cmd) {
             fwrite(STDERR, 'Database: FAILED — ' . $e->getMessage() . "\n");
             exit(1);
         }
+        if (\App\Dist\ZipExtension::isAvailable()) {
+            echo "PHP zip extension: OK (ZipArchive).\n";
+        } else {
+            fwrite(STDERR, "PHP zip extension: MISSING — enable php-zip for catalog approvals and CMS updates.\n");
+            exit(1);
+        }
         exit(0);
 
     case 'schedule:run':

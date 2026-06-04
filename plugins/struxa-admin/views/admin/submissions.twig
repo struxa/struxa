@@ -15,6 +15,7 @@
 {% endblock %}
 
 {% block admin_content %}
+  {% include '@plugin_struxa_admin/admin/_catalog_zip_warning.twig' %}
   {% set _status = filter_status|default('pending') %}
   {% set _kind = filter_kind|default('') %}
 
@@ -33,7 +34,7 @@
         onsubmit="return confirm('Upgrade Struxa Catalog Admin from GitHub, publish struxa-admin.zip + repo.json, regenerate the catalog, and run migrations?\n\nThis may take a minute. Reload the page when finished.');"
       >
         <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
-        <button type="submit" class="admin-btn-primary">Upgrade catalog &amp; publish</button>
+        <button type="submit" class="admin-btn-primary"{% if php_zip_available is defined and not php_zip_available %} disabled title="Enable the PHP zip extension first"{% endif %}>Upgrade catalog &amp; publish</button>
       </form>
       <a class="admin-btn-ghost" href="{{ url_for('admin.struxa_catalog.settings') }}">Catalog settings</a>
       <a class="admin-btn-ghost" href="{{ url_for('admin.extensions.plugins.browse') }}">Browse catalog</a>

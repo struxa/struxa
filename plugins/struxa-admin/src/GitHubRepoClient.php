@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace StruxaAdmin;
 
+use App\Dist\ZipExtension;
 use ZipArchive;
 
 /**
@@ -229,8 +230,8 @@ final class GitHubRepoClient
         if (file_put_contents($zipPath, $body) === false) {
             return ['ok' => false, 'error' => 'Could not save the downloaded archive.'];
         }
-        if (!class_exists(ZipArchive::class)) {
-            return ['ok' => false, 'error' => 'PHP zip extension is required.'];
+        if (!ZipExtension::isAvailable()) {
+            return ['ok' => false, 'error' => ZipExtension::requiredError()];
         }
         $extractDir = $workDir . '/extract';
         if (!@mkdir($extractDir, 0700, true)) {

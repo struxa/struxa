@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Plugin;
 
 use App\Access\PermissionSlug;
+use App\Dist\ZipExtension;
 use App\Event\EventDispatcher;
 use App\Event\Events;
 use App\Event\StorefrontCachesInvalidateEvent;
@@ -268,6 +269,8 @@ final class StruxaCatalogAdminRouteRegistrar
                     'catalog_admin_disk_version' => $diskVer,
                     'catalog_admin_repo_version' => $repoVer,
                     'catalog_repo_public_url' => rtrim($settings->catalogPublicBaseUrl(), '/') . '/struxa-dist/repo.json',
+                    'php_zip_available' => ZipExtension::isAvailable(),
+                    'php_zip_diagnostics' => ZipExtension::diagnostics(),
                 ]));
             })->setName(self::ROUTE_SUBMISSIONS);
 
@@ -328,6 +331,8 @@ final class StruxaCatalogAdminRouteRegistrar
                     'download_count' => $downloadCount,
                     'member_search_url' => RouteContext::fromRequest($request)->getRouteParser()
                         ->urlFor('admin.struxa_catalog.member_search'),
+                    'php_zip_available' => ZipExtension::isAvailable(),
+                    'php_zip_diagnostics' => ZipExtension::diagnostics(),
                 ]));
             })->setName('admin.struxa_catalog.submission_show');
 
@@ -438,6 +443,10 @@ final class StruxaCatalogAdminRouteRegistrar
                     'has_github_token' => $settings->githubToken() !== null,
                     'bundled_theme_version' => $bundledThemeVersion,
                     'catalog_repo_url' => rtrim($settings->catalogPublicBaseUrl(), '/') . '/struxa-dist/repo.json',
+                    'php_zip_available' => ZipExtension::isAvailable(),
+                    'php_zip_diagnostics' => ZipExtension::diagnostics(),
+                    'php_zip_dist_zips_dir' => $settings->distRoot() . '/zips',
+                    'php_zip_dist_zips_writable' => ZipExtension::probeWritableDirectory($settings->distRoot() . '/zips'),
                 ]));
             })->setName('admin.struxa_catalog.settings');
 

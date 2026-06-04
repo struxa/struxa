@@ -47,6 +47,7 @@
 {% endblock %}
 
 {% block admin_content %}
+  {% include '@plugin_struxa_admin/admin/_catalog_zip_warning.twig' %}
   <div class="admin-settings-page admin-catalog-submission-page">
     {% set _status_intro = submission.status == 'pending' ? 'pending' : (submission.status == 'approved' ? 'approved' : (submission.status == 'rejected' ? 'rejected' : 'default')) %}
 
@@ -350,7 +351,7 @@
               </div>
               <p class="admin-hint">Updates <code class="admin-inline-code">publish.json</code> and regenerates <code class="admin-inline-code">repo.json</code>.</p>
               <div class="admin-catalog-submission-review-actions">
-                <button type="submit" name="action" value="approve" class="admin-btn-primary" onclick="return confirm('Publish this package to the live catalog?');">Approve &amp; publish</button>
+                <button type="submit" name="action" value="approve" class="admin-btn-primary"{% if php_zip_available is defined and not php_zip_available %} disabled title="Enable the PHP zip extension first"{% else %} onclick="return confirm('Publish this package to the live catalog?');"{% endif %}>Approve &amp; publish</button>
                 <button type="submit" name="action" value="reject" class="admin-btn-ghost admin-btn-danger" onclick="return confirm('Reject this submission?');">Reject</button>
               </div>
             </form>

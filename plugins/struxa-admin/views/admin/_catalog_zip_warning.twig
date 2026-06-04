@@ -1,0 +1,72 @@
+{% if php_zip_diagnostics is defined %}
+  <div class="admin-catalog-workflow admin-catalog-workflow--ship" role="note" style="margin-bottom:1.35rem">
+    <strong>PHP runtime for catalog publish</strong>
+    <p style="margin:0.35rem 0 0.5rem">
+      This is what the <em>web</em> request sees (not SSH <code class="admin-inline-code">php</code> unless you run the same binary).
+      Match cPanel <em>Select PHP Version</em> to this row before enabling extensions.
+    </p>
+    <dl class="admin-catalog-kv admin-catalog-kv--compact">
+      <div class="admin-catalog-kv-row">
+        <dt>Version / SAPI</dt>
+        <dd><code class="admin-inline-code">{{ php_zip_diagnostics.php_version|e }} · {{ php_zip_diagnostics.sapi|e }}</code></dd>
+      </div>
+      <div class="admin-catalog-kv-row">
+        <dt>php.ini</dt>
+        <dd><code class="admin-inline-code admin-tools-code-break">{{ php_zip_diagnostics.ini|default('(unknown)')|e }}</code></dd>
+      </div>
+      <div class="admin-catalog-kv-row">
+        <dt>zip extension</dt>
+        <dd>
+          {% if php_zip_diagnostics.zip_loaded %}
+            <span class="admin-hero-chip admin-hero-chip--ok">loaded</span>
+          {% else %}
+            <span class="admin-hero-chip admin-hero-chip--danger">not loaded</span>
+          {% endif %}
+          · ZipArchive class:
+          {% if php_zip_diagnostics.ziparchive_class %}
+            <span class="admin-hero-chip admin-hero-chip--ok">yes</span>
+          {% else %}
+            <span class="admin-hero-chip admin-hero-chip--danger">no</span>
+          {% endif %}
+        </dd>
+      </div>
+      <div class="admin-catalog-kv-row">
+        <dt>Write probe</dt>
+        <dd>
+          {% if php_zip_diagnostics.write_probe is null %}
+            <span class="admin-hero-chip admin-hero-chip--ok">OK</span>
+          {% else %}
+            <span class="admin-table-muted">{{ php_zip_diagnostics.write_probe|e }}</span>
+          {% endif %}
+        </dd>
+      </div>
+      {% if php_zip_dist_zips_dir is defined %}
+        <div class="admin-catalog-kv-row">
+          <dt>Catalog ZIPs dir</dt>
+          <dd>
+            <code class="admin-inline-code admin-tools-code-break">{{ php_zip_dist_zips_dir|e }}</code>
+            {% if php_zip_dist_zips_writable is defined %}
+              {% if php_zip_dist_zips_writable is null %}
+                · <span class="admin-hero-chip admin-hero-chip--ok">writable</span>
+              {% else %}
+                · <span class="admin-table-muted">{{ php_zip_dist_zips_writable|e }}</span>
+              {% endif %}
+            {% endif %}
+          </dd>
+        </div>
+      {% endif %}
+    </dl>
+  </div>
+{% endif %}
+
+{% if php_zip_available is defined and not php_zip_available %}
+  <div class="admin-catalog-workflow admin-catalog-workflow--ship" role="alert" style="margin-bottom:1.35rem">
+    <strong>Catalog publish is blocked until zip works in this PHP process</strong>
+    <p style="margin:0.35rem 0 0">
+      Approving submissions downloads a GitHub archive and extracts it with <code class="admin-inline-code">ZipArchive</code> before writing
+      <code class="admin-inline-code">struxa-dist/zips/*.zip</code>.
+      If cPanel shows zip enabled but the row above shows <strong>not loaded</strong>, enable zip for
+      <strong>PHP {{ php_zip_diagnostics.php_version|default('')|e }}</strong> ({{ php_zip_diagnostics.sapi|default('')|e }}) and restart PHP-FPM / Apache.
+    </p>
+  </div>
+{% endif %}

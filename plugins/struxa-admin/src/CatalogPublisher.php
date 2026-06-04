@@ -8,6 +8,7 @@ use App\Filesystem\SafeDirectoryRemoval;
 use App\Plugin\PluginManifestParser;
 use App\Theme\ThemeManifest;
 use App\Dist\StruxaDistCatalogWriter;
+use App\Dist\ZipExtension;
 
 /**
  * Builds ZIPs from GitHub and regenerates struxa-dist/repo.json + publish.json.
@@ -313,10 +314,10 @@ final class CatalogPublisher
                     continue;
                 }
                 $parsed = $parser->parseFile($jsonPath, $sub->slug);
-                if (!$parsed['ok'] || !isset($parsed['manifest']['version'])) {
+                if (!$parsed['ok']) {
                     continue;
                 }
-                $bundledVersion = trim((string) $parsed['manifest']['version']);
+                $bundledVersion = trim($parsed['manifest']->version);
                 if ($bundledVersion === '') {
                     continue;
                 }
@@ -459,8 +460,8 @@ final class CatalogPublisher
 
     private function buildDistZip(string $packageRoot, string $slug, string $kind): ?string
     {
-        if (!class_exists(ZipArchive::class)) {
-            return 'PHP zip extension is required.';
+        if (!ZipExtension::isAvailable()) {
+            return ZipExtension::requiredError();
         }
         $zipsDir = $this->settings->distRoot() . '/zips';
         if (!is_dir($zipsDir) && !@mkdir($zipsDir, 0755, true)) {
@@ -472,8 +473,9 @@ final class CatalogPublisher
         }
 
         $zip = new ZipArchive();
-        if ($zip->open($dest, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
-            return 'Could not create distribution ZIP.';
+        $openCode = $zip->open($dest, ZipArchive::CREATE | ZipArchive::OVERWRITE);
+        if ($openCode !== true) {
+            return 'Could not create distribution ZIP at ' . $dest . ' (ZipArchive::open code ' . (string) $openCode . '). Check directory permissions and open_basedir.';
         }
 
         $rootLen = strlen($packageRoot) + 1;
@@ -827,7 +829,7 @@ final class CatalogPublisher
      */
     private function readManifestFromZip(string $zipPath, string $kind): ?array
     {
-        if (!class_exists(ZipArchive::class)) {
+        if (!ZipExtension::isAvailable()) {
             return null;
         }
         $zip = new ZipArchive();

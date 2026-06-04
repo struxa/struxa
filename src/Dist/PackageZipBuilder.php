@@ -13,8 +13,8 @@ final class PackageZipBuilder
 {
     public function buildPluginZip(string $packageRoot, string $slug, string $zipsDir): ?string
     {
-        if (!class_exists(ZipArchive::class)) {
-            return 'PHP zip extension is required.';
+        if (!ZipExtension::isAvailable()) {
+            return ZipExtension::requiredError();
         }
         if (!is_dir($packageRoot)) {
             return 'Plugin directory not found.';
