@@ -278,18 +278,33 @@
   {% if cms_can('manage_plugins') %}
     {% set plugins_list_path_raw = url_for('admin.extensions.plugins.index')|split('?')|first %}
     {% set plugins_list_path = plugins_list_path_raw == '' or plugins_list_path_raw == '/' ? '/' : plugins_list_path_raw|trim('/', 'right') %}
+    {% set struxa_catalog_submissions_href = cms_route_url('admin.struxa_catalog.submissions') %}
+    {% set struxa_catalog_settings_href = cms_route_url('admin.struxa_catalog.settings') %}
+    {% set struxa_catalog_submissions_path = '/' %}
+    {% if struxa_catalog_submissions_href %}
+      {% set struxa_catalog_submissions_path_raw = struxa_catalog_submissions_href|split('?')|first %}
+      {% set struxa_catalog_submissions_path = struxa_catalog_submissions_path_raw == '' or struxa_catalog_submissions_path_raw == '/' ? '/' : struxa_catalog_submissions_path_raw|trim('/', 'right') %}
+    {% endif %}
+    {% set struxa_catalog_settings_path = '/' %}
+    {% if struxa_catalog_settings_href %}
+      {% set struxa_catalog_settings_path_raw = struxa_catalog_settings_href|split('?')|first %}
+      {% set struxa_catalog_settings_path = struxa_catalog_settings_path_raw == '' or struxa_catalog_settings_path_raw == '/' ? '/' : struxa_catalog_settings_path_raw|trim('/', 'right') %}
+    {% endif %}
     {% set extensions_nav_open = nav == 'extensions_plugins' %}
     {% if not extensions_nav_open and request_path == plugins_list_path %}
       {% set extensions_nav_open = true %}
     {% endif %}
     {% for nav_item in plugin_admin_nav_items|default([]) %}
+      {% if nav_item.route_name|default('') not in ['admin.struxa_catalog.submissions', 'admin.struxa_catalog.settings'] %}
       {% set plugin_item_path_raw = url_for(nav_item.route_name, nav_item.route_params|default({}))|split('?')|first %}
       {% set plugin_item_path = plugin_item_path_raw == '' or plugin_item_path_raw == '/' ? '/' : plugin_item_path_raw|trim('/', 'right') %}
       {% if not extensions_nav_open and (request_path == plugin_item_path or (plugin_item_path != '/' and request_path starts with (plugin_item_path ~ '/'))) %}
         {% set extensions_nav_open = true %}
       {% endif %}
+      {% endif %}
     {% endfor %}
     {% for group in plugin_admin_nav_groups|default([]) %}
+      {% if group.parent_slug|default('') != 'struxa-admin' %}
       {% for child in group.items %}
         {% set plugin_item_path_raw = url_for(child.route_name, child.route_params|default({}))|split('?')|first %}
         {% set plugin_item_path = plugin_item_path_raw == '' or plugin_item_path_raw == '/' ? '/' : plugin_item_path_raw|trim('/', 'right') %}
@@ -297,7 +312,14 @@
           {% set extensions_nav_open = true %}
         {% endif %}
       {% endfor %}
+      {% endif %}
     {% endfor %}
+    {% if not extensions_nav_open and struxa_catalog_submissions_href and (request_path == struxa_catalog_submissions_path or (struxa_catalog_submissions_path != '/' and request_path starts with (struxa_catalog_submissions_path ~ '/'))) %}
+      {% set extensions_nav_open = true %}
+    {% endif %}
+    {% if not extensions_nav_open and struxa_catalog_settings_href and (request_path == struxa_catalog_settings_path or (struxa_catalog_settings_path != '/' and request_path starts with (struxa_catalog_settings_path ~ '/'))) %}
+      {% set extensions_nav_open = true %}
+    {% endif %}
     <details class="admin-nav-group" {{ extensions_nav_open ? 'open' : '' }}>
       <summary class="admin-nav-group-title">Extensions</summary>
       <div class="admin-nav-group-items">
@@ -305,6 +327,18 @@
           <svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
           Plugins
         </a>
+        {% if struxa_catalog_submissions_href %}
+          <a href="{{ struxa_catalog_submissions_href }}" class="{{ request_path == struxa_catalog_submissions_path or (struxa_catalog_submissions_path != '/' and request_path starts with (struxa_catalog_submissions_path ~ '/')) ? 'is-active' : '' }}">
+            <svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M4 6h16M4 12h10M4 18h14"/></svg>
+            Catalog submissions
+          </a>
+        {% endif %}
+        {% if struxa_catalog_settings_href %}
+          <a href="{{ struxa_catalog_settings_href }}" class="{{ request_path == struxa_catalog_settings_path or (struxa_catalog_settings_path != '/' and request_path starts with (struxa_catalog_settings_path ~ '/')) ? 'is-active' : '' }}">
+            <svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="12" cy="12" r="3"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2"/></svg>
+            Catalog settings
+          </a>
+        {% endif %}
         {% for nav_item in plugin_admin_nav_items|default([]) %}
           {% set plugin_item_path_raw = url_for(nav_item.route_name, nav_item.route_params|default({}))|split('?')|first %}
           {% set plugin_item_path = plugin_item_path_raw == '' or plugin_item_path_raw == '/' ? '/' : plugin_item_path_raw|trim('/', 'right') %}
@@ -335,6 +369,7 @@
               {% endfor %}
             </div>
           </details>
+          {% endif %}
         {% endfor %}
       </div>
     </details>

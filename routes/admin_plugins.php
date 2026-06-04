@@ -630,7 +630,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             } else {
                 Flash::set(
                     'success',
-                    'Struxa Catalog Admin repaired. Reload this page once — Catalog submissions should appear in the toolbar and under Extensions.'
+                    'Struxa Catalog Admin repaired. Reload this page once — Catalog submissions should appear under Extensions in the sidebar (below Plugins).'
                 );
             }
             Events::dispatch(new StorefrontCachesInvalidateEvent('plugin_repaired'));

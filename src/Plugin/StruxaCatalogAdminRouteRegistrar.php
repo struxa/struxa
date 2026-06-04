@@ -151,17 +151,25 @@ final class StruxaCatalogAdminRouteRegistrar
         }
 
         $registry = PluginAdminNavRegistry::instance();
+        $hasSubmissions = false;
+        $hasSettings = false;
         foreach ($registry->all() as $item) {
             $route = $item['route_name'] ?? '';
-            if ($route === self::ROUTE_SUBMISSIONS || $route === 'admin.struxa_catalog.settings') {
-                return;
+            if ($route === self::ROUTE_SUBMISSIONS) {
+                $hasSubmissions = true;
+            }
+            if ($route === 'admin.struxa_catalog.settings') {
+                $hasSettings = true;
             }
         }
 
-        $nested = $discovered->manifest->nestedAdminNav;
-        $parent = $nested ? 'struxa-admin' : null;
-        $registry->register('struxa-admin', 'Catalog submissions', self::ROUTE_SUBMISSIONS, [], $parent, $nested);
-        $registry->register('struxa-admin', 'Catalog settings', 'admin.struxa_catalog.settings', [], $parent, $nested);
+        // Flat under Extensions (not nested details) — nested groups are easy to miss in the sidebar.
+        if (!$hasSubmissions) {
+            $registry->register('struxa-admin', 'Catalog submissions', self::ROUTE_SUBMISSIONS);
+        }
+        if (!$hasSettings) {
+            $registry->register('struxa-admin', 'Catalog settings', 'admin.struxa_catalog.settings');
+        }
     }
 
     public static function register(App $app, PluginBootContext $ctx, Auth $auth): void

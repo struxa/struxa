@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.2.32",
-    "title": "Struxa 1.2.32",
-    "summary": "Catalog ship publishes after regenerate (fixes repo.json stuck on old struxa-admin); sidebar catalog links when plugin boot fails.",
+    "latest_version": "1.2.33",
+    "title": "Struxa 1.2.33",
+    "summary": "Extensions sidebar: always show Catalog submissions and Catalog settings under Plugins when catalog routes exist.",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "minor"
