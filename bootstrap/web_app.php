@@ -757,6 +757,20 @@ SectionDefinitionRegistry::instance()->registerProvider(new CoreSectionDefinitio
 (require $root . '/routes/admin_plugins.php')($app, $twig, $auth, $pdo, $viewData);
 
 $pluginRepo = new PluginRepository($pdo);
+$pluginScannerForCatalog = new \App\Plugin\PluginScanner($root);
+if (class_exists(\App\Plugin\StruxaCatalogAdminRouteRegistrar::class)) {
+    \App\Plugin\StruxaCatalogAdminRouteRegistrar::registerIfNeeded(
+        $app,
+        $twig,
+        $auth,
+        $pdo,
+        $viewData,
+        $eventDispatcher,
+        $root,
+        $pluginRepo,
+        $pluginScannerForCatalog,
+    );
+}
 $pluginScope = PluginLoadScope::fromWebRequest($_SERVER['REQUEST_URI'] ?? '/');
 $pluginManager = new PluginManager($root, $pluginRepo, new PluginScanner($root), new PluginValidator($pdo));
 $pluginContexts = $pluginManager->registerActivePublicRoutes($app, $twig, $auth, $pdo, $viewData, $eventDispatcher, $pluginScope);

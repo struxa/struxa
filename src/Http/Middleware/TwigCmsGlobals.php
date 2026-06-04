@@ -360,22 +360,8 @@ final class TwigCmsGlobals implements MiddlewareInterface
         $settings = NamedRouteUrl::tryFor($parser, 'admin.struxa_catalog.settings');
         $routesRegistered = $submissions !== null && $settings !== null;
 
-        if (!$routesRegistered) {
-            $pluginsIndex = NamedRouteUrl::tryFor($parser, 'admin.extensions.plugins.index');
-            if ($pluginsIndex !== null) {
-                if ($submissions === null) {
-                    $submissions = preg_replace('#/extensions/plugins/?$#', '/extensions/struxa-catalog/submissions', $pluginsIndex);
-                }
-                if ($settings === null) {
-                    $settings = preg_replace('#/extensions/plugins/?$#', '/extensions/struxa-catalog/settings', $pluginsIndex);
-                }
-            }
-        }
-
-        $show = is_string($submissions) && $submissions !== '' && is_string($settings) && $settings !== '';
-
         return [
-            'show' => $show,
+            'show' => $routesRegistered,
             'submissions_url' => $submissions,
             'settings_url' => $settings,
             'routes_registered' => $routesRegistered,

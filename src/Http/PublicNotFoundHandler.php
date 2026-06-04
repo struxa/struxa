@@ -67,6 +67,21 @@ final class PublicNotFoundHandler implements ErrorHandlerInterface
             $debugDetail = $exception->getMessage() . "\n" . $exception->getFile() . ':' . $exception->getLine();
         }
 
+        $path = $request->getUri()->getPath();
+        if (preg_match('#(?:^|/)admin(?:/|$)#', $path) === 1) {
+            $response = new Response(404);
+            $body = '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Admin not found</title></head><body>'
+                . '<h1>Admin page not found</h1>'
+                . '<p>This URL is not registered in Struxa. If you expected <strong>Catalog submissions</strong>, '
+                . 'deploy <code>src/Plugin/StruxaCatalogAdminRouteRegistrar.php</code> and reload, '
+                . 'or open <a href="/admin/extensions/plugins">Extensions → Plugins</a> and run '
+                . '<strong>Repair Struxa Catalog</strong>.</p>'
+                . '</body></html>';
+            $response->getBody()->write($body);
+
+            return $response->withHeader('Content-Type', 'text/html; charset=utf-8');
+        }
+
         return $this->twig->render($response, 'errors/not_found.twig', ($this->viewData)([
             'not_found_debug' => $displayErrorDetails,
             'not_found_debug_detail' => $debugDetail,
