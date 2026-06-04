@@ -39,5 +39,5 @@ echo "==> ZIP manifest version:"
 unzip -p "$ZIP" theme.json | grep '"version"' | head -1
 
 echo ""
-echo "Next: Admin → Struxa catalog → Regenerate catalog"
-echo "      (updates repo.json from the ZIP). CMS 1.2.8+ / struxa-admin 1.0.24+ also sync on regenerate."
+echo "Next: Admin → Struxa catalog → Settings → Publish bundled theme to catalog"
+echo "      (writes repo.json from the ZIP). Then Themes → Reinstall from catalog."

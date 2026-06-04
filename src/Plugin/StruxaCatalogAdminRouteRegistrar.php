@@ -326,13 +326,23 @@ final class StruxaCatalogAdminRouteRegistrar
                 $twig,
                 $adminView,
                 $settings,
+                $root,
                 $ns
             ): Response {
+                $bundledThemeVersion = null;
+                $themeDir = $root . '/themes/struxa-theme';
+                $manifest = \App\Theme\ThemeManifest::tryLoadRelaxedPath($themeDir);
+                if ($manifest !== null) {
+                    $bundledThemeVersion = $manifest->version;
+                }
+
                 return $twig->render($response, $ns . '/admin/settings.twig', $adminView($request, [
                     'dist_root' => $settings->distRoot(),
                     'zip_base_url' => $settings->zipBaseUrl(),
                     'screenshot_base_url' => $settings->screenshotPublicBaseUrl(),
                     'has_github_token' => $settings->githubToken() !== null,
+                    'bundled_theme_version' => $bundledThemeVersion,
+                    'catalog_repo_url' => rtrim($settings->catalogPublicBaseUrl(), '/') . '/struxa-dist/repo.json',
                 ]));
             })->setName('admin.struxa_catalog.settings');
 
@@ -347,6 +357,22 @@ final class StruxaCatalogAdminRouteRegistrar
                 $body = $request->getParsedBody();
                 $body = is_array($body) ? $body : [];
                 $action = trim((string) ($body['action'] ?? 'save'));
+
+                if ($action === 'publish_bundled_theme') {
+                    $pub = $publisher->publishBundledStruxaThemeToCatalog();
+                    if ($pub['ok']) {
+                        $ver = trim((string) ($pub['version'] ?? ''));
+                        $msg = $ver !== ''
+                            ? 'Published bundled Struxa Vision v' . $ver . ' to repo.json and struxa-theme.zip.'
+                            : 'Published bundled Struxa Vision to repo.json and struxa-theme.zip.';
+                        $msg .= ' Themes → Reinstall from catalog to apply on this site.';
+                        Flash::set('success', $msg);
+                    } else {
+                        Flash::set('error', $pub['error'] ?? 'Publish failed.');
+                    }
+
+                    return $response->withHeader('Location', $back)->withStatus(302);
+                }
 
                 if ($action === 'regenerate') {
                     $regen = $publisher->regenerateCatalog();

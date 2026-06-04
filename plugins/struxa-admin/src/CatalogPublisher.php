@@ -110,6 +110,109 @@ final class CatalogPublisher
     }
 
     /**
+     * Rebuild themes/struxa-theme.zip from disk and write repo.json (one step, no SSH).
+     * Preserves existing plugin rows in repo.json.
+     *
+     * @return array{ok: true, version: string, dist_root: string}|array{ok: false, error: string}
+     */
+    public function publishBundledStruxaThemeToCatalog(): array
+    {
+        $slug = 'struxa-theme';
+        $dir = $this->settings->projectRoot() . '/themes/' . $slug;
+        if (ThemeManifest::tryLoadRelaxedPath($dir) === null) {
+            return ['ok' => false, 'error' => 'themes/struxa-theme is missing or invalid (theme.json, views/, assets/).'];
+        }
+
+        $distRoot = $this->settings->distRoot();
+        $zipsDir = $distRoot . '/zips';
+        if (!is_dir($zipsDir) && !@mkdir($zipsDir, 0755, true)) {
+            return ['ok' => false, 'error' => 'Could not create zips directory under ' . $distRoot];
+        }
+
+        $zipErr = $this->buildDistZip($dir, $slug, SubmissionKind::THEME);
+        if ($zipErr !== null) {
+            return ['ok' => false, 'error' => $zipErr];
+        }
+
+        $loaded = $this->loadExistingCatalogFromDisk($distRoot, $slug);
+        if ($loaded['sharded_plugins']) {
+            return [
+                'ok' => false,
+                'error' => 'Catalog uses sharded plugins. Use “Regenerate repo.json from approved” instead.',
+            ];
+        }
+
+        $baseUrl = $this->settings->zipBaseUrl();
+        $screenshotBase = $this->settings->screenshotPublicBaseUrl();
+        $themes = $this->upsertBundledStruxaVisionTheme($loaded['themes'], $zipsDir, $baseUrl, $screenshotBase);
+
+        usort($themes, static fn (array $a, array $b): int => strcmp((string) ($a['slug'] ?? ''), (string) ($b['slug'] ?? '')));
+        usort($loaded['plugins'], static fn (array $a, array $b): int => strcmp((string) ($a['slug'] ?? ''), (string) ($b['slug'] ?? '')));
+
+        $written = (new StruxaDistCatalogWriter())->write($distRoot, $themes, $loaded['plugins']);
+        if (!$written['ok']) {
+            return ['ok' => false, 'error' => $written['error'] ?? 'Failed to write catalog.'];
+        }
+
+        $version = '';
+        foreach ($themes as $row) {
+            if (($row['slug'] ?? '') === $slug) {
+                $version = trim((string) ($row['version'] ?? ''));
+                break;
+            }
+        }
+
+        return ['ok' => true, 'version' => $version, 'dist_root' => $distRoot];
+    }
+
+    /**
+     * @return array{themes: list<array<string, mixed>>, plugins: list<array<string, mixed>>, sharded_plugins: bool}
+     */
+    private function loadExistingCatalogFromDisk(string $distRoot, string $excludeThemeSlug): array
+    {
+        $themes = [];
+        $plugins = [];
+        $sharded = false;
+        $repoPath = rtrim($distRoot, '/\\') . '/repo.json';
+        if (!is_readable($repoPath)) {
+            return ['themes' => $themes, 'plugins' => $plugins, 'sharded_plugins' => false];
+        }
+
+        try {
+            /** @var mixed $catalog */
+            $catalog = json_decode((string) file_get_contents($repoPath), true, 512, JSON_THROW_ON_ERROR);
+        } catch (\JsonException) {
+            return ['themes' => $themes, 'plugins' => $plugins, 'sharded_plugins' => false];
+        }
+
+        if (!is_array($catalog)) {
+            return ['themes' => $themes, 'plugins' => $plugins, 'sharded_plugins' => false];
+        }
+
+        if (isset($catalog['themes']) && is_array($catalog['themes'])) {
+            foreach ($catalog['themes'] as $row) {
+                if (is_array($row) && ($row['slug'] ?? '') !== $excludeThemeSlug) {
+                    $themes[] = $row;
+                }
+            }
+        }
+
+        if (isset($catalog['plugins']) && is_array($catalog['plugins'])) {
+            if (isset($catalog['plugins']['shards'])) {
+                $sharded = true;
+            } else {
+                foreach ($catalog['plugins'] as $row) {
+                    if (is_array($row)) {
+                        $plugins[] = $row;
+                    }
+                }
+            }
+        }
+
+        return ['themes' => $themes, 'plugins' => $plugins, 'sharded_plugins' => $sharded];
+    }
+
+    /**
      * When the CMS ships themes/ or plugins/ in the project root (e.g. struxa-theme after a core update),
      * refresh distribution ZIPs so repo.json reflects the bundled manifest version, not a stale zip.
      *

@@ -44,6 +44,13 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
     );
 
     $adminContext = static fn (): array => array_merge($viewData(), []);
+    $namedRouteUrl = static function (Request $request, string $name): ?string {
+        try {
+            return RouteContext::fromRequest($request)->getRouteParser()->urlFor($name);
+        } catch (\Throwable) {
+            return null;
+        }
+    };
     $withCmsUser = static function (Request $request, array $data): array {
         /** @var array<string, mixed> $cmsUser */
         $cmsUser = $request->getAttribute('cms_user') ?? [];
@@ -61,11 +68,12 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
         $screenshot,
         $catalogLoader,
         $remoteInstaller,
-        $themeUpdateChecker
+        $themeUpdateChecker,
+        $namedRouteUrl
     ): void {
         $group->get('/themes/screenshot/{slug}', $screenshot)->setName('admin.themes.screenshot');
 
-        $group->get('/themes', function (Request $request, Response $response) use ($twig, $adminContext, $withCmsUser, $themes, $themeUpdateChecker): Response {
+        $group->get('/themes', function (Request $request, Response $response) use ($twig, $adminContext, $withCmsUser, $themes, $themeUpdateChecker, $namedRouteUrl): Response {
             $active = $themes->activeSlug();
             $catalogBySlug = $themeUpdateChecker->catalogEntriesBySlug();
             $rows = [];
@@ -86,6 +94,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 'theme_rows' => $rows,
                 'theme_update_count' => $updateCount,
                 'active_theme_slug' => $active,
+                'struxa_catalog_settings_url' => $namedRouteUrl($request, 'admin.struxa_catalog.settings'),
             ])));
         })->setName('admin.themes.index');
 
