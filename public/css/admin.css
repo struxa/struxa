@@ -3507,6 +3507,97 @@ details.admin-card.admin-seo-suite-panel {
   color: #f87171;
 }
 
+/* Toggle switches for admin checkboxes (bulk/table selects stay compact). */
+.admin-body input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  box-sizing: border-box;
+  width: 2.75rem;
+  height: 1.5rem;
+  margin: 0;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.08);
+  position: relative;
+  cursor: pointer;
+  flex-shrink: 0;
+  vertical-align: middle;
+  transition:
+    background 0.2s var(--admin-ease),
+    border-color 0.2s var(--admin-ease);
+}
+
+.admin-body input[type="checkbox"]::before {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 1.125rem;
+  height: 1.125rem;
+  border-radius: 50%;
+  background: #f4f4f5;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+  transition: transform 0.2s var(--admin-ease);
+}
+
+.admin-body input[type="checkbox"]:checked {
+  background: linear-gradient(135deg, var(--admin-purple), #6366f1);
+  border-color: rgba(168, 85, 247, 0.55);
+}
+
+.admin-body input[type="checkbox"]:checked::before {
+  transform: translateX(1.25rem);
+}
+
+.admin-body input[type="checkbox"]:focus-visible {
+  outline: 2px solid rgba(168, 85, 247, 0.65);
+  outline-offset: 2px;
+}
+
+.admin-body input[type="checkbox"]:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.admin-table input[type="checkbox"],
+.admin-entry-bulk-select-all input,
+.admin-media-bulk-select-all input,
+#nf-select-all,
+.nf-row-cb,
+input.admin-checkbox-raw {
+  appearance: auto;
+  -webkit-appearance: checkbox;
+  width: 1rem;
+  height: 1rem;
+  min-width: 1rem;
+  border-radius: 0.2rem;
+  border: none;
+  background: transparent;
+  position: static;
+  accent-color: var(--admin-purple);
+}
+
+.admin-table input[type="checkbox"]::before,
+.admin-entry-bulk-select-all input::before,
+.admin-media-bulk-select-all input::before,
+#nf-select-all::before,
+.nf-row-cb::before,
+input.admin-checkbox-raw::before {
+  content: none;
+  display: none;
+}
+
+.admin-label:has(> input[type="checkbox"]) {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  text-transform: none;
+  letter-spacing: 0.01em;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--admin-text);
+}
+
 .admin-input,
 .admin-select,
 .admin-textarea {
@@ -5467,9 +5558,7 @@ body.admin-media-lightbox-open {
 }
 
 .admin-media-bulk-select-all input {
-  width: 1rem;
-  height: 1rem;
-  accent-color: var(--admin-blue);
+  accent-color: var(--admin-purple);
 }
 
 .admin-media-bulk-count {
@@ -6036,15 +6125,19 @@ body.admin-media-lightbox-open {
   display: flex;
   flex-direction: column;
   gap: 1.1rem;
+  width: 100%;
+  max-width: none;
 }
 
 .admin-settings-row2 {
   display: grid;
   gap: 1.1rem;
   grid-template-columns: 1fr;
+  width: 100%;
+  max-width: none;
 }
 
-@media (min-width: 960px) {
+@media (min-width: 1100px) {
   .admin-settings-row2 {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     align-items: stretch;
@@ -6122,14 +6215,14 @@ body.admin-media-lightbox-open {
 
 .admin-settings-check-label {
   display: flex;
-  align-items: flex-start;
-  gap: 0.55rem;
+  align-items: center;
+  gap: 0.65rem;
   font-weight: 600;
   cursor: pointer;
 }
 
 .admin-settings-check-label input {
-  margin-top: 0.2rem;
+  margin-top: 0;
   flex-shrink: 0;
 }
 
@@ -6223,6 +6316,20 @@ body.admin-media-lightbox-open {
 
 .admin-settings-layout-main {
   min-width: 0;
+  width: 100%;
+  max-width: none;
+}
+
+/* Settings / mobile forms: .admin-form defaults to 44rem — use full main column */
+.admin-settings-page .admin-form,
+.admin-settings-page .admin-settings-form {
+  width: 100%;
+  max-width: none;
+}
+
+.admin-settings-page .admin-settings-card {
+  width: 100%;
+  max-width: none;
 }
 
 /* —— Catalog settings —— */
@@ -14128,8 +14235,8 @@ a.admin-entry-row:hover .admin-entry-row-go {
 
 .admin-scope-option {
   display: flex;
-  align-items: flex-start;
-  gap: 0.55rem;
+  align-items: center;
+  gap: 0.65rem;
   margin: 0;
   padding: 0.65rem 0.75rem;
   border-radius: var(--admin-radius-sm);

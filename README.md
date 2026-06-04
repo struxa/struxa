@@ -1,6 +1,6 @@
 # Struxa CMS
 
-**Version:** 1.2.22 (canonical: `composer.json` → `version`)
+**Version:** 1.2.23 (canonical: `composer.json` → `version`)
 
 PHP content management on **Slim 4** and **Twig**: custom content types, storefront themes, admin UI, media library, SEO tools, optional **AI writing assistant**, headless **JSON/GraphQL** API, and **plugins**.
 
