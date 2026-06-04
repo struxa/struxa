@@ -2727,7 +2727,7 @@ body.st-search-modal-open { overflow: hidden; }
   color: var(--st-muted);
 }
 .st-footer__intro .st-btn.st-btn--footer-cta {
-  background-color: var(--st-accent, #ff6b2b);
+  background-color: var(--st-accent-btn, #c2410c);
   color: #fff;
   border: none;
   padding: 0.65rem 1.1rem;
@@ -2736,7 +2736,7 @@ body.st-search-modal-open { overflow: hidden; }
 }
 .st-footer__intro .st-btn.st-btn--footer-cta:hover,
 .st-footer__intro .st-btn.st-btn--footer-cta:focus-visible {
-  background-color: var(--st-accent-hover, #e85a1a);
+  background-color: var(--st-accent-btn-hover, #9a3412);
   color: #fff;
   transform: none;
 }

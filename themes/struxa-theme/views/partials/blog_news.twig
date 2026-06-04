@@ -67,7 +67,7 @@
                       {{ row.published_at|date('M j, Y') }}
                     </time>
                   {% endif %}
-                  <h4 class="st-blog-news__card-title">{{ row.title|e }}</h4>
+                  <h3 class="st-blog-news__card-title">{{ row.title|e }}</h3>
                   {% if item.excerpt_plain|default('')|trim != '' %}
                     <p class="st-blog-news__excerpt">{{ item.excerpt_plain|e }}</p>
                   {% endif %}
