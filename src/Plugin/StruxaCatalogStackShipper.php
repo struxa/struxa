@@ -22,7 +22,8 @@ final class StruxaCatalogStackShipper
 
     private const GITHUB_OWNER = 'struxa';
 
-    private const GITHUB_REPO = 'struxa-admin';
+    /** Monorepo; plugin lives at plugins/struxa-admin (there is no separate struxa/struxa-admin repo). */
+    private const GITHUB_REPO = 'struxa';
 
     public function __construct(
         private readonly string $projectRoot,
@@ -51,9 +52,16 @@ final class StruxaCatalogStackShipper
         $pluginsRoot = $this->projectRoot . '/plugins';
         $installer = new PluginRemoteInstaller($pluginsRoot, $this->scanner, $this->projectRoot);
 
-        $ghErr = $installer->updateFromGithubRepository(self::SLUG, self::GITHUB_OWNER, self::GITHUB_REPO, 'main');
+        $ghErr = $installer->updateFromGithubMonorepoPlugin(
+            self::SLUG,
+            self::GITHUB_OWNER,
+            self::GITHUB_REPO,
+            'plugins/' . self::SLUG,
+            'main',
+        );
         if ($ghErr !== null) {
-            $catErr = $this->tryCatalogZipUpdate($installer);
+            $discoveredBefore = $this->scanner->findBySlug(self::SLUG);
+            $catErr = $this->tryCatalogZipUpdate($installer, $discoveredBefore);
             if ($catErr !== null) {
                 return [
                     'ok' => false,
@@ -222,8 +230,16 @@ final class StruxaCatalogStackShipper
         return ['ok' => true, 'message' => $msg];
     }
 
-    private function tryCatalogZipUpdate(PluginRemoteInstaller $installer): ?string
+    private function tryCatalogZipUpdate(PluginRemoteInstaller $installer, ?DiscoveredPlugin $onDisk): ?string
     {
+        if ($onDisk !== null) {
+            $catalogVer = $this->catalogPluginVersion();
+            $diskVer = trim($onDisk->manifest->version);
+            if ($catalogVer !== null && $diskVer !== '' && version_compare($diskVer, $catalogVer, '>')) {
+                return null;
+            }
+        }
+
         if (!class_exists(PluginCatalogLoader::class)) {
             return 'Plugin catalog loader is not available on this server (deploy the latest CMS).';
         }
@@ -235,6 +251,24 @@ final class StruxaCatalogStackShipper
         }
 
         return $installer->updateFromCatalogSlug(self::SLUG, $loaded['entries']);
+    }
+
+    private function catalogPluginVersion(): ?string
+    {
+        if (!class_exists(PluginCatalogLoader::class)) {
+            return null;
+        }
+        $loaded = (new PluginCatalogLoader($this->projectRoot))->load();
+        if (!$loaded['ok']) {
+            return null;
+        }
+        foreach ($loaded['entries'] as $entry) {
+            if ($entry->slug === self::SLUG) {
+                return trim($entry->version);
+            }
+        }
+
+        return null;
     }
 
     private function ensurePublishJsonListsAdmin(string $distRoot): void

@@ -282,6 +282,9 @@ final class CatalogPublisher
         $synced = [];
         $root = $this->settings->projectRoot();
 
+        $synced = array_merge($synced, $this->syncBundledStruxaAdminFromCore($zipsDir, $root));
+        $synced = array_merge($synced, $this->syncBundledStruxaThemeFromCore($zipsDir, $root));
+
         foreach ($this->submissions->listApproved() as $sub) {
             if ($sub->kind === SubmissionKind::THEME) {
                 $dir = $root . '/themes/' . $sub->slug;
@@ -721,25 +724,88 @@ final class CatalogPublisher
             return $plugins;
         }
 
-        $entry = $this->entryForZip($slug, SubmissionKind::PLUGIN, $zipsDir, $baseUrl, $screenshotBase);
-        if ($entry === null) {
-            $parser = new PluginManifestParser();
-            $parsed = $parser->parseFile($jsonPath, $slug);
-            if (!$parsed['ok']) {
-                return $plugins;
-            }
-            $manifest = $parsed['manifest'];
-            $entry = $this->catalogEntryFromManifest(
-                $slug,
-                $manifest,
-                SubmissionKind::PLUGIN,
-                $baseUrl,
-                'https://github.com/struxa/struxa-admin',
-                $screenshotBase,
-            );
+        $parser = new PluginManifestParser();
+        $parsed = $parser->parseFile($jsonPath, $slug);
+        if (!$parsed['ok']) {
+            return $plugins;
         }
+        $m = $parsed['manifest'];
+        $entry = $this->catalogEntryFromManifest(
+            $slug,
+            [
+                'name' => $m->name,
+                'slug' => $m->slug,
+                'version' => $m->version,
+                'description' => $m->description,
+                'author' => $m->author,
+                'requires_cms_version' => $m->requiresCmsVersion,
+            ],
+            SubmissionKind::PLUGIN,
+            $baseUrl,
+            'https://github.com/struxa/struxa',
+            $screenshotBase,
+        );
 
         return $this->upsertEntry($plugins, $entry);
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function syncBundledStruxaAdminFromCore(string $zipsDir, string $root): array
+    {
+        $slug = 'struxa-admin';
+        $dir = $root . '/plugins/' . $slug;
+        $jsonPath = $dir . '/plugin.json';
+        if (!is_file($jsonPath)) {
+            return [];
+        }
+        $parser = new PluginManifestParser();
+        $parsed = $parser->parseFile($jsonPath, $slug);
+        if (!$parsed['ok']) {
+            return [];
+        }
+        $bundledVersion = trim($parsed['manifest']->version);
+        if ($bundledVersion === '') {
+            return [];
+        }
+        $zipPath = $zipsDir . '/' . $slug . '.zip';
+        $zipVersion = $this->manifestVersionFromZip($zipPath, SubmissionKind::PLUGIN);
+        if ($zipVersion !== null && version_compare($bundledVersion, $zipVersion, '<=')) {
+            return [];
+        }
+        if ($this->buildDistZip($dir, $slug, SubmissionKind::PLUGIN) !== null) {
+            return [];
+        }
+
+        return ['struxa-admin plugin v' . $bundledVersion];
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function syncBundledStruxaThemeFromCore(string $zipsDir, string $root): array
+    {
+        $slug = 'struxa-theme';
+        $manifest = ThemeManifest::tryLoadRelaxedPath($root . '/themes/' . $slug);
+        if ($manifest === null) {
+            return [];
+        }
+        $bundledVersion = trim($manifest->version);
+        if ($bundledVersion === '') {
+            return [];
+        }
+        $zipPath = $zipsDir . '/' . $slug . '.zip';
+        $zipVersion = $this->manifestVersionFromZip($zipPath, SubmissionKind::THEME);
+        if ($zipVersion !== null && version_compare($bundledVersion, $zipVersion, '<=')) {
+            return [];
+        }
+        $dir = $root . '/themes/' . $slug;
+        if ($this->buildDistZip($dir, $slug, SubmissionKind::THEME) !== null) {
+            return [];
+        }
+
+        return ['struxa-theme v' . $bundledVersion];
     }
 
     private function ensureBundledAdminInPublishJson(): void

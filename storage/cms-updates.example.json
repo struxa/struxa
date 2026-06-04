@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.2.45",
-    "title": "Struxa 1.2.45",
-    "summary": "Catalog admin fixes: sidebar Twig, submissions route root, theme submit pill and GitHub views/ check; self-update now syncs bundled struxa-admin.",
+    "latest_version": "1.2.46",
+    "title": "Struxa 1.2.46",
+    "summary": "Catalog regenerate uses disk struxa-admin (not stale 1.0.22 ZIP); ship stack pulls from struxa/struxa monorepo; theme GitHub views/ validation.",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "minor"

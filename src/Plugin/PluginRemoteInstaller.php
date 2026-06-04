@@ -72,7 +72,7 @@ final class PluginRemoteInstaller
             return $cmsErr;
         }
 
-        return $this->fetchAndDeploy($slug, $entry->downloadUrl, true);
+        return $this->fetchAndDeploy($slug, $entry->downloadUrl, true, null);
     }
 
     public function updateFromGithubRepository(string $slug, string $owner, string $repo, string $ref = 'main'): ?string
@@ -112,7 +112,63 @@ final class PluginRemoteInstaller
             if (!ThemeRemoteInstaller::isDownloadUrlHostAllowed($zipUrl)) {
                 continue;
             }
-            $err = $this->fetchAndDeploy($slug, $zipUrl, true);
+            $err = $this->fetchAndDeploy($slug, $zipUrl, true, null);
+            if ($err === null) {
+                return null;
+            }
+            $lastErr = $err;
+        }
+
+        return $lastErr;
+    }
+
+    /**
+     * Upgrade from a plugin folder inside the CMS monorepo (e.g. plugins/struxa-admin in struxa/struxa).
+     */
+    public function updateFromGithubMonorepoPlugin(
+        string $slug,
+        string $owner,
+        string $repo,
+        string $pathInRepo,
+        string $ref = 'main',
+    ): ?string {
+        $slug = strtolower(trim($slug));
+        $pathInRepo = trim(str_replace('\\', '/', $pathInRepo), '/');
+        if ($pathInRepo === '' || !preg_match('#^plugins/[a-z0-9]+(?:-[a-z0-9]+)*$#', $pathInRepo)) {
+            return 'Invalid monorepo plugin path.';
+        }
+        if ($this->scanner->findBySlug($slug) === null) {
+            return 'Plugin is not installed.';
+        }
+
+        $owner = trim($owner);
+        $repo = trim($repo);
+        $ref = trim($ref);
+        if ($owner === '' || $repo === '' || $ref === '') {
+            return 'Invalid GitHub repository.';
+        }
+
+        $urls = [
+            sprintf(
+                'https://codeload.github.com/%s/%s/zip/refs/heads/%s',
+                rawurlencode($owner),
+                rawurlencode($repo),
+                rawurlencode($ref),
+            ),
+            sprintf(
+                'https://github.com/%s/%s/archive/refs/heads/%s.zip',
+                rawurlencode($owner),
+                rawurlencode($repo),
+                rawurlencode($ref),
+            ),
+        ];
+
+        $lastErr = 'Could not download the plugin package from GitHub.';
+        foreach ($urls as $zipUrl) {
+            if (!ThemeRemoteInstaller::isDownloadUrlHostAllowed($zipUrl)) {
+                continue;
+            }
+            $err = $this->fetchAndDeploy($slug, $zipUrl, true, $pathInRepo);
             if ($err === null) {
                 return null;
             }
@@ -170,10 +226,10 @@ final class PluginRemoteInstaller
             return 'Could not download the plugin package (size limit, network, or invalid response).' . $suffix;
         }
 
-        return $this->deployFromZipBody($slug, $zipBody, $replace);
+        return $this->deployFromZipBody($slug, $zipBody, $replace, $monorepoPath);
     }
 
-    private function deployFromZipBody(string $slug, string $zipBody, bool $replace): ?string
+    private function deployFromZipBody(string $slug, string $zipBody, bool $replace, ?string $monorepoPath = null): ?string
     {
         $dest = $this->pluginsRoot . DIRECTORY_SEPARATOR . $slug;
         if ($replace) {
@@ -208,7 +264,7 @@ final class PluginRemoteInstaller
             }
             $zip->close();
 
-            $pluginRoot = $this->locatePluginRoot($extractDir, $slug);
+            $pluginRoot = $this->locatePluginRoot($extractDir, $slug, $monorepoPath);
             if ($pluginRoot === null) {
                 return 'No valid plugin (plugin.json at package root or in a single folder) was found in the archive.';
             }
@@ -338,7 +394,7 @@ final class PluginRemoteInstaller
     /**
      * @return list<string> absolute directory paths
      */
-    private function pluginRootCandidates(string $extractDir): array
+    private function pluginRootCandidates(string $extractDir, ?string $monorepoPath = null): array
     {
         $extractReal = realpath($extractDir);
         if ($extractReal === false) {
@@ -353,15 +409,21 @@ final class PluginRemoteInstaller
             $p = $extractReal . DIRECTORY_SEPARATOR . $n;
             if (is_dir($p)) {
                 $candidates[] = $p;
+                if ($monorepoPath !== null && $monorepoPath !== '') {
+                    $nested = $p . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $monorepoPath);
+                    if (is_dir($nested)) {
+                        $candidates[] = $nested;
+                    }
+                }
             }
         }
 
         return $candidates;
     }
 
-    private function locatePluginRoot(string $extractDir, string $expectedSlug): ?string
+    private function locatePluginRoot(string $extractDir, string $expectedSlug, ?string $monorepoPath = null): ?string
     {
-        foreach ($this->pluginRootCandidates($extractDir) as $dir) {
+        foreach ($this->pluginRootCandidates($extractDir, $monorepoPath) as $dir) {
             $manifestPath = $dir . DIRECTORY_SEPARATOR . 'plugin.json';
             if (!is_file($manifestPath)) {
                 continue;
