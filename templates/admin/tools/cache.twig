@@ -86,8 +86,8 @@
         {% if cache_public_entries is empty %}
           <p class="admin-hint admin-settings-card-footnote">No public response cache files yet. Enable the public cache and browse the storefront as a guest to populate this list.</p>
         {% else %}
-          <div class="admin-table-wrap" style="margin-top:0.85rem;overflow-x:auto">
-            <table class="admin-table admin-table--comfortable">
+          <div class="admin-table-wrap admin-table-wrap--hub" style="margin-top:0.85rem">
+            <table class="admin-table admin-table--comfortable admin-table--hub">
               <thead>
                 <tr>
                   <th scope="col">URL</th>
@@ -146,8 +146,8 @@
         {% if cache_internal_entries is empty %}
           <p class="admin-hint admin-settings-card-footnote">No internal cache files. They appear after the first guest or uncached public request once data is loaded.</p>
         {% else %}
-          <div class="admin-table-wrap" style="margin-top:0.85rem;overflow-x:auto">
-            <table class="admin-table admin-table--comfortable">
+          <div class="admin-table-wrap admin-table-wrap--hub" style="margin-top:0.85rem">
+            <table class="admin-table admin-table--comfortable admin-table--hub">
               <thead>
                 <tr>
                   <th scope="col">Kind</th>

@@ -16,7 +16,9 @@
 {% endblock %}
 
 {% block admin_content %}
-  <form class="admin-form" method="post" action="{{ url_for('admin.seo.redirects.settings') }}" style="margin-bottom:1.25rem">
+  <div class="admin-settings-page admin-seo-redirects-page">
+  {% include 'admin/seo/_subnav.twig' with { seo_nav_active: 'redirects' } %}
+  <form class="admin-form" method="post" action="{{ url_for('admin.seo.redirects.settings') }}">
     <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
     <section class="admin-card admin-settings-card admin-role-edit-card">
       <h2 class="admin-settings-card-title">Automatic slug redirects</h2>
@@ -74,8 +76,8 @@
     {% if redirect_rows is empty %}
       <p class="admin-hint" style="margin-top:0">No redirects yet.</p>
     {% else %}
-      <div class="admin-table-wrap" style="overflow-x:auto">
-        <table class="admin-table">
+      <div class="admin-table-wrap admin-table-wrap--hub">
+        <table class="admin-table admin-table--comfortable admin-table--hub">
           <thead>
             <tr>
               <th scope="col">From</th>
@@ -116,4 +118,5 @@
       {% endif %}
     {% endif %}
   </section>
+  </div>
 {% endblock %}

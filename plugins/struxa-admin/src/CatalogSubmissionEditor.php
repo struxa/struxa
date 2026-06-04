@@ -36,6 +36,7 @@ final class CatalogSubmissionEditor
         $gitBranch = trim((string) ($body['git_branch'] ?? ''));
         $requiresCms = trim((string) ($body['requires_cms_version'] ?? ''));
         $submitterUsername = trim((string) ($body['submitter_username'] ?? ''));
+        $submitterEmailInput = trim((string) ($body['submitter_email'] ?? ''));
         $clearSubmitter = !empty($body['clear_submitter_link']);
 
         if ($name === '') {
@@ -65,6 +66,11 @@ final class CatalogSubmissionEditor
         if ($requiresCms !== '' && !preg_match('/^\d+\.\d+\.\d+$/', $requiresCms)) {
             $errors[] = 'Requires CMS version must be semver like 1.1.33 (or leave blank).';
         }
+        if ($submitterEmailInput !== '' && filter_var($submitterEmailInput, FILTER_VALIDATE_EMAIL) === false) {
+            $errors[] = 'Submitter email is not valid.';
+        } elseif (mb_strlen($submitterEmailInput) > 191) {
+            $errors[] = 'Submitter email is too long (max 191 characters).';
+        }
 
         $parsed = $this->github->parseRepoUrl($gitRepoUrl, $gitBranch);
         if (!$parsed['ok']) {
@@ -85,10 +91,14 @@ final class CatalogSubmissionEditor
             } else {
                 $submitterUserId = $member['cms_user_id'];
                 $submitterUsernameStored = $member['username'];
-                if ($member['email'] !== '') {
+                if ($submitterEmailInput === '' && $member['email'] !== '') {
                     $submitterEmail = $member['email'];
                 }
             }
+        }
+
+        if ($submitterEmailInput !== '') {
+            $submitterEmail = $submitterEmailInput;
         }
 
         if ($errors !== []) {

@@ -20,11 +20,12 @@
   {% set mn = menu_old|default(null) %}
   {% set me = menu_errors|default({}) %}
 
-  <div class="admin-user-edit-stack admin-menu-edit-stack">
+  <div class="admin-settings-page admin-menu-edit-page">
     <section class="admin-card admin-settings-card admin-menu-edit-card">
       <h2 class="admin-settings-card-title">Menu details</h2>
       <p class="admin-settings-card-desc">Name is internal; placement chooses where the theme renders this menu.</p>
       <form class="admin-form" method="post" action="{{ url_for('admin.menus.update', { id: menu.id }) }}">
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
         <div class="admin-form-grid admin-form-grid--2col-tight">
           <div class="admin-field admin-field--full {{ me.name is defined ? 'admin-field--error' : '' }}">
             <label class="admin-label" for="name">Menu name <span class="admin-req">*</span></label>
@@ -41,68 +42,70 @@
             {% if me.location is defined %}<p class="admin-field-error">{{ me.location|e }}</p>{% endif %}
           </div>
         </div>
-        <div class="admin-form-actions" style="margin-top:1rem;padding-top:0;border-top:none">
+        <div class="admin-form-actions admin-form-actions--inline">
           <button type="submit" class="admin-btn-primary">Save menu</button>
         </div>
       </form>
     </section>
 
     <section class="admin-card admin-settings-card admin-menu-edit-card">
-      <h2 class="admin-settings-card-title">Links</h2>
-      <p class="admin-settings-card-desc">Drag order via sort numbers, then save. Add pages or custom URLs as needed.</p>
-      <div class="admin-toolbar admin-toolbar--spread" style="margin-bottom:0.75rem">
-        <span class="admin-hint" style="margin:0">
-          {% if menu_items is empty %}No links yet.{% else %}{{ menu_items|length }} link{% if menu_items|length != 1 %}s{% endif %}{% endif %}
-        </span>
+      <header class="admin-settings-card-head-row">
+        <div>
+          <h2 class="admin-settings-card-title">Links</h2>
+          <p class="admin-settings-card-desc" style="margin-bottom:0">Drag the handle to reorder, then save. Add pages or custom URLs as needed.</p>
+        </div>
         <a class="admin-btn-primary" href="{{ url_for('admin.menus.items.new', { id: menu.id }) }}">Add link</a>
-      </div>
+      </header>
 
       {% if menu_items is empty %}
-        <p class="admin-hint" style="margin:0">Use <strong>Add link</strong> to attach a page or external URL.</p>
+        <p class="admin-hint admin-settings-card-footnote">Use <strong>Add link</strong> to attach a page or external URL.</p>
       {% else %}
-        <form id="menu-reorder-form" method="post" action="{{ url_for('admin.menus.items.reorder', { id: menu.id }) }}" hidden aria-hidden="true"></form>
-        <div class="admin-table-wrap">
-          <table class="admin-table">
-            <thead>
-              <tr>
-                <th scope="col">Label</th>
-                <th scope="col">Sort</th>
-                <th class="admin-table-col-actions" scope="col"><span class="admin-table-muted">Actions</span></th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for it in menu_items %}
-                <tr>
-                  <td>
-                    <strong>{{ it.label|e }}</strong>
-                    {% if it.pageId %}<span class="admin-table-muted"> · page #{{ it.pageId }}</span>{% elseif it.url %}<span class="admin-table-muted"> · {{ it.url|e }}</span>{% endif %}
-                  </td>
-                  <td style="max-width:7rem">
-                    <input class="admin-input" type="number" form="menu-reorder-form" name="order[{{ it.id }}]" value="{{ it.sortOrder }}" min="0" step="1" aria-label="Sort order for {{ it.label|e('html_attr') }}" />
-                  </td>
-                  <td class="admin-table-actions">
-                    <a class="admin-link" href="{{ url_for('admin.menus.items.edit', { id: menu.id, itemId: it.id }) }}">Edit</a>
-                    <form class="admin-inline-form" method="post" action="{{ url_for('admin.menus.items.delete', { id: menu.id, itemId: it.id }) }}" onsubmit="return confirm('Remove this link?');" style="display:inline;margin-left:0.5rem">
-                      <button type="submit" class="admin-link admin-link--danger" style="background:none;border:none;padding:0;cursor:pointer;font:inherit">Remove</button>
-                    </form>
-                  </td>
-                </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-        <div class="admin-form-actions" style="margin-top:0.75rem;padding:0;border:none">
-          <button type="submit" class="admin-btn-primary" form="menu-reorder-form">Save order</button>
+        <form id="menu-reorder-form" method="post" action="{{ url_for('admin.menus.items.reorder', { id: menu.id }) }}" hidden aria-hidden="true">
+          <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+        </form>
+        <ul class="admin-menu-sort" id="admin-menu-sort-list" role="list">
+          {% for it in menu_items %}
+            <li class="admin-menu-sort-item" data-item-id="{{ it.id }}" role="listitem">
+              <button type="button" class="admin-menu-sort-handle" tabindex="-1" aria-hidden="true" title="Drag to reorder">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="6" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="18" r="1.5"/></svg>
+              </button>
+              <div class="admin-menu-sort-body">
+                <strong class="admin-menu-sort-label">{{ it.label|e }}</strong>
+                {% if it.pageId %}
+                  <span class="admin-menu-sort-meta">Page #{{ it.pageId }}</span>
+                {% elseif it.url %}
+                  <code class="admin-inline-code admin-menu-sort-meta">{{ it.url|e }}</code>
+                {% endif %}
+              </div>
+              <div class="admin-menu-sort-actions">
+                <a class="admin-btn-ghost admin-btn-ghost--sm" href="{{ url_for('admin.menus.items.edit', { id: menu.id, itemId: it.id }) }}">Edit</a>
+                <form class="admin-inline-form" method="post" action="{{ url_for('admin.menus.items.delete', { id: menu.id, itemId: it.id }) }}" onsubmit="return confirm('Remove this link?');">
+                  <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+                  <button type="submit" class="admin-btn-ghost admin-btn-ghost--sm admin-btn-danger-text">Remove</button>
+                </form>
+              </div>
+            </li>
+          {% endfor %}
+        </ul>
+        <div class="admin-form-actions admin-form-actions--inline">
+          <button type="button" class="admin-btn-primary" id="admin-menu-sort-save">Save order</button>
         </div>
       {% endif %}
     </section>
 
-    <section class="admin-card admin-settings-card admin-menu-edit-card">
+    <section class="admin-card admin-settings-card admin-menu-edit-card admin-menu-edit-card--danger">
       <h2 class="admin-settings-card-title">Danger zone</h2>
       <p class="admin-settings-card-desc">Deleting removes this menu and every link. This cannot be undone.</p>
       <form class="admin-inline-form" method="post" action="{{ url_for('admin.menus.delete', { id: menu.id }) }}" onsubmit="return confirm('Delete this menu and all links?');">
-        <button type="submit" class="admin-link admin-link--danger" style="background:none;border:none;padding:0;cursor:pointer;font:inherit">Delete menu</button>
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+        <button type="submit" class="admin-btn-danger">Delete menu</button>
       </form>
     </section>
   </div>
+{% endblock %}
+
+{% block admin_scripts %}
+  {% if menu_items is not empty %}
+    <script src="{{ asset('js/admin-menus-reorder.js') }}" defer></script>
+  {% endif %}
 {% endblock %}

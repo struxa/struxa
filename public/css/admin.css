@@ -15180,3 +15180,273 @@ a.admin-entry-row:hover .admin-entry-row-go {
   font-size: 0.8125rem;
 }
 
+/* —— Hub / tools UI enhancements —— */
+.admin-settings-intro--updates .admin-settings-intro-icon {
+  background: linear-gradient(145deg, rgba(56, 189, 172, 0.2), rgba(123, 97, 255, 0.15));
+}
+
+.admin-updates-page .admin-updates-metrics {
+  margin-bottom: 1.25rem;
+}
+
+.admin-updates-release-card .admin-updates-summary-text {
+  margin: 1rem 0 0;
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  color: var(--admin-muted);
+}
+
+.admin-updates-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.admin-table-wrap--hub {
+  overflow-x: auto;
+  border-radius: var(--admin-radius-sm);
+  border: 1px solid var(--admin-border);
+  background: color-mix(in srgb, var(--admin-card) 88%, transparent);
+}
+
+.admin-table--hub thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: color-mix(in srgb, var(--admin-card) 96%, var(--admin-purple) 4%);
+  font-size: 0.6875rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--admin-dim);
+  white-space: nowrap;
+}
+
+.admin-table--hub tbody tr:hover td {
+  background: rgba(123, 97, 255, 0.06);
+}
+
+.admin-table--hub td,
+.admin-table--hub th {
+  vertical-align: top;
+}
+
+.admin-catalog-kv-break {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  min-width: 0;
+}
+
+.admin-catalog-kv--aside .admin-catalog-kv-row {
+  grid-template-columns: minmax(4.5rem, 5.5rem) minmax(0, 1fr);
+}
+
+.admin-catalog-submitter-ua {
+  margin: 0;
+  max-height: 6.5rem;
+  overflow: auto;
+  padding: 0.55rem 0.65rem;
+  border-radius: var(--admin-radius-sm);
+  border: 1px solid var(--admin-border);
+  background: rgba(0, 0, 0, 0.2);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.6875rem;
+  line-height: 1.45;
+  color: var(--admin-muted);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.admin-search-page .admin-search-form-card {
+  margin-bottom: 1.25rem;
+}
+
+.admin-search-form-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.admin-search-form-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 700;
+  color: var(--admin-text);
+}
+
+.admin-search-form-title {
+  font-size: 0.9375rem;
+}
+
+.admin-search-form-inputs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: stretch;
+}
+
+.admin-search-input {
+  flex: 1;
+  min-width: min(100%, 14rem);
+  font-size: 1rem;
+}
+
+.admin-search-results {
+  list-style: none;
+  margin: 1rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.admin-search-hit {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding: 1rem 1.1rem;
+  border-radius: var(--admin-radius-sm);
+  border: 1px solid var(--admin-border);
+  background: color-mix(in srgb, var(--admin-card) 92%, transparent);
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.admin-search-hit:hover {
+  border-color: rgba(123, 97, 255, 0.35);
+  box-shadow: 0 0 0 1px rgba(123, 97, 255, 0.12);
+}
+
+.admin-search-hit-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-bottom: 0.35rem;
+}
+
+.admin-search-hit-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.admin-search-hit-slug {
+  margin: 0.2rem 0 0;
+  font-size: 0.8125rem;
+}
+
+.admin-search-hit-snippet {
+  margin: 0.5rem 0 0;
+  font-size: 0.8125rem;
+  line-height: 1.55;
+  color: var(--admin-muted);
+}
+
+.admin-search-pagination {
+  margin-top: 1.25rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.admin-menu-edit-page .admin-settings-card-head-row {
+  margin-bottom: 0.85rem;
+}
+
+.admin-menu-sort {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.admin-menu-sort-item {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.75rem 0.85rem;
+  border-radius: var(--admin-radius-sm);
+  border: 1px solid var(--admin-border);
+  background: color-mix(in srgb, var(--admin-card) 94%, transparent);
+  cursor: grab;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    opacity 0.15s ease;
+}
+
+.admin-menu-sort-item.is-dragging {
+  opacity: 0.55;
+  cursor: grabbing;
+}
+
+.admin-menu-sort-item.is-drag-over {
+  border-color: rgba(123, 97, 255, 0.55);
+  box-shadow: 0 0 0 1px rgba(123, 97, 255, 0.2);
+}
+
+.admin-menu-sort-handle {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border: none;
+  border-radius: 0.35rem;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--admin-dim);
+  cursor: grab;
+  padding: 0;
+}
+
+.admin-menu-sort-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.admin-menu-sort-label {
+  display: block;
+  font-size: 0.9375rem;
+}
+
+.admin-menu-sort-meta {
+  display: block;
+  margin-top: 0.15rem;
+  font-size: 0.75rem;
+  color: var(--admin-dim);
+  overflow-wrap: anywhere;
+}
+
+.admin-menu-sort-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  align-items: center;
+}
+
+.admin-btn-danger-text {
+  color: #f87171;
+}
+
+.admin-menu-edit-card--danger {
+  border-color: rgba(248, 113, 113, 0.25);
+}
+
+.admin-seo-redirects-page .admin-settings-toc {
+  margin-bottom: 1.25rem;
+}
+
+.admin-form-actions--inline {
+  margin-top: 1rem;
+  padding-top: 0;
+  border-top: none;
+}
+

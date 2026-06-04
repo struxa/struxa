@@ -79,8 +79,8 @@
         {% if top_destinations is empty %}
           <p class="admin-hint admin-settings-card-footnote">No clicks recorded yet{% if not tracking_enabled %} — enable tracking below{% endif %}.</p>
         {% else %}
-          <div class="admin-table-wrap" style="margin-top:0.85rem;overflow-x:auto">
-            <table class="admin-table admin-table--comfortable">
+          <div class="admin-table-wrap admin-table-wrap--hub" style="margin-top:0.85rem">
+            <table class="admin-table admin-table--comfortable admin-table--hub">
               <thead>
                 <tr>
                   <th scope="col">Destination URL</th>
@@ -116,8 +116,8 @@
         {% if top_sources is empty %}
           <p class="admin-hint admin-settings-card-footnote">No clicks recorded yet.</p>
         {% else %}
-          <div class="admin-table-wrap" style="margin-top:0.85rem;overflow-x:auto">
-            <table class="admin-table admin-table--comfortable">
+          <div class="admin-table-wrap admin-table-wrap--hub" style="margin-top:0.85rem">
+            <table class="admin-table admin-table--comfortable admin-table--hub">
               <thead>
                 <tr>
                   <th scope="col">Source page</th>
@@ -151,8 +151,8 @@
         {% if recent_clicks is empty %}
           <p class="admin-hint admin-settings-card-footnote">No clicks recorded yet.</p>
         {% else %}
-          <div class="admin-table-wrap" style="margin-top:0.85rem;overflow-x:auto">
-            <table class="admin-table admin-table--comfortable">
+          <div class="admin-table-wrap admin-table-wrap--hub" style="margin-top:0.85rem">
+            <table class="admin-table admin-table--comfortable admin-table--hub">
               <thead>
                 <tr>
                   <th scope="col">When</th>

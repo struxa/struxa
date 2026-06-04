@@ -183,28 +183,44 @@
                 <input class="admin-input" id="catalog_edit_branch" name="git_branch" required maxlength="120" value="{{ submission.gitBranch|e('html_attr') }}" />
               </div>
             </div>
-            <div class="admin-field">
-              <label class="admin-label" for="catalog_edit_submitter_username">Linked member username</label>
-              <input
-                class="admin-input"
-                id="catalog_edit_submitter_username"
-                name="submitter_username"
-                maxlength="191"
-                value="{{ submission.submitterUsername|default('')|e('html_attr') }}"
-                placeholder="Search active members…"
-                autocomplete="off"
-                list="catalog_member_usernames"
-                data-member-search-url="{{ member_search_url|default('')|e('html_attr') }}"
-              />
-              <datalist id="catalog_member_usernames"></datalist>
-              <p class="admin-hint">Type at least 2 characters to search usernames, emails, or display names. Must match an active member when set.</p>
-              {% if submission.submitterUserId %}
-                <label class="admin-checkbox-label" style="margin-top:.65rem">
-                  <input type="checkbox" name="clear_submitter_link" value="1" />
-                  Remove member link (keep submitter email {{ submission.submitterEmail|e }})
-                </label>
-              {% endif %}
+            <div class="admin-form-grid">
+              <div class="admin-field">
+                <label class="admin-label" for="catalog_edit_submitter_email">Submitter email</label>
+                <input
+                  class="admin-input"
+                  type="email"
+                  id="catalog_edit_submitter_email"
+                  name="submitter_email"
+                  maxlength="191"
+                  value="{{ submission.submitterEmail|default('')|e('html_attr') }}"
+                  placeholder="contact@example.com"
+                  autocomplete="off"
+                />
+                <p class="admin-hint">Shown for staff reference; used when no linked member or after import.</p>
+              </div>
+              <div class="admin-field">
+                <label class="admin-label" for="catalog_edit_submitter_username">Linked member username</label>
+                <input
+                  class="admin-input"
+                  id="catalog_edit_submitter_username"
+                  name="submitter_username"
+                  maxlength="191"
+                  value="{{ submission.submitterUsername|default('')|e('html_attr') }}"
+                  placeholder="Search active members…"
+                  autocomplete="off"
+                  list="catalog_member_usernames"
+                  data-member-search-url="{{ member_search_url|default('')|e('html_attr') }}"
+                />
+                <datalist id="catalog_member_usernames"></datalist>
+              </div>
             </div>
+            <p class="admin-hint">Type at least 2 characters in username to search members. Linking a member fills email only when the email field above is empty.</p>
+            {% if submission.submitterUserId %}
+              <label class="admin-checkbox-label" style="margin-top:.35rem">
+                <input type="checkbox" name="clear_submitter_link" value="1" />
+                Remove member link (keep submitter email)
+              </label>
+            {% endif %}
             <p class="admin-hint">Slug <code class="admin-inline-code">{{ submission.slug|e }}</code> is fixed after submission.{% if submission.status == 'approved' %} Saving regenerates <code class="admin-inline-code">repo.json</code>.{% endif %}</p>
             <div class="admin-catalog-submission-review-actions">
               <button type="submit" class="admin-btn-primary">Save changes</button>
@@ -283,12 +299,12 @@
               {% endif %}
             </div>
           </header>
-          <dl class="admin-catalog-kv admin-catalog-kv--compact">
+          <dl class="admin-catalog-kv admin-catalog-kv--compact admin-catalog-kv--aside">
             {% set _submitter = submission.submitterUsername|default('') != '' ? submission.submitterUsername : submission.submitterName %}
             {% if _submitter != '' %}
               <div class="admin-catalog-kv-row">
                 <dt>Username</dt>
-                <dd>{{ _submitter|e }}</dd>
+                <dd class="admin-catalog-kv-break">{{ _submitter|e }}</dd>
               </div>
             {% endif %}
             {% if submission.submitterUserId %}
@@ -299,20 +315,22 @@
             {% endif %}
             {% if submission.submitterEmail != 'catalog@import.local' and submission.submitterEmail != '' %}
               <div class="admin-catalog-kv-row">
-                <dt>Account email</dt>
-                <dd><a class="admin-link" href="mailto:{{ submission.submitterEmail|e('html_attr') }}">{{ submission.submitterEmail|e }}</a></dd>
+                <dt>Email</dt>
+                <dd class="admin-catalog-kv-break"><a class="admin-link" href="mailto:{{ submission.submitterEmail|e('html_attr') }}">{{ submission.submitterEmail|e }}</a></dd>
               </div>
             {% endif %}
             {% if submission.submitterIp|default('') != '' %}
               <div class="admin-catalog-kv-row">
                 <dt>IP address</dt>
-                <dd><code class="admin-inline-code">{{ submission.submitterIp|e }}</code></dd>
+                <dd><code class="admin-inline-code admin-catalog-kv-break">{{ submission.submitterIp|e }}</code></dd>
               </div>
             {% endif %}
             {% if submission.submitterUserAgent|default('') != '' %}
               <div class="admin-catalog-kv-row admin-catalog-kv-row--stack">
                 <dt>Browser</dt>
-                <dd class="admin-table-muted admin-tools-code-break">{{ submission.submitterUserAgent|e }}</dd>
+                <dd>
+                  <pre class="admin-catalog-submitter-ua">{{ submission.submitterUserAgent|e }}</pre>
+                </dd>
               </div>
             {% endif %}
           </dl>
