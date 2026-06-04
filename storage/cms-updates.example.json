@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.2.43",
-    "title": "Struxa 1.2.43",
-    "summary": "Theme submit highlights correct pill; struxa-admin 1.0.32 GitHub views/ validation for directory listings.",
+    "latest_version": "1.2.44",
+    "title": "Struxa 1.2.44",
+    "summary": "Add deploy-production-from-github.sh and optional GitHub Actions SSH deploy for struxapoint.com.",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "minor"

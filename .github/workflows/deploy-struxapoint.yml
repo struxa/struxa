@@ -1,0 +1,65 @@
+# Deploy CMS files to struxapoint.com over SSH when main changes (or manual run).
+#
+# One-time setup (repo Settings → Secrets → Actions):
+#   STRUXAPOINT_SSH_KEY  — private key for bushell@struxapoint.com
+#   STRUXAPOINT_HOST     — struxapoint.com (optional; default struxapoint.com)
+#   STRUXAPOINT_PATH     — /home/bushell/public_html/struxapoint (optional)
+#
+# Add the matching public key in cPanel → SSH Access → Manage SSH Keys.
+
+name: Deploy struxapoint
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'routes/**'
+      - 'templates/**'
+      - 'bootstrap/**'
+      - 'plugins/struxa-admin/**'
+      - 'scripts/deploy-production-from-github.sh'
+
+jobs:
+  deploy:
+    if: github.repository == 'struxa/struxa' && secrets.STRUXAPOINT_SSH_KEY != ''
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.STRUXAPOINT_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "${{ vars.STRUXAPOINT_HOST || 'struxapoint.com' }}" >> ~/.ssh/known_hosts 2>/dev/null || true
+
+      - name: Rsync to production
+        if: secrets.STRUXAPOINT_SSH_KEY != ''
+        env:
+          HOST: ${{ vars.STRUXAPOINT_HOST || 'struxapoint.com' }}
+          PATH_ON_SERVER: ${{ vars.STRUXAPOINT_PATH || '/home/bushell/public_html/struxapoint' }}
+        run: |
+          RSYNC_FILES=(
+            src/CmsVersion.php
+            bootstrap/web_app.php
+            src/Plugin/StruxaCatalogAdminRouteRegistrar.php
+            src/Plugin/StruxaCatalogStackShipper.php
+            src/Http/Middleware/TwigCmsGlobals.php
+            routes/admin_plugins.php
+            templates/admin/partials/sidebar_nav.twig
+            plugins/struxa-admin/plugin.json
+            plugins/struxa-admin/src/GitHubRepoClient.php
+            plugins/struxa-admin/views/public/_catalog_layout.twig
+            scripts/deploy-production-from-github.sh
+            scripts/verify-theme-repo-github.php
+            scripts/verify-catalog-admin-routes.php
+          )
+          for rel in "${RSYNC_FILES[@]}"; do
+            dest_dir="$PATH_ON_SERVER/$(dirname "$rel")"
+            ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=accept-new "bushell@${HOST}" "mkdir -p '${dest_dir}'"
+            scp -i ~/.ssh/deploy_key -o StrictHostKeyChecking=accept-new "$rel" "bushell@${HOST}:${PATH_ON_SERVER}/${rel}"
+          done
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=accept-new "bushell@${HOST}" \
+            "cd '${PATH_ON_SERVER}' && php bin/cms.php cache:clear 2>/dev/null || true; rm -rf storage/cache/twig/* 2>/dev/null || true"
