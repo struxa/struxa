@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.2.44",
-    "title": "Struxa 1.2.44",
-    "summary": "Add deploy-production-from-github.sh and optional GitHub Actions SSH deploy for struxapoint.com.",
+    "latest_version": "1.2.45",
+    "title": "Struxa 1.2.45",
+    "summary": "Catalog admin fixes: sidebar Twig, submissions route root, theme submit pill and GitHub views/ check; self-update now syncs bundled struxa-admin.",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "minor"

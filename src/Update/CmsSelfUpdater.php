@@ -11,7 +11,8 @@ use ZipArchive;
 
 /**
  * Applies a remote Struxa ZIP (GitHub archive or vendor-built package) over the install.
- * Preserves .env, storage/, public/uploads/, plugins/ (install via catalog), and each plugin's vendor/ tree.
+ * Preserves .env, storage/, public/uploads/, third-party plugins/ (install via catalog), and each plugin's vendor/ tree.
+ * Merges bundled {@code plugins/struxa-admin/} from the CMS package so catalog admin fixes ship with core updates.
  */
 final class CmsSelfUpdater
 {
@@ -328,6 +329,12 @@ final class CmsSelfUpdater
             return true;
         }
         if ($rel === 'plugins' || str_starts_with($rel, 'plugins/')) {
+            // Bundled Struxa Catalog Admin — sync with core (GitHub / self-update ZIP).
+            if (str_starts_with($rel, 'plugins/struxa-admin/')
+                && !str_starts_with($rel, 'plugins/struxa-admin/vendor/')) {
+                return false;
+            }
+
             return true;
         }
         if (preg_match('#^plugins/[^/]+/vendor($|/)#', $rel) === 1) {
