@@ -176,7 +176,7 @@ final class TwigCmsGlobals implements MiddlewareInterface
         $env->addGlobal('plugin_admin_nav_items', $partition['flat']);
         $env->addGlobal('plugin_admin_nav_groups', $partition['groups']);
         $env->addGlobal('struxa_catalog_nav', self::struxaCatalogNav($projectRoot, $this->routeParser));
-        $env->addGlobal('cms_public_page_cache_on', CacheConfig::publicPageCacheEnabled());
+        $env->addGlobal('cms_public_page_cache_on', CacheConfig::publicCacheEnabled());
         $env->addGlobal('cms_version', CmsVersion::CURRENT);
 
         $commerceSettings = new CommerceSettings($this->pdo);
