@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.2.35",
-    "title": "Struxa 1.2.35",
-    "summary": "Always show Struxa Catalog Admin sidebar links when struxa-admin is on disk (URL fallback if routes not registered yet).",
+    "latest_version": "1.2.37",
+    "title": "Struxa 1.2.37",
+    "summary": "Production admin stability: catalog sidebar links, TwigCmsGlobals cache fix, plugins page and catalog ship fixes; struxa-admin 1.0.31 theme submit views/ check.",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "minor"
