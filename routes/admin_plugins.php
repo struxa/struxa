@@ -15,10 +15,8 @@ use App\Filesystem\SafeDirectoryRemoval;
 use App\Plugin\PluginCatalogLoader;
 use App\Plugin\PluginManager;
 use App\Plugin\PluginMigrationRunner;
-use App\Plugin\PluginManifestParser;
 use App\Plugin\StruxaCatalogStackShipper;
 use App\Security\CsrfToken;
-use App\Settings;
 use App\Plugin\PluginPerformanceRegistry;
 use App\Plugin\PluginRemoteInstaller;
 use App\Plugin\PluginRepository;
@@ -40,72 +38,6 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
     $middleware = new RequireCmsStaff($auth, $pdo);
     $permPlugins = new RequirePermission($pdo, [PermissionSlug::MANAGE_PLUGINS]);
     $root = dirname(__DIR__);
-
-    /** Avoid CatalogSettings in route closures (nested use() can leave $pdo null on some hosts). */
-    $struxaCatalogDistRoot = static function (string $projectRoot): string {
-        $custom = trim((string) (Settings::get('struxa_admin_dist_root', '') ?? ''));
-        if ($custom !== '') {
-            return rtrim($custom, '/\\');
-        }
-        foreach ([$projectRoot . '/public/struxa-dist', $projectRoot . '/struxa-dist'] as $path) {
-            if (is_dir($path)) {
-                return $path;
-            }
-        }
-
-        return rtrim($projectRoot, '/\\') . '/public/struxa-dist';
-    };
-
-    $struxaCatalogAdminDiskVersion = static function (string $projectRoot): ?string {
-        try {
-            if (class_exists(StruxaCatalogStackShipper::class)) {
-                return StruxaCatalogStackShipper::diskVersion($projectRoot);
-            }
-        } catch (\Throwable) {
-        }
-        $json = $projectRoot . '/plugins/struxa-admin/plugin.json';
-        if (!is_file($json)) {
-            return null;
-        }
-        $parsed = (new PluginManifestParser())->parseFile($json, 'struxa-admin');
-
-        return $parsed['ok'] && $parsed['manifest'] instanceof \App\Plugin\PluginManifest
-            ? trim($parsed['manifest']->version) : null;
-    };
-
-    $struxaCatalogAdminRepoVersion = static function (string $projectRoot) use ($struxaCatalogDistRoot): ?string {
-        try {
-            if (class_exists(StruxaCatalogStackShipper::class)) {
-                return StruxaCatalogStackShipper::repoVersion($struxaCatalogDistRoot($projectRoot));
-            }
-        } catch (\Throwable) {
-        }
-        $repoPath = $struxaCatalogDistRoot($projectRoot) . '/repo.json';
-        if (!is_readable($repoPath)) {
-            return null;
-        }
-        try {
-            /** @var mixed $catalog */
-            $catalog = json_decode((string) file_get_contents($repoPath), true, 512, JSON_THROW_ON_ERROR);
-        } catch (\JsonException) {
-            return null;
-        }
-        if (!is_array($catalog) || !isset($catalog['plugins']) || !is_array($catalog['plugins'])) {
-            return null;
-        }
-        if (isset($catalog['plugins']['shards'])) {
-            return null;
-        }
-        foreach ($catalog['plugins'] as $row) {
-            if (is_array($row) && ($row['slug'] ?? '') === 'struxa-admin') {
-                $v = trim((string) ($row['version'] ?? ''));
-
-                return $v !== '' ? $v : null;
-            }
-        }
-
-        return null;
-    };
 
     $activity = new ActivityLogger($pdo);
     $repo = new PluginRepository($pdo);
@@ -175,9 +107,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             $pluginPerformance,
             $pluginUpdateChecker,
             $namedRouteUrl,
-            $root,
-            $struxaCatalogAdminDiskVersion,
-            $struxaCatalogAdminRepoVersion
+            $root
         ): Response {
             $discovered = $manager->syncDiscoveredToDatabase();
             $catalogBySlug = $pluginUpdateChecker->catalogEntriesBySlug();
@@ -248,8 +178,10 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 'struxa_catalog_ship_stack_url' => RouteContext::fromRequest($request)
                     ->getRouteParser()
                     ->urlFor('admin.extensions.plugins.ship_struxa_catalog_stack'),
-                'struxa_catalog_admin_disk_version' => $struxaCatalogAdminDiskVersion($root),
-                'struxa_catalog_admin_repo_version' => $struxaCatalogAdminRepoVersion($root),
+                'struxa_catalog_admin_disk_version' => StruxaCatalogStackShipper::diskVersion($root),
+                'struxa_catalog_admin_repo_version' => StruxaCatalogStackShipper::repoVersion(
+                    StruxaCatalogStackShipper::resolveDistRoot($root)
+                ),
                 'struxa_catalog_show_repair' => $scanner->findBySlug('struxa-admin') !== null
                     && $namedRouteUrl($request, 'admin.struxa_catalog.submissions') === null,
                 'plugin_perf_thresholds' => [

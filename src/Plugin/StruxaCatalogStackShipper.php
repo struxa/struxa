@@ -357,8 +357,12 @@ final class StruxaCatalogStackShipper
      */
     public static function resolveDistRoot(string $projectRoot): string
     {
+        $settingKeys = ['struxa_admin_dist_root'];
         if (class_exists(CatalogSettings::class)) {
-            $custom = trim((string) (\App\Settings::get(CatalogSettings::KEY_DIST_ROOT, '') ?? ''));
+            $settingKeys[] = CatalogSettings::KEY_DIST_ROOT;
+        }
+        foreach (array_unique($settingKeys) as $key) {
+            $custom = trim((string) (\App\Settings::get($key, '') ?? ''));
             if ($custom !== '') {
                 return rtrim($custom, '/\\');
             }
