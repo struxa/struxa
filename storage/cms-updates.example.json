@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.2.17",
-    "title": "Struxa 1.2.17",
-    "summary": "Theme a11y: footer CTA contrast (darker orange), feature/blog card headings h3 under h2.",
+    "latest_version": "1.2.18",
+    "title": "Struxa 1.2.18",
+    "summary": "refresh-theme-catalog.sh now writes repo.json in one step; Admin regenerate prefers bundled struxa-theme.",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "minor"

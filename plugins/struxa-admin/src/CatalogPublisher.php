@@ -96,6 +96,8 @@ final class CatalogPublisher
 
         $this->syncPublishJsonFromApproved();
 
+        $themes = $this->upsertBundledStruxaVisionTheme($themes, $zipsDir, $baseUrl, $screenshotBase);
+
         usort($themes, static fn (array $a, array $b): int => strcmp($a['slug'], $b['slug']));
         usort($plugins, static fn (array $a, array $b): int => strcmp($a['slug'], $b['slug']));
 
@@ -488,6 +490,53 @@ final class CatalogPublisher
         }
 
         return null;
+    }
+
+    /**
+     * Core bundled Struxa Vision always wins over stale submission metadata in repo.json.
+     *
+     * @param list<array<string, mixed>> $themes
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function upsertBundledStruxaVisionTheme(
+        array $themes,
+        string $zipsDir,
+        string $baseUrl,
+        string $screenshotBase,
+    ): array {
+        $slug = 'struxa-theme';
+        $dir = $this->settings->projectRoot() . '/themes/' . $slug;
+        if (!is_dir($dir) || ThemeManifest::tryLoadRelaxedPath($dir) === null) {
+            return $themes;
+        }
+
+        $entry = $this->entryForZip($slug, SubmissionKind::THEME, $zipsDir, $baseUrl, $screenshotBase);
+        if ($entry === null) {
+            $jsonPath = $dir . '/theme.json';
+            if (!is_readable($jsonPath)) {
+                return $themes;
+            }
+            try {
+                /** @var mixed $data */
+                $data = json_decode((string) file_get_contents($jsonPath), true, 512, JSON_THROW_ON_ERROR);
+            } catch (\JsonException) {
+                return $themes;
+            }
+            if (!is_array($data)) {
+                return $themes;
+            }
+            $entry = $this->catalogEntryFromManifest(
+                $slug,
+                $data,
+                SubmissionKind::THEME,
+                $baseUrl,
+                isset($data['repository_url']) && is_string($data['repository_url']) ? $data['repository_url'] : null,
+                $screenshotBase,
+            );
+        }
+
+        return $this->upsertEntry($themes, $entry);
     }
 
     /**

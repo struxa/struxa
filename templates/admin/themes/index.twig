@@ -9,7 +9,7 @@
 
 {% block admin_hero_sub %}
   <p class="admin-hero-sub">Installed themes live in <code class="admin-inline-code">/themes/</code>. The active theme controls public layouts, CSS, and Twig overrides; the admin panel always uses core templates.</p>
-  <p class="admin-hero-sub admin-hero-sub--tight">On the server, run <code class="admin-inline-code">bash scripts/republish-bundled-theme.sh</code> then <strong>Struxa catalog → Regenerate catalog</strong> so the catalog ZIP and <strong>Reinstall from catalog</strong> match <code class="admin-inline-code">themes/struxa-theme/</code> on disk. Git is not required on the host.</p>
+  <p class="admin-hero-sub admin-hero-sub--tight">On the server: <code class="admin-inline-code">bash scripts/refresh-theme-catalog.sh</code> updates the catalog ZIP and <code class="admin-inline-code">repo.json</code> in one step (no git). Then use <strong>Reinstall from catalog</strong> below.</p>
   {% if theme_update_count|default(0) > 0 %}
     <p class="admin-hero-sub admin-hero-sub--tight">{{ theme_update_count }} theme update(s) available from the catalog or GitHub.</p>
   {% endif %}

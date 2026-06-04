@@ -60,8 +60,8 @@ grep '"version"' themes/struxa-theme/theme.json    # must be 1.0.41+ after deplo
 git pull origin main                               # if you deploy via git
 # or: Admin → Updates → install latest CMS
 
-bash scripts/republish-bundled-theme.sh            # rebuild ZIP from themes/
-# Admin → Struxa catalog → Regenerate catalog    # refresh repo.json
+bash scripts/refresh-theme-catalog.sh            # rebuild ZIP + write repo.json (one step)
+# Admin → Themes → Reinstall from catalog        # apply to themes/struxa-theme/
 ```
 
 Use `bash scripts/...` if `./scripts/...` returns Permission denied.
@@ -70,8 +70,8 @@ If `themes/struxa-theme/theme.json` stays at **1.0.38** after `git pull`, the se
 
 ```bash
 bash scripts/sync-struxa-theme-from-github.sh
-bash scripts/republish-bundled-theme.sh
-# Admin → Struxa catalog → Regenerate catalog
+bash scripts/refresh-theme-catalog.sh
+# Admin → Themes → Reinstall from catalog
 ```
 
 **Deploy CMS only** — merge application code via git pull, self-update, or FTP safe ZIP. Never upload git’s `public/struxa-dist/repo.json` or `zips/` over the live folder.
