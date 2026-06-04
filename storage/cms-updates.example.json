@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.2.54",
-    "title": "Struxa 1.2.54",
-    "summary": "Public plugins and themes catalog: full sort (rating, downloads, comments, date) and numbered pagination on browse pages.",
+    "latest_version": "1.2.55",
+    "title": "Struxa 1.2.55",
+    "summary": "Fix admin white screen: pass CatalogCommentRepository into CatalogEntryEngagement bootstrap.",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "minor"

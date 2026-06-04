@@ -38,7 +38,8 @@ return static function (App $app, \App\Plugin\PluginBootContext $ctx): void {
     $submissions = new CatalogSubmissionRepository($pdo);
     $downloadStats = new CatalogDownloadStatsRepository($pdo);
     $reviews = new CatalogReviewRepository($pdo);
-    $engagement = new CatalogEntryEngagement($downloadStats, $reviews);
+    $comments = new CatalogCommentRepository($pdo);
+    $engagement = new CatalogEntryEngagement($downloadStats, $reviews, $comments);
     $packageDownload = new CatalogPackageDownload($settings, $downloadStats);
     $github = new GitHubRepoClient($settings->githubToken());
     $validator = new CatalogSubmissionValidator($github, $submissions);
