@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.2.38",
-    "title": "Struxa 1.2.38",
-    "summary": "Register catalog admin routes after admin_plugins; sidebar links only when routes exist; admin 404 hint for missing registrar.",
+    "latest_version": "1.2.39",
+    "title": "Struxa 1.2.39",
+    "summary": "Fix fatal bootstrap TypeError: StruxaCatalogAdminRouteRegistrar EventDispatcher import restores admin.",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "minor"

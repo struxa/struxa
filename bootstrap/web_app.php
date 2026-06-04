@@ -759,17 +759,21 @@ SectionDefinitionRegistry::instance()->registerProvider(new CoreSectionDefinitio
 $pluginRepo = new PluginRepository($pdo);
 $pluginScannerForCatalog = new \App\Plugin\PluginScanner($root);
 if (class_exists(\App\Plugin\StruxaCatalogAdminRouteRegistrar::class)) {
-    \App\Plugin\StruxaCatalogAdminRouteRegistrar::registerIfNeeded(
-        $app,
-        $twig,
-        $auth,
-        $pdo,
-        $viewData,
-        $eventDispatcher,
-        $root,
-        $pluginRepo,
-        $pluginScannerForCatalog,
-    );
+    try {
+        \App\Plugin\StruxaCatalogAdminRouteRegistrar::registerIfNeeded(
+            $app,
+            $twig,
+            $auth,
+            $pdo,
+            $viewData,
+            $eventDispatcher,
+            $root,
+            $pluginRepo,
+            $pluginScannerForCatalog,
+        );
+    } catch (\Throwable $e) {
+        error_log('[plugin] Catalog admin route registration skipped: ' . $e->getMessage());
+    }
 }
 $pluginScope = PluginLoadScope::fromWebRequest($_SERVER['REQUEST_URI'] ?? '/');
 $pluginManager = new PluginManager($root, $pluginRepo, new PluginScanner($root), new PluginValidator($pdo));

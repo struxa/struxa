@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Plugin;
 
 use App\Access\PermissionSlug;
+use App\Event\EventDispatcher;
 use App\Event\Events;
 use App\Event\StorefrontCachesInvalidateEvent;
 use App\Flash;
