@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.2.24",
-    "title": "Struxa 1.2.24",
-    "summary": "Catalog submissions: Upgrade catalog & publish button (GitHub, ZIP, repo.json, migrations).",
+    "latest_version": "1.2.25",
+    "title": "Struxa 1.2.25",
+    "summary": "Fix Plugins page crash: pass project root into catalog version helpers.",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "minor"

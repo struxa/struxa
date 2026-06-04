@@ -88,6 +88,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
         $activity,
         $cmsUid,
         $pdo,
+        $root,
         $catalogLoader,
         $remoteInstaller,
         $pluginUpdateChecker,
