@@ -56,6 +56,36 @@ final class StruxaCatalogAdminRouteRegistrar
     }
 
     /**
+     * @return array{media_picker_enabled: bool, media_picker_initial: list<array{id: int, url: string, name: string}>, media_picker_max_mb: int}
+     */
+    private static function catalogMediaPickerViewData(Request $request, MediaRepository $mediaRepo): array
+    {
+        /** @var array<string, mixed> $cmsUser */
+        $cmsUser = $request->getAttribute('cms_user') ?? [];
+        $slugs = $cmsUser['permission_slugs'] ?? [];
+        $enabled = is_array($slugs) && in_array(PermissionSlug::MANAGE_MEDIA, $slugs, true);
+        $picker = [];
+        if ($enabled) {
+            foreach ($mediaRepo->listImagesForPicker(240) as $row) {
+                if (($row['public_url'] ?? '') === '') {
+                    continue;
+                }
+                $picker[] = [
+                    'id' => $row['id'],
+                    'url' => $row['public_url'],
+                    'name' => $row['original_name'],
+                ];
+            }
+        }
+
+        return [
+            'media_picker_enabled' => $enabled,
+            'media_picker_initial' => $picker,
+            'media_picker_max_mb' => (int) round(MediaUploadService::maxBytesFromEnv() / 1024 / 1024),
+        ];
+    }
+
+    /**
      * @param callable(): array<string, mixed> $viewData
      */
     /**
@@ -222,32 +252,6 @@ final class StruxaCatalogAdminRouteRegistrar
             ]), $extra);
         };
 
-        $catalogMediaPickerContext = static function (Request $request) use ($mediaRepo): array {
-            /** @var array<string, mixed> $cmsUser */
-            $cmsUser = $request->getAttribute('cms_user') ?? [];
-            $slugs = $cmsUser['permission_slugs'] ?? [];
-            $enabled = is_array($slugs) && in_array(PermissionSlug::MANAGE_MEDIA, $slugs, true);
-            $picker = [];
-            if ($enabled) {
-                foreach ($mediaRepo->listImagesForPicker(240) as $row) {
-                    if (($row['public_url'] ?? '') === '') {
-                        continue;
-                    }
-                    $picker[] = [
-                        'id' => $row['id'],
-                        'url' => $row['public_url'],
-                        'name' => $row['original_name'],
-                    ];
-                }
-            }
-
-            return [
-                'media_picker_enabled' => $enabled,
-                'media_picker_initial' => $picker,
-                'media_picker_max_mb' => (int) round(MediaUploadService::maxBytesFromEnv() / 1024 / 1024),
-            ];
-        };
-
         $cmsUid = static function (Request $request): ?int {
             /** @var array<string, mixed> $u */
             $u = $request->getAttribute('cms_user') ?? [];
@@ -350,7 +354,7 @@ final class StruxaCatalogAdminRouteRegistrar
                 Request $request,
                 Response $response,
                 array $args
-            ) use ($twig, $adminView, $submissions, $settings, $ns, $pdo, $catalogMediaPickerContext): Response {
+            ) use ($twig, $adminView, $submissions, $settings, $ns, $pdo, $mediaRepo): Response {
                 $id = (int) $args['id'];
                 $row = $submissions->findById($id);
                 if ($row === null) {
@@ -368,7 +372,7 @@ final class StruxaCatalogAdminRouteRegistrar
                 }
 
                 return $twig->render($response, $ns . '/admin/submission_show.twig', $adminView($request, array_merge(
-                    $catalogMediaPickerContext($request),
+                    self::catalogMediaPickerViewData($request, $mediaRepo),
                     [
                         'submission' => $row,
                         'dist_root' => $settings->distRoot(),
