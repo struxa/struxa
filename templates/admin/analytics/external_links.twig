@@ -178,9 +178,86 @@
         {% endif %}
       </section>
 
+      <section class="admin-card admin-settings-card admin-settings-section" id="short-links">
+        <header class="admin-settings-card-head-row">
+          <div>
+            <h2 class="admin-settings-card-title">Short links</h2>
+            <p class="admin-settings-card-desc" style="margin-bottom:0">
+              Create branded short URLs that redirect to any destination — e.g.
+              <code class="admin-inline-code">{{ short_link_example_url|default('/go/abc123')|e }}</code>.
+            </p>
+          </div>
+          {% if short_link_enabled|default(false) %}
+            <span class="admin-pill admin-pill--ok admin-hub-status-pill">Short links on</span>
+          {% else %}
+            <span class="admin-pill admin-pill--warn admin-hub-status-pill">Short links off</span>
+          {% endif %}
+        </header>
+
+        <form method="post" action="{{ url_for('admin.analytics.short_links.create') }}" class="admin-form admin-settings-form" style="margin-top:0.85rem">
+          <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+          <div class="admin-form-grid">
+            <div class="admin-field admin-field--full">
+              <label class="admin-label" for="short-destination">Destination URL</label>
+              <input class="admin-input" type="url" id="short-destination" name="destination_url" required placeholder="https://partner.example.com/landing" />
+            </div>
+            <div class="admin-field">
+              <label class="admin-label" for="short-code">Short code (optional)</label>
+              <input class="admin-input" id="short-code" name="code" maxlength="12" pattern="[a-z0-9]{4,12}" placeholder="dsf6sh" autocomplete="off" />
+              <p class="admin-hint">4–12 lowercase letters/numbers. Leave blank to auto-generate.</p>
+            </div>
+            <div class="admin-field">
+              <label class="admin-label" for="short-label">Label (optional)</label>
+              <input class="admin-input" id="short-label" name="label" maxlength="255" placeholder="Affiliate spring campaign" />
+            </div>
+          </div>
+          <div class="admin-form-actions">
+            <button type="submit" class="admin-btn-primary"{% if not short_link_enabled|default(false) %} disabled title="Enable short links in settings below"{% endif %}>Create short link</button>
+          </div>
+        </form>
+
+        {% if short_link_rows is empty %}
+          <p class="admin-hint admin-settings-card-footnote">No short links yet.</p>
+        {% else %}
+          <div class="admin-table-wrap admin-table-wrap--hub" style="margin-top:1rem">
+            <table class="admin-table admin-table--comfortable admin-table--hub">
+              <thead>
+                <tr>
+                  <th scope="col">Short URL</th>
+                  <th scope="col">Destination</th>
+                  <th scope="col">Label</th>
+                  <th scope="col">Clicks</th>
+                  <th scope="col">Created</th>
+                  <th scope="col"><span class="visually-hidden">Actions</span></th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for row in short_link_rows %}
+                  <tr>
+                    <td>
+                      <a class="admin-link admin-table-primary" href="{{ row.short_url|e('html_attr') }}" target="_blank" rel="noopener">{{ row.short_url|e }}</a>
+                    </td>
+                    <td class="admin-table-url"><a class="admin-link" href="{{ row.destination_url|e('html_attr') }}" rel="noopener noreferrer" target="_blank">{{ row.destination_url|e }}</a></td>
+                    <td class="admin-table-muted">{{ row.label|default('')|e }}</td>
+                    <td><strong class="admin-table-primary">{{ row.clicks }}</strong></td>
+                    <td class="admin-table-muted"><time datetime="{{ row.created_at|e('html_attr') }}">{{ row.created_at|e }}</time></td>
+                    <td>
+                      <form method="post" action="{{ url_for('admin.analytics.short_links.delete', { id: row.id }) }}" onsubmit="return confirm('Delete this short link?');">
+                        <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+                        <button type="submit" class="admin-btn-ghost admin-btn-ghost--sm admin-btn-danger">Delete</button>
+                      </form>
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% endif %}
+      </section>
+
       <section class="admin-card admin-settings-card admin-settings-section" id="analytics-settings">
-        <h2 class="admin-settings-card-title">Tracker settings</h2>
-        <p class="admin-settings-card-desc">Enable the storefront beacon, exclude noisy hosts, and choose how long to keep click data.</p>
+        <h2 class="admin-settings-card-title">Tracker &amp; short link settings</h2>
+        <p class="admin-settings-card-desc">Enable click tracking, short link redirects, excluded hosts, and data retention.</p>
         <form method="post" action="{{ url_for('admin.analytics.external_links.settings') }}" class="admin-form admin-settings-form">
           <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
           <div class="admin-form-grid">
@@ -190,6 +267,24 @@
                 Track outbound link clicks on the storefront
               </label>
               <p class="admin-hint">When off, the tracking script does not send events and this report stops growing.</p>
+            </div>
+            <div class="admin-field admin-field--full">
+              <label class="admin-label admin-settings-check-label">
+                <input type="checkbox" name="short_link_enabled" value="1" {% if short_link_enabled|default(false) %}checked{% endif %} />
+                Enable short link redirects
+              </label>
+            </div>
+            <div class="admin-field">
+              <label class="admin-label" for="short-link-prefix">URL prefix segment</label>
+              <input class="admin-input" id="short-link-prefix" name="short_link_prefix" maxlength="32" value="{{ short_link_prefix|default('go')|e('html_attr') }}" placeholder="go" />
+              <p class="admin-hint">Creates URLs like <code class="admin-inline-code">/{{ short_link_prefix|default('go')|e }}/dsf6sh</code>. Use a single segment (letters, numbers, hyphens).</p>
+            </div>
+            <div class="admin-field admin-field--full">
+              <label class="admin-label admin-settings-check-label">
+                <input type="checkbox" name="short_link_root_mode" value="1" {% if short_link_root_mode|default(false) %}checked{% endif %} />
+                Also allow root short URLs (<code class="admin-inline-code">/{{ 'code' }}</code>)
+              </label>
+              <p class="admin-hint">When enabled, <code class="admin-inline-code">https://yoursite.com/dsf6sh</code> works in addition to prefixed URLs. Avoid codes that match existing page slugs.</p>
             </div>
             <div class="admin-field admin-field--full">
               <label class="admin-label" for="exclude-hosts">Exclude destinations (one host per line)</label>

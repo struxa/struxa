@@ -30,6 +30,7 @@ use App\Http\Middleware\NotFoundLogMiddleware;
 use App\Http\PublicNotFoundHandler;
 use App\Http\Middleware\PublishScheduleMiddleware;
 use App\Http\Middleware\RedirectMiddleware;
+use App\Http\Middleware\ShortLinkRedirectMiddleware;
 use App\Http\Middleware\IpBlockMiddleware;
 use App\Http\Middleware\SecurityHeadersMiddleware;
 use App\Http\Middleware\ThrottlingMiddleware;
@@ -714,6 +715,7 @@ $app->get('/logout', function (Request $request, Response $response) use ($twig,
 (require $root . '/routes/public_comments.php')($app, $pdo, $root, $auth);
 (require $root . '/routes/public_forms.php')($app, $twig, $pdo, $root, $viewData);
 (require $root . '/routes/public_external_link_tracking.php')($app, $pdo, $root, $auth);
+(require $root . '/routes/public_short_links.php')($app, $pdo);
 (require $root . '/routes/public_commerce.php')($app, $twig, $pdo, $viewData);
 
 (require $root . '/routes/admin.php')($app, $twig, $auth, $pdo, $viewData);
