@@ -58,8 +58,9 @@ final class StruxaCatalogAdminRouteRegistrar
     /**
      * @return array{media_picker_enabled: bool, media_picker_initial: list<array{id: int, url: string, name: string}>, media_picker_max_mb: int}
      */
-    private static function catalogMediaPickerViewData(Request $request, MediaRepository $mediaRepo): array
+    private static function catalogMediaPickerViewData(Request $request, \PDO $pdo): array
     {
+        $mediaRepo = new MediaRepository($pdo);
         /** @var array<string, mixed> $cmsUser */
         $cmsUser = $request->getAttribute('cms_user') ?? [];
         $slugs = $cmsUser['permission_slugs'] ?? [];
@@ -354,7 +355,7 @@ final class StruxaCatalogAdminRouteRegistrar
                 Request $request,
                 Response $response,
                 array $args
-            ) use ($twig, $adminView, $submissions, $settings, $ns, $pdo, $mediaRepo): Response {
+            ) use ($twig, $adminView, $submissions, $settings, $ns, $pdo): Response {
                 $id = (int) $args['id'];
                 $row = $submissions->findById($id);
                 if ($row === null) {
@@ -372,7 +373,7 @@ final class StruxaCatalogAdminRouteRegistrar
                 }
 
                 return $twig->render($response, $ns . '/admin/submission_show.twig', $adminView($request, array_merge(
-                    self::catalogMediaPickerViewData($request, $mediaRepo),
+                    self::catalogMediaPickerViewData($request, $pdo),
                     [
                         'submission' => $row,
                         'dist_root' => $settings->distRoot(),

@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.2.59",
-    "title": "Struxa 1.2.59",
-    "summary": "External link analytics: branded short links (/go/code or root /code) with click counts and admin management.",
+    "latest_version": "1.2.60",
+    "title": "Struxa 1.2.60",
+    "summary": "Fix catalog submission show: media picker uses PDO in route closure (no null MediaRepository).",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "minor"
