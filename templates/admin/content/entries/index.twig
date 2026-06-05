@@ -20,17 +20,18 @@
 
 {% block admin_body_class %}admin-body--dash-ref admin-body--content-types{% endblock %}
 
-{% block admin_content %}
-  {% set summary = entry_summary|default({ total: 0, published: 0, draft: 0, in_review: 0 }) %}
-  {% set can_edit_entries = cms_can('edit_content') or cms_can('review_content') %}
-  {% set can_publish_entries = cms_can('publish_content') %}
-  {% set can_trash_entries = cms_can('delete_content') %}
-  {% set can_bulk = entry_rows is not empty and (can_edit_entries or can_publish_entries or can_trash_entries) %}
-  {% set entry_page = page|default(1) %}
-  {% set entry_per_page = per_page|default(25) %}
-  {% set entry_total_pages = total_pages|default(1) %}
-  {% set entry_pagination_query = entry_per_page != 25 ? { per_page: entry_per_page } : {} %}
+{# Vars used in admin_scripts must be set outside blocks (Twig block scope). #}
+{% set summary = entry_summary|default({ total: 0, published: 0, draft: 0, in_review: 0 }) %}
+{% set can_edit_entries = cms_can('edit_content') or cms_can('review_content') %}
+{% set can_publish_entries = cms_can('publish_content') %}
+{% set can_trash_entries = cms_can('delete_content') %}
+{% set can_bulk = entry_rows is not empty and (can_edit_entries or can_publish_entries or can_trash_entries) %}
+{% set entry_page = page|default(1) %}
+{% set entry_per_page = per_page|default(25) %}
+{% set entry_total_pages = total_pages|default(1) %}
+{% set entry_pagination_query = entry_per_page != 25 ? { per_page: entry_per_page } : {} %}
 
+{% block admin_content %}
   <div class="admin-content-layout">
     {% include 'admin/content/_content_tree.twig' %}
 
@@ -257,7 +258,7 @@
 {% endblock %}
 
 {% block admin_scripts %}
-  {% if can_bulk|default(false) %}
+  {% if can_bulk %}
     <script src="{{ asset('js/admin-entry-list.js') }}" defer></script>
   {% endif %}
 {% endblock %}

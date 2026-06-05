@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.2.55",
-    "title": "Struxa 1.2.55",
-    "summary": "Fix admin white screen: pass CatalogCommentRepository into CatalogEntryEngagement bootstrap.",
+    "latest_version": "1.2.56",
+    "title": "Struxa 1.2.56",
+    "summary": "Fix content entry bulk select: load admin-entry-list.js (Twig block scope) and wire select-all, publish, and trash actions.",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "minor"

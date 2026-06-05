@@ -1,16 +1,19 @@
 (function () {
   'use strict';
 
-  function init() {
-    var rowCbs = Array.prototype.slice.call(
-      document.querySelectorAll('input.admin-entry-row-cb[type="checkbox"]')
+  function rowCheckboxes() {
+    return Array.prototype.slice.call(
+      document.querySelectorAll('.admin-entry-list input.admin-entry-row-cb[type="checkbox"]')
     );
-    if (rowCbs.length === 0) {
+  }
+
+  function init() {
+    var bulkBar = document.getElementById('admin-entry-bulk-bar');
+    if (!bulkBar) {
       return;
     }
 
     var selectAll = document.getElementById('admin-entry-select-all');
-    var bulkBar = document.getElementById('admin-entry-bulk-bar');
     var bulkCount = document.getElementById('admin-entry-bulk-count');
     var bulkPublish = document.getElementById('admin-entry-bulk-publish');
     var bulkTrash = document.getElementById('admin-entry-bulk-trash');
@@ -19,10 +22,11 @@
     var bulkTaxonomySelect = document.getElementById('admin-entry-bulk-taxonomy-select');
     var bulkForm = document.getElementById('admin-entry-bulk-form');
     var bulkTaxForm = document.getElementById('admin-entry-bulk-taxonomy-form');
+    var entryList = document.querySelector('.admin-entry-list');
 
     function selectedCount() {
       var n = 0;
-      rowCbs.forEach(function (cb) {
+      rowCheckboxes().forEach(function (cb) {
         if (cb.checked) {
           n += 1;
         }
@@ -31,6 +35,7 @@
     }
 
     function syncBulkUi() {
+      var rowCbs = rowCheckboxes();
       var n = selectedCount();
       var total = rowCbs.length;
 
@@ -80,7 +85,7 @@
     }
 
     function setAllRowsChecked(checked) {
-      rowCbs.forEach(function (cb) {
+      rowCheckboxes().forEach(function (cb) {
         cb.checked = checked;
       });
       syncBulkUi();
@@ -95,13 +100,26 @@
       });
     }
 
-    rowCbs.forEach(function (cb) {
-      cb.addEventListener('change', syncBulkUi);
-      cb.addEventListener('input', syncBulkUi);
-      cb.addEventListener('click', function (e) {
-        e.stopPropagation();
+    if (entryList) {
+      entryList.addEventListener('change', function (e) {
+        var t = e.target;
+        if (t && t.classList && t.classList.contains('admin-entry-row-cb')) {
+          syncBulkUi();
+        }
       });
-    });
+      entryList.addEventListener('input', function (e) {
+        var t = e.target;
+        if (t && t.classList && t.classList.contains('admin-entry-row-cb')) {
+          syncBulkUi();
+        }
+      });
+      entryList.addEventListener('click', function (e) {
+        var t = e.target;
+        if (t && t.classList && t.classList.contains('admin-entry-row-cb')) {
+          e.stopPropagation();
+        }
+      });
+    }
 
     function confirmBulk(msg) {
       return window.confirm(msg);
@@ -114,7 +132,7 @@
       form.querySelectorAll('input[name="ids[]"]').forEach(function (el) {
         el.remove();
       });
-      rowCbs.forEach(function (cb) {
+      rowCheckboxes().forEach(function (cb) {
         if (!cb.checked) {
           return;
         }
