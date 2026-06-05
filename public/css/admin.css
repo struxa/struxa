@@ -15100,6 +15100,23 @@ a.admin-entry-row:hover .admin-entry-row-go {
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
+.admin-catalog-screenshot-picker {
+  margin-top: 0.65rem;
+}
+
+.admin-catalog-screenshot-picker .admin-page-featured-hit {
+  width: 100%;
+}
+
+.admin-catalog-screenshot-actions {
+  margin-top: 0.45rem;
+}
+
+.admin-catalog-screenshot-remove {
+  display: block;
+  margin-top: 0.75rem;
+}
+
 .admin-catalog-submission-review {
   border-color: rgba(251, 191, 36, 0.28);
   background: linear-gradient(165deg, rgba(251, 191, 36, 0.06) 0%, var(--admin-bg2) 100%);

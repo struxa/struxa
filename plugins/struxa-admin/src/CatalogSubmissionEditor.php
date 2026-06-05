@@ -12,6 +12,7 @@ final class CatalogSubmissionEditor
         private readonly CatalogSubmissionRepository $submissions,
         private readonly GitHubRepoClient $github,
         private readonly CatalogPublisher $publisher,
+        private readonly CatalogSubmissionScreenshotApplier $screenshotApplier,
     ) {
     }
 
@@ -38,6 +39,10 @@ final class CatalogSubmissionEditor
         $submitterUsername = trim((string) ($body['submitter_username'] ?? ''));
         $submitterEmailInput = trim((string) ($body['submitter_email'] ?? ''));
         $clearSubmitter = !empty($body['clear_submitter_link']);
+        $clearScreenshot = !empty($body['clear_screenshot']);
+        $screenshotMediaId = isset($body['screenshot_media_id']) && ctype_digit((string) $body['screenshot_media_id'])
+            ? (int) $body['screenshot_media_id']
+            : 0;
 
         if ($name === '') {
             $errors[] = 'Name is required.';
@@ -131,6 +136,11 @@ final class CatalogSubmissionEditor
             $submitterEmail,
         );
 
+        $screenshotResult = $this->applyScreenshotChanges($row, $clearScreenshot, $screenshotMediaId);
+        if (!$screenshotResult['ok']) {
+            return ['ok' => false, 'errors' => [$screenshotResult['error']]];
+        }
+
         $regenerated = false;
         if ($row->status === SubmissionStatus::APPROVED) {
             $regen = $this->publisher->regenerateCatalog();
@@ -141,5 +151,44 @@ final class CatalogSubmissionEditor
         }
 
         return ['ok' => true, 'regenerated' => $regenerated];
+    }
+
+    /**
+     * @param CatalogSubmission $row
+     *
+     * @return array{ok: true}|array{ok: false, error: string}
+     */
+    private function applyScreenshotChanges(CatalogSubmission $row, bool $clearScreenshot, int $screenshotMediaId): array
+    {
+        $oldPath = $row->screenshotPath;
+
+        if ($clearScreenshot) {
+            $this->screenshotApplier->deleteStoredFile($oldPath);
+            $this->submissions->updateScreenshot($row->id, null);
+
+            return ['ok' => true];
+        }
+
+        if ($screenshotMediaId < 1) {
+            return ['ok' => true];
+        }
+
+        $stored = $this->screenshotApplier->applyFromMediaId($screenshotMediaId, $row->slug, $row->kind);
+        if (!$stored['ok']) {
+            return ['ok' => false, 'error' => $stored['error']];
+        }
+
+        $newPath = $stored['relative_path'];
+        if ($newPath === '') {
+            return ['ok' => true];
+        }
+
+        if ($oldPath !== null && $oldPath !== '' && $oldPath !== $newPath) {
+            $this->screenshotApplier->deleteStoredFile($oldPath);
+        }
+
+        $this->submissions->updateScreenshot($row->id, $newPath);
+
+        return ['ok' => true];
     }
 }

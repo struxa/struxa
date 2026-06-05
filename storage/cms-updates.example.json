@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "cms": {
-    "latest_version": "1.2.56",
-    "title": "Struxa 1.2.56",
-    "summary": "Fix content entry bulk select: load admin-entry-list.js (Twig block scope) and wire select-all, publish, and trash actions.",
+    "latest_version": "1.2.57",
+    "title": "Struxa 1.2.57",
+    "summary": "Catalog submission admin: replace or add screenshot via the media library (same picker as content entries).",
     "release_url": "https://struxapoint.com/releases",
     "download_url": "https://github.com/struxa/struxa/archive/refs/heads/main.zip",
     "severity": "minor"

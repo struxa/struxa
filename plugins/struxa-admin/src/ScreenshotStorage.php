@@ -47,6 +47,7 @@ final class ScreenshotStorage
             'image/jpeg' => 'jpg',
             'image/png' => 'png',
             'image/webp' => 'webp',
+            'image/gif' => 'gif',
             default => null,
         };
         if ($ext === null) {
@@ -78,10 +79,11 @@ final class ScreenshotStorage
             'image/jpeg' => 'jpg',
             'image/png' => 'png',
             'image/webp' => 'webp',
+            'image/gif' => 'gif',
             default => null,
         };
         if ($ext === null) {
-            return ['ok' => false, 'error' => 'Screenshot must be JPEG, PNG, or WebP.'];
+            return ['ok' => false, 'error' => 'Screenshot must be JPEG, PNG, WebP, or GIF.'];
         }
         $name = $kind . '-' . $slug . '-' . bin2hex(random_bytes(4)) . '.' . $ext;
         $dest = $this->screenshotsDir() . '/' . $name;

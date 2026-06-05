@@ -6,6 +6,8 @@ namespace App\Plugin;
 
 use App\Access\PermissionSlug;
 use App\Dist\ZipExtension;
+use App\Media\MediaRepository;
+use App\Media\MediaUploadService;
 use App\Event\EventDispatcher;
 use App\Event\Events;
 use App\Event\StorefrontCachesInvalidateEvent;
@@ -26,7 +28,9 @@ use StruxaAdmin\CatalogRepoJsonImporter;
 use StruxaAdmin\CatalogSettings;
 use StruxaAdmin\CatalogSubmissionEditor;
 use StruxaAdmin\CatalogSubmissionRepository;
+use StruxaAdmin\CatalogSubmissionScreenshotApplier;
 use StruxaAdmin\GitHubRepoClient;
+use StruxaAdmin\ScreenshotStorage;
 use StruxaAdmin\SubmissionStatus;
 use Twig\Loader\FilesystemLoader;
 
@@ -195,8 +199,13 @@ final class StruxaCatalogAdminRouteRegistrar
         $submissions = new CatalogSubmissionRepository($pdo);
         $github = new GitHubRepoClient($settings->githubToken());
         $publisher = new CatalogPublisher($settings, $submissions, $github);
-        $submissionEditor = new CatalogSubmissionEditor($submissions, $github, $publisher);
         $scanner = new PluginScanner($root);
+        $discovered = $scanner->findBySlug('struxa-admin');
+        $pluginRoot = $discovered !== null ? $discovered->rootPath : $root . '/plugins/struxa-admin';
+        $screenshotStorage = new ScreenshotStorage($pluginRoot);
+        $mediaRepo = new MediaRepository($pdo);
+        $screenshotApplier = new CatalogSubmissionScreenshotApplier($screenshotStorage, $mediaRepo, $root);
+        $submissionEditor = new CatalogSubmissionEditor($submissions, $github, $publisher, $screenshotApplier);
         $pluginRepo = new PluginRepository($pdo);
         $migrationRunner = new PluginMigrationRunner($pdo);
 
@@ -211,6 +220,32 @@ final class StruxaCatalogAdminRouteRegistrar
                 'admin_nav' => 'extensions_plugins',
                 'cms_user' => $cmsUser,
             ]), $extra);
+        };
+
+        $catalogMediaPickerContext = static function (Request $request) use ($mediaRepo): array {
+            /** @var array<string, mixed> $cmsUser */
+            $cmsUser = $request->getAttribute('cms_user') ?? [];
+            $slugs = $cmsUser['permission_slugs'] ?? [];
+            $enabled = is_array($slugs) && in_array(PermissionSlug::MANAGE_MEDIA, $slugs, true);
+            $picker = [];
+            if ($enabled) {
+                foreach ($mediaRepo->listImagesForPicker(240) as $row) {
+                    if (($row['public_url'] ?? '') === '') {
+                        continue;
+                    }
+                    $picker[] = [
+                        'id' => $row['id'],
+                        'url' => $row['public_url'],
+                        'name' => $row['original_name'],
+                    ];
+                }
+            }
+
+            return [
+                'media_picker_enabled' => $enabled,
+                'media_picker_initial' => $picker,
+                'media_picker_max_mb' => (int) round(MediaUploadService::maxBytesFromEnv() / 1024 / 1024),
+            ];
         };
 
         $cmsUid = static function (Request $request): ?int {
@@ -315,7 +350,7 @@ final class StruxaCatalogAdminRouteRegistrar
                 Request $request,
                 Response $response,
                 array $args
-            ) use ($twig, $adminView, $submissions, $settings, $ns, $pdo): Response {
+            ) use ($twig, $adminView, $submissions, $settings, $ns, $pdo, $catalogMediaPickerContext): Response {
                 $id = (int) $args['id'];
                 $row = $submissions->findById($id);
                 if ($row === null) {
@@ -323,17 +358,28 @@ final class StruxaCatalogAdminRouteRegistrar
                 }
                 $downloadCount = (new \StruxaAdmin\CatalogDownloadStatsRepository($pdo))
                     ->countFor($row->kind, $row->slug);
+                $parser = RouteContext::fromRequest($request)->getRouteParser();
+                $screenshotPreview = '';
+                if ($row->screenshotPath !== null && $row->screenshotPath !== '') {
+                    $screenshotPreview = $parser->urlFor(
+                        'public.struxa_catalog.screenshot',
+                        ['file' => basename($row->screenshotPath)],
+                    );
+                }
 
-                return $twig->render($response, $ns . '/admin/submission_show.twig', $adminView($request, [
-                    'submission' => $row,
-                    'dist_root' => $settings->distRoot(),
-                    'zip_base_url' => $settings->zipBaseUrl(),
-                    'download_count' => $downloadCount,
-                    'member_search_url' => RouteContext::fromRequest($request)->getRouteParser()
-                        ->urlFor('admin.struxa_catalog.member_search'),
-                    'php_zip_available' => ZipExtension::isAvailable(),
-                    'php_zip_diagnostics' => ZipExtension::diagnostics(),
-                ]));
+                return $twig->render($response, $ns . '/admin/submission_show.twig', $adminView($request, array_merge(
+                    $catalogMediaPickerContext($request),
+                    [
+                        'submission' => $row,
+                        'dist_root' => $settings->distRoot(),
+                        'zip_base_url' => $settings->zipBaseUrl(),
+                        'download_count' => $downloadCount,
+                        'catalog_screenshot_preview_url' => $screenshotPreview,
+                        'member_search_url' => $parser->urlFor('admin.struxa_catalog.member_search'),
+                        'php_zip_available' => ZipExtension::isAvailable(),
+                        'php_zip_diagnostics' => ZipExtension::diagnostics(),
+                    ],
+                )));
             })->setName('admin.struxa_catalog.submission_show');
 
             $group->get('/extensions/struxa-catalog/members/search', function (

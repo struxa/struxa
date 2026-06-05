@@ -148,7 +148,7 @@
               <p class="admin-settings-card-desc" style="margin-bottom:0">Update catalog metadata, author, source repo, or linked member account.</p>
             </div>
           </header>
-          <form method="post" action="{{ url_for('admin.struxa_catalog.submission_update', { id: submission.id }) }}" class="admin-form admin-catalog-submission-edit-form">
+          <form id="catalog-submission-edit-form" method="post" action="{{ url_for('admin.struxa_catalog.submission_update', { id: submission.id }) }}" class="admin-form admin-catalog-submission-edit-form">
             <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
             <div class="admin-form-grid">
               <div class="admin-field">
@@ -336,22 +336,47 @@
           </dl>
         </section>
 
-        {% if submission.screenshotPath %}
-          <section class="admin-card admin-settings-card admin-catalog-submission-card">
-            <header class="admin-settings-card-head-row">
-              <div>
-                <h2 class="admin-settings-card-title">Screenshot</h2>
+        <section class="admin-card admin-settings-card admin-catalog-submission-card" id="screenshot">
+          <header class="admin-settings-card-head-row">
+            <div>
+              <h2 class="admin-settings-card-title">Catalog screenshot</h2>
+              <p class="admin-settings-card-desc" style="margin-bottom:0">Shown on the public plugins/themes listing and detail pages.</p>
+            </div>
+          </header>
+          {% set _screenshot_src = catalog_screenshot_preview_url|default('') %}
+          {% if media_picker_enabled|default(false) %}
+            <input type="hidden" form="catalog-submission-edit-form" name="screenshot_media_id" id="catalog-screenshot-media-id" value="" autocomplete="off" />
+            <div class="admin-page-featured admin-catalog-screenshot-picker">
+              <button type="button" class="admin-page-featured-hit" id="catalog-screenshot-picker-trigger" title="Open media library to upload or choose an image" aria-label="Choose catalog screenshot from media library">
+                <span class="admin-page-featured-placeholder" id="catalog-screenshot-placeholder"{% if _screenshot_src != '' %} hidden{% endif %}>
+                  <span class="admin-page-featured-placeholder-art" aria-hidden="true"></span>
+                  <span class="admin-page-featured-placeholder-title">No screenshot</span>
+                  <span class="admin-page-featured-placeholder-sub">Click to choose from media library</span>
+                </span>
+                <img id="catalog-screenshot-preview" class="admin-page-featured-preview admin-catalog-screenshot-img" {% if _screenshot_src != '' %}src="{{ _screenshot_src|e('html_attr') }}" {% endif %}alt="" width="640" height="360"{% if _screenshot_src != '' %} loading="lazy" decoding="async"{% endif %}{% if _screenshot_src == '' %} hidden{% endif %} />
+              </button>
+              <div class="admin-catalog-screenshot-actions">
+                <button type="button" class="admin-link admin-page-featured-clear" id="catalog-screenshot-clear">Clear selection</button>
               </div>
-            </header>
-            <figure class="admin-catalog-screenshot">
-              <img
-                src="{{ url_for('public.struxa_catalog.screenshot', { file: submission.screenshotPath|split('/')|last }) }}"
-                alt="Screenshot for {{ submission.name|e('html_attr') }}"
-                loading="lazy"
-              />
-            </figure>
-          </section>
-        {% endif %}
+            </div>
+            <p class="admin-hint">Choose or upload an image, then click <strong>Save changes</strong> in the edit form.{% if submission.screenshotPath %} Replacing copies the file into catalog storage.{% endif %}</p>
+          {% else %}
+            {% if _screenshot_src != '' %}
+              <figure class="admin-catalog-screenshot">
+                <img src="{{ _screenshot_src|e('html_attr') }}" alt="Screenshot for {{ submission.name|e('html_attr') }}" loading="lazy" />
+              </figure>
+            {% else %}
+              <p class="admin-hint">No screenshot yet.</p>
+            {% endif %}
+            <p class="admin-hint">Assign <strong>Manage media</strong> to use the media library picker here, or upload via the <a class="admin-link" href="{{ url_for('admin.media.index') }}">media library</a> and ask a user with catalog access to attach it.</p>
+          {% endif %}
+          {% if submission.screenshotPath %}
+            <label class="admin-checkbox-label admin-catalog-screenshot-remove">
+              <input type="checkbox" form="catalog-submission-edit-form" name="clear_screenshot" value="1" />
+              Remove screenshot on save
+            </label>
+          {% endif %}
+        </section>
 
         {% if submission.status == 'pending' %}
           <section class="admin-card admin-settings-card admin-catalog-submission-card admin-catalog-submission-review">
@@ -450,5 +475,49 @@
     });
   })();
   </script>
+  {% endif %}
+{% endblock %}
+
+{% block admin_scripts %}
+  {% if media_picker_enabled|default(false) %}
+    <script type="application/json" id="admin-page-media-picker-config">{{ {
+      enabled: true,
+      csrfToken: csrf_token(),
+      listUrl: url_for('admin.media.api.images'),
+      uploadUrl: url_for('admin.media.api.upload'),
+      maxMb: media_picker_max_mb|default(5),
+      textareaId: '',
+      initialImages: media_picker_initial|default([]),
+      screenshotImage: {
+        inputId: 'catalog-screenshot-media-id',
+        previewId: 'catalog-screenshot-preview',
+        placeholderId: 'catalog-screenshot-placeholder',
+        triggerId: 'catalog-screenshot-picker-trigger',
+        clearId: 'catalog-screenshot-clear'
+      }
+    }|json_encode|raw }}</script>
+
+    <div id="admin-page-media-modal" class="admin-media-modal" hidden role="dialog" aria-modal="true" aria-labelledby="admin-page-media-title">
+      <div class="admin-media-modal-backdrop" id="admin-page-media-backdrop"></div>
+      <div class="admin-media-modal-panel">
+        <header class="admin-media-modal-head">
+          <h2 class="admin-media-modal-title" id="admin-page-media-title">Media library</h2>
+          <button type="button" class="admin-media-modal-close" id="admin-page-media-close" aria-label="Close">×</button>
+        </header>
+        <div class="admin-media-modal-body">
+          <div class="admin-media-modal-drop" id="admin-page-media-drop" tabindex="0" role="button" aria-label="Drop an image here or click to upload">
+            <input type="file" id="admin-page-media-file" class="admin-media-modal-file" accept="image/jpeg,image/png,image/webp,image/gif" hidden />
+            <p class="admin-media-modal-drop-title">Drop image here</p>
+            <p class="admin-media-modal-drop-hint">or click to browse · JPG, PNG, WebP, GIF · max {{ media_picker_max_mb|default(5) }} MB</p>
+          </div>
+          <p class="admin-media-modal-status" id="admin-page-media-status" role="status"></p>
+          <div class="admin-media-modal-toolbar">
+            <button type="button" class="admin-btn-ghost admin-btn-ghost--sm" id="admin-page-media-refresh">Refresh list</button>
+          </div>
+          <div class="admin-media-modal-grid" id="admin-page-media-grid"></div>
+        </div>
+      </div>
+    </div>
+    <script src="{{ asset('js/admin-page-media-picker.js') }}" defer></script>
   {% endif %}
 {% endblock %}

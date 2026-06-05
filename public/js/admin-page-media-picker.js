@@ -124,10 +124,12 @@
     var refreshBtn = document.getElementById('admin-page-media-refresh');
     var fi = cfg.featuredImage || null;
     var featuredTrigger = fi && fi.triggerId ? document.getElementById(fi.triggerId) : null;
+    var si = cfg.screenshotImage || null;
+    var screenshotTrigger = si && si.triggerId ? document.getElementById(si.triggerId) : null;
 
     if (!modal || !grid || !drop) return;
     var insertForBtns = document.querySelectorAll('[data-admin-media-insert-for]');
-    if (!openBtn && !featuredTrigger && insertForBtns.length === 0) return;
+    if (!openBtn && !featuredTrigger && !screenshotTrigger && insertForBtns.length === 0) return;
 
     var images = Array.isArray(cfg.initialImages) ? cfg.initialImages.slice() : [];
     var pickMode = 'editor';
@@ -153,10 +155,30 @@
       closeModal();
     }
 
+    function setScreenshot(im) {
+      if (!si) return;
+      var inp = document.getElementById(si.inputId);
+      var prev = document.getElementById(si.previewId);
+      var ph = document.getElementById(si.placeholderId);
+      var removeCb = document.querySelector('input[name="clear_screenshot"][form="catalog-submission-edit-form"]');
+      if (inp && im && im.id != null) inp.value = String(im.id);
+      if (prev && im && im.url) {
+        prev.src = absUrl(im.url);
+        prev.removeAttribute('hidden');
+      }
+      if (ph) ph.setAttribute('hidden', 'hidden');
+      if (removeCb) removeCb.checked = false;
+      closeModal();
+    }
+
     function applyPick(im) {
       if (!im || !im.url) return;
       if (pickMode === 'featured' && fi) {
         setFeatured(im);
+        return;
+      }
+      if (pickMode === 'screenshot' && si) {
+        setScreenshot(im);
         return;
       }
       insertImageIntoEditor(activeInsertTextareaId, im.url);
@@ -183,10 +205,16 @@
     }
 
     function openModal(mode) {
-      pickMode = mode === 'featured' ? 'featured' : 'editor';
+      pickMode = mode === 'featured' ? 'featured' : (mode === 'screenshot' ? 'screenshot' : 'editor');
       lastModalFocus = document.activeElement;
       if (modalTitle) {
-        modalTitle.textContent = pickMode === 'featured' ? 'Choose featured image' : 'Media library';
+        if (pickMode === 'featured') {
+          modalTitle.textContent = 'Choose featured image';
+        } else if (pickMode === 'screenshot') {
+          modalTitle.textContent = 'Choose catalog screenshot';
+        } else {
+          modalTitle.textContent = 'Media library';
+        }
       }
       setStatus('');
       modal.hidden = false;
@@ -237,6 +265,23 @@
           var inp = document.getElementById(fi.inputId);
           var prev = document.getElementById(fi.previewId);
           var ph = document.getElementById(fi.placeholderId);
+          if (inp) inp.value = '';
+          if (prev) {
+            prev.removeAttribute('src');
+            prev.setAttribute('hidden', 'hidden');
+          }
+          if (ph) ph.removeAttribute('hidden');
+          setStatus('');
+        });
+      }
+    }
+    if (si && si.clearId) {
+      var screenshotClr = document.getElementById(si.clearId);
+      if (screenshotClr) {
+        screenshotClr.addEventListener('click', function () {
+          var inp = document.getElementById(si.inputId);
+          var prev = document.getElementById(si.previewId);
+          var ph = document.getElementById(si.placeholderId);
           if (inp) inp.value = '';
           if (prev) {
             prev.removeAttribute('src');
@@ -326,11 +371,13 @@
           }
           images.unshift({ id: res.data.id, url: res.data.url, name: res.data.name || file.name });
           wireGrid();
-          setStatus(
-            pickMode === 'featured'
-              ? 'Uploaded. Click a thumbnail to set as featured, or close.'
-              : 'Uploaded. Click a thumbnail to insert, or close.'
-          );
+          var uploadHint = 'Uploaded. Click a thumbnail to insert, or close.';
+          if (pickMode === 'featured') {
+            uploadHint = 'Uploaded. Click a thumbnail to set as featured, or close.';
+          } else if (pickMode === 'screenshot') {
+            uploadHint = 'Uploaded. Click a thumbnail to use as screenshot, then Save changes.';
+          }
+          setStatus(uploadHint);
         })
         .catch(function () {
           setStatus('Upload failed (network error).', true);
