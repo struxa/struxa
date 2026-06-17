@@ -9,12 +9,12 @@ use PDO;
 final class CmsUserRepository
 {
     /**
-     * @return ?array{id: int, phpauth_user_id: int, email: string, display_name: string, role: string, is_active: int, username: ?string}
+     * @return ?array{id: int, phpauth_user_id: int, email: string, display_name: string, role: string, is_active: int, username: ?string, firebase_uid: ?string}
      */
     public static function findByPhpAuthId(PDO $pdo, int $phpauthUserId): ?array
     {
         $stmt = $pdo->prepare(
-            'SELECT c.id, c.phpauth_user_id, c.email, c.display_name, c.role, c.is_active, p.username AS username
+            'SELECT c.id, c.phpauth_user_id, c.firebase_uid, c.email, c.display_name, c.role, c.is_active, p.username AS username
              FROM cms_users c
              LEFT JOIN phpauth_users p ON p.id = c.phpauth_user_id
              WHERE c.phpauth_user_id = ? LIMIT 1'
@@ -28,10 +28,90 @@ final class CmsUserRepository
     /**
      * @return ?array<string, mixed>
      */
+    public static function findByFirebaseUid(PDO $pdo, string $firebaseUid): ?array
+    {
+        $firebaseUid = trim($firebaseUid);
+        if ($firebaseUid === '') {
+            return null;
+        }
+
+        try {
+            $stmt = $pdo->prepare(
+                'SELECT c.id, c.phpauth_user_id, c.firebase_uid, c.email, c.display_name, c.role, c.is_active, p.username AS username
+                 FROM cms_users c
+                 LEFT JOIN phpauth_users p ON p.id = c.phpauth_user_id
+                 WHERE c.firebase_uid = ? LIMIT 1'
+            );
+            $stmt->execute([$firebaseUid]);
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        } catch (\PDOException) {
+            return null;
+        }
+
+        return $row === false ? null : $row;
+    }
+
+    /**
+     * If firebase_uid is linked to a different phpauth user, returns that phpauth id; else null.
+     */
+    public static function firebaseUidOwnerPhpAuthId(PDO $pdo, string $firebaseUid, int $exceptPhpauthId): ?int
+    {
+        $row = self::findByFirebaseUid($pdo, $firebaseUid);
+        if ($row === null) {
+            return null;
+        }
+        $owner = (int) ($row['phpauth_user_id'] ?? 0);
+        if ($owner < 1 || $owner === $exceptPhpauthId) {
+            return null;
+        }
+
+        return $owner;
+    }
+
+    /**
+     * Ensure a cms_users member row exists and store the Firebase UID.
+     *
+     * @return int cms_users.id
+     */
+    public static function ensureMemberWithFirebase(
+        PDO $pdo,
+        int $phpauthUserId,
+        string $email,
+        string $displayName,
+        string $firebaseUid,
+    ): int {
+        $existing = self::findByPhpAuthId($pdo, $phpauthUserId);
+        if ($existing !== null) {
+            $cmsId = (int) $existing['id'];
+            self::setFirebaseUid($pdo, $cmsId, $firebaseUid);
+
+            return $cmsId;
+        }
+
+        $cmsId = self::insert($pdo, $phpauthUserId, $email, $displayName);
+        self::setFirebaseUid($pdo, $cmsId, $firebaseUid);
+
+        return $cmsId;
+    }
+
+    public static function setFirebaseUid(PDO $pdo, int $cmsUserId, ?string $firebaseUid): void
+    {
+        $firebaseUid = $firebaseUid !== null ? trim($firebaseUid) : null;
+        if ($firebaseUid === '') {
+            $firebaseUid = null;
+        }
+
+        $stmt = $pdo->prepare('UPDATE cms_users SET firebase_uid = ? WHERE id = ?');
+        $stmt->execute([$firebaseUid, $cmsUserId]);
+    }
+
+    /**
+     * @return ?array<string, mixed>
+     */
     public static function findById(PDO $pdo, int $id): ?array
     {
         $stmt = $pdo->prepare(
-            'SELECT c.id, c.phpauth_user_id, c.email, c.display_name, c.role, c.is_active, c.created_at, c.updated_at,
+            'SELECT c.id, c.phpauth_user_id, c.firebase_uid, c.email, c.display_name, c.role, c.is_active, c.created_at, c.updated_at,
                     p.isactive AS phpauth_isactive, p.username AS username
              FROM cms_users c
              LEFT JOIN phpauth_users p ON p.id = c.phpauth_user_id
@@ -48,7 +128,7 @@ final class CmsUserRepository
      */
     public static function allOrdered(PDO $pdo): array
     {
-        $sql = 'SELECT c.id, c.phpauth_user_id, c.email, c.display_name, c.role, c.is_active, c.created_at,
+        $sql = 'SELECT c.id, c.phpauth_user_id, c.firebase_uid, c.email, c.display_name, c.role, c.is_active, c.created_at,
                        p.isactive AS phpauth_isactive, p.username AS username
                 FROM cms_users c
                 LEFT JOIN phpauth_users p ON p.id = c.phpauth_user_id
@@ -76,7 +156,7 @@ final class CmsUserRepository
     {
         $limit = max(1, min(100, $limit));
         $offset = max(0, $offset);
-        $sql = 'SELECT c.id, c.phpauth_user_id, c.email, c.display_name, c.role, c.is_active, c.created_at,
+        $sql = 'SELECT c.id, c.phpauth_user_id, c.firebase_uid, c.email, c.display_name, c.role, c.is_active, c.created_at,
                        p.isactive AS phpauth_isactive, p.username AS username
                 FROM cms_users c
                 LEFT JOIN phpauth_users p ON p.id = c.phpauth_user_id

@@ -38,7 +38,7 @@ final class MemberAccessService
             return true;
         }
 
-        $cmsUser = CmsUserRepository::findByPhpAuthUserId($this->pdo, $phpauthUserId);
+        $cmsUser = CmsUserRepository::findByPhpAuthId($this->pdo, $phpauthUserId);
         if ($cmsUser === null || (int) ($cmsUser['is_active'] ?? 0) !== 1) {
             return false;
         }

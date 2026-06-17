@@ -144,6 +144,65 @@ final class SettingsFormValidator
         $googleAuto = $this->str($body, 'google_sso_auto_provision');
         $googleAutoOn = $googleAuto === '1' ? '1' : '0';
 
+        $firebaseEnabled = $this->str($body, 'firebase_enabled');
+        $firebaseEnabledOn = $firebaseEnabled === '1' ? '1' : '0';
+
+        $firebaseApiKey = $this->str($body, 'firebase_api_key');
+        if (mb_strlen($firebaseApiKey) > 512) {
+            $errors['firebase_api_key'] = 'Firebase API key is too long.';
+        }
+
+        $firebaseAuthDomain = $this->str($body, 'firebase_auth_domain');
+        if (mb_strlen($firebaseAuthDomain) > 512) {
+            $errors['firebase_auth_domain'] = 'Firebase auth domain is too long.';
+        }
+
+        $firebaseProjectId = $this->str($body, 'firebase_project_id');
+        if (mb_strlen($firebaseProjectId) > 256) {
+            $errors['firebase_project_id'] = 'Firebase project ID is too long.';
+        }
+
+        $firebaseAppId = $this->str($body, 'firebase_app_id');
+        if (mb_strlen($firebaseAppId) > 256) {
+            $errors['firebase_app_id'] = 'Firebase app ID is too long.';
+        }
+
+        $firebaseStorageBucket = $this->str($body, 'firebase_storage_bucket');
+        if (mb_strlen($firebaseStorageBucket) > 512) {
+            $errors['firebase_storage_bucket'] = 'Firebase storage bucket is too long.';
+        }
+
+        $firebaseMessagingSenderId = $this->str($body, 'firebase_messaging_sender_id');
+        if (mb_strlen($firebaseMessagingSenderId) > 64) {
+            $errors['firebase_messaging_sender_id'] = 'Firebase messaging sender ID is too long.';
+        }
+
+        $firebaseServiceAccountIn = $this->str($body, 'firebase_service_account_json');
+        if (mb_strlen($firebaseServiceAccountIn) > 65535) {
+            $errors['firebase_service_account_json'] = 'Service account JSON is too long.';
+        } elseif ($firebaseServiceAccountIn !== '') {
+            try {
+                /** @var array<string, mixed> $parsed */
+                $parsed = json_decode($firebaseServiceAccountIn, true, 512, JSON_THROW_ON_ERROR);
+                foreach (['project_id', 'client_email', 'private_key'] as $need) {
+                    if (!isset($parsed[$need]) || !is_string($parsed[$need]) || trim($parsed[$need]) === '') {
+                        $errors['firebase_service_account_json'] = 'Service account JSON must include project_id, client_email, and private_key.';
+                        break;
+                    }
+                }
+            } catch (\JsonException) {
+                $errors['firebase_service_account_json'] = 'Service account must be valid JSON.';
+            }
+        }
+
+        $firebaseDomains = $this->str($body, 'firebase_allowed_domains');
+        if (mb_strlen($firebaseDomains) > 2000) {
+            $errors['firebase_allowed_domains'] = 'Allowed domains list is too long.';
+        }
+
+        $firebaseAuto = $this->str($body, 'firebase_auto_provision');
+        $firebaseAutoOn = $firebaseAuto === '1' ? '1' : '0';
+
         $extNofollow = $this->str($body, 'seo_external_links_nofollow');
         $extNofollowOn = $extNofollow === '1' ? '1' : '0';
 
@@ -175,6 +234,16 @@ final class SettingsFormValidator
             'google_oauth_redirect_uri' => $googleRedirect,
             'google_sso_allowed_domains' => $googleDomains,
             'google_sso_auto_provision' => $googleAutoOn,
+            'firebase_enabled' => $firebaseEnabledOn,
+            'firebase_api_key' => $firebaseApiKey,
+            'firebase_auth_domain' => $firebaseAuthDomain,
+            'firebase_project_id' => $firebaseProjectId,
+            'firebase_app_id' => $firebaseAppId,
+            'firebase_storage_bucket' => $firebaseStorageBucket,
+            'firebase_messaging_sender_id' => $firebaseMessagingSenderId,
+            'firebase_service_account_json' => $firebaseServiceAccountIn,
+            'firebase_allowed_domains' => $firebaseDomains,
+            'firebase_auto_provision' => $firebaseAutoOn,
             'seo_external_links_nofollow' => $extNofollowOn,
         ];
 

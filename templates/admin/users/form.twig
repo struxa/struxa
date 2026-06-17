@@ -60,6 +60,8 @@
               <span class="admin-user-edit-meta-v">{{ edit_user.id }}</span>
               <span class="admin-user-edit-meta-k">Auth user ID</span>
               <span class="admin-user-edit-meta-v">{{ edit_user.phpauth_user_id }}</span>
+              <span class="admin-user-edit-meta-k">Firebase UID</span>
+              <span class="admin-user-edit-meta-v admin-table-mono">{{ edit_user.firebase_uid|default('')|trim != '' ? edit_user.firebase_uid|e : '—' }}</span>
               {% if edit_user.created_at is defined %}
                 <span class="admin-user-edit-meta-k">Created</span>
                 <span class="admin-user-edit-meta-v">{{ edit_user.created_at|slice(0, 16)|replace({'T': ' '}) }}</span>

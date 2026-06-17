@@ -3,6 +3,9 @@
 declare(strict_types=1);
 
 use App\Auth\AppAuth;
+use App\Auth\FirebaseAuthProvisioner;
+use App\Auth\FirebaseConfig;
+use App\Auth\FirebaseIdTokenVerifier;
 use App\Auth\GoogleOAuthClient;
 use App\Auth\GoogleSsoConfig;
 use App\Auth\LoginFilterPipeline;
@@ -157,6 +160,7 @@ Jobs::boot($pdo, $root);
 $authConfig = new Config($pdo, PhpAuthSettings::fromEnv(), PhpAuthSettings::configType());
 $auth = new AppAuth($pdo, $authConfig);
 $googleSso = GoogleSsoConfig::fromSettings();
+$firebaseAuth = FirebaseConfig::fromSettings();
 
 $themeManager = new ThemeManager($root);
 $cacheStorage = $root . DIRECTORY_SEPARATOR . 'storage' . DIRECTORY_SEPARATOR . 'cache';
@@ -231,7 +235,7 @@ $app->get(
     new MediaDerivativeHandler($mediaDerivativeService, $mediaUrlHelper, $mediaRepository)
 );
 
-$viewData = static function (array $extra = []) use ($auth, $pdo, $googleSso): array {
+$viewData = static function (array $extra = []) use ($auth, $pdo, $googleSso, $firebaseAuth): array {
     $userEmail = '';
     $userUsername = '';
     $userDisplayName = '';
@@ -279,6 +283,8 @@ $viewData = static function (array $extra = []) use ($auth, $pdo, $googleSso): a
         'flash_success' => Flash::pull('success'),
         'site_url' => \App\Settings\SiteUrlResolver::resolve(),
         'google_sso_enabled' => $googleSso !== null,
+        'firebase_sso_enabled' => $firebaseAuth !== null,
+        'firebase_client_config' => $firebaseAuth !== null ? $firebaseAuth->clientConfig() : null,
     ], $extra);
 };
 
@@ -485,6 +491,90 @@ $app->get('/auth/google/callback', function (Request $request, Response $respons
 
     return $response->withHeader('Location', $target)->withStatus(302);
 })->setName('auth.google.callback');
+
+$app->post('/auth/firebase/session', function (Request $request, Response $response) use ($firebaseAuth, $auth, $pdo): Response {
+    if ($firebaseAuth === null) {
+        throw new HttpNotFoundException($request);
+    }
+
+    $routeParser = RouteContext::fromRequest($request)->getRouteParser();
+    $loginUrl = $routeParser->urlFor('login');
+
+    $redirectLogin = static function (?string $next, string $message) use ($response, $loginUrl): Response {
+        Flash::set('error', $message);
+        $url = $loginUrl;
+        if ($next !== null && $next !== '') {
+            $url .= '?' . http_build_query(['next' => $next]);
+        }
+
+        return $response->withHeader('Location', $url)->withStatus(302);
+    };
+
+    if ($auth->isLogged()) {
+        $body = $request->getParsedBody();
+        $body = is_array($body) ? $body : [];
+        $next = isset($body['next']) && is_string($body['next']) ? $body['next'] : null;
+
+        return $response
+            ->withHeader('Location', PostLoginRedirect::forCurrentUser($auth, $routeParser, $pdo, $next))
+            ->withStatus(302);
+    }
+
+    $body = $request->getParsedBody();
+    $body = is_array($body) ? $body : [];
+    $idToken = isset($body['id_token']) && is_string($body['id_token']) ? trim($body['id_token']) : '';
+    $remember = !empty($body['remember']) ? 1 : 0;
+    $next = isset($body['next']) && is_string($body['next']) ? $body['next'] : null;
+
+    if ($idToken === '') {
+        return $redirectLogin($next, 'Firebase sign-in did not complete. Try again.');
+    }
+
+    $verifier = new FirebaseIdTokenVerifier($firebaseAuth);
+    $firebaseUser = $verifier->verify($idToken);
+    if ($firebaseUser === null) {
+        return $redirectLogin($next, 'Invalid or expired Firebase sign-in. Try again.');
+    }
+
+    $provisioner = new FirebaseAuthProvisioner($firebaseAuth, $pdo, $auth);
+    $resolved = $provisioner->resolvePhpAuthUser($firebaseUser);
+    if (($resolved['ok'] ?? false) !== true) {
+        return $redirectLogin($next, (string) ($resolved['message'] ?? 'Firebase sign-in failed.'));
+    }
+
+    $uid = (int) $resolved['phpauth_uid'];
+    $email = (string) $resolved['email'];
+
+    $totpRow = CmsUserRepository::findTotpStateByPhpAuthId($pdo, $uid);
+    $needsTotp = $totpRow !== null
+        && (int) ($totpRow['totp_enabled'] ?? 0) === 1
+        && trim((string) ($totpRow['totp_secret'] ?? '')) !== '';
+
+    if ($needsTotp) {
+        TwoFactorLoginSession::put($uid, $remember);
+        $tfUrl = $routeParser->urlFor('login.two_factor');
+        if ($next !== null && $next !== '') {
+            $tfUrl .= '?' . http_build_query(['next' => $next]);
+        }
+
+        return $response->withHeader('Location', $tfUrl)->withStatus(302);
+    }
+
+    $complete = $auth->completeSessionAfterTwoFactor($uid, $remember);
+    if (($complete['error'] ?? true) === true) {
+        return $redirectLogin($next, (string) ($complete['message'] ?? 'Login failed'));
+    }
+
+    $block = LoginFilterPipeline::blockMessage($email, $uid, 'firebase');
+    if ($block !== null) {
+        return $redirectLogin($next, $block);
+    }
+
+    Events::dispatch(new UserLoggedInEvent($email));
+    $target = PostLoginRedirect::target($next, $uid, $routeParser, $pdo);
+
+    return $response->withHeader('Location', $target)->withStatus(302);
+})->setName('auth.firebase.session');
 
 $app->get('/login/two-factor', function (Request $request, Response $response) use ($twig, $viewData, $auth, $pdo): Response {
     if ($auth->isLogged()) {

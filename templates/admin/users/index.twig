@@ -77,6 +77,7 @@
                 <th scope="col">Display</th>
                 <th scope="col">CMS</th>
                 <th scope="col">Login</th>
+                <th scope="col">Firebase</th>
                 <th class="admin-table-col-actions" scope="col"><span class="admin-table-muted">Actions</span></th>
               </tr>
             </thead>
@@ -94,6 +95,7 @@
                     {% endif %}
                   </td>
                   <td class="admin-table-muted">{{ (u.phpauth_isactive ?? 1) ? 'Enabled' : 'Disabled' }}</td>
+                  <td class="admin-table-muted admin-table-mono">{{ u.firebase_uid|default('')|trim != '' ? u.firebase_uid|e : '—' }}</td>
                   <td class="admin-table-actions">
                     <a class="admin-link" href="{{ url_for('admin.users.edit', { id: u.id }) }}">Edit</a>
                   </td>

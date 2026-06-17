@@ -48,6 +48,20 @@ final class SiteSettingsService
         'google_sso_allowed_domains' => '',
         /** When "1", first Google sign-in creates a PHPAuth account if the email is new. */
         'google_sso_auto_provision' => '0',
+        /** Firebase Authentication (client SDK + server token verify). */
+        'firebase_enabled' => '0',
+        'firebase_api_key' => '',
+        'firebase_auth_domain' => '',
+        'firebase_project_id' => '',
+        'firebase_app_id' => '',
+        'firebase_storage_bucket' => '',
+        'firebase_messaging_sender_id' => '',
+        /** Service account JSON for server-side Firebase Admin (optional). */
+        'firebase_service_account_json' => '',
+        /** Comma-separated email domains. Empty = any verified email. */
+        'firebase_allowed_domains' => '',
+        /** When "1", first Firebase sign-in creates PHPAuth + member cms_users row. */
+        'firebase_auto_provision' => '0',
         /** When "1", public HTML adds rel="nofollow" to external http(s) links (content, pages, sections, menus). */
         'seo_external_links_nofollow' => '0',
         /** When "1", public comment UI and posting are enabled (opt out per page / content type). */
@@ -85,6 +99,16 @@ final class SiteSettingsService
         'google_oauth_redirect_uri',
         'google_sso_allowed_domains',
         'google_sso_auto_provision',
+        'firebase_enabled',
+        'firebase_api_key',
+        'firebase_auth_domain',
+        'firebase_project_id',
+        'firebase_app_id',
+        'firebase_storage_bucket',
+        'firebase_messaging_sender_id',
+        'firebase_service_account_json',
+        'firebase_allowed_domains',
+        'firebase_auto_provision',
         'seo_external_links_nofollow',
     ];
 
@@ -115,7 +139,7 @@ final class SiteSettingsService
         $base = $this->forTwig();
         $out = [];
         foreach (self::MANAGED_KEYS as $key) {
-            if ($key === 'google_oauth_client_secret') {
+            if ($key === 'google_oauth_client_secret' || $key === 'firebase_service_account_json') {
                 $out[$key] = '';
 
                 continue;

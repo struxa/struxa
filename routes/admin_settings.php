@@ -61,6 +61,12 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             return trim((string) ($db['google_oauth_client_secret'] ?? '')) !== '';
         };
 
+        $firebaseServiceAccountStoredFlag = static function () use ($settingsRepo): bool {
+            $db = $settingsRepo->allKeyValues();
+
+            return trim((string) ($db['firebase_service_account_json'] ?? '')) !== '';
+        };
+
         $group->get('/settings', function (Request $request, Response $response) use (
             $twig,
             $adminContext,
@@ -68,7 +74,8 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             $service,
             $mediaRepo,
             $pageRepo,
-            $googleSecretStoredFlag
+            $googleSecretStoredFlag,
+            $firebaseServiceAccountStoredFlag
         ): Response {
             return $twig->render($response, 'admin/settings/form.twig', $withCmsUser($request, array_merge($adminContext(), [
                 'admin_nav' => 'settings',
@@ -77,6 +84,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 'media_picker_images' => $mediaRepo->listImagesForPicker(200),
                 'published_pages_for_home' => $pageRepo->publishedIdTitlePairs(),
                 'google_oauth_secret_stored' => $googleSecretStoredFlag(),
+                'firebase_service_account_stored' => $firebaseServiceAccountStoredFlag(),
                 'errors' => [],
             ])));
         })->setName('admin.settings');
@@ -91,7 +99,8 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
             $pageRepo,
             $pdo,
             $settingsRepo,
-            $googleSecretStoredFlag
+            $googleSecretStoredFlag,
+            $firebaseServiceAccountStoredFlag
         ): Response {
             $body = $request->getParsedBody();
             $body = is_array($body) ? $body : [];
@@ -99,6 +108,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
 
             if ($result['errors'] !== []) {
                 $result['values']['google_oauth_client_secret'] = '';
+                $result['values']['firebase_service_account_json'] = '';
 
                 return $twig->render($response, 'admin/settings/form.twig', $withCmsUser($request, array_merge($adminContext(), [
                     'admin_nav' => 'settings',
@@ -107,6 +117,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                     'media_picker_images' => $mediaRepo->listImagesForPicker(200),
                     'published_pages_for_home' => $pageRepo->publishedIdTitlePairs(),
                     'google_oauth_secret_stored' => $googleSecretStoredFlag(),
+                    'firebase_service_account_stored' => $firebaseServiceAccountStoredFlag(),
                     'errors' => $result['errors'],
                 ])));
             }
@@ -121,6 +132,15 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                     : (string) ($dbVals['google_oauth_client_secret'] ?? '');
             }
 
+            if (!empty($body['firebase_service_account_json_clear'])) {
+                $result['values']['firebase_service_account_json'] = '';
+            } else {
+                $typedSa = trim((string) ($result['values']['firebase_service_account_json'] ?? ''));
+                $result['values']['firebase_service_account_json'] = $typedSa !== ''
+                    ? $typedSa
+                    : (string) ($dbVals['firebase_service_account_json'] ?? '');
+            }
+
             if (($result['values']['google_sso_enabled'] ?? '0') === '1') {
                 if (trim((string) ($result['values']['google_oauth_client_id'] ?? '')) === '') {
                     $result['errors']['google_oauth_client_id'] = 'Client ID is required when Google sign-in is enabled.';
@@ -128,6 +148,19 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                 if (trim((string) ($result['values']['google_oauth_client_secret'] ?? '')) === '') {
                     $result['errors']['google_oauth_client_secret'] =
                         'Client secret is required when Google sign-in is enabled. Paste a new secret or turn Google sign-in off until credentials are configured.';
+                }
+            }
+
+            if (($result['values']['firebase_enabled'] ?? '0') === '1') {
+                foreach ([
+                    'firebase_api_key' => 'Web API key',
+                    'firebase_auth_domain' => 'Auth domain',
+                    'firebase_project_id' => 'Project ID',
+                    'firebase_app_id' => 'App ID',
+                ] as $field => $label) {
+                    if (trim((string) ($result['values'][$field] ?? '')) === '') {
+                        $result['errors'][$field] = $label . ' is required when Firebase sign-in is enabled.';
+                    }
                 }
             }
 
@@ -141,6 +174,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
 
             if ($result['errors'] !== []) {
                 $result['values']['google_oauth_client_secret'] = '';
+                $result['values']['firebase_service_account_json'] = '';
 
                 return $twig->render($response, 'admin/settings/form.twig', $withCmsUser($request, array_merge($adminContext(), [
                     'admin_nav' => 'settings',
@@ -149,6 +183,7 @@ return static function (App $app, Twig $twig, Auth $auth, \PDO $pdo, callable $v
                     'media_picker_images' => $mediaRepo->listImagesForPicker(200),
                     'published_pages_for_home' => $pageRepo->publishedIdTitlePairs(),
                     'google_oauth_secret_stored' => $googleSecretStoredFlag(),
+                    'firebase_service_account_stored' => $firebaseServiceAccountStoredFlag(),
                     'errors' => $result['errors'],
                 ])));
             }

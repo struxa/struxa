@@ -28,10 +28,29 @@
       {% endif %}
 
       <div class="theme-auth-page__form-wrap">
+        {% if firebase_sso_enabled and firebase_client_config %}
+          <div class="auth-oauth">
+            <button type="button" class="btn btn-secondary btn-lg auth-submit" id="btn-firebase-sign-in">Continue with Firebase</button>
+          </div>
+          <form id="firebase-session-form" method="post" action="{{ url_for('auth.firebase.session') }}" hidden>
+            <input type="hidden" name="id_token" value="" />
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+            {% if login_next %}
+              <input type="hidden" name="next" value="{{ login_next }}" />
+            {% endif %}
+          </form>
+          {% if google_sso_enabled %}
+            <p class="auth-divider" role="presentation">or</p>
+          {% endif %}
+        {% endif %}
         {% if google_sso_enabled %}
           <div class="auth-oauth">
             <a class="btn btn-secondary btn-lg auth-submit" href="{{ url_for('auth.google.start', {}, login_next ? { next: login_next } : {}) }}">Continue with Google</a>
           </div>
+          <p class="auth-divider" role="presentation">or use your email and password</p>
+        {% elseif not firebase_sso_enabled %}
+          {# no oauth — email form only #}
+        {% else %}
           <p class="auth-divider" role="presentation">or use your email and password</p>
         {% endif %}
 
@@ -76,4 +95,15 @@
     </header>
   </article>
 </main>
+{% endblock %}
+
+{% block scripts_extra %}
+  {% if firebase_sso_enabled and firebase_client_config %}
+    <script>
+      window.STRUXA_FIREBASE_CONFIG = {{ firebase_client_config|json_encode|raw }};
+    </script>
+    <script src="https://www.gstatic.com/firebasejs/11.6.0/firebase-app-compat.js" crossorigin="anonymous"></script>
+    <script src="https://www.gstatic.com/firebasejs/11.6.0/firebase-auth-compat.js" crossorigin="anonymous"></script>
+    <script src="/js/firebase-login.js" defer></script>
+  {% endif %}
 {% endblock %}

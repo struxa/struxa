@@ -91,6 +91,30 @@ final class MobileBootstrapService
         $googleSso = ((string) ($settings['google_sso_enabled'] ?? '0')) === '1'
             && trim($settings['google_oauth_client_id'] ?? '') !== '';
 
+        $firebaseSso = ((string) ($settings['firebase_enabled'] ?? '0')) === '1'
+            && trim($settings['firebase_api_key'] ?? '') !== ''
+            && trim($settings['firebase_auth_domain'] ?? '') !== ''
+            && trim($settings['firebase_project_id'] ?? '') !== ''
+            && trim($settings['firebase_app_id'] ?? '') !== '';
+
+        $firebaseClient = null;
+        if ($firebaseSso) {
+            $firebaseClient = [
+                'apiKey' => trim($settings['firebase_api_key'] ?? ''),
+                'authDomain' => trim($settings['firebase_auth_domain'] ?? ''),
+                'projectId' => trim($settings['firebase_project_id'] ?? ''),
+                'appId' => trim($settings['firebase_app_id'] ?? ''),
+            ];
+            $bucket = trim($settings['firebase_storage_bucket'] ?? '');
+            if ($bucket !== '') {
+                $firebaseClient['storageBucket'] = $bucket;
+            }
+            $sender = trim($settings['firebase_messaging_sender_id'] ?? '');
+            if ($sender !== '') {
+                $firebaseClient['messagingSenderId'] = $sender;
+            }
+        }
+
         $mobileAuthReady = MobileRefreshTokenRepository::tableExists($this->pdo);
 
         $payload = [
@@ -119,6 +143,8 @@ final class MobileBootstrapService
                     'login_path' => '/login',
                     'register_path' => '/register',
                     'google_sso' => $googleSso,
+                    'firebase_sso' => $firebaseSso,
+                    'firebase_client' => $firebaseClient,
                     'collect_username' => ((string) ($settings['registration_collect_username'] ?? '0')) === '1',
                 ],
             ],

@@ -39,6 +39,7 @@
       <a class="admin-settings-toc-link" href="#settings-general">General</a>
       <a class="admin-settings-toc-link" href="#settings-registration">Registration</a>
       <a class="admin-settings-toc-link" href="#settings-google-sso">Google sign-in</a>
+      <a class="admin-settings-toc-link" href="#settings-firebase">Firebase</a>
       <a class="admin-settings-toc-link" href="#settings-homepage">Homepage</a>
       <a class="admin-settings-toc-link" href="#settings-seo">SEO defaults</a>
       <a class="admin-settings-toc-link" href="#settings-branding">Branding</a>
@@ -54,6 +55,7 @@
         <a class="admin-settings-sidebar-link" href="#settings-registration">Registration</a>
         <p class="admin-settings-sidebar-label">Sign-in</p>
         <a class="admin-settings-sidebar-link" href="#settings-google-sso">Google sign-in</a>
+        <a class="admin-settings-sidebar-link" href="#settings-firebase">Firebase</a>
         <p class="admin-settings-sidebar-label">Public site</p>
         <a class="admin-settings-sidebar-link" href="#settings-homepage">Homepage</a>
         <a class="admin-settings-sidebar-link" href="#settings-seo">SEO defaults</a>
@@ -178,6 +180,79 @@
                 Auto-create a login account on first Google sign-in when the email is new
               </label>
               <p class="admin-hint">If off, the user must already exist in PHPAuth (same email). Does not grant CMS staff access by itself.</p>
+            </div>
+          </div>
+        </section>
+
+        <section id="settings-firebase" class="admin-card admin-settings-card admin-settings-section" tabindex="-1">
+          <h2 class="admin-settings-card-title">Firebase Authentication</h2>
+          <p class="admin-settings-card-desc">
+            Firebase client sign-in on <code class="admin-inline-code">/login</code>. Copy the web app config from
+            <strong>Firebase Console → Project settings → Your apps</strong>. Enable sign-in providers (Google, email/password, etc.) in
+            <strong>Authentication → Sign-in method</strong>. The server verifies ID tokens with your Web API key; optional service account JSON is stored for future server-side Firebase Admin use.
+          </p>
+          <div class="admin-form-grid">
+            <div class="admin-field admin-field--full">
+              <input type="hidden" name="firebase_enabled" value="0" />
+              <label class="admin-label admin-settings-check-label">
+                <input type="checkbox" name="firebase_enabled" value="1" {{ (settings_values.firebase_enabled|default('0') ~ '') == '1' ? 'checked' : '' }} />
+                Enable Firebase sign-in on the public log in page
+              </label>
+            </div>
+            <div class="admin-field admin-field--full {{ errors.firebase_api_key is defined ? 'admin-field--error' : '' }}">
+              <label class="admin-label" for="firebase_api_key">Web API key</label>
+              <input class="admin-input" type="text" id="firebase_api_key" name="firebase_api_key" value="{{ settings_values.firebase_api_key|default('')|e('html_attr') }}" maxlength="512" autocomplete="off" />
+              {% if errors.firebase_api_key is defined %}<p class="admin-field-error">{{ errors.firebase_api_key|e }}</p>{% endif %}
+            </div>
+            <div class="admin-field admin-field--full {{ errors.firebase_auth_domain is defined ? 'admin-field--error' : '' }}">
+              <label class="admin-label" for="firebase_auth_domain">Auth domain</label>
+              <input class="admin-input" type="text" id="firebase_auth_domain" name="firebase_auth_domain" value="{{ settings_values.firebase_auth_domain|default('')|e('html_attr') }}" maxlength="512" placeholder="your-project.firebaseapp.com" autocomplete="off" />
+              {% if errors.firebase_auth_domain is defined %}<p class="admin-field-error">{{ errors.firebase_auth_domain|e }}</p>{% endif %}
+            </div>
+            <div class="admin-field {{ errors.firebase_project_id is defined ? 'admin-field--error' : '' }}">
+              <label class="admin-label" for="firebase_project_id">Project ID</label>
+              <input class="admin-input" type="text" id="firebase_project_id" name="firebase_project_id" value="{{ settings_values.firebase_project_id|default('')|e('html_attr') }}" maxlength="256" autocomplete="off" />
+              {% if errors.firebase_project_id is defined %}<p class="admin-field-error">{{ errors.firebase_project_id|e }}</p>{% endif %}
+            </div>
+            <div class="admin-field {{ errors.firebase_app_id is defined ? 'admin-field--error' : '' }}">
+              <label class="admin-label" for="firebase_app_id">App ID</label>
+              <input class="admin-input" type="text" id="firebase_app_id" name="firebase_app_id" value="{{ settings_values.firebase_app_id|default('')|e('html_attr') }}" maxlength="256" autocomplete="off" />
+              {% if errors.firebase_app_id is defined %}<p class="admin-field-error">{{ errors.firebase_app_id|e }}</p>{% endif %}
+            </div>
+            <div class="admin-field {{ errors.firebase_storage_bucket is defined ? 'admin-field--error' : '' }}">
+              <label class="admin-label" for="firebase_storage_bucket">Storage bucket</label>
+              <input class="admin-input" type="text" id="firebase_storage_bucket" name="firebase_storage_bucket" value="{{ settings_values.firebase_storage_bucket|default('')|e('html_attr') }}" maxlength="512" placeholder="Optional" autocomplete="off" />
+              {% if errors.firebase_storage_bucket is defined %}<p class="admin-field-error">{{ errors.firebase_storage_bucket|e }}</p>{% endif %}
+            </div>
+            <div class="admin-field {{ errors.firebase_messaging_sender_id is defined ? 'admin-field--error' : '' }}">
+              <label class="admin-label" for="firebase_messaging_sender_id">Messaging sender ID</label>
+              <input class="admin-input" type="text" id="firebase_messaging_sender_id" name="firebase_messaging_sender_id" value="{{ settings_values.firebase_messaging_sender_id|default('')|e('html_attr') }}" maxlength="64" placeholder="Optional (FCM)" autocomplete="off" />
+              {% if errors.firebase_messaging_sender_id is defined %}<p class="admin-field-error">{{ errors.firebase_messaging_sender_id|e }}</p>{% endif %}
+            </div>
+            <div class="admin-field admin-field--full {{ errors.firebase_service_account_json is defined ? 'admin-field--error' : '' }}">
+              <label class="admin-label" for="firebase_service_account_json">Service account JSON</label>
+              <textarea class="admin-textarea admin-textarea--mono" id="firebase_service_account_json" name="firebase_service_account_json" rows="5" maxlength="65535" placeholder="{{ firebase_service_account_stored|default(false) ? 'Leave blank to keep existing JSON' : 'Optional — paste JSON from Firebase Console → Service accounts' }}"></textarea>
+              {% if firebase_service_account_stored|default(false) %}
+                <label class="admin-label admin-settings-check-label" style="margin-top:0.5rem">
+                  <input type="checkbox" name="firebase_service_account_json_clear" value="1" />
+                  Remove stored service account JSON
+                </label>
+              {% endif %}
+              <p class="admin-hint">Optional for sign-in (token verify uses the Web API key). Store for server-side Admin SDK / FCM later.</p>
+              {% if errors.firebase_service_account_json is defined %}<p class="admin-field-error">{{ errors.firebase_service_account_json|e }}</p>{% endif %}
+            </div>
+            <div class="admin-field admin-field--full {{ errors.firebase_allowed_domains is defined ? 'admin-field--error' : '' }}">
+              <label class="admin-label" for="firebase_allowed_domains">Allowed email domains</label>
+              <input class="admin-input" type="text" id="firebase_allowed_domains" name="firebase_allowed_domains" value="{{ settings_values.firebase_allowed_domains|default('')|e('html_attr') }}" maxlength="2000" placeholder="e.g. company.com — leave blank for any domain" />
+              {% if errors.firebase_allowed_domains is defined %}<p class="admin-field-error">{{ errors.firebase_allowed_domains|e }}</p>{% endif %}
+            </div>
+            <div class="admin-field admin-field--full">
+              <input type="hidden" name="firebase_auto_provision" value="0" />
+              <label class="admin-label admin-settings-check-label">
+                <input type="checkbox" name="firebase_auto_provision" value="1" {{ (settings_values.firebase_auto_provision|default('0') ~ '') == '1' ? 'checked' : '' }} />
+                Auto-create login + member account on first Firebase sign-in when the email is new
+              </label>
+              <p class="admin-hint">Creates a PHPAuth user and <code class="admin-inline-code">cms_users</code> member row linked to the Firebase UID. Does not grant CMS staff access.</p>
             </div>
           </div>
         </section>
